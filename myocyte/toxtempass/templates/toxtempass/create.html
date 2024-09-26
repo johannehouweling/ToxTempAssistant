@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Home Page{% endblock %}
+
+{% block content %}
+{% load django_bootstrap5 %}
+<h2>{{title}}</h2>
+ <!-- action defines where ajax sends the post to, novalidate to use bootstrap validation markup --> 
+<form method="post" action="{{action}}" novalidate>
+    {% csrf_token %}
+    {% bootstrap_form form layout='floating'%}
+    {% bootstrap_button button_type="submit" content="Create" %}
+    {% bootstrap_button button_type="link" content="Back" href=back_url button_class="btn-outline-danger" %}
+</form>
+{% include "error_handling.html" %}
+{%endblock%}

@@ -1,0 +1,86 @@
+
+{% extends "base.html" %}
+
+{% block title %}Home Page{% endblock %}
+
+{% block content %}
+{% load django_bootstrap5 %}
+<h1>Select Investigation, Study, and Assay</h1>
+ <!-- action defines where ajax sends the post to, novalidate to use bootstrap validation markup --> 
+    <form method="post" action="{{action}}" novalidate>
+        {% csrf_token %}
+        {% bootstrap_form form layout='floating' show_label=False %}
+        {% bootstrap_button button_type="submit" content="Start"%}
+    </form>
+    <script>
+        // Function to initialize or update buttons based on the current select value
+        function updateButtons(id) {
+            var select_elem = document.getElementById(id);
+            var btn1 = document.getElementById(id + "_btn1"); // modify
+            var btn2 = document.getElementById(id + "_btn2"); // delete
+            var selectedValue = select_elem.value; // Get the selected value
+    
+            // Update href based on select value
+            if (id === 'id_investigation' && selectedValue) {
+                btn1.href = `/investigation/update/${parseInt(selectedValue)}/`;
+                btn2.href = `/investigation/delete/${parseInt(selectedValue)}/`;
+            }
+    
+            if (id === 'id_study' && selectedValue) {
+                btn1.href = `/study/update/${parseInt(selectedValue)}/`;
+                btn2.href = `/study/delete/${parseInt(selectedValue)}/`;
+            }
+    
+            if (id === 'id_assay' && selectedValue) {
+                btn1.href = `/assay/update/${parseInt(selectedValue)}/`;
+                btn2.href = `/assay/delete/${parseInt(selectedValue)}/`;
+            }
+    
+            // Only proceed if btn1 and btn2 are not null
+            if (btn1 && btn2) {
+                if (selectedValue === '') {
+                    // Disable buttons
+                    [btn1, btn2].forEach(function(btn) {
+                        btn.classList.add('disabled');
+                    });
+                } else {
+                    // Enable buttons
+                    [btn1, btn2].forEach(function(btn) {
+                        btn.classList.remove('disabled');
+                    });
+                }
+            }
+        }
+    
+        // Function to initialize or update all buttons
+        function initializeButtons() {
+            var ids = ['id_investigation', 'id_study', 'id_assay'];
+    
+            // Initialize button states on page load or back navigation
+            ids.forEach(function(id) {
+                updateButtons(id);  // Call the function to update the buttons initially
+    
+                // Add change event listener to update buttons dynamically
+                var select_elem = document.getElementById(id);
+                select_elem.addEventListener('change', function() {
+                    updateButtons(id);  // Update buttons on select change
+                });
+            });
+        }
+    
+        // Use pageshow event to handle both initial load and back button navigation
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted || performance.getEntriesByType("navigation")[0].type === "back_forward") {
+                // The page is coming from cache (back/forward navigation)
+                initializeButtons();
+            } else {
+                // Normal page load
+                initializeButtons();
+            }
+        });
+    
+        // Alternatively, you can call initializeButtons on DOMContentLoaded for initial load
+        document.addEventListener('DOMContentLoaded', initializeButtons);
+    </script>   
+{% include "error_handling.html" %}
+{%endblock%}

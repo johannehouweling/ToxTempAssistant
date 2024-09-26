@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Home Page{% endblock %}
+
+{% block content %}
+{% load django_bootstrap5 %}
+{% load extras %}
+<h1>Answer Questions for Assay: {{ assay.title }}</h1>
+<div class"container-fluid" >
+    <div class="row" style="height: 100%;">
+        <!-- Scrollspy Sidebar -->
+        <div class="col-4">
+            <div style="position: sticky; top: 0; height: 70vh; overflow-y: auto;">
+                <nav id="navbar-questions" class="flex-column align-items-stretch border-end">
+                    <nav class="nav nav-pills flex-column">
+                        {% for section in sections %}
+                            <a class="nav-link" href="#section-{{ section.id }}">{{ section.title }}</a>
+                            <nav class="nav nav-pills flex-column">
+                                {% for subsection in section.subsections.all %}
+                                    <a class="nav-link ms-3 my-1" href="#subsection-{{ subsection.id }}">{{ subsection.title }}</a>
+                                {% endfor %}
+                            </nav>
+                        {% endfor %}
+                    </nav>
+                </nav>
+            </div>
+            <!-- Back Button -->
+            <div class="mt-3">
+                {% bootstrap_button button_type="link" content="Back" href=back_url button_class="btn-outline-danger"  %}
+            </div>
+        </div>
+            
+
+        <!-- Content Area for Questions -->
+        <div class="col-8" style="height: 90%;">
+            <form method="post" action="{{action}}" novalidate>
+                {% csrf_token %}
+                {{ form.non_field_errors }}
+                <div id="question-content" data-bs-spy="scroll" data-bs-target="#navbar-questions" data-bs-smooth-scroll="true" class="scrollspy-example-2" tabindex="0" style="height: 70vh; overflow-y: auto;">
+                    {% for section in sections %}
+                        <div id="section-{{ section.id }}" class="mt-5">
+                            <h4>{{ section.title }}</h4>
+                            {% for subsection in section.subsections.all %}
+                                <div id="subsection-{{ subsection.id }}" class="mt-3">
+                                    <h5>{{ subsection.title }}</h5>
+                                    {% for question in subsection.questions.all %}
+                                        <div class="mb-3">
+                                            {% comment %} <label for="id_question_{{ question.id }}">{{ question.question_text }}</label> {% endcomment %}
+                                            {% with quest_num='question_'|add_asstring:question.id %}
+                                            {% bootstrap_field form|form_field:quest_num placeholder="" %}
+                                            {% endwith%} 
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Submit Button -->
+                <div class="mt-3">
+                    {% bootstrap_button button_type="submit" content="Save" %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Scrollspy Auto Scroll Script -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const navbar = document.getElementById("navbar-questions");
+        const contentArea = document.getElementById("question-content");
+        let scrollTimeout;
+
+        // Listen for scrolling on the content area
+        contentArea.addEventListener('scroll', function () {
+            // Clear previous timeout if user is still scrolling
+            clearTimeout(scrollTimeout);
+
+            // Set a timeout to trigger after scrolling stops (e.g., 200ms after last scroll event)
+            scrollTimeout = setTimeout(function () {
+                // Try to find .my-1.active first
+                let activeLink = navbar.querySelector('.my-1.active');
+                
+                // If .my-1.active does not exist, fall back to .active
+                if (!activeLink) {
+                    activeLink = navbar.querySelector('.active');
+                }
+
+                // If an active link was found, scroll it into view
+                if (activeLink) {
+                    activeLink.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                }
+            }, 1500);  // Adjust the delay as needed
+        });
+    });
+</script>
+{% include "error_handling.html" %}
+{% endblock %}

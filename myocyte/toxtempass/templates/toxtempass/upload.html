@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Home Page{% endblock %}
+
+{% block content %}
+
+    <h1>Drag and Drop File Upload</h1>
+
+    <div class="card bg-light"  >
+        <div class ="card-header">
+        Drop your file here
+        </div>
+        <div class="card-body bg-secondary" style="{{style}}" id="dropZone">
+        </div>
+    </div>
+    
+        <script>
+        const dropZone = document.getElementById('dropZone');
+
+        // Prevent default behavior for drag events
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        // Add a class when the file is dragged over the drop zone
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => {
+                dropZone.classList.add('dragover');
+            }, false);
+        });
+
+        // Remove the class when the file is no longer dragged over the drop zone
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => {
+                dropZone.classList.remove('dragover');
+            }, false);
+        });
+
+        // Handle the file drop
+        dropZone.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                uploadFile(files[0]); // Only handling single file upload in this example
+            }
+        }
+
+        // Function to upload the file
+        function uploadFile(file) {
+            const url = '{% url "upload" %}';  // urls.py route for handling file upload
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch(url, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to upload the file.');
+            });
+        }
+    </script>
+
+{% endblock %}

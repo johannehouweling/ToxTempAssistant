@@ -1,0 +1,77 @@
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+
+    form.addEventListener('submit', function(event) {
+        event.preventDefault(); // Prevent the form from submitting the default way
+        const formData = new FormData(form); // Create FormData object for handling file uploads
+
+        // Clear previous errors
+        form.querySelectorAll('.invalid-feedback').forEach(function(error) {
+            error.remove();
+        });
+        form.querySelectorAll('.is-invalid').forEach(function(input) {
+            input.classList.remove('is-invalid', 'rounded-end');
+        });
+
+        const request = new XMLHttpRequest();
+        request.open(form.getAttribute('method'), form.getAttribute('action'));
+
+        // Set up callback for success or error
+        request.onload = function() {
+            if (request.status >= 200 && request.status < 300) {
+                const response = JSON.parse(request.responseText);
+                if (response.success) {
+                    // Handle success (e.g., redirect, display a success message, etc.)
+                    window.location.href = response.redirect_url;
+                } else {
+                    // Handle form errors
+                    for (const field in response.errors) {
+                        const errors = response.errors[field];
+
+                        // Handle QuantityField split field names
+                        const buttonFields = form.querySelectorAll(`[name^=${field}_btn]`);
+                        const lastButton = buttonFields[buttonFields.length - 1];
+                        const inputField = form.querySelector(`[name=${field}]`);
+
+                        if (inputField) {
+                            inputField.classList.add('is-invalid');
+                        }
+
+                        if (buttonFields.length > 0) {
+                            buttonFields.forEach(function(button) {
+                                button.classList.add('is-invalid');
+                            });
+                            lastButton.classList.add('rounded-end');
+                            const errorDiv = document.createElement('div');
+                            errorDiv.classList.add('invalid-feedback');
+                            errorDiv.innerHTML = errors.join('<br>');
+                            lastButton.insertAdjacentElement('afterend', errorDiv);
+                        } else if (inputField) {
+                            const errorDiv = document.createElement('div');
+                            errorDiv.classList.add('invalid-feedback');
+                            errorDiv.innerHTML = errors.join('<br>');
+                            inputField.insertAdjacentElement('afterend', errorDiv);
+                        }
+                    }
+
+                    // Handle non-field errors
+                    if (response.errors.__all__) {
+                        const nonFieldErrorsContainer = document.getElementById('non-field-errors');
+                        nonFieldErrorsContainer.innerHTML = `<div class="alert alert-danger">${response.errors.__all__.join('<br>')}</div>`;
+                    }
+                }
+            } else {
+                alert('An unexpected error occurred. Please try again.');
+            }
+        };
+
+        request.onerror = function() {
+            alert('An unexpected error occurred. Please try again.');
+        };
+
+        // Send the form data
+        request.send(formData);
+    });
+});
+</script>
