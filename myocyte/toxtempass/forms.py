@@ -6,6 +6,26 @@ from toxtempass.widgets import (
 # Form to submit answers to fixed questions for an assay
 
 
+class MultipleFileInput(forms.ClearableFileInput):
+    """FileInput for multiple files."""
+
+    allow_multiple_selected = True
+
+
+class MultipleFileField(forms.FileField):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("widget", MultipleFileInput())
+        super().__init__(*args, **kwargs)
+
+    def clean(self, data, initial=None):
+        single_file_clean = super().clean
+        if isinstance(data, (list, tuple)):
+            result = [single_file_clean(d, initial) for d in data]
+        else:
+            result = [single_file_clean(data, initial)]
+        return result
+
+
 class StartingForm(forms.Form):
     investigation = forms.ModelChoiceField(
         queryset=Investigation.objects.all(),
@@ -54,6 +74,11 @@ class StartingForm(forms.Form):
                 "d-flex align-items-center btn btn-outline-danger rounded-end disabled",
             ],
         ),
+    )
+    files = forms.FileField(
+        widget=MultipleFileInput(attrs={"multiple": True}),
+        required=False,
+        help_text="Upload documents as context for the LLM to draft answers.",
     )
 
 

@@ -1,11 +1,11 @@
 from django.http import HttpRequest
+
 from django.http.response import JsonResponse
-from django.template.response import TemplateResponse
 from django.db import transaction
 import json
 from pathlib import Path
-
 from django.urls import reverse
+from toxtempass.filehandling import get_text_from_django_uploaded_file
 from toxtempass.models import Section, Subsection, Question
 from django.shortcuts import get_object_or_404, render, redirect
 from django.utils.safestring import mark_safe
@@ -17,6 +17,7 @@ from toxtempass.forms import (
     StudyForm,
     AssayForm,
 )
+from toxtempass.llm import chain
 
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth.models import User
@@ -26,17 +27,6 @@ from django.contrib.auth.models import User
 def is_admin(user: User):
     """Check is user is admin. Return True if that's the case."""
     return user.is_superuser
-
-
-def home(request: HttpRequest):
-    return JsonResponse(dict(text="Hello, Flask!"))
-
-
-def upload(request: HttpRequest):
-    if request.method == "POST":
-        print(request.files["file"])
-        return JsonResponse(dict(message="Success"))
-    return TemplateResponse(request, "upload.html", context=dict(style="height:200px"))
 
 
 @user_passes_test(is_admin)
@@ -81,6 +71,20 @@ def start_form_view(request):
         if form.is_valid():
             # Process form data here
             assay = form.cleaned_data["assay"]
+            # Process the files to generate draft of answers
+            files = request.FILES.getlist("files")
+            if files:  # if the user provides no files just show the answers as is
+                text_dict = get_text_from_django_uploaded_file(files)
+                for answer in assay.answers.all():
+                    question = answer.question.question_text
+                    draft_answer = chain.invoke(
+                        {
+                            "context": text_dict,
+                            "question": question,
+                        }
+                    )
+                    answer.answer_text = draft_answer
+                    answer.save()
             # return a success message (currently not displayed - only browser intern) and redirect
             return JsonResponse(
                 dict(
