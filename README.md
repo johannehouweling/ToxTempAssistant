@@ -17,6 +17,7 @@ PDF-based, LLM assisted assistiant to report your assay via the ToxTemplate. [1]
 - GPT integration
 - PDF upload facility
 - PDF output generation?
+- Write tests
 - What happens if new file is uploaded to existing assay -> Currently will overwrite!!! 
 ## License
 
