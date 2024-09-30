@@ -6,10 +6,17 @@ import json
 from pathlib import Path
 from django.urls import reverse
 from toxtempass.filehandling import get_text_from_django_uploaded_file
-from toxtempass.models import Section, Subsection, Question
 from django.shortcuts import get_object_or_404, render, redirect
 from django.utils.safestring import mark_safe
-from toxtempass.models import Investigation, Study, Assay
+from toxtempass.models import (
+    Investigation,
+    Study,
+    Assay,
+    Answer,
+    Section,
+    Subsection,
+    Question,
+)
 from toxtempass.forms import (
     AssayAnswerForm,
     StartingForm,
@@ -293,4 +300,42 @@ def answer_assay_questions(request, assay_id):
             "sections": sections,
             "back_url": reverse("start"),
         },
+    )
+
+
+# Versioning:
+
+
+def get_version_history(request, assay_id, question_id):
+    # Get the answer instance based on assay and question
+    answer = get_object_or_404(Answer, assay=assay_id, question=question_id)
+    
+    # Get the version history of the answer
+    history = answer.history.all()
+    
+    # List to store version and corresponding changes
+    version_changes = []
+    
+    # Iterate through the history and compute differences
+    for version in history:
+        changes = None
+        # Check if there is a previous record
+        if version.prev_record:
+            # Calculate the differences using diff_against
+            changes = version.diff_against(version.prev_record).changes
+        
+        # Append the version and its changes to the list
+        version_changes.append({
+            'version': version,
+            'changes': changes
+        })
+    
+    # Pass the version changes and the instance to the template
+    return render(
+        request,
+        "version_history_modal.html",
+        {
+            "version_changes": version_changes,
+            "instance": answer
+        }
     )

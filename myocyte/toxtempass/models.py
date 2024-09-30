@@ -1,4 +1,5 @@
 from django.db import models
+from simple_history.models import HistoricalRecords
 
 
 # Investigation Model
@@ -83,6 +84,7 @@ class Answer(models.Model):
         null=False,
     )
     answer_text = models.TextField(null=True, blank=True)
+    history = HistoricalRecords()
 
     def __str__(self):
         return f"Answer to {self.question} for assay {self.assay}"

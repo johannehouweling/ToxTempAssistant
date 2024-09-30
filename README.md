@@ -10,7 +10,6 @@ PDF-based, LLM assisted assistiant to report your assay via the ToxTemplate. [1]
 
 ## Install
 ## TODO
-- History (version controll for answers -> django_simple_history)
 - Filtering: User, Investigation->Study-Assay (only show assays per selected study etc)
 - Collaboration option? Easier option to show User study only to users
 - Disclaimer on Privacy etc.

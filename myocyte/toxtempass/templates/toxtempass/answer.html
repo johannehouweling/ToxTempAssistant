@@ -50,6 +50,13 @@
                                             {% bootstrap_field form|form_field:quest_num placeholder="" %}
                                             {% endwith%} 
                                         </div>
+                                        <button type="button" class="btn btn-outline-primary" id="openModalButton"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#versionHistoryModal"
+                                                data-assay-id="{{ assay.id }}"
+                                                data-question-id="{{question.id}}">
+                                            History
+                                        </button>
                                     {% endfor %}
                                 </div>
                             {% endfor %}
@@ -61,40 +68,71 @@
                 <div class="mt-3">
                     {% bootstrap_button button_type="submit" content="Save" %}
                 </div>
+
             </form>
         </div>
     </div>
 </div>
 
+<!-- Version History Modal -->
+<div class="modal fade" id="versionHistoryModal" tabindex="-1" aria-labelledby="versionHistoryLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="versionHistoryLabel">Version History</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Content will be loaded dynamically via AJAX -->
+          <div id="modal-body-content">
+            <p>Loading version history...</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 <!-- Scrollspy Auto Scroll Script -->
-<script>
+  <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const navbar = document.getElementById("navbar-questions");
-        const contentArea = document.getElementById("question-content");
-        let scrollTimeout;
-
-        // Listen for scrolling on the content area
-        contentArea.addEventListener('scroll', function () {
-            // Clear previous timeout if user is still scrolling
-            clearTimeout(scrollTimeout);
-
-            // Set a timeout to trigger after scrolling stops (e.g., 200ms after last scroll event)
-            scrollTimeout = setTimeout(function () {
-                // Try to find .my-1.active first
-                let activeLink = navbar.querySelector('.my-1.active');
-                
-                // If .my-1.active does not exist, fall back to .active
-                if (!activeLink) {
-                    activeLink = navbar.querySelector('.active');
-                }
-
-                // If an active link was found, scroll it into view
-                if (activeLink) {
-                    activeLink.scrollIntoView({ block: 'center', behavior: 'smooth' });
-                }
-            }, 1500);  // Adjust the delay as needed
-        });
+      // Get the modal element and modal body
+      var modal = document.getElementById('versionHistoryModal');
+      var modalBody = document.getElementById('modal-body-content');
+  
+      // Add event listener to the modal to fire when it is about to be shown
+      modal.addEventListener('show.bs.modal', function (event) {
+        // Button that triggered the modal
+        var button = event.relatedTarget;
+        // Extract model_id, assay_id, and question_id from data-* attributes
+        var modelId = button.getAttribute('data-model-id');
+        var assayId = button.getAttribute('data-assay-id');
+        var questionId = button.getAttribute('data-question-id');
+        console.log(questionId)
+        // Clear previous content in modal
+        modalBody.innerHTML = '<p>Loading version history...</p>';
+        if (questionId) {
+        // Fetch the version history with assay_id and question_id as query parameters
+        fetch(`${questionId}/version-history/`)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Network response was not ok');
+            }
+            return response.text(); // Get response as HTML
+          })
+          .then(data => {
+            // Insert the version history HTML into the modal body
+            modalBody.innerHTML = data;
+          })
+          .catch(error => {
+            modalBody.innerHTML = '<p>Error loading version history. Please try again later.</p>';
+          });
+        }
+      });
     });
-</script>
+  </script>
 {% include "error_handling.html" %}
 {% endblock %}
+

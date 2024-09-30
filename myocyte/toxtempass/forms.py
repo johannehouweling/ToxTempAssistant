@@ -137,16 +137,20 @@ class AssayAnswerForm(forms.Form):
     def save(self):
         # Save each answer for the corresponding assay and question
         for field_name, answer_text in self.cleaned_data.items():
+            # Extract the question ID from the field name (assuming the format is 'question_<id>')
             question_id = field_name.split("_")[1]
             question = Question.objects.get(pk=question_id)
 
-            # Get or create the answer object
+            # Get or create the answer object for this assay and question
             answer, created = Answer.objects.get_or_create(
                 assay=self.assay,
                 question=question,
-                defaults={"answer_text": answer_text},
+                defaults={
+                    "answer_text": answer_text
+                },  # This only sets the text if the answer is being created
             )
-            # Update the answer if it already exists
-            if not created:
+
+            # Only update if the answer_text is different from the existing one
+            if not created and answer.answer_text != answer_text:
                 answer.answer_text = answer_text
                 answer.save()

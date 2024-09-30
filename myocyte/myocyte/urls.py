@@ -64,3 +64,12 @@ urlpatterns += [
         name="answer_assay_questions",
     ),
 ]
+# Version History
+
+urlpatterns += [
+    path(
+        "assay/<int:assay_id>/answer/<int:question_id>/version-history/",
+        views.get_version_history,
+        name="get_version_history",
+    ),
+]
