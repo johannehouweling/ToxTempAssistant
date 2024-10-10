@@ -16,7 +16,7 @@ PDF-based, LLM assisted assistiant to report your assay via the ToxTemplate. [1]
 - Filtering: User, Investigation->Study-Assay (only show assays per selected study etc)
 - Collaboration option? Easier option to show User study only to users
 - Disclaimer on Privacy etc.
-- Output generation -> Json, XML, PDF
+- Output generation -> <s>Json</s>, <s>MD</s>, XML, PDF (use MD and pandoc to generate XML, PDF and DOCX)
 - Write tests
 - Add functionality to allow GPT on per question/multi-question level.
 - Somewhere log the documents that have been used for generation of draft answers.

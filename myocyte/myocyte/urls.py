@@ -74,3 +74,9 @@ urlpatterns += [
         name="get_version_history",
     ),
 ]
+
+# Exports
+
+urlpatterns +=[
+    path('assay/<int:assay_id>/answer/export/<str:export_type>/', views.export_assay, name="export_assay")
+]

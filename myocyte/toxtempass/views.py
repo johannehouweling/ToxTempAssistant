@@ -1,4 +1,4 @@
-from django.http import HttpRequest
+from django.http import FileResponse, HttpRequest
 from toxtempass import config
 from django.http.response import JsonResponse
 from django.db import transaction
@@ -26,6 +26,7 @@ from toxtempass.forms import (
     AssayForm,
 )
 from toxtempass.llm import chain
+from toxtempass.export import export_assay_to_file
 
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth.models import User
@@ -97,9 +98,11 @@ def start_form_view(request):
                         question = answer.question.question_text
                         draft_answer = chain.invoke(
                             [
-                                SystemMessage(content=config.base_prompt2),
+                                SystemMessage(content=config.base_prompt),
                                 SystemMessage(content=f"ASSAY NAME: {assay.title}\n"),
-                                SystemMessage(content=f"ASSAY DESCRIPTION: {assay.description}\n"),
+                                SystemMessage(
+                                    content=f"ASSAY DESCRIPTION: {assay.description}\n"
+                                ),
                                 SystemMessage(
                                     content=f"""Below find the context to answer the question:\n CONTEXT:\n{doc_dict}"""  # text_dict can be optimized (e.g. only text)
                                 ),
@@ -335,6 +338,12 @@ def answer_assay_questions(request, assay_id):
             "assay": assay,
             "sections": sections,
             "back_url": reverse("start"),
+            "export_json_url": reverse(
+                "export_assay", kwargs=dict(assay_id=assay.id, export_type="json")
+            ),
+            "export_md_url": reverse(
+                "export_assay", kwargs=dict(assay_id=assay.id, export_type="md")
+            ),
         },
     )
 
@@ -369,3 +378,15 @@ def get_version_history(request, assay_id, question_id):
         "version_history_modal.html",
         {"version_changes": version_changes, "instance": answer},
     )
+
+
+# Exporting:
+
+
+def export_assay(
+    request: HttpRequest, assay_id: int, export_type: str
+) -> FileResponse | JsonResponse:
+    """Export View to ship Files to user per assay."""
+    assay = Assay.objects.get(id=assay_id)
+    return export_assay_to_file(request, assay, export_type)
+        

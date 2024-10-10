@@ -67,6 +67,20 @@
                 <!-- Submit Button -->
                 <div class="mt-3">
                     {% bootstrap_button button_type="submit" content="Save" %}
+                    <div class="btn-group">
+                      <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        Export
+                      </button>
+                      <ul class="dropdown-menu">
+                        {% with id=assay.id %}
+                        <li><a class="dropdown-item" href="{{export_json_url}}">JSON</a></li>
+                        <li><a class="dropdown-item" href="{{export_md_url}}">MD</a></li>
+                        <li><a class="dropdown-item disabled" href="#">PDF</a></li>
+                        <li><a class="dropdown-item disabled" href="#">XML</a></li>
+                        <li><a class="dropdown-item disabled" href="#">DOCX</a></li>
+                        {% endwith %}
+                      </ul>
+                    </div>
                 </div>
 
             </form>

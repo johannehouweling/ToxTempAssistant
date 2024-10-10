@@ -3,13 +3,8 @@ class Config:
 
     model = "gpt-4o-mini"
     url = "https://api.openai.com/v1/chat/completions"  # for gpt-4o mini
-    # url = 'https://api.openai.com/v1/' #for gpt3.5
     temperature = 0
-    base_prompt = """/
-    You are an agent tasked with answering the question below. Use only the provided context to formulate your response. 
-    If the answer is not within the context, acknowledge that you don't know. Keep your response concise.
-    """
-    base_prompt2 = """
+    base_prompt = """
     You are an agent tasked with answering individual questions from a larger template regarding cell-based toxicological test methods (also referred to as assays). Each question will be addressed one at a time, and together, they aim to create a complete and thorough documentation of the assay.
 
     0.	Implicit Subject: In all responses and instructions, the implicit subject will always refer to the assay.
@@ -20,6 +15,9 @@ class Config:
 	5.	Acknowledgment of Unknowns: If an answer is not found within the provided context, state, “Answer not found in documents.” Avoid providing incomplete or misleading information.
 	6.	Completeness of Answers: Strive to provide complete answers based on the context. If the information is not available in the document, do not attempt to fill in gaps with assumptions.
     """
+    version = "0.1"
+    reference = "tbd"
+    reference_toxtemp = "https://doi.org/10.14573/altex.1909271"
 
 
 config = Config()
