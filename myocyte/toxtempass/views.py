@@ -97,7 +97,9 @@ def start_form_view(request):
                         question = answer.question.question_text
                         draft_answer = chain.invoke(
                             [
-                                SystemMessage(content=config.base_prompt),
+                                SystemMessage(content=config.base_prompt2),
+                                SystemMessage(content=f"ASSAY NAME: {assay.title}\n"),
+                                SystemMessage(content=f"ASSAY DESCRIPTION: {assay.description}\n"),
                                 SystemMessage(
                                     content=f"""Below find the context to answer the question:\n CONTEXT:\n{doc_dict}"""  # text_dict can be optimized (e.g. only text)
                                 ),

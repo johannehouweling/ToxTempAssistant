@@ -13,13 +13,14 @@ PDF-based, LLM assisted assistiant to report your assay via the ToxTemplate. [1]
 ## Install
 ## TODO
 ### Functionality
-- Load progress after clicking start.
 - Filtering: User, Investigation->Study-Assay (only show assays per selected study etc)
 - Collaboration option? Easier option to show User study only to users
 - Disclaimer on Privacy etc.
 - Output generation -> Json, XML, PDF
 - Write tests
-- What happens if new file is uploaded to existing assay -> Currently will overwrite!!!
+- Add functionality to allow GPT on per question/multi-question level.
+- Somewhere log the documents that have been used for generation of draft answers.
+- Mark answer as accepted
 ### Performance optimization
 -  History: Make sure we Cache the Answers on first shipment of the Answer.html, so that if we store answers we don't have to hit the database again. 
 ## License
