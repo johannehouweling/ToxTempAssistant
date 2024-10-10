@@ -6,6 +6,7 @@ from django.core.files.uploadedfile import (
 )
 import tempfile
 
+# from toxtempass.utilis import calculate_md5_multiplefiles, combine_dicts
 from toxtempass.llm import get_text_filepaths
 
 
@@ -36,11 +37,20 @@ def convert_to_temporary(file: InMemoryUploadedFile):
 
 
 def get_text_from_django_uploaded_file(files: UploadedFile) -> dict[str, str]:
-    temp_files = [file for file in files if isinstance(file, TemporaryUploadedFile)]
+    """Get text dictionary from uploaded files.
+    {Path(filename.pdf): {'text': 'lorem ipsum'}
+    """
+    temp_files = [
+        file.temporary_file_path()
+        for file in files
+        if isinstance(file, TemporaryUploadedFile)
+    ]
     tempmem_files = [
         convert_to_temporary(file)
         for file in files
         if isinstance(file, InMemoryUploadedFile)
     ]
     files = temp_files + tempmem_files
-    return get_text_filepaths(files)
+    # md5_dict = calculate_md5_multiplefiles(files)
+    text_dict = get_text_filepaths(files)
+    return text_dict

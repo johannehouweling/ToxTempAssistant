@@ -21,7 +21,7 @@ from toxtempass import views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("init/", views.init_db),
+    path("init/", views.init_db), # initializes database, meaning it creates the questions, subsections and sections.
 ]
 
 urlpatterns += [
@@ -52,6 +52,7 @@ urlpatterns += [
     ),  # hard-coded in start.html
     # Assay URLs
     path("assay/create/", views.create_or_update_assay, name="create_assay"),
+    path("assay/gpt-allowed/<int:pk>", views.gpt_allowed_for_assay, name="assay_gpt_allowed"),
     path(
         "assay/update/<int:pk>/", views.create_or_update_assay, name="update_assay"
     ),  # hard-coded in start.html
@@ -68,7 +69,7 @@ urlpatterns += [
 
 urlpatterns += [
     path(
-        "assay/<int:assay_id>/answer/<int:question_id>/version-history/",
+        "assay/<int:assay_id>/answer/question/<int:question_id>/version-history/",
         views.get_version_history,
         name="get_version_history",
     ),

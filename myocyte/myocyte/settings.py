@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "django_bootstrap5",
     "toxtempass",
     "simple_history",
+    "django_extensions",
 ]
 
 MIDDLEWARE = [

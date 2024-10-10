@@ -115,7 +115,7 @@
         modalBody.innerHTML = '<p>Loading version history...</p>';
         if (questionId) {
         // Fetch the version history with assay_id and question_id as query parameters
-        fetch(`${questionId}/version-history/`)
+        fetch(`question/${questionId}/version-history/`)
           .then(response => {
             if (!response.ok) {
               throw new Error('Network response was not ok');
@@ -127,7 +127,7 @@
             modalBody.innerHTML = data;
           })
           .catch(error => {
-            modalBody.innerHTML = '<p>Error loading version history. Please try again later.</p>';
+            modalBody.innerHTML = '<p>Error loading version history. Please save the answers at least once for the version history to be displayed.</p>';
           });
         }
       });

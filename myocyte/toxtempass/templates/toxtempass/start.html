@@ -9,10 +9,88 @@
  <!-- action defines where ajax sends the post to, novalidate to use bootstrap validation markup --> 
     <form method="post" action="{{action}}" novalidate>
         {% csrf_token %}
+        <div id='non-field-errors'></div>
         {% bootstrap_form form layout='floating' show_label=False %}
-        {% bootstrap_button button_type="submit" content="Start"%}
+        <button id="startButton" class="btn btn-primary" type="submit">
+            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true" id="startButtonSpinner"></span>
+            <span id="startButtonText">Create draft</span> 
+        </button>
     </form>
     <script>
+        const csrftoken = "{{ csrf_token }}"; // This line uses Django's template tag
+        // Deactivate the upload menu if gpt is not allowed anymore because answers exist already.
+        var assay_select = document.getElementById('id_assay')
+        
+        assay_select.addEventListener('change', function(event){
+            fetch(`/assay/gpt-allowed/${assay_select.value}`, {
+                method: 'POST', // Specify the request method
+                headers: {
+                    'X-CSRFToken': csrftoken, // Add CSRF token to headers (security measure by django)
+                    'Content-Type': 'application/json', // Indicate that we are sending JSON data
+                },
+                body: "" // Convert data to JSON string
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+                return response.json(); // Parse JSON response
+            })
+            .then(data => {
+                console.log('Success:', data); // Handle success
+                if (data.gpt_allowed){
+                    document.getElementById('id_files').disabled = false
+                    document.getElementById('id_files').value = '' 
+                    document.getElementById('startButtonText').textContent = 'Create draft'
+
+                }
+                else{
+                    document.getElementById('id_files').disabled = true
+                    document.getElementById('id_files').value = ''
+                    document.getElementById('startButtonText').textContent = 'Edit draft'
+
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error); // Handle errors
+            });
+        })
+
+        // Deactivate button on submit and add a spinner
+        var startButton = document.getElementById('startButton');
+        var spinner = document.getElementById('startButtonSpinner');
+        startButton.addEventListener('click', function(event) {
+            response = {}
+            // Show the spinner inside the button
+            console.log('show', spinner)
+            spinner.classList.remove('d-none')
+            // Disable the button
+            console.log('disable', startButton)
+            startButton.classList.add('disabled');
+          
+            // THIS IS NOT IDEAL AND MAY FAIL DEPENDING ON NETWORK AND RESORUCE TIMEING (integrate in ajax submission call better)
+            // check is response of form submission (defined in error_handling.html) is not succesful: then we need to rest the button
+            function checkResponseWithBackoff(maxRetries, baseDelay) {
+                let retries = 0;
+            
+                const checkResponse = () => {
+                    // Check if the 'success' property exists and is false
+                    if (response && response.hasOwnProperty('success') && response.success === false) {
+                        spinner.classList.add('d-none'); // Hide the spinner
+                        startButton.classList.remove('disabled'); // Enable the start button
+                    } else if (retries < maxRetries) {
+                        // Increase the delay exponentially
+                        const delay = baseDelay * Math.pow(2, retries);
+                        retries++;
+                        setTimeout(checkResponse, delay); // Retry after the calculated delay
+                    }
+                };
+            
+                checkResponse(); // Start the checking process
+            }
+            checkResponseWithBackoff(5,100)            
+            
+        });
         // Function to initialize or update buttons based on the current select value
         function updateButtons(id) {
             var select_elem = document.getElementById(id);

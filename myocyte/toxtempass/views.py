@@ -1,10 +1,11 @@
 from django.http import HttpRequest
-
+from toxtempass import config
 from django.http.response import JsonResponse
 from django.db import transaction
 import json
 from pathlib import Path
 from django.urls import reverse
+from langchain_core.messages import HumanMessage, SystemMessage
 from toxtempass.filehandling import get_text_from_django_uploaded_file
 from django.shortcuts import get_object_or_404, render, redirect
 from django.utils.safestring import mark_safe
@@ -28,6 +29,7 @@ from toxtempass.llm import chain
 
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth.models import User
+from toxtempass.utilis import calculate_md5_multiplefiles
 
 
 # Custom test function to check if the user is a superuser (admin)
@@ -80,18 +82,40 @@ def start_form_view(request):
             assay = form.cleaned_data["assay"]
             # Process the files to generate draft of answers
             files = request.FILES.getlist("files")
-            if files:  # if the user provides no files just show the answers as is
-                text_dict = get_text_from_django_uploaded_file(files)
-                for answer in assay.answers.all():
-                    question = answer.question.question_text
-                    draft_answer = chain.invoke(
+            if (
+                files and not assay.answers.all()
+            ):  # if the user provides files and no answers have been create yet, we can run GPT to seed the answers for whole assay
+                # to run gpt we need to cycle over the answers, so we shall first create an empty answer set:
+                form_empty_answers = AssayAnswerForm({}, assay=assay)
+                if form_empty_answers.is_valid():
+                    form_empty_answers.save()
+                doc_dict = get_text_from_django_uploaded_file(
+                    files
+                )  # dict of structure {Path(filename.pdf): {'text': 'lorem ipsum'}}
+                try:
+                    for answer in assay.answers.all():
+                        question = answer.question.question_text
+                        draft_answer = chain.invoke(
+                            [
+                                SystemMessage(content=config.base_prompt),
+                                SystemMessage(
+                                    content=f"""Below find the context to answer the question:\n CONTEXT:\n{doc_dict}"""  # text_dict can be optimized (e.g. only text)
+                                ),
+                                HumanMessage(content=question),
+                            ]
+                        )
+                        answer.answer_text = draft_answer.content
+                        answer.save()
+                        print(draft_answer)
+                except Exception as e:
+                    print(e)
+                    return JsonResponse(
                         {
-                            "context": text_dict,
-                            "question": question,
+                            "success": False,
+                            "errors": {"__all__": [str(e)]},
                         }
                     )
-                    answer.answer_text = draft_answer
-                    answer.save()
+
             # return a success message (currently not displayed - only browser intern) and redirect
             return JsonResponse(
                 dict(
@@ -121,6 +145,16 @@ def start_form_view(request):
             # "action": mark_safe(reverse("start")),
         },
     )
+
+
+def gpt_allowed_for_assay(request: HttpRequest, pk: int) -> JsonResponse:
+    """Answers if gpt is allowed."""
+    if request.method == "POST":
+        assay = get_object_or_404(Assay, pk=pk)
+        if not assay.answers.all():
+            return JsonResponse({"gpt_allowed": True})
+        else:
+            return JsonResponse({"gpt_allowed": False})
 
 
 # Create or update Investigation
@@ -309,13 +343,13 @@ def answer_assay_questions(request, assay_id):
 def get_version_history(request, assay_id, question_id):
     # Get the answer instance based on assay and question
     answer = get_object_or_404(Answer, assay=assay_id, question=question_id)
-    
+
     # Get the version history of the answer
     history = answer.history.all()
-    
+
     # List to store version and corresponding changes
     version_changes = []
-    
+
     # Iterate through the history and compute differences
     for version in history:
         changes = None
@@ -323,19 +357,13 @@ def get_version_history(request, assay_id, question_id):
         if version.prev_record:
             # Calculate the differences using diff_against
             changes = version.diff_against(version.prev_record).changes
-        
+
         # Append the version and its changes to the list
-        version_changes.append({
-            'version': version,
-            'changes': changes
-        })
-    
+        version_changes.append({"version": version, "changes": changes})
+
     # Pass the version changes and the instance to the template
     return render(
         request,
         "version_history_modal.html",
-        {
-            "version_changes": version_changes,
-            "instance": answer
-        }
+        {"version_changes": version_changes, "instance": answer},
     )

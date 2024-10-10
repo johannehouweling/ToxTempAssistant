@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from langchain_openai import OpenAI, AzureChatOpenAI
+from langchain_openai import ChatOpenAI, AzureChatOpenAI
 import logging
 from pathlib import Path
 from myocyte import settings
@@ -11,7 +11,7 @@ from langchain_community.document_loaders import (
     UnstructuredWordDocumentLoader,
 )
 from pypdf import PdfReader
-from langchain_core.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate, ChatPromptTemplate
 
 
 # Load environment variables from the .env file
@@ -29,11 +29,13 @@ LOCAL_OPENAI_API_VERSION = os.getenv("LOCAL_OPENAI_API_VERSION")
 
 # Initialize language models based on environment variables
 if OPENAI_API_KEY:
-    llm = OpenAI(
+    llm = ChatOpenAI(
         api_key=OPENAI_API_KEY,
         temperature=config.temperature,
+        model=config.model,
+        # base_url=config.url,
     )
-    logger.info("LLM (OpenAI) loaded")
+    logger.info(f"LLM ({config.model}) loaded")
 elif (
     LOCAL_OPENAI_API_KEY
     and LOCAL_OPENAI_ENDPOINT
@@ -103,15 +105,15 @@ def get_text_filepaths(document_filenames: list[str | Path]):
                 text = loader.load()[0].page_content
 
             if text:
-                document_contents[context_filename] = text
+                document_contents[context_filename] = {"text":text}
                 logger.info(f"The file '{context_filename}' was read successfully.")
 
         except Exception as e:
             logger.error(f"Error reading '{context_filename}': {e}")
+    # Here let's remove the files after reading them.
+    context_filename.unlink()
 
     return document_contents
 
 
-prompt = PromptTemplate.from_template(config.base_prompt)
-
-chain = prompt | llm
+chain = llm

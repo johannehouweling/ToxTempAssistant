@@ -1,4 +1,5 @@
 <script>
+var response = {}
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.querySelector('form');
 
@@ -19,8 +20,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Set up callback for success or error
         request.onload = function() {
-            if (request.status >= 200 && request.status < 300) {
-                const response = JSON.parse(request.responseText);
+            if (request.status >= 200 && request.status < 501) {
+                response = JSON.parse(request.responseText);
                 if (response.success) {
                     // Handle success (e.g., redirect, display a success message, etc.)
                     window.location.href = response.redirect_url;

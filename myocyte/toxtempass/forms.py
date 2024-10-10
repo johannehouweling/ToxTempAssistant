@@ -78,7 +78,7 @@ class StartingForm(forms.Form):
     files = forms.FileField(
         widget=MultipleFileInput(attrs={"multiple": True}),
         required=False,
-        help_text="Upload documents as context for the LLM to draft answers.",
+        help_text="Upload documents as context for the LLM to draft answers. Only allowed during first draft.",
     )
 
 
