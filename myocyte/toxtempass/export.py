@@ -8,8 +8,11 @@ from django.http import FileResponse, HttpRequest, JsonResponse
 from django.utils.text import slugify
 from django.utils import timezone  # Import timezone utilities
 from toxtempass import Config  # Import your configuration module
+import subprocess
+import yaml
 
 mime_type_suffix_dict = {
+    "html": {"mime_type": "text/html", "suffix": ".html"},
     "xml": {"mime_type": "application/xml", "suffix": ".xml"},
     "pdf": {"mime_type": "application/pdf", "suffix": ".pdf"},
     "docx": {
@@ -35,7 +38,7 @@ def generate_json_from_assay(assay: Assay):
         export_data = {
             "metadata": {
                 "creation_date": current_time.isoformat(),  # Current date and time in ISO format
-                "filename": f"assay_{slugify(assay.title)}.json",  # Filename for the export
+                "filename": f"documenation_{slugify(assay.title)}",  # Filename for the export
                 "website": "Your Website Name",  # Replace with your actual website name
                 "config": {
                     key: value
@@ -99,13 +102,13 @@ def generate_markdown_from_assay(assay: Assay):
     export_data = generate_json_from_assay(assay)
     # Start with metadata
     markdown = []
-    markdown.append("# Metadata\n")
+    markdown.append("## Metadata\n")
     markdown.append(
         f"- **Creation Date:** {export_data['metadata']['creation_date']}\n"
     )
     markdown.append(f"- **Filename:** {export_data['metadata']['filename']}\n")
     markdown.append(f"- **Website:** {export_data['metadata']['website']}\n")
-    markdown.append(f"## App Config\n")
+    markdown.append("\n## App Config\n")
     for key, value in export_data["metadata"]["config"].items():
         markdown.append(f"- {key}: {value}\n")
     markdown.append("\n")
@@ -167,10 +170,42 @@ def generate_markdown_from_assay(assay: Assay):
     return "".join(markdown)
 
 
+def get_create_meta_data_yaml(
+    request: HttpRequest, assay: Assay, file_path: Path
+) -> Path:
+    """Create meta data yaml file for pandoc."""
+    # get date:
+    # Define the Amsterdam timezone (UTC+1)
+    amsterdam_tz = timezone.get_fixed_timezone(1)  # 1 means UTC+1
+
+    # Get the current time in UTC and convert it to Amsterdam time
+    current_time = timezone.now().astimezone(amsterdam_tz)
+
+    # Optionally, you can extract the date from the current_time if needed
+    current_date = current_time.date()
+
+    metadata_dict = {
+        "author": str(request.user),  # Example author; replace as needed
+        "date": str(current_date),  # Current date;
+        "keywords": (
+            "metadata template, "
+            "cell-based toxicological test methods, "
+            "New Approach Methodologies"
+        ),  # Example keywords; customize as required
+        "title": f"ToxTemp for Assay: {assay.title}",
+        "toc": "true",
+        "toc-title": "Table of Contents",
+    }
+    yaml_file_path = file_path.with_name("yaml" + file_path.name).with_suffix(".yaml")
+    with open(yaml_file_path, "w") as file:
+        yaml.dump(metadata_dict, file, default_flow_style=False)
+    return yaml_file_path
+
+
 def export_assay_to_file(
     request: HttpRequest, assay: Assay, export_type: str
 ) -> FileResponse:
-    file_name = f"assay_{slugify(assay.title)}.{export_type}"
+    file_name = f"document_{slugify(assay.title)}.{export_type}"
     file_path = Path(settings.MEDIA_ROOT) / "toxtempass" / file_name  # Use pathlib.Path
     if not file_path.parent.exists():
         file_path.parent.mkdir(parents=True)
@@ -181,27 +216,75 @@ def export_assay_to_file(
         with file_path.open("w", encoding="utf-8") as json_file:
             json.dump(export_data, json_file, indent=4)
 
-    if export_type == "md":
+    # elif export_type == "md":
+    #     export_data = generate_markdown_from_assay(assay)
+    #     with file_path.open("w", encoding="utf-8") as md_file:
+    #         md_file.write(export_data)
+
+    elif export_type in ["md", "pdf", "html", "docx", "xml"]:
+        # Generate the markdown file
         export_data = generate_markdown_from_assay(assay)
-        with file_path.open("w", encoding="utf-8") as md_file:
+        md_file_path = (file_path.with_name(f"{file_path.stem}_md")).with_suffix(".md")
+        with md_file_path.open("w", encoding="utf-8") as md_file:
             md_file.write(export_data)
+
+        yaml_metadata_file_path = get_create_meta_data_yaml(request, assay, file_path)
+
+        # Convert the markdown file to the requested format using Pandoc
+        pandoc_command = [
+            "pandoc",
+            str(md_file_path),
+            # Add standalone option for HTML and PDF
+            f"--metadata-file={str(yaml_metadata_file_path)}",
+            "--toc",
+        ]
+
+        # Add specific options based on the export type
+        if export_type == "pdf":
+            # Specify PDF engine if needed
+            pandoc_command.extend(["--pdf-engine=lualatex", "--standalone"])
+        if export_type == "md":
+            pandoc_command.append("--to=gfm+smart")
+        if export_type == "docx":
+            pandoc_command.append("--to=docx+auto_identifiers")
+        elif export_type == "html":
+            pandoc_command.extend(
+                ["--embed-resources", "--standalone", "--to=html5+smart"]
+            )
+        # Add any additional HTML-specific options if needed
+        # pandoc_command.append("--self-contained")  # Optionally make it self-contained
+
+        pandoc_command.extend(["-o", str(file_path)])
+
+        try:
+            subprocess.run(pandoc_command, check=True)
+        except subprocess.CalledProcessError as e:
+            return JsonResponse(
+                {"error": f"Pandoc conversion failed: {str(e)}"}, status=500
+            )
+        except Exception as e:
+            return JsonResponse(
+                {"error": f"An unexpected error occurred: {str(e)}"}, status=500
+            )
+
+        # cleanup the auxiliary files
+        try:
+            yaml_metadata_file_path.unlink()
+            md_file_path.unlink()
+        except FileNotFoundError:
+            # If the file doesn't exist, there's nothing to unlink, so pass
+            pass
 
     if export_data is None:
         return JsonResponse({"error": "Assay or file_type not found"}, status=404)
 
-    # Define the file name and path using pathlib
-
-    # Write JSON data to a file
-
-    # Return the JSON file as a FileResponse
+    # Prepare the response for the genrated file
     try:
         response = FileResponse(
             file_path.open("rb"),
             as_attachment=True,
             filename=file_name,
-            content_type=mime_type_suffix_dict[
-                export_type
-            ],  # Set the content type for JSON
+            content_type=mime_type_suffix_dict[export_type]["mime_type"],
         )
         return response
     except Exception as e:

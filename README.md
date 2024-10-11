@@ -11,16 +11,18 @@ PDF-based, LLM assisted assistiant to report your assay via the ToxTemplate. [1]
   - [References](#references)
 
 ## Install
+- luaLaTeX
 ## TODO
 ### Functionality
 - Filtering: User, Investigation->Study-Assay (only show assays per selected study etc)
 - Collaboration option? Easier option to show User study only to users
 - Disclaimer on Privacy etc.
-- Output generation -> <s>Json</s>, <s>MD</s>, XML, PDF (use MD and pandoc to generate XML, PDF and DOCX)
 - Write tests
 - Add functionality to allow GPT on per question/multi-question level.
 - Somewhere log the documents that have been used for generation of draft answers.
 - Mark answer as accepted
+- Add keywords in export files, ontologies?
+- take care of deleting generated files after download by user
 ### Performance optimization
 -  History: Make sure we Cache the Answers on first shipment of the Answer.html, so that if we store answers we don't have to hit the database again. 
 ## License

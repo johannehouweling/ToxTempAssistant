@@ -344,6 +344,18 @@ def answer_assay_questions(request, assay_id):
             "export_md_url": reverse(
                 "export_assay", kwargs=dict(assay_id=assay.id, export_type="md")
             ),
+            "export_pdf_url": reverse(
+                "export_assay", kwargs=dict(assay_id=assay.id, export_type="pdf")
+            ),
+            "export_xml_url": reverse(
+                "export_assay", kwargs=dict(assay_id=assay.id, export_type="xml")
+            ),
+            "export_html_url": reverse(
+            "export_assay", kwargs=dict(assay_id=assay.id, export_type="html")
+            ),
+            "export_docx_url": reverse(
+            "export_assay", kwargs=dict(assay_id=assay.id, export_type="docx")
+            ),
         },
     )
 

@@ -75,9 +75,10 @@
                         {% with id=assay.id %}
                         <li><a class="dropdown-item" href="{{export_json_url}}">JSON</a></li>
                         <li><a class="dropdown-item" href="{{export_md_url}}">MD</a></li>
-                        <li><a class="dropdown-item disabled" href="#">PDF</a></li>
-                        <li><a class="dropdown-item disabled" href="#">XML</a></li>
-                        <li><a class="dropdown-item disabled" href="#">DOCX</a></li>
+                        <li><a class="dropdown-item" href="{{export_pdf_url}}">PDF</a></li>
+                        <li><a class="dropdown-item" href="{{export_xml_url}}">XML</a></li>
+                        <li><a class="dropdown-item" href="{{export_docx_url}}">DOCX</a></li>
+                        <li><a class="dropdown-item" href="{{export_html_url}}">HTML</a></li>
                         {% endwith %}
                       </ul>
                     </div>
