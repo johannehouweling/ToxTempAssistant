@@ -5,7 +5,27 @@
 {% block content %}
 {% load django_bootstrap5 %}
 {% load extras %}
-<h1>Answer Questions for Assay: {{ assay.title }}</h1>
+<style>
+  .btn-indigo {
+      background-color: #6610f2; /* Bootstrap indigo color */
+      border-color: #6610f2; /* Match border color to background */
+      color: white;
+  }
+  .btn-indigo:hover {
+      background-color: #2c1a4d; /* Darker shade for hover effect */
+      border-color: #2c1a4d; /* Match border color on hover */
+      color: white;
+  }
+  .btn-outline-indigo {
+      color: #6610f2; /* Text color for outline button */
+      border-color: #6610f2; /* Border color */
+  }
+  .btn-outline-indigo:hover {
+      background-color: #6610f2; /* Background color on hover */
+      color: white; /* Text color on hover */
+  }
+</style>
+<h1> Test method description of {{ assay.title }}</h1>
 <div class"container-fluid" >
     <div class="row" style="height: 100%;">
         <!-- Scrollspy Sidebar -->
@@ -50,7 +70,7 @@
                                             {% bootstrap_field form|form_field:quest_num placeholder="" %}
                                             {% endwith%} 
                                         </div>
-                                        <button type="button" class="btn btn-outline-primary" id="openModalButton"
+                                        <button type="button" class="btn btn-outline-indigo" id="openModalButton"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#versionHistoryModal"
                                                 data-assay-id="{{ assay.id }}"

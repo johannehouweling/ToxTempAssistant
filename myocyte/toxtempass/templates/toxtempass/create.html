@@ -9,7 +9,29 @@
 <form method="post" action="{{action}}" novalidate>
     {% csrf_token %}
     {% bootstrap_form form layout='floating'%}
-    {% bootstrap_button button_type="submit" content="Create" %}
+
+    <style>
+        .btn-indigo {
+            background-color: #6610f2; /* Bootstrap indigo color */
+            border-color: #6610f2; /* Match border color to background */
+            color: white;
+        }
+        .btn-indigo:hover {
+            background-color: #2c1a4d; /* Darker shade for hover effect */
+            border-color: #2c1a4d; /* Match border color on hover */
+            color: white;
+        }
+        .btn-outline-indigo {
+            color: #6610f2; /* Text color for outline button */
+            border-color: #6610f2; /* Border color */
+        }
+        .btn-outline-indigo:hover {
+            background-color: #6610f2; /* Background color on hover */
+            color: white; /* Text color on hover */
+        }
+    </style>
+
+    {% bootstrap_button button_type="submit" content="Create" button_class="btn-indigo" %}
     {% bootstrap_button button_type="link" content="Back" href=back_url button_class="btn-outline-danger" %}
 </form>
 {% include "error_handling.html" %}
