@@ -11,21 +11,8 @@
         {% csrf_token %}
         <div id='non-field-errors'></div>
         {% bootstrap_form form layout='floating' show_label=False %}
-        
-        <style>
-            .btn-indigo {
-                background-color: #6610f2; /* Bootstrap indigo color */
-                border-color: #6610f2; /* Match border color to background */
-                color: white;
-            }
-            .btn-indigo:hover {
-                background-color: #2c1a4d; /* Darker shade for hover effect */
-                border-color: #2c1a4d; /* Match border color on hover */
-                color: white;
-            }
-        </style>
        
-        <button id="startButton" class="btn btn-indigo" type="submit">
+        <button id="startButton" class="btn btn-primary" type="submit">
             <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true" id="startButtonSpinner"></span>
             <span id="startButtonText">Create draft</span> 
         </button>

@@ -36,6 +36,27 @@ class Assay(models.Model):
     def __str__(self):
         return self.title
 
+    @property
+    def get_n_questions(self):
+        """Get number of questions associated with assay."""
+        # Count all questions related to this assay
+        # Navigate through the study -> sections -> subsections -> questions
+        return Question.objects.filter(
+            subsection__section__subsections__questions__answers__assay=self
+        ).count()
+
+    @property
+    def get_n_answers(self):
+        """Get number of answers associtated with assay."""
+        # Count all answers related to this assay
+        return self.answers.count()
+
+    @property
+    def get_n_accepted_answers(self):
+        """Get number of accepted answers associtated with assay."""
+        # Count all answers that are marked as accepted
+        return self.answers.filter(accepted=True).count()
+
 
 # Section, Subsection, and Question Models (fixed)
 class Section(models.Model):
@@ -43,6 +64,17 @@ class Section(models.Model):
 
     def __str__(self):
         return self.title
+    
+    @property
+    def all_answers_accepted(self)->bool:
+        """
+        Check if all answers within this section are marked as accepted.
+        """
+        # Get all answers related to all questions in all subsections under this section
+        answers = Answer.objects.filter(question__subsection__section=self)
+
+        # Check if there are any answers and if all are accepted
+        return answers.exists() and all(answer.accepted for answer in answers)
 
 
 class Subsection(models.Model):
@@ -53,6 +85,17 @@ class Subsection(models.Model):
 
     def __str__(self):
         return self.title
+    
+    @property
+    def all_answers_accepted(self)->bool:
+        """
+        Check if all answers within this subsection are marked as accepted.
+        """
+        # Get all answers related to the questions in this subsection
+        answers = Answer.objects.filter(question__subsection=self)
+
+        # Check if there are any answers and if all are accepted
+        return answers.exists() and all(answer.accepted for answer in answers)
 
 
 class Question(models.Model):
@@ -84,6 +127,9 @@ class Answer(models.Model):
         null=False,
     )
     answer_text = models.TextField(null=True, blank=True)
+    accepted = models.BooleanField(
+        null=True, blank=True, help_text="Marked as final answer."
+    )
     history = HistoricalRecords()
 
     def __str__(self):

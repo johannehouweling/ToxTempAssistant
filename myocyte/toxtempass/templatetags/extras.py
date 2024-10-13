@@ -10,7 +10,7 @@ def getattr_custom(obj, attr_name):
     return getattr(obj, attr_name, None)
 
 
-@register.filter
+@register.filter()
 def form_field(form, field_name):
     """
     Custom template filter to dynamically retrieve a form field by its name.
@@ -22,3 +22,11 @@ def form_field(form, field_name):
 @register.filter()
 def add_asstring(a: str, b: Any) -> str:
     return a + str(b)
+
+
+@register.filter()
+def intdivperc(a: float, b: float) -> int:
+    if b != 0:
+        return int(a / b * 100) 
+    else:
+        return 0

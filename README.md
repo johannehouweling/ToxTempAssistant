@@ -11,7 +11,7 @@ PDF-based, LLM assisted assistiant to report your assay via the ToxTemplate. [1]
   - [References](#references)
 
 ## Install
-- luaLaTeX
+- luaLaTeX (Mactex)
 ## TODO
 ### Functionality
 - Filtering: User, Investigation->Study-Assay (only show assays per selected study etc)
@@ -24,7 +24,8 @@ PDF-based, LLM assisted assistiant to report your assay via the ToxTemplate. [1]
 - Add keywords in export files, ontologies?
 - take care of deleting generated files after download by user
 ### Performance optimization
--  History: Make sure we Cache the Answers on first shipment of the Answer.html, so that if we store answers we don't have to hit the database again. 
+-  History: Make sure we Cache the Answers on first shipment of the Answer.html, so that if we store answers we don't have to hit the database again.
+-  Handle concurrency / prevent multiple users from checking/editing the same item (only need if we allow colaboration) 
 ## License
 
 ## Maintainer

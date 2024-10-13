@@ -125,7 +125,7 @@ class AssayAnswerForm(forms.Form):
                     self.fields[field_name] = forms.CharField(
                         label=question.question_text,
                         required=False,
-                        widget=forms.Textarea(attrs={"rows": 2}),
+                        widget=forms.Textarea(attrs={"rows": 5}),
                     )
                     # Add an initial value if an answer already exists for this question and assay
                     try:
@@ -133,24 +133,56 @@ class AssayAnswerForm(forms.Form):
                         self.fields[field_name].initial = answer.answer_text
                     except Answer.DoesNotExist:
                         self.fields[field_name].initial = ""
+                        answer = None
+
+                    ## add accepted option
+                    accepted_field_name = f"accepted_{question.id}"
+                    self.fields[accepted_field_name] = forms.BooleanField(
+                        label="Accepted",
+                        required=False,
+                    )
+                    # Set initial value for 'accepted' field only if answer exists
+                    if answer:
+                        self.fields[accepted_field_name].initial = answer.accepted
+                    else:
+                        self.fields[accepted_field_name].initial = False
 
     def save(self):
         # Save each answer for the corresponding assay and question
-        for field_name, answer_text in self.cleaned_data.items():
+        for field_name, value in self.cleaned_data.items():
             # Extract the question ID from the field name (assuming the format is 'question_<id>')
-            question_id = field_name.split("_")[1]
-            question = Question.objects.get(pk=question_id)
+            field_name_split = field_name.split("_")
+            if "question" in field_name_split:
+                question_id = field_name_split[1]
+                question = Question.objects.get(pk=question_id)
 
-            # Get or create the answer object for this assay and question
-            answer, created = Answer.objects.get_or_create(
-                assay=self.assay,
-                question=question,
-                defaults={
-                    "answer_text": answer_text
-                },  # This only sets the text if the answer is being created
-            )
+                # Get or create the answer object for this assay and question
+                answer, created = Answer.objects.get_or_create(
+                    assay=self.assay,
+                    question=question,
+                    defaults={
+                        "answer_text": value
+                    },  # This only sets the text if the answer is being created
+                )
 
-            # Only update if the answer_text is different from the existing one
-            if not created and answer.answer_text != answer_text:
-                answer.answer_text = answer_text
-                answer.save()
+                # Only update if the answer_text is different from the existing one
+                if not created and answer.answer_text != value:
+                    answer.answer_text = value
+                    answer.save()
+            if "accepted" in field_name_split:
+                accepted_id = field_name_split[1]
+                question = Question.objects.get(pk=accepted_id)
+
+                # Get or create the answer object for this assay and question
+                answer, created = Answer.objects.get_or_create(
+                    assay=self.assay,
+                    question=question,
+                    defaults={
+                        "accepted": False
+                    },  # This only sets the text if the answer is being created
+                )
+
+                # Only update if the answer_text is different from the existing one
+                if not created and answer.accepted != value:
+                    answer.accepted = value
+                    answer.save()

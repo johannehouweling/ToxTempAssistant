@@ -5,39 +5,45 @@
 {% block content %}
 {% load django_bootstrap5 %}
 {% load extras %}
-<style>
-  .btn-indigo {
-      background-color: #6610f2; /* Bootstrap indigo color */
-      border-color: #6610f2; /* Match border color to background */
-      color: white;
-  }
-  .btn-indigo:hover {
-      background-color: #2c1a4d; /* Darker shade for hover effect */
-      border-color: #2c1a4d; /* Match border color on hover */
-      color: white;
-  }
-  .btn-outline-indigo {
-      color: #6610f2; /* Text color for outline button */
-      border-color: #6610f2; /* Border color */
-  }
-  .btn-outline-indigo:hover {
-      background-color: #6610f2; /* Background color on hover */
-      color: white; /* Text color on hover */
-  }
+  <style>
+    /* Target the scrollbar track */
+    ::-webkit-scrollbar {
+        width: 8px; /* Width of the scrollbar */
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: transparent; /* Make the track transparent */
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.5); /* Semi-transparent thumb */
+        border-radius: 4px; /* Rounded corners for thumb */
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(0, 0, 0, 0.7); /* Darker thumb on hover */
+    }
+    
+    /* Custom styles to ensure active state overrides any other text classes */
+    .nav-pills .nav-link.active {
+        color: white !important; /* Ensure active text is white */
+        background-color: var(--bs-primary); /* Default background color for active state */
+    }
 </style>
 <h1> Test method description of {{ assay.title }}</h1>
 <div class"container-fluid" >
     <div class="row" style="height: 100%;">
         <!-- Scrollspy Sidebar -->
         <div class="col-4">
+
             <div style="position: sticky; top: 0; height: 70vh; overflow-y: auto;">
                 <nav id="navbar-questions" class="flex-column align-items-stretch border-end">
                     <nav class="nav nav-pills flex-column">
                         {% for section in sections %}
-                            <a class="nav-link" href="#section-{{ section.id }}">{{ section.title }}</a>
-                            <nav class="nav nav-pills flex-column">
+                            <a class="nav-link p-1 m-0  fs-5 mt-3{% if section.all_answers_accepted %} text-secondary {% endif %}" href="#section-{{ section.id }}">{{ section.title }}</a>
+                            <nav class="nav nav-pills text-secondary flex-column">
                                 {% for subsection in section.subsections.all %}
-                                    <a class="nav-link ms-3 my-1" href="#subsection-{{ subsection.id }}">{{ subsection.title }}</a>
+                                    <a class="nav-link p-1{% if subsection.all_answers_accepted %} text-secondary {% endif %} ms-4 " href="#subsection-{{ subsection.id }}">{{ subsection.title }}</a>
                                 {% endfor %}
                             </nav>
                         {% endfor %}
@@ -53,30 +59,46 @@
 
         <!-- Content Area for Questions -->
         <div class="col-8" style="height: 90%;">
+          {% with percentanswers=assay.get_n_accepted_answers|intdivperc:assay.get_n_answers %}
+          <div class="progress" role="progressbar" aria-label="Example with label" aria-valuenow="{{assay.get_n_accepted_answers}}" aria-valuemin="0" aria-valuemax="{{assay.get_n_answers}}">
+            <div class="progress-bar text-white" style="width: {{percentanswers}}%">{{percentanswers}} %</div>
+          </div>
+          {% endwith %}
             <form method="post" action="{{action}}" novalidate>
                 {% csrf_token %}
                 {{ form.non_field_errors }}
-                <div id="question-content" data-bs-spy="scroll" data-bs-target="#navbar-questions" data-bs-smooth-scroll="true" class="scrollspy-example-2" tabindex="0" style="height: 70vh; overflow-y: auto;">
+                <div id="question-content" data-bs-spy="scroll" data-bs-target="#navbar-questions" data-bs-smooth-scroll="true" class="scrollspy-example-2 overflow-x-hidden" tabindex="0" style="height: 70vh; overflow-y: auto;">
                     {% for section in sections %}
-                        <div id="section-{{ section.id }}" class="mt-5">
+                        <div id="section-{{ section.id }}" class="p-1 mt-5 border-bottom">
                             <h4>{{ section.title }}</h4>
                             {% for subsection in section.subsections.all %}
                                 <div id="subsection-{{ subsection.id }}" class="mt-3">
                                     <h5>{{ subsection.title }}</h5>
                                     {% for question in subsection.questions.all %}
-                                        <div class="mb-3">
-                                            {% comment %} <label for="id_question_{{ question.id }}">{{ question.question_text }}</label> {% endcomment %}
-                                            {% with quest_num='question_'|add_asstring:question.id %}
-                                            {% bootstrap_field form|form_field:quest_num placeholder="" %}
-                                            {% endwith%} 
+                                      <div class="row">
+                                        <div class="col-md-10"> 
+                                          <div class="mb-3 has-validation">
+                                                {% comment %} <label for="id_question_{{ question.id }}">{{ question.question_text }}</label> {% endcomment %}
+                                                {% with quest_num='question_'|add_asstring:question.id %}
+                                                {% bootstrap_field form|form_field:quest_num placeholder="" %}
+                                                {% endwith %} 
+                                          </div>
+                                        </div>  
+                                      <div class="col-md-2 align-self-end">  
+                                        <div class="mb-3 has-validation">
+                                              {% with accepted_num='accepted_'|add_asstring:question.id %}
+                                              {% bootstrap_field form|form_field:accepted_num placeholder="" %}
+                                              {% endwith %}
                                         </div>
-                                        <button type="button" class="btn btn-outline-indigo" id="openModalButton"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#versionHistoryModal"
-                                                data-assay-id="{{ assay.id }}"
-                                                data-question-id="{{question.id}}">
-                                            History
-                                        </button>
+                                          <button type="button" class="btn btn-outline-primary mb-3" id="openModalButton"
+                                                  data-bs-toggle="modal"
+                                                  data-bs-target="#versionHistoryModal"
+                                                  data-assay-id="{{ assay.id }}"
+                                                  data-question-id="{{question.id}}">
+                                              History
+                                          </button>
+                                        </div>
+                                      </div>
                                     {% endfor %}
                                 </div>
                             {% endfor %}
@@ -86,7 +108,9 @@
 
                 <!-- Submit Button -->
                 <div class="mt-3">
-                    {% bootstrap_button button_type="submit" content="Save" %}
+                    {% bootstrap_button button_type="submit" content="Save" button_class="btn-primary" %}
+                    {% bootstrap_button button_type="button" content="Next unaccapted" button_class="btn-outline-secondary" id="btn_next_unaccepted" %}
+
                     <div class="btn-group">
                       <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                         Export
@@ -167,6 +191,74 @@
         }
       });
     });
+  </script>
+
+  {% comment %} <script>
+    // Function to handle the validation class based on checkbox state
+    function toggleValidClass(checkbox) {
+      // Get the parent .mb-3 has-validation div
+      const parentDiv = checkbox.closest('.has-validation');
+      
+      // Find the textarea within the same parent div
+      const textarea = parentDiv.querySelector('textarea');
+      
+      // Toggle the 'is-valid' class based on the checkbox state
+      if (checkbox.checked) {
+        textarea.classList.add('is-valid');
+      } else {
+        textarea.classList.remove('is-valid');
+      }
+    }
+  
+    // Apply the function on page load for all checkboxes
+    document.querySelectorAll('.form-check-input').forEach(function(checkbox) {
+      toggleValidClass(checkbox);
+  
+      // Add event listener for checkbox state change
+      checkbox.addEventListener('change', function() {
+        toggleValidClass(this);
+      });
+    });
+  </script> {% endcomment %}
+
+  <script>
+    // Function to find and focus on the next unchecked "Accepted" checkbox
+    function focusNextUnaccepted() {
+      // Get all the checkboxes with the class 'btn-check'
+      const checkboxes = document.querySelectorAll('.form-check-input');
+      let foundUnchecked = false;  // Flag to track if an unchecked checkbox is found
+      
+      // Loop through the checkboxes
+      for (let i = 0; i < checkboxes.length; i++) {
+        // If the checkbox is not checked, focus on its corresponding question
+        if (!checkboxes[i].checked) {
+          foundUnchecked = true;  // Set the flag to true if we find an unchecked checkbox
+          
+          // Find the closest parent .has-validation div for the unchecked checkbox
+          const parentDiv = checkboxes[i].closest('.row');
+          
+          // Find the textarea or question div within the same parent container
+          const question_label = parentDiv ? parentDiv.querySelector('.form-label') : null;
+          
+          // If a question label is found, scroll to it and focus on it
+          if (question_label) {
+            question_label.scrollIntoView({ behavior: 'smooth' }); // Smooth scroll to the label
+            question_label.focus(); // Set focus on the label
+          } else {
+            console.warn('No question found within the parent div:', parentDiv);
+          }
+          break; // Exit the loop once we find the first unchecked checkbox
+        }
+      }
+      
+      // If no unchecked checkbox was found, display an alert
+      if (!foundUnchecked) {
+        alert('Congratulations, it appears all answers have been marked as accepted!');
+      }
+    }
+  
+    // Add event listener to the button that triggers this function
+    document.getElementById('btn_next_unaccepted').addEventListener('click', focusNextUnaccepted);
   </script>
 {% include "error_handling.html" %}
 {% endblock %}
