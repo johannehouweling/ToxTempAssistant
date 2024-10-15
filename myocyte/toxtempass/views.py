@@ -152,6 +152,24 @@ def start_form_view(request):
     )
 
 
+def get_filtered_studies(request: HttpRequest, investigation_id: int):
+    """Get the studies of a given investigation"""
+    if investigation_id:
+        studies = Study.objects.filter(investigation_id=investigation_id).values(
+            "id", "title"
+        )
+        return JsonResponse(list(studies), safe=False)
+    return JsonResponse([], safe=False)
+
+
+def get_filtered_assays(request: HttpRequest, study_id: int):
+    """Get the Assays of a given study"""
+    if study_id:
+        assays = Assay.objects.filter(study_id=study_id).values("id", "title")
+        return JsonResponse(list(assays), safe=False)
+    return JsonResponse([], safe=False)
+
+
 def gpt_allowed_for_assay(request: HttpRequest, pk: int) -> JsonResponse:
     """Answers if gpt is allowed."""
     if request.method == "POST":
@@ -351,10 +369,10 @@ def answer_assay_questions(request, assay_id):
                 "export_assay", kwargs=dict(assay_id=assay.id, export_type="xml")
             ),
             "export_html_url": reverse(
-            "export_assay", kwargs=dict(assay_id=assay.id, export_type="html")
+                "export_assay", kwargs=dict(assay_id=assay.id, export_type="html")
             ),
             "export_docx_url": reverse(
-            "export_assay", kwargs=dict(assay_id=assay.id, export_type="docx")
+                "export_assay", kwargs=dict(assay_id=assay.id, export_type="docx")
             ),
         },
     )
@@ -401,4 +419,3 @@ def export_assay(
     """Export View to ship Files to user per assay."""
     assay = Assay.objects.get(id=assay_id)
     return export_assay_to_file(request, assay, export_type)
-        

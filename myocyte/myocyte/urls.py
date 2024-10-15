@@ -80,3 +80,11 @@ urlpatterns += [
 urlpatterns +=[
     path('assay/<int:assay_id>/answer/export/<str:export_type>/', views.export_assay, name="export_assay")
 ]
+
+# Filter Investigation and Study for the first menu on start.html (so we only show hierachical options and not all)
+
+urlpatterns +=[
+    # Other paths
+    path('filter-studies-by-investigation/<int:investigation_id>/', views.get_filtered_studies, name='filter_studie_by_investigation'),
+    path('filter-assays-by-study/<int:study_id>/', views.get_filtered_assays, name='filter_assays_by_study'),
+]

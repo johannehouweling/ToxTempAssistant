@@ -30,44 +30,37 @@
         background-color: var(--bs-primary); /* Default background color for active state */
     }
 </style>
-<h1> Test method description of {{ assay.title }}</h1>
 <div class"container-fluid" >
-    <div class="row" style="height: 100%;">
+  <div>
+    <h1> Test method description of {{ assay.title }}</h1>
+    </div>
+    <div class="row">
         <!-- Scrollspy Sidebar -->
         <div class="col-4">
 
-            <div style="position: sticky; top: 0; height: 70vh; overflow-y: auto;">
+            <div class="overflow-y-auto vh-100">
                 <nav id="navbar-questions" class="flex-column align-items-stretch border-end">
                     <nav class="nav nav-pills flex-column">
                         {% for section in sections %}
-                            <a class="nav-link p-1 m-0  fs-5 mt-3{% if section.all_answers_accepted %} text-secondary {% endif %}" href="#section-{{ section.id }}">{{ section.title }}</a>
+                            <a class="nav-link p-1 px-3 m-0 mt-3 fs-5{% if section.all_answers_accepted %} text-secondary {% endif %}" href="#section-{{ section.id }}">{{ section.title }}</a>
                             <nav class="nav nav-pills text-secondary flex-column">
                                 {% for subsection in section.subsections.all %}
-                                    <a class="nav-link p-1{% if subsection.all_answers_accepted %} text-secondary {% endif %} ms-4 " href="#subsection-{{ subsection.id }}">{{ subsection.title }}</a>
+                                    <a class="nav-link ms-4 p-1 px-3{% if subsection.all_answers_accepted %} text-secondary {% endif %}" href="#subsection-{{ subsection.id }}">{{ subsection.title }}</a>
                                 {% endfor %}
                             </nav>
                         {% endfor %}
                     </nav>
                 </nav>
             </div>
-            <!-- Back Button -->
-            <div class="mt-3">
-                {% bootstrap_button button_type="link" content="Back" href=back_url button_class="btn-outline-danger"  %}
-            </div>
         </div>
             
 
         <!-- Content Area for Questions -->
-        <div class="col-8" style="height: 90%;">
-          {% with percentanswers=assay.get_n_accepted_answers|intdivperc:assay.get_n_answers %}
-          <div class="progress" role="progressbar" aria-label="Example with label" aria-valuenow="{{assay.get_n_accepted_answers}}" aria-valuemin="0" aria-valuemax="{{assay.get_n_answers}}">
-            <div class="progress-bar text-white" style="width: {{percentanswers}}%">{{percentanswers}} %</div>
-          </div>
-          {% endwith %}
+        <div class="col-8" >
             <form method="post" action="{{action}}" novalidate>
                 {% csrf_token %}
                 {{ form.non_field_errors }}
-                <div id="question-content" data-bs-spy="scroll" data-bs-target="#navbar-questions" data-bs-smooth-scroll="true" class="scrollspy-example-2 overflow-x-hidden" tabindex="0" style="height: 70vh; overflow-y: auto;">
+                <div id="question-content" data-bs-spy="scroll" data-bs-target="#navbar-questions" data-bs-smooth-scroll="true" class="scrollspy-example-2 overflow-x-hidden" tabindex="0">
                     {% for section in sections %}
                         <div id="section-{{ section.id }}" class="p-1 mt-5 border-bottom">
                             <h4>{{ section.title }}</h4>
@@ -105,30 +98,42 @@
                         </div>
                     {% endfor %}
                 </div>
-
-                <!-- Submit Button -->
-                <div class="mt-3">
-                    {% bootstrap_button button_type="submit" content="Save" button_class="btn-primary" %}
-                    {% bootstrap_button button_type="button" content="Next unaccapted" button_class="btn-outline-secondary" id="btn_next_unaccepted" %}
-
-                    <div class="btn-group">
-                      <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                        Export
-                      </button>
-                      <ul class="dropdown-menu">
-                        {% with id=assay.id %}
-                        <li><a class="dropdown-item" href="{{export_json_url}}">JSON</a></li>
-                        <li><a class="dropdown-item" href="{{export_md_url}}">MD</a></li>
-                        <li><a class="dropdown-item" href="{{export_pdf_url}}">PDF</a></li>
-                        <li><a class="dropdown-item" href="{{export_xml_url}}">XML</a></li>
-                        <li><a class="dropdown-item" href="{{export_docx_url}}">DOCX</a></li>
-                        <li><a class="dropdown-item" href="{{export_html_url}}">HTML</a></li>
-                        {% endwith %}
-                      </ul>
-                    </div>
-                </div>
-
+                
             </form>
+        </div>
+        <div class="fixed-bottom card border-0 bg-white">
+          <div class="container">
+            <!-- Progress bar -->
+            {% with percentanswers=assay.get_n_accepted_answers|intdivperc:assay.get_n_answers %}
+            <div id="progress" class="progress mt-3" role="progressbar" aria-label="Example with label" aria-valuenow="{{assay.get_n_accepted_answers}}" aria-valuemin="0" aria-valuemax="{{assay.get_n_answers}}">
+              <div  class="progress-bar text-white" style="width: {{percentanswers}}%">{{percentanswers}} %</div>
+
+            </div>
+            {% endwith %}
+            <!-- Buttons -->
+
+            <div class="my-3 d-flex">
+              {% bootstrap_button button_type="link" content="Back" href=back_url button_class="btn-outline-danger"  %}
+              {% bootstrap_button button_type="submit" content="Save" button_class="btn-primary ms-auto" %}
+              {% bootstrap_button button_type="button" content="Next unaccapted" button_class="btn-outline-secondary mx-1" id="btn_next_unaccepted" %}
+
+              <div class="btn-group">
+                <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                  Export
+                </button>
+                <ul class="dropdown-menu">
+                  {% with id=assay.id %}
+                  <li><a class="dropdown-item" href="{{export_json_url}}">JSON</a></li>
+                  <li><a class="dropdown-item" href="{{export_md_url}}">MD</a></li>
+                  <li><a class="dropdown-item" href="{{export_pdf_url}}">PDF</a></li>
+                  <li><a class="dropdown-item" href="{{export_xml_url}}">XML</a></li>
+                  <li><a class="dropdown-item" href="{{export_docx_url}}">DOCX</a></li>
+                  <li><a class="dropdown-item" href="{{export_html_url}}">HTML</a></li>
+                  {% endwith %}
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
     </div>
 </div>
@@ -260,6 +265,22 @@
     // Add event listener to the button that triggers this function
     document.getElementById('btn_next_unaccepted').addEventListener('click', focusNextUnaccepted);
   </script>
+
+  <script>
+    // Resizing the textareas
+    function autoResizeTextarea(textarea) {
+        textarea.style.height = ""; // Reset height
+        textarea.style.height = textarea.scrollHeight + 3 + "px"; // Set new height
+    }
+
+    // When the page loads
+    document.addEventListener("DOMContentLoaded", function() {
+        var textareas = document.querySelectorAll("textarea");
+        textareas.forEach(function(textarea){
+          autoResizeTextarea(textarea); // Adjust the textarea's height on load
+        })
+    });
+</script>
 {% include "error_handling.html" %}
 {% endblock %}
 

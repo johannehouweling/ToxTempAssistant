@@ -125,7 +125,12 @@ class AssayAnswerForm(forms.Form):
                     self.fields[field_name] = forms.CharField(
                         label=question.question_text,
                         required=False,
-                        widget=forms.Textarea(attrs={"rows": 5}),
+                        widget=forms.Textarea(
+                            attrs={
+                                "rows": 2,
+                                "oninput": 'this.style.height = "";this.style.height = this.scrollHeight + 3 + "px"',
+                            }
+                        ),
                     )
                     # Add an initial value if an answer already exists for this question and assay
                     try:

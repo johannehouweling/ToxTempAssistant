@@ -161,5 +161,66 @@
         // Alternatively, you can call initializeButtons on DOMContentLoaded for initial load
         document.addEventListener('DOMContentLoaded', initializeButtons);
     </script>   
+    <script>
+        // Filter Investigation and Study so that the hierachy is reflected in the menu
+    document.addEventListener('DOMContentLoaded', function () {
+        var investigationSelect = document.getElementById('id_investigation');
+        var studySelect = document.getElementById('id_study');
+        var assaySelect = document.getElementById('id_assay');
+    
+        // Disable Study and Assay initially
+        studySelect.disabled = true;
+        assaySelect.disabled = true;
+    
+        // When Investigation is selected, fetch and populate related studies
+        investigationSelect.addEventListener('change', function () {
+            var investigationId = investigationSelect.value;
+    
+            if (investigationId) {
+                fetch(`/filter-studies-by-investigation/${investigationId}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // Clear previous options in Study select
+                        studySelect.innerHTML = '<option value="" selected="">---------</option>';
+                        assaySelect.innerHTML = '<option value="" selected="">---------</option>';
+                        studySelect.disabled = false;
+                        assaySelect.disabled = true;
+    
+                        data.forEach(study => {
+                            var option = new Option(study.title, study.id);
+                            studySelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => console.error('Error fetching studies:', error));
+            } else {
+                studySelect.disabled = true;
+                assaySelect.disabled = true;
+            }
+        });
+    
+        // When Study is selected, fetch and populate related assays
+        studySelect.addEventListener('change', function () {
+            var studyId = studySelect.value;
+    
+            if (studyId) {
+                fetch(`/filter-assays-by-study/${studyId}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // Clear previous options in Assay select
+                        assaySelect.innerHTML = '<option value="" selected="">---------</option>';
+                        assaySelect.disabled = false;
+    
+                        data.forEach(assay => {
+                            var option = new Option(assay.title, assay.id);
+                            assaySelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => console.error('Error fetching assays:', error));
+            } else {
+                assaySelect.disabled = true;
+            }
+        });
+    });
+    </script>
 {% include "error_handling.html" %}
 {%endblock%}
