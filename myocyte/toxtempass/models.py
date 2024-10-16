@@ -126,6 +126,7 @@ class Answer(models.Model):
         blank=False,
         null=False,
     )
+    answer_documents=models.JSONField(null=True, blank=True, help_text="Store list of Filenames used to answer this question.") # chnage this to VectorField with for a real database. 
     answer_text = models.TextField(null=True, blank=True)
     accepted = models.BooleanField(
         null=True, blank=True, help_text="Marked as final answer."

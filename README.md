@@ -14,7 +14,7 @@ PDF-based, LLM assisted assistiant to report your assay via the ToxTemplate. [1]
 - luaLaTeX (Mactex)
 ## TODO
 ### Functionality
-- Filtering: User, Investigation->Study-Assay (only show assays per selected study etc)
+- Filtering: User
 - Collaboration option? Easier option to show User study only to users
 - Disclaimer on Privacy etc.
 - Write tests

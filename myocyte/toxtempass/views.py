@@ -94,6 +94,7 @@ def start_form_view(request):
                     files
                 )  # dict of structure {Path(filename.pdf): {'text': 'lorem ipsum'}}
                 try:
+                    answer_ids = []
                     for answer in assay.answers.all():
                         question = answer.question.question_text
                         draft_answer = chain.invoke(
@@ -110,8 +111,10 @@ def start_form_view(request):
                             ]
                         )
                         answer.answer_text = draft_answer.content
+                        answer.documents = [key.name for key in doc_dict.keys()]
                         answer.save()
-                        print(draft_answer)
+                        answer_ids.append(answer.id)
+                    # store which doc has been used to answer which answers (in this case all of them cause it's the start gpt)
                 except Exception as e:
                     print(e)
                     return JsonResponse(
