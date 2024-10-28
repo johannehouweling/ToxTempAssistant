@@ -14,6 +14,7 @@ PDF-based, LLM assisted assistiant to report your assay via the ToxTemplate. [1]
 - luaLaTeX (Mactex)
 ## TODO
 ### Functionality
+- Repair progress bar
 - Filtering: User
 - Collaboration option? Easier option to show User study only to users
 - Disclaimer on Privacy etc.
@@ -23,6 +24,7 @@ PDF-based, LLM assisted assistiant to report your assay via the ToxTemplate. [1]
 - Mark answer as accepted
 - Add keywords in export files, ontologies?
 - take care of deleting generated files after download by user
+- likelihood score responses
 ### Performance optimization
 -  History: Make sure we Cache the Answers on first shipment of the Answer.html, so that if we store answers we don't have to hit the database again.
 -  Handle concurrency / prevent multiple users from checking/editing the same item (only need if we allow colaboration) 

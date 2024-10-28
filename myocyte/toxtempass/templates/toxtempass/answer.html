@@ -32,7 +32,7 @@
 </style>
 <div class"container-fluid" >
   <div>
-    <h1> Test method description of {{ assay.title }}</h1>
+    <h1> Test method: {{ assay.title }}</h1>
     </div>
     <div class="row">
         <!-- Scrollspy Sidebar -->
@@ -57,7 +57,7 @@
 
         <!-- Content Area for Questions -->
         <div class="col-8" >
-            <form method="post" action="{{action}}" novalidate>
+            <form id="QuestionsForm" method="post" action="{{action}}" novalidate>
                 {% csrf_token %}
                 {{ form.non_field_errors }}
                 <div id="question-content" data-bs-spy="scroll" data-bs-target="#navbar-questions" data-bs-smooth-scroll="true" class="scrollspy-example-2 overflow-x-hidden" tabindex="0">
@@ -114,7 +114,7 @@
 
             <div class="my-3 d-flex">
               {% bootstrap_button button_type="link" content="Back" href=back_url button_class="btn-outline-danger"  %}
-              {% bootstrap_button button_type="submit" content="Save" button_class="btn-primary ms-auto" %}
+              {% bootstrap_button button_type="submit" content="Save" button_class="btn-primary ms-auto" form="QuestionsForm" %}
               {% bootstrap_button button_type="button" content="Next unaccapted" button_class="btn-outline-secondary mx-1" id="btn_next_unaccepted" %}
 
               <div class="btn-group">

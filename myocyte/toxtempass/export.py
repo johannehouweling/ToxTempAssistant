@@ -192,7 +192,7 @@ def get_create_meta_data_yaml(
             "cell-based toxicological test methods, "
             "New Approach Methodologies"
         ),  # Example keywords; customize as required
-        "title": f"ToxTemp for Assay: {assay.title}",
+        "title": f"ToxTemp for Test Method: {assay.title}",
         "toc": "true",
         "toc-title": "Table of Contents",
     }
