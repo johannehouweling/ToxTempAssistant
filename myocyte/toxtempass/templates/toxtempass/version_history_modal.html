@@ -1,4 +1,6 @@
-<h1>Version History of {{ instance }}</h1>
+
+
+<h1>{{ instance|title}}</h1>
 
 <table class="table table-striped">
   <thead>
@@ -6,6 +8,7 @@
       <th>ID</th>
       <th>Changed by</th>
       <th>Date</th>
+      <th>Field</th>
       <th>Old</th>
       <th>New</th>
     </tr>
@@ -16,26 +19,31 @@
       <td>{{ entry.version.history_id }}</td>
       <td>{{ entry.version.history_user }}</td>
       <td>{{ entry.version.history_date }}</td>
+      {% if entry.changes %}
       <td>
-        {% if entry.changes %}
+        <!-- List all field anmes with changes between versions -->
+        {% for change in entry.changes %}
+        {{ change.field }}<br>
+        {% endfor %}
+
+      </td>
+      <td>
         <!-- List all field changes between versions -->
         {% for change in entry.changes %}
         {{ change.old }}<br>
         {% endfor %}
-        {% else %}
-        <em>No previous record</em>
-        {% endif %}
       </td>
       <td>
-        {% if entry.changes %}
         <!-- List all field changes between versions -->
         {% for change in entry.changes %}
         {{ change.new }}<br>
         {% endfor %}
-        {% else %}
-        <em>No previous record</em>
-        {% endif %}
       </td>
+      {% else %}
+      <td></td>
+      <td></td>
+      <td><em>No previous record</em></td>
+      {% endif %}
     </tr>
     {% endfor %}
   </tbody>

@@ -64,9 +64,9 @@ class Section(models.Model):
 
     def __str__(self):
         return self.title
-    
+
     @property
-    def all_answers_accepted(self)->bool:
+    def all_answers_accepted(self) -> bool:
         """
         Check if all answers within this section are marked as accepted.
         """
@@ -85,9 +85,9 @@ class Subsection(models.Model):
 
     def __str__(self):
         return self.title
-    
+
     @property
-    def all_answers_accepted(self)->bool:
+    def all_answers_accepted(self) -> bool:
         """
         Check if all answers within this subsection are marked as accepted.
         """
@@ -126,7 +126,11 @@ class Answer(models.Model):
         blank=False,
         null=False,
     )
-    answer_documents=models.JSONField(null=True, blank=True, help_text="Store list of Filenames used to answer this question.") # chnage this to VectorField with for a real database. 
+    answer_documents = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Store list of Filenames used to answer this question.",
+    )  # chnage this to VectorField with for a real database.
     answer_text = models.TextField(null=True, blank=True)
     accepted = models.BooleanField(
         null=True, blank=True, help_text="Marked as final answer."
@@ -134,4 +138,4 @@ class Answer(models.Model):
     history = HistoricalRecords()
 
     def __str__(self):
-        return f"Answer to {self.question} for assay {self.assay}"
+        return f'Answer to: {self.question} for assay {self.assay}'

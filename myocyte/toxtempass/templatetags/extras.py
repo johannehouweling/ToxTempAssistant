@@ -27,6 +27,6 @@ def add_asstring(a: str, b: Any) -> str:
 @register.filter()
 def intdivperc(a: float, b: float) -> int:
     if b != 0:
-        return int(a / b * 100) 
+        return int(a / b * 100)
     else:
         return 0

@@ -7,6 +7,8 @@ from pathlib import Path
 from django.urls import reverse
 from langchain_core.messages import HumanMessage, SystemMessage
 from toxtempass.filehandling import get_text_from_django_uploaded_file
+from django.contrib.humanize.templatetags.humanize import naturaltime
+from django.utils.text import Truncator
 from django.shortcuts import get_object_or_404, render, redirect
 from django.utils.safestring import mark_safe
 from toxtempass.models import (
@@ -404,12 +406,22 @@ def get_version_history(request, assay_id, question_id):
 
         # Append the version and its changes to the list
         version_changes.append({"version": version, "changes": changes})
+        # change time display // BETTER DONE with a templatetag but would have to look up how to load it
+        version_changes[-1]["version"].history_date = naturaltime(
+            version_changes[-1]["version"].history_date
+        )
+        if (
+            changes
+            and version_changes[-1]["changes"][0].field == "accepted"
+            and version_changes[-1]["changes"][0].old == None
+        ):
+            version_changes.pop(-1)
 
     # Pass the version changes and the instance to the template
     return render(
         request,
         "version_history_modal.html",
-        {"version_changes": version_changes, "instance": answer},
+        {"version_changes": version_changes, "instance": Truncator(answer).words(7)},
     )
 
 
