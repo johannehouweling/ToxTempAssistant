@@ -14,14 +14,12 @@ PDF-based, LLM assisted assistiant to report your assay via the ToxTemplate. [1]
 - luaLaTeX (Mactex)
 ## TODO
 ### Functionality
-- Repair progress bar
 - Filtering: User
 - Collaboration option? Easier option to show User study only to users
 - Disclaimer on Privacy etc.
 - Write tests
 - Add functionality to allow GPT on per question/multi-question level.
 - Somewhere log the documents that have been used for generation of draft answers.
-- Mark answer as accepted
 - Add keywords in export files, ontologies?
 - take care of deleting generated files after download by user
 - likelihood score responses
