@@ -1,5 +1,5 @@
 # ToxTempAssistantApp
-PDF-based, LLM assisted assistiant to report your assay via the ToxTemplate. [1]
+LLM-added population of ToxTemp for test method description. [1]
 
 - [ToxTempAssistantApp](#toxtempassistantapp)
   - [Install](#install)
