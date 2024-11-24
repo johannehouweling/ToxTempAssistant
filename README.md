@@ -15,6 +15,7 @@ LLM-added population of ToxTemp for test method description. [1]
 ## TODO
 ### Functionality
 - Filtering: User
+- Login capability. Account management. Define user model
 - Collaboration option? Easier option to show User study only to users
 - Disclaimer on Privacy etc.
 - Write tests
