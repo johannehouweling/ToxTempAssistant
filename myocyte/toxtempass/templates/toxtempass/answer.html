@@ -30,16 +30,20 @@
         background-color: var(--bs-primary); /* Default background color for active state */
     }
 
+    .compensate-sticky-header{
+      scroll-margin-top: 130px; /* Adjust this value to match your sticky header height */
+    	}
+
     @media (min-width: 992px) {
       .bd-sidebar {
           position:-webkit-sticky;
           position: sticky;
-          top: 5rem;
+          top: 10rem;
           display: block !important;
-          height: calc(100vh - 6rem);
           padding-left: .25rem;
           margin-left: -.25rem;
-          overflow-y: auto
+          overflow-y: auto;
+          height: calc(100vh - 16rem);
           }
       }
       
@@ -56,10 +60,10 @@
         <aside class="col-4">
 
             <div class="bd-sidebar">
-                <nav id="navbar-questions" class="flex-column offcanvas-lg offcanvas-start align-items-stretch border-end">
+                <nav id="navbar-questions" class="flex-column offcanvas-lg offcanvas-start align-items-stretch border-end overflow-y-auto">
                     <nav class="nav nav-pills flex-column offcanvas-body">
                         {% for section in sections %}
-                            <a class="nav-link p-1 px-3 m-0 mt-3 fs-5{% if section.all_answers_accepted %} text-secondary {% endif %}" onclick="#section-{{ section.id }}">{{ section.title }}</a>
+                            <a class="nav-link p-1 px-3 m-0 mt-3 fs-5{% if section.all_answers_accepted %} text-secondary {% endif %}" href="#section-{{ section.id }}">{{ section.title }}</a>
                             <nav class="nav nav-pills text-secondary flex-column">
                                 {% for subsection in section.subsections.all %}
                                     <a class="nav-link ms-4 p-1 px-3{% if subsection.all_answers_accepted %} text-secondary {% endif %}" href="#subsection-{{ subsection.id }}">{{ subsection.title }}</a>
@@ -80,12 +84,12 @@
             <form id="QuestionsForm" method="post" action="{{action}}" novalidate>
                 {% csrf_token %}
                 {{ form.non_field_errors }}
-                <div id="question-content" data-bs-spy="scroll" data-bs-target="#navbar-questions" data-bs-smooth-scroll="true" class="overflow-x-hidden" tabindex="0">
+                <div id="question-content">
                     {% for section in sections %}
-                        <div id="section-{{ section.id }}" class="p-1 mt-5 border-bottom">
+                        <div id="section-{{ section.id }}" class="p-1 mt-5 border-bottom compensate-sticky-header">
                             <h4>{{ section.title }}</h4>
                             {% for subsection in section.subsections.all %}
-                                <div id="subsection-{{ subsection.id }}" class="mt-3">
+                                <div id="subsection-{{ subsection.id }}" class="mt-3 compensate-sticky-header">
                                     <h5>{{ subsection.title }}</h5>
                                     {% for question in subsection.questions.all %}
                                       <div class="row">
@@ -179,7 +183,6 @@
     </div>
   </div>
 
-<!-- Scrollspy Auto Scroll Script -->
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       // Get the modal element and modal body
@@ -217,6 +220,49 @@
       });
     });
   </script>
+
+<!-- Scrollspy Auto Scroll Script -->
+  <script>
+    // let the full body be target (otherwise we need to put vh-100 onto question-content)
+    var scrollSpy = new bootstrap.ScrollSpy(document.body, {
+      target: '#navbar-questions'
+    });
+    document.body.setAttribute('data-bs-spy', 'scroll');
+    document.body.setAttribute('data-bs-target', '#navbar-questions');
+    document.body.setAttribute('data-bs-smooth-scroll', 'true');
+    document.body.setAttribute('tabindex', '0');
+  
+    // make sure the highlihgtted element in the scrollspy nav bar is always visibkle
+
+    document.addEventListener('activate.bs.scrollspy', function () {
+      const activeLinks = document.querySelectorAll('.nav-link.active');
+
+      // Select the last element from the NodeList
+      const activeLink = activeLinks[activeLinks.length - 1];
+      const sidebar = document.querySelector('.bd-sidebar');
+  
+      if (activeLink && sidebar) {
+          const sidebarRect = sidebar.getBoundingClientRect();
+          const linkRect = activeLink.getBoundingClientRect();
+  
+          // Sticky header height (adjust based on your layout)
+          const stickyHeaderHeight = 0;
+  
+          // Check if the active link is outside the visible range of the sidebar
+          if (linkRect.top < sidebarRect.top || linkRect.bottom > sidebarRect.bottom) {
+              const offset = linkRect.top - sidebarRect.top - stickyHeaderHeight;
+  
+              // Scroll the sidebar to bring the link into view
+              sidebar.scrollTop += offset;
+          }
+      }
+  });
+  
+  
+  
+  </script>
+
+
 
   {% comment %} <script>
   
@@ -284,7 +330,7 @@
     }
     
     // If no unchecked checkbox was found, reset the lastFocusedIndex to -1 and start over
-    if (!foundUnchecked) {
+    if (!foundUnchecked) {ö
       lastFocusedIndex = -1; // Reset to start over
     }
   }
