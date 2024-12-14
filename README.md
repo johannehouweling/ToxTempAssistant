@@ -20,12 +20,10 @@ LLM-added population of ToxTemp for test method description. [1]
 - Collaboration option? Easier option to show User study only to users
 - Disclaimer on Privacy etc.
 - Write tests
-- Add functionality to allow GPT on per question/multi-question level.
-- Somewhere log the documents that have been used for generation of draft answers.
+- Somewhere log the documents that have been used for generation of draft answers. (currently as tmpq2e21.pdf<-change to keep original names.)
 - Add keywords in export files, ontologies?
 - take care of deleting generated files after download by user
 - likelihood score responses
-- write disclaimer
 - if all accepted, clicking on next accepted should tell you that you are done.
 ### Performance optimization
 -  History: Make sure we Cache the Answers on first shipment of the Answer.html, so that if we store answers we don't have to hit the database again.
@@ -33,8 +31,8 @@ LLM-added population of ToxTemp for test method description. [1]
 ### Infrastructure
 - VHP4Safety GPT endpoint. Set limit to number of draft generations.
 - Where will this app be hosted? 
-- Dockerize in VScode container? 
-- What are we storing? 
+- Dockerize in and host on AzureDocker?
+- What is stored? At the moment answers and document-names and username ISA.
 ## License
 
 ## Maintainer
