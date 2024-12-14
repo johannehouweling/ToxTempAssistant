@@ -138,4 +138,4 @@ class Answer(models.Model):
     history = HistoricalRecords()
 
     def __str__(self):
-        return f'Answer to: {self.question} for assay {self.assay}'
+        return f"Answer to: {self.question} for assay {self.assay}"

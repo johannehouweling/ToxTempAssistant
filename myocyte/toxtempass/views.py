@@ -3,6 +3,8 @@ from toxtempass import config
 from django.http.response import JsonResponse
 from django.db import transaction
 import json
+import logging
+
 from pathlib import Path
 from django.urls import reverse
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -33,6 +35,8 @@ from toxtempass.export import export_assay_to_file
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth.models import User
 from toxtempass.utilis import calculate_md5_multiplefiles
+
+logger = logging.getLogger("views")
 
 
 # Custom test function to check if the user is a superuser (admin)
@@ -175,8 +179,8 @@ def get_filtered_assays(request: HttpRequest, study_id: int):
     return JsonResponse([], safe=False)
 
 
-def gpt_allowed_for_assay(request: HttpRequest, pk: int) -> JsonResponse:
-    """Answers if gpt is allowed."""
+def initial_gpt_allowed_for_assay(request: HttpRequest, pk: int) -> JsonResponse:
+    """Answers if gpt is allowed in the first go (all answers empty)."""
     if request.method == "POST":
         assay = get_object_or_404(Assay, pk=pk)
         if not assay.answers.all():
@@ -332,7 +336,7 @@ def answer_assay_questions(request, assay_id):
     sections = Section.objects.prefetch_related("subsections__questions").all()
 
     if request.method == "POST":
-        form = AssayAnswerForm(request.POST, assay=assay)
+        form = AssayAnswerForm(request.POST, request.FILES, assay=assay)
         if form.is_valid():
             form.save()
             return JsonResponse(

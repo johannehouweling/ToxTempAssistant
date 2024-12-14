@@ -1,9 +1,17 @@
 from django import forms
+import logging
 from toxtempass.models import Investigation, Study, Assay, Question, Section, Answer
 from toxtempass.widgets import (
     BootstrapSelectWithButtonsWidget,
 )  # Import the custom widget
+from toxtempass.filehandling import get_text_from_django_uploaded_file
+from langchain_core.messages import HumanMessage, SystemMessage
+from collections import defaultdict
+from toxtempass.llm import chain
+from toxtempass import config
 # Form to submit answers to fixed questions for an assay
+
+logger = logging.getLogger("forms")
 
 
 class MultipleFileInput(forms.ClearableFileInput):
@@ -114,6 +122,23 @@ class AssayAnswerForm(forms.Form):
         self.assay = kwargs.pop("assay")
         super(AssayAnswerForm, self).__init__(*args, **kwargs)
 
+        # optional file uploaded for updating:
+        self.fields["file_upload"] = MultipleFileField(
+            widget=MultipleFileInput(
+                attrs={
+                    "multiple": True,
+                    "id": "fileUpload",
+                    "accept": ".pdf,.docx,.doc",
+                }
+            ),
+            required=False,
+            help_text=(
+                "Context documents for update of selected answers. "
+                f"Supported formats: PDF, DOC, DOCX. Max size: {config.max_size_mb} "
+                "MB per file."
+            ),
+        )
+
         # Iterate over sections and subsections, adding a form field for each question
         sections = Section.objects.all().prefetch_related("subsections__questions")
 
@@ -143,6 +168,13 @@ class AssayAnswerForm(forms.Form):
                     ## add accepted option
                     accepted_field_name = f"accepted_{question.id}"
                     self.fields[accepted_field_name] = forms.BooleanField(
+                        widget=forms.CheckboxInput(
+                            attrs={
+                                "class": "form-check-input",
+                                "role": "switch",
+                                "type": "checkbox",
+                            }
+                        ),
                         label="Accepted",
                         required=False,
                     )
@@ -151,43 +183,162 @@ class AssayAnswerForm(forms.Form):
                         self.fields[accepted_field_name].initial = answer.accepted
                     else:
                         self.fields[accepted_field_name].initial = False
+                    ## add earmark for update option
+                    earmarked_field_name = f"earmarked_{question.id}"
+                    self.fields[earmarked_field_name] = forms.BooleanField(
+                        label="GPT Update",
+                        required=False,
+                    )
+                    self.fields[earmarked_field_name].initial = False
+
+    def clean_file_upload(self):
+        uploaded_files = self.files.getlist("file_upload")
+        allowed_types = [
+            "application/pdf",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/msword",
+        ]
+        max_size = config.max_size_mb * 1024 * 1024  # 20 MB
+
+        for file in uploaded_files:
+            if file.content_type not in allowed_types:
+                raise forms.ValidationError(
+                    f"Unsupported file type: {file.content_type}"
+                )
+            if file.size > max_size:
+                raise forms.ValidationError(
+                    f"File size exceeds the limit of {max_size / (1024 * 1024)} MB"
+                )
+        return uploaded_files
 
     def save(self):
-        # Save each answer for the corresponding assay and question
+        """
+        Saves the form data:
+        - Saves answers and their flags.
+        - Processes uploaded files.
+        - Invokes GPT for earmarked answers synchronously.
+        """
+        earmarked_answers = []
+        uploaded_files = self.cleaned_data.get("file_upload", [])
+
+        # Extract text from uploaded files
+        if uploaded_files:
+            doc_dict = get_text_from_django_uploaded_file(uploaded_files)
+            logger.debug(f"Extracted text from {len(uploaded_files)} uploaded files.")
+        else:
+            doc_dict = {}
+            logger.debug("No files uploaded.")
+
+        # Group the fields by question_id
+        questions_data = defaultdict(dict)
         for field_name, value in self.cleaned_data.items():
-            # Extract the question ID from the field name (assuming the format is 'question_<id>')
-            field_name_split = field_name.split("_")
-            if "question" in field_name_split:
-                question_id = field_name_split[1]
-                question = Question.objects.get(pk=question_id)
+            if field_name.startswith("question_"):
+                qid = field_name.split("_")[1]
+                questions_data[qid]["answer_text"] = value
+            elif field_name.startswith("accepted_"):
+                qid = field_name.split("_")[1]
+                questions_data[qid]["accepted"] = value
+            elif field_name.startswith("earmarked_"):
+                qid = field_name.split("_")[1]
+                questions_data[qid]["earmarked"] = value
 
-                # Get or create the answer object for this assay and question
-                answer, created = Answer.objects.get_or_create(
-                    assay=self.assay,
-                    question=question,
-                    defaults={
-                        "answer_text": value
-                    },  # This only sets the text if the answer is being created
+        # Extract unique question_ids
+        question_ids = questions_data.keys()
+        logger.debug(f"Processing {len(question_ids)} questions.")
+
+        # Fetch all relevant questions in a single query
+        questions = Question.objects.filter(id__in=question_ids)
+        questions_map = {str(q.id): q for q in questions}
+
+        for qid, data in questions_data.items():
+            question = questions_map.get(qid)
+            if not question:
+                logger.error(f"Question with id {qid} does not exist.")
+                continue  # Skip processing if question does not exist
+
+            # Get or create the answer object
+            answer, created = Answer.objects.get_or_create(
+                assay=self.assay,
+                question=question,
+                defaults={"answer_text": data.get("answer_text", "")},
+            )
+            if created:
+                logger.info(f"Created new Answer for question id {qid}.")
+
+            # Update answer_text if it has changed
+            new_text = data.get("answer_text", "")
+            if not created and answer.answer_text != new_text:
+                answer.answer_text = new_text
+                answer.save()
+                logger.debug(f"Updated answer_text for question id {qid}.")
+
+            # Update accepted field
+            accepted = data.get("accepted", False)
+            if answer.accepted != accepted:
+                answer.accepted = accepted
+                answer.save()
+                logger.debug(
+                    f"Updated 'accepted' flag for question id {qid} to {accepted}."
                 )
 
-                # Only update if the answer_text is different from the existing one
-                if not created and answer.answer_text != value:
-                    answer.answer_text = value
-                    answer.save()
-            if "accepted" in field_name_split:
-                accepted_id = field_name_split[1]
-                question = Question.objects.get(pk=accepted_id)
+            # Update earmarked_for_update field
+            earmarked = data.get("earmarked", False)
 
-                # Get or create the answer object for this assay and question
-                answer, created = Answer.objects.get_or_create(
-                    assay=self.assay,
-                    question=question,
-                    defaults={
-                        "accepted": False
-                    },  # This only sets the text if the answer is being created
-                )
+            if earmarked:
+                earmarked_answers.append(answer)
+                logger.info(f"Question id {qid} marked for GPT update.")
 
-                # Only update if the answer_text is different from the existing one
-                if not created and answer.accepted != value:
-                    answer.accepted = value
+        # Process earmarked answers
+        if earmarked_answers and doc_dict:
+            for answer in earmarked_answers:
+                try:
+                    # Prepare the messages for the GPT chain
+                    messages = [
+                        SystemMessage(content=config.base_prompt),
+                        SystemMessage(content=f"ASSAY NAME: {self.assay.title}\n"),
+                        SystemMessage(
+                            content=f"ASSAY DESCRIPTION: {self.assay.description}\n"
+                        ),
+                        SystemMessage(
+                            content=f"""Below find the context to answer the question:\n CONTEXT:\n{doc_dict}"""
+                        ),
+                        HumanMessage(content=answer.question.question_text),
+                    ]
+
+                    logger.debug(f"Invoking GPT for Answer id {answer.id}.")
+
+                    # Invoke the GPT chain synchronously
+                    draft_answer = chain.invoke(messages)
+
+                    # Existing documents in answer_documents
+                    existing_docs: list[str] = answer.answer_documents or []
+
+                    # New documents from doc_dict.keys()
+                    new_docs = [key.name for key in list(doc_dict.keys())]
+
+                    # Combine existing and new documents
+                    combined_docs = existing_docs + new_docs
+
+                    # Remove duplicates while preserving order
+                    unique_docs_updated = list(dict.fromkeys(combined_docs))
+
+                    # Assign back to answer_documents
+                    answer.answer_documents = unique_docs_updated
+                    answer.answer_text = draft_answer.content
+                    answer.accepted=False
                     answer.save()
+
+                    logger.info(
+                        f"Successfully updated Answer id {answer.id} with GPT-generated text."
+                    )
+                    logger.debug(
+                        f"Updated 'answer_documents' for Answer id {answer.id}: {unique_docs}"
+                    )
+
+                except Exception as e:
+                    # Log the error and optionally handle it (e.g., add to form errors)
+                    logger.error(f"Error processing Answer id {answer.id}: {e}")
+                    self.add_error(
+                        "file_upload",
+                        f"Error processing answer for question '{answer.question}': {e}",
+                    )

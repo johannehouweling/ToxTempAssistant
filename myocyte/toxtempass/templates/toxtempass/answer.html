@@ -6,6 +6,20 @@
 {% load django_bootstrap5 %}
 {% load extras %}
   <style>
+    .graceful-clip {
+
+    }
+    
+    .graceful-clip::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 16px; /* Width of the fade */
+      height: 100%;
+      background: var(--bs-light);   /* Match bg-light */
+      pointer-events: none; /* Allows clicks to pass through */
+    }
     /* Target the scrollbar track */
     ::-webkit-scrollbar {
         width: 8px; /* Width of the scrollbar */
@@ -81,7 +95,7 @@
           <div>
             <h1> Test method: {{ assay.title }}</h1>
           </div>
-            <form id="QuestionsForm" method="post" action="{{action}}" novalidate>
+            <form id="QuestionsForm" method="post" action="{{action}}" novalidate enctype="multipart/form-data">
                 {% csrf_token %}
                 {{ form.non_field_errors }}
                 <div id="question-content">
@@ -101,19 +115,27 @@
                                                 {% endwith %} 
                                           </div>
                                         </div>  
-                                      <div class="col-md-2 align-self-end">  
-                                        <div class="mb-3 has-validation">
-                                              {% with accepted_num='accepted_'|add_asstring:question.id %}
-                                              {% bootstrap_field form|form_field:accepted_num placeholder="" %}
+                                        <div class="col-md-2 align-self-end">  
+                                          <div class="has-validation">
+                                              {% with earmark_num='earmarked_'|add_asstring:question.id %}
+                                              {% bootstrap_field form|form_field:earmark_num placeholder="" wrapper_class="mb-2"%}
                                               {% endwith %}
-                                        </div>
-                                          <button type="button" class="btn btn-outline-primary mb-3" id="openModalButton"
+                                          </div>
+                                          {% include "toxtempass/update_modal.html" %}
+
+                                          <button type="button" class="btn btn-outline-primary mb-2" id="openModalButton"
                                                   data-bs-toggle="modal"
                                                   data-bs-target="#versionHistoryModal"
                                                   data-assay-id="{{ assay.id }}"
                                                   data-question-id="{{question.id}}">
                                               History
                                           </button>
+                                          
+                                          <div class="mb-3 has-validation">
+                                            {% with accepted_num='accepted_'|add_asstring:question.id %}
+                                            {% bootstrap_field form|form_field:accepted_num placeholder="" wrapper_class="form-check form-switch ps-3" %}
+                                            {% endwith %}
+                                          </div>
                                         </div>
                                       </div>
                                     {% endfor %}
@@ -139,7 +161,25 @@
             <div class="my-3 d-flex">
               {% bootstrap_button button_type="link" content="Back" href=back_url button_class="btn-outline-danger"  %}
               {% bootstrap_button button_type="submit" content="Save" button_class="btn-primary ms-auto" form="QuestionsForm" %}
-              {% bootstrap_button button_type="button" content="Next unaccapted" button_class="btn-outline-secondary mx-1" id="btn_next_unaccepted" %}
+              
+              <div class="btn-group mx-1">
+                <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                  Options
+                </button>
+                <ul class="dropdown-menu">
+                  {% with id=assay.id %}
+                  <li><a class="dropdown-item" type="button" id="btn_next_unaccepted">Next unaccapted</a></li>
+                  <li><a 
+                    class="dropdown-item" 
+                    type="button" 
+                    data-bs-toggle="modal" 
+                    data-bs-target="#updateModal"
+                    >
+                    Update selected questions
+                  </a></li>
+                  {% endwith %}
+                </ul>
+              </div>
 
               <div class="btn-group">
                 <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
@@ -300,7 +340,7 @@
   // Function to find and focus on the next unchecked "Accepted" checkbox
   function focusNextUnaccepted() {
     // Get all the checkboxes with the class 'form-check-input'
-    const checkboxes = document.querySelectorAll('.form-check-input');
+    const checkboxes = document.querySelectorAll('.form-check-input[role="switch"]');
     let foundUnchecked = false;  // Flag to track if an unchecked checkbox is found
     
     // Loop through the checkboxes starting from the next one after the last focused one
@@ -330,7 +370,7 @@
     }
     
     // If no unchecked checkbox was found, reset the lastFocusedIndex to -1 and start over
-    if (!foundUnchecked) {ö
+    if (!foundUnchecked) {
       lastFocusedIndex = -1; // Reset to start over
     }
   }
@@ -354,6 +394,8 @@
         })
     });
 </script>
+
+
 {% include "error_handling.html" %}
 {% endblock %}
 

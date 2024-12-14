@@ -1,0 +1,173 @@
+{% load django_bootstrap5 %}
+{% load extras %}
+
+<div 
+    class="modal fade" 
+    id="updateModal" 
+    tabindex="-1" 
+    aria-labelledby="updateModalLabel" 
+    aria-hidden="true"
+  >
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <!-- Modal Header -->
+        <div class="modal-header">
+          <h5 class="modal-title" id="updateModalLabel">Update Selected Questions</h5>
+          <button 
+            type="button" 
+            class="btn-close" 
+            data-bs-dismiss="modal" 
+            aria-label="Close"
+          ></button>
+        </div>        
+        <!-- Modal Body -->
+        <div class="modal-body">
+          <!-- Dynamic Title for Selected Questions -->
+          <h6 id="selectedQuestionsTitle" class="mb-3" style="display: none;">
+            Question(s) Selected for Update:
+          </h6>
+          
+          <!-- Container for Selected Questions or Info Text -->
+          <div id="selectedQuestionsContainer">
+            <ul id="selectedQuestionsList" class="list-group mb-3" style="display: none;">
+              <!-- Dynamically populated list items will appear here -->
+            </ul>
+            <div id="noSelectionInfo" class="alert alert-info" role="alert" style="display: none;">
+              You need to select at least one question for updating before proceeding.
+            </div>
+          </div>
+          
+          <!-- File Upload Field -->
+          {% bootstrap_field form.file_upload placeholder="" %}
+        </div>
+        
+        <!-- Modal Footer -->
+        <div class="modal-footer">
+          <button 
+            type="button" 
+            class="btn btn-secondary" 
+            data-bs-dismiss="modal"
+            id="cancelButton"
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            class="btn btn-primary"
+            data-bs-toggle="tooltip" data-bs-placement="top"
+            data-bs-custom-class="custom-tooltip"
+            data-bs-title="Saving will apply all unsaved form changes and overwrite the selected questions (see above). You can use the History feature to restore the previous state if needed. Press Cancel to abort." 
+            id="okButton"
+            disabled
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript to Handle Modal Content and Upload Field Clearing -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var updateModal = document.getElementById('updateModal');
+      var selectedQuestionsList = document.getElementById('selectedQuestionsList');
+      var noSelectionInfo = document.getElementById('noSelectionInfo');
+      var fileUpload = document.getElementById('fileUpload');
+      var cancelButton = document.getElementById('cancelButton');
+      var okButton = document.getElementById('okButton');
+      var selectedQuestionsTitle = document.getElementById('selectedQuestionsTitle');
+      
+      // Function to check if at least one checkbox is selected
+      function checkSelectedQuestions() {
+        var checkboxes = document.querySelectorAll('input[type="checkbox"][name^="earmarked_"]:checked');
+        return checkboxes.length > 0;
+      }
+      
+      // Event listener for when the modal is about to be shown
+      updateModal.addEventListener('show.bs.modal', function (event) {
+        // Clear any previous content
+        selectedQuestionsList.innerHTML = '';
+        selectedQuestionsList.style.display = 'none';
+        noSelectionInfo.style.display = 'none';
+        selectedQuestionsTitle.style.display = 'none';
+
+        
+        // Select all checked checkboxes with names starting with 'earmarked_'
+        var checkboxes = document.querySelectorAll('input[type="checkbox"][name^="earmarked_"]:checked');
+        
+        if (checkboxes.length > 0) {
+          // Enable the "OK" button
+          okButton.disabled = false;
+          
+          // Iterate over each checked checkbox
+          checkboxes.forEach(function(checkbox) {
+            // Extract the number from the checkbox name (e.g., 'earmarked_1' => '1')
+            var nameParts = checkbox.name.split('_');
+            var x = nameParts[nameParts.length - 1];
+            
+            // Find the corresponding label for 'id_question_x'
+            var questionLabel = document.querySelector('label[for="id_question_' + x + '"]');
+            var labelText = questionLabel ? questionLabel.textContent.trim() : 'Unknown Question';
+            
+            
+            // Create a new list item
+            var li = document.createElement('li');
+            li.classList.add('list-group-item');
+            li.classList.add('bg-light');
+            li.classList.add('overflow-x-hidden')
+            li.classList.add('text-nowrap')
+            li.classList.add('graceful-clip')
+
+            li.textContent = labelText;
+            
+            // Append the list item to the unordered list
+            selectedQuestionsList.appendChild(li);
+          });
+          
+          // Display the title and list of selected questions
+          selectedQuestionsTitle.style.display = 'block';
+          selectedQuestionsList.style.display = 'block';
+        } else {
+          // If no checkboxes are selected, display the informational message
+          noSelectionInfo.style.display = 'block';
+          
+          // Disable the "OK" button
+          okButton.disabled = true;
+        }
+      });
+      
+      // Event listener for when the modal is fully hidden (after closing animation)
+      updateModal.addEventListener('hidden.bs.modal', function (event) {
+        // Clear the upload field
+        fileUpload.value = '';
+      });
+      
+      // Event listener for the "Cancel" button to ensure the upload field is cleared
+      cancelButton.addEventListener('click', function () {
+        fileUpload.value = '';
+      });
+      
+      // Event listeners for checkboxes to dynamically enable/disable the "OK" button and update the title
+      var allCheckboxes = document.querySelectorAll('input[type="checkbox"][name^="earmarked_"]');
+      allCheckboxes.forEach(function(checkbox) {
+        checkbox.addEventListener('change', function() {
+          // If the modal is open, update the "OK" button state and dynamic title
+          if (updateModal.classList.contains('show')) {
+            if (checkSelectedQuestions()) {
+              okButton.disabled = false;
+              noSelectionInfo.style.display = 'none';
+              selectedQuestionsTitle.style.display = 'block';
+              selectedQuestionsList.style.display = 'block';
+            } else {
+              okButton.disabled = true;
+              noSelectionInfo.style.display = 'block';
+              selectedQuestionsTitle.style.display = 'none';
+              selectedQuestionsList.style.display = 'none';
+            }
+          }
+        });
+      });
+    });
+</script>
+  

@@ -21,7 +21,9 @@ from toxtempass import views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("init/", views.init_db), # initializes database, meaning it creates the questions, subsections and sections.
+    path(
+        "init/", views.init_db
+    ),  # initializes database, meaning it creates the questions, subsections and sections.
 ]
 
 urlpatterns += [
@@ -52,7 +54,11 @@ urlpatterns += [
     ),  # hard-coded in start.html
     # Assay URLs
     path("assay/create/", views.create_or_update_assay, name="create_assay"),
-    path("assay/gpt-allowed/<int:pk>", views.gpt_allowed_for_assay, name="assay_gpt_allowed"),
+    path(
+        "assay/gpt-allowed/<int:pk>",
+        views.initial_gpt_allowed_for_assay,
+        name="assay_gpt_allowed",
+    ),
     path(
         "assay/update/<int:pk>/", views.create_or_update_assay, name="update_assay"
     ),  # hard-coded in start.html
@@ -77,14 +83,26 @@ urlpatterns += [
 
 # Exports
 
-urlpatterns +=[
-    path('assay/<int:assay_id>/answer/export/<str:export_type>/', views.export_assay, name="export_assay")
+urlpatterns += [
+    path(
+        "assay/<int:assay_id>/answer/export/<str:export_type>/",
+        views.export_assay,
+        name="export_assay",
+    )
 ]
 
 # Filter Investigation and Study for the first menu on start.html (so we only show hierachical options and not all)
 
-urlpatterns +=[
+urlpatterns += [
     # Other paths
-    path('filter-studies-by-investigation/<int:investigation_id>/', views.get_filtered_studies, name='filter_studie_by_investigation'),
-    path('filter-assays-by-study/<int:study_id>/', views.get_filtered_assays, name='filter_assays_by_study'),
+    path(
+        "filter-studies-by-investigation/<int:investigation_id>/",
+        views.get_filtered_studies,
+        name="filter_studie_by_investigation",
+    ),
+    path(
+        "filter-assays-by-study/<int:study_id>/",
+        views.get_filtered_assays,
+        name="filter_assays_by_study",
+    ),
 ]

@@ -18,6 +18,6 @@ class Config:
     version = "0.1"
     reference = "tbd"
     reference_toxtemp = "https://doi.org/10.14573/altex.1909271"
-
+    max_size_mb = 20
 
 config = Config()

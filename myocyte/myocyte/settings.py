@@ -127,6 +127,16 @@ LOGGING = {
             "level": "INFO",
             "propagate": False,
         },
+        "views": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "forms": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
     },
 }
 

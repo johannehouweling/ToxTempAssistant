@@ -6,6 +6,7 @@ LLM-added population of ToxTemp for test method description. [1]
   - [TODO](#todo)
     - [Functionality](#functionality)
     - [Performance optimization](#performance-optimization)
+    - [Infrastructure](#infrastructure)
   - [License](#license)
   - [Maintainer](#maintainer)
   - [References](#references)
@@ -24,9 +25,16 @@ LLM-added population of ToxTemp for test method description. [1]
 - Add keywords in export files, ontologies?
 - take care of deleting generated files after download by user
 - likelihood score responses
+- write disclaimer
+- if all accepted, clicking on next accepted should tell you that you are done.
 ### Performance optimization
 -  History: Make sure we Cache the Answers on first shipment of the Answer.html, so that if we store answers we don't have to hit the database again.
 -  Handle concurrency / prevent multiple users from checking/editing the same item (only need if we allow colaboration) 
+### Infrastructure
+- VHP4Safety GPT endpoint. Set limit to number of draft generations.
+- Where will this app be hosted? 
+- Dockerize in VScode container? 
+- What are we storing? 
 ## License
 
 ## Maintainer
