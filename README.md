@@ -20,7 +20,6 @@ LLM-added population of ToxTemp for test method description. [1]
 - Collaboration option? Easier option to show User study only to users
 - Disclaimer on Privacy etc.
 - Write tests
-- Somewhere log the documents that have been used for generation of draft answers. (currently as tmpq2e21.pdf<-change to keep original names.)
 - Add keywords in export files, ontologies?
 - take care of deleting generated files after download by user
 - likelihood score responses

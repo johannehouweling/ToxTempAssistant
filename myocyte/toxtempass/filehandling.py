@@ -10,7 +10,7 @@ import tempfile
 from toxtempass.llm import get_text_filepaths
 
 
-def convert_to_temporary(file: InMemoryUploadedFile):
+def convert_to_temporary(file: InMemoryUploadedFile) -> tuple[str, Path]:
     """
     Convert an InMemoryUploadedFile to a TemporaryUploadedFile by creating a temporary file on disk
     with the correct file extension.
@@ -19,21 +19,19 @@ def convert_to_temporary(file: InMemoryUploadedFile):
     file (InMemoryUploadedFile): The file in memory to convert.
 
     Returns:
-    str: Path to the new temporary file.
+    str: Path to the new temporary file
     """
-    # Extract the file extension from the original file name using pathlib
-    file_ext = Path(file.name).suffix
-
     # Create a temporary file with the same extension
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=file_ext)
+    Path("/tmp/toxtempass").mkdir(parents=True, exist_ok=True)
+    temp_file = Path(tempfile.mkdtemp(dir="/tmp/toxtempass")) / file.name
 
     # Write the contents of the InMemoryUploadedFile to the temporary file
-    for chunk in file.chunks():
-        temp_file.write(chunk)
-    temp_file.flush()  # Ensure all data is written to disk
-    temp_file.close()
+    with temp_file.open("wb") as f:
+        for chunk in file.chunks():
+            f.write(chunk)
+            f.flush()
 
-    return temp_file.name
+    return str(temp_file)
 
 
 def get_text_from_django_uploaded_file(files: UploadedFile) -> dict[str, str]:

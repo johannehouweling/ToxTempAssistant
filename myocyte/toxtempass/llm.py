@@ -105,7 +105,7 @@ def get_text_filepaths(document_filenames: list[str | Path]):
                 text = loader.load()[0].page_content
 
             if text:
-                document_contents[context_filename] = {"text":text}
+                document_contents[context_filename] = {"text": text}
                 logger.info(f"The file '{context_filename}' was read successfully.")
 
         except Exception as e:

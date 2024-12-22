@@ -12,10 +12,10 @@
     {% comment %} <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script> {% endcomment %}
 </head>
 <script>
-    document.addEventListener("DOMContentLoaded"){
+    document.addEventListener("DOMContentLoaded", function(){
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
     const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
-    }
+    })
 </script>
 <body>
     <header class="sticky-md-top">

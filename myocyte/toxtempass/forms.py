@@ -325,14 +325,14 @@ class AssayAnswerForm(forms.Form):
                     # Assign back to answer_documents
                     answer.answer_documents = unique_docs_updated
                     answer.answer_text = draft_answer.content
-                    answer.accepted=False
+                    answer.accepted = False
                     answer.save()
 
                     logger.info(
                         f"Successfully updated Answer id {answer.id} with GPT-generated text."
                     )
                     logger.debug(
-                        f"Updated 'answer_documents' for Answer id {answer.id}: {unique_docs}"
+                        f"Updated 'answer_documents' for Answer id {answer.id}: {unique_docs_updated}"
                     )
 
                 except Exception as e:

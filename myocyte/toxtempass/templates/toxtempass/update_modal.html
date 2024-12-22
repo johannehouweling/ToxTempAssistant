@@ -39,6 +39,11 @@
           
           <!-- File Upload Field -->
           {% bootstrap_field form.file_upload placeholder="" %}
+          
+          <!-- Optional: Info about file requirement -->
+          <div id="fileUploadInfo" class="alert alert-info mt-3" role="alert" style="display: none;">
+            Please select a file to proceed.
+          </div>
         </div>
         
         <!-- Modal Footer -->
@@ -55,12 +60,21 @@
             type="submit" 
             class="btn btn-primary"
             data-bs-toggle="tooltip" data-bs-placement="top"
-            data-bs-custom-class="custom-tooltip"
+            data-bs-custom-class="tooltip"
             data-bs-title="Saving will apply all unsaved form changes and overwrite the selected questions (see above). You can use the History feature to restore the previous state if needed. Press Cancel to abort." 
             id="okButton"
             disabled
           >
             Save
+            <!-- Spinner Element -->
+            <div 
+              class="spinner-border spinner-border-sm ms-2" 
+              role="status" 
+              id="okButtonSpinner" 
+              style="display: none;"
+            >
+              <span class="visually-hidden">Loading...</span>
+            </div>
           </button>
         </div>
       </div>
@@ -77,11 +91,44 @@
       var cancelButton = document.getElementById('cancelButton');
       var okButton = document.getElementById('okButton');
       var selectedQuestionsTitle = document.getElementById('selectedQuestionsTitle');
+      var okButtonSpinner = document.getElementById('okButtonSpinner');
+      var fileUploadInfo = document.getElementById('fileUploadInfo');
       
       // Function to check if at least one checkbox is selected
       function checkSelectedQuestions() {
         var checkboxes = document.querySelectorAll('input[type="checkbox"][name^="earmarked_"]:checked');
         return checkboxes.length > 0;
+      }
+
+      // Function to check if a file is selected
+      function isFileSelected() {
+        return fileUpload.files.length > 0;
+      }
+
+      // Function to update the state of the "Save" button
+      function updateSaveButtonState() {
+        var questionsSelected = checkSelectedQuestions();
+        var fileSelected = isFileSelected();
+
+        if (questionsSelected && fileSelected) {
+          okButton.disabled = false;
+          noSelectionInfo.style.display = 'none';
+          fileUploadInfo.style.display = 'none';
+        } else {
+          okButton.disabled = true;
+
+          // Show relevant info messages
+          if (!questionsSelected && !fileSelected) {
+            noSelectionInfo.style.display = 'block';
+            fileUploadInfo.style.display = 'block';
+          } else if (!questionsSelected) {
+            noSelectionInfo.style.display = 'block';
+            fileUploadInfo.style.display = 'none';
+          } else if (!fileSelected) {
+            noSelectionInfo.style.display = 'none';
+            fileUploadInfo.style.display = 'block';
+          }
+        }
       }
       
       // Event listener for when the modal is about to be shown
@@ -90,16 +137,13 @@
         selectedQuestionsList.innerHTML = '';
         selectedQuestionsList.style.display = 'none';
         noSelectionInfo.style.display = 'none';
+        fileUploadInfo.style.display = 'none';
         selectedQuestionsTitle.style.display = 'none';
 
-        
         // Select all checked checkboxes with names starting with 'earmarked_'
         var checkboxes = document.querySelectorAll('input[type="checkbox"][name^="earmarked_"]:checked');
         
         if (checkboxes.length > 0) {
-          // Enable the "OK" button
-          okButton.disabled = false;
-          
           // Iterate over each checked checkbox
           checkboxes.forEach(function(checkbox) {
             // Extract the number from the checkbox name (e.g., 'earmarked_1' => '1')
@@ -110,15 +154,9 @@
             var questionLabel = document.querySelector('label[for="id_question_' + x + '"]');
             var labelText = questionLabel ? questionLabel.textContent.trim() : 'Unknown Question';
             
-            
             // Create a new list item
             var li = document.createElement('li');
-            li.classList.add('list-group-item');
-            li.classList.add('bg-light');
-            li.classList.add('overflow-x-hidden')
-            li.classList.add('text-nowrap')
-            li.classList.add('graceful-clip')
-
+            li.classList.add('list-group-item', 'bg-light', 'overflow-x-hidden', 'text-nowrap', 'graceful-clip');
             li.textContent = labelText;
             
             // Append the list item to the unordered list
@@ -131,43 +169,75 @@
         } else {
           // If no checkboxes are selected, display the informational message
           noSelectionInfo.style.display = 'block';
-          
-          // Disable the "OK" button
-          okButton.disabled = true;
         }
+
+        // Update the "Save" button state based on current selections
+        updateSaveButtonState();
       });
       
       // Event listener for when the modal is fully hidden (after closing animation)
       updateModal.addEventListener('hidden.bs.modal', function (event) {
         // Clear the upload field
         fileUpload.value = '';
+        fileUploadInfo.style.display = 'none';
       });
       
       // Event listener for the "Cancel" button to ensure the upload field is cleared
       cancelButton.addEventListener('click', function () {
         fileUpload.value = '';
+        fileUploadInfo.style.display = 'none';
       });
       
-      // Event listeners for checkboxes to dynamically enable/disable the "OK" button and update the title
+      // Event listeners for checkboxes to dynamically enable/disable the "Save" button and update the title
       var allCheckboxes = document.querySelectorAll('input[type="checkbox"][name^="earmarked_"]');
       allCheckboxes.forEach(function(checkbox) {
         checkbox.addEventListener('change', function() {
-          // If the modal is open, update the "OK" button state and dynamic title
+          // If the modal is open, update the "Save" button state
           if (updateModal.classList.contains('show')) {
-            if (checkSelectedQuestions()) {
-              okButton.disabled = false;
-              noSelectionInfo.style.display = 'none';
+            updateSaveButtonState();
+            
+            // Update the list of selected questions in the modal
+            selectedQuestionsList.innerHTML = '';
+            var selectedCheckboxes = document.querySelectorAll('input[type="checkbox"][name^="earmarked_"]:checked');
+            if (selectedCheckboxes.length > 0) {
+              selectedCheckboxes.forEach(function(checkbox) {
+                var nameParts = checkbox.name.split('_');
+                var x = nameParts[nameParts.length - 1];
+                var questionLabel = document.querySelector('label[for="id_question_' + x + '"]');
+                var labelText = questionLabel ? questionLabel.textContent.trim() : 'Unknown Question';
+                var li = document.createElement('li');
+                li.classList.add('list-group-item', 'bg-light', 'overflow-x-hidden', 'text-nowrap', 'graceful-clip');
+                li.textContent = labelText;
+                selectedQuestionsList.appendChild(li);
+              });
               selectedQuestionsTitle.style.display = 'block';
               selectedQuestionsList.style.display = 'block';
             } else {
-              okButton.disabled = true;
-              noSelectionInfo.style.display = 'block';
               selectedQuestionsTitle.style.display = 'none';
               selectedQuestionsList.style.display = 'none';
             }
           }
         });
       });
+
+      // Event listener for the file upload field to update the "Save" button state
+      fileUpload.addEventListener('change', function() {
+        if (updateModal.classList.contains('show')) {
+          updateSaveButtonState();
+        }
+      });
+
+      // Event listener for the "Save" button to handle form submission with spinner
+      okButton.addEventListener('click', function(){
+        var form = document.querySelector('form');
+        if (form) {
+          // Show the spinner
+          okButtonSpinner.style.display = 'inline-flex';
+          // Disable the button to prevent multiple submissions
+          okButton.disabled = true;
+          // Submit the form
+          form.requestSubmit();
+        }
+      });
     });
 </script>
-  
