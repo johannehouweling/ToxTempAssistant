@@ -152,7 +152,7 @@
             <!-- Progress bar -->
             {% with percentanswers=assay.get_n_accepted_answers|intdivperc:assay.get_n_answers %}
             <div id="progress" class="progress mt-3" role="progressbar" aria-label="Example with label" aria-valuenow="{{assay.get_n_accepted_answers}}" aria-valuemin="0" aria-valuemax="{{assay.get_n_answers}}">
-              <div  class="progress-bar text-white" style="width: {{percentanswers}}%">{{percentanswers}} %</div>
+              <div  class="progress-bar text-white p-1" style="width: {{percentanswers}}%">{{percentanswers}} %</div>
 
             </div>
             {% endwith %}
