@@ -23,7 +23,6 @@ LLM-added population of ToxTemp for test method description. [1]
 - Add keywords in export files, ontologies?
 - take care of deleting generated files after download by user
 - likelihood score responses
-- if all accepted, clicking on next accepted should tell you that you are done.
 ### Performance optimization
 -  History: Make sure we Cache the Answers on first shipment of the Answer.html, so that if we store answers we don't have to hit the database again.
 -  Handle concurrency / prevent multiple users from checking/editing the same item (only need if we allow colaboration) 

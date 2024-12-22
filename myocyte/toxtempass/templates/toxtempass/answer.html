@@ -69,7 +69,7 @@
       }
 </style>
 <div class="container-fluid" >
-    <div class="row">
+    <div class="row" style="padding-bottom: 102px;">
         <!-- Scrollspy Sidebar -->
         <aside class="col-lg-4">
 
@@ -372,6 +372,14 @@
     // If no unchecked checkbox was found, reset the lastFocusedIndex to -1 and start over
     if (!foundUnchecked) {
       lastFocusedIndex = -1; // Reset to start over
+    
+      // Check if there are any unchecked checkboxes
+      if (Array.from(checkboxes).filter(switchElement => switchElement.checked === false).length !== 0) {
+        focusNextUnaccepted(); // Call the function to focus on the next unchecked switch
+      } else {
+        // Alert the user when all checkboxes are checked
+        alert('Congratulations, you completed the Toxtemp! Please remember to still save unsaved changes.');
+      }
     }
   }
   
