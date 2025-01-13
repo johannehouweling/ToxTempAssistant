@@ -4,11 +4,18 @@ from toxtempass.models import Investigation, Study, Assay, Question, Section, An
 from toxtempass.widgets import (
     BootstrapSelectWithButtonsWidget,
 )  # Import the custom widget
-from toxtempass.filehandling import get_text_from_django_uploaded_file
+from toxtempass.filehandling import get_text_or_imagebytes_from_django_uploaded_file
 from langchain_core.messages import HumanMessage, SystemMessage
+from toxtempass.llm import ImageMessage
 from collections import defaultdict
-from toxtempass.llm import chain
+from toxtempass.llm import (
+    chain,
+    image_accept_files,
+    text_accept_files,
+    allowed_mime_types,
+)
 from toxtempass import config
+
 # Form to submit answers to fixed questions for an assay
 
 logger = logging.getLogger("forms")
@@ -121,20 +128,20 @@ class AssayAnswerForm(forms.Form):
         # Get the assay object passed from the view
         self.assay = kwargs.pop("assay")
         super(AssayAnswerForm, self).__init__(*args, **kwargs)
-
+        accepted_files = ",".join(image_accept_files + text_accept_files)
         # optional file uploaded for updating:
         self.fields["file_upload"] = MultipleFileField(
             widget=MultipleFileInput(
                 attrs={
                     "multiple": True,
                     "id": "fileUpload",
-                    "accept": ".pdf,.docx,.doc",
+                    "accept": accepted_files,
                 }
             ),
             required=False,
             help_text=(
                 "Context documents for update of selected answers. "
-                f"Supported formats: PDF, DOC, DOCX. Max size: {config.max_size_mb} "
+                f"Supported formats: {accepted_files}. Max size: {config.max_size_mb} "
                 "MB per file."
             ),
         )
@@ -193,11 +200,7 @@ class AssayAnswerForm(forms.Form):
 
     def clean_file_upload(self):
         uploaded_files = self.files.getlist("file_upload")
-        allowed_types = [
-            "application/pdf",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "application/msword",
-        ]
+        allowed_types = allowed_mime_types
         max_size = config.max_size_mb * 1024 * 1024  # 20 MB
 
         for file in uploaded_files:
@@ -223,7 +226,7 @@ class AssayAnswerForm(forms.Form):
 
         # Extract text from uploaded files
         if uploaded_files:
-            doc_dict = get_text_from_django_uploaded_file(uploaded_files)
+            doc_dict = get_text_or_imagebytes_from_django_uploaded_file(uploaded_files)
             logger.debug(f"Extracted text from {len(uploaded_files)} uploaded files.")
         else:
             doc_dict = {}
@@ -290,6 +293,16 @@ class AssayAnswerForm(forms.Form):
 
         # Process earmarked answers
         if earmarked_answers and doc_dict:
+            text_dict = {
+                key: value
+                for (key, value) in doc_dict.items()
+                if "text" in value.keys()
+            }
+            img_dict = {
+                key: value
+                for (key, value) in doc_dict.items()
+                if "bytes" in value.keys()
+            }
             for answer in earmarked_answers:
                 try:
                     # Prepare the messages for the GPT chain
@@ -300,14 +313,33 @@ class AssayAnswerForm(forms.Form):
                             content=f"ASSAY DESCRIPTION: {self.assay.description}\n"
                         ),
                         SystemMessage(
-                            content=f"""Below find the context to answer the question:\n CONTEXT:\n{doc_dict}"""
+                            content="Below find the context to answer the question:"
                         ),
-                        HumanMessage(content=answer.question.question_text),
                     ]
+                    # Add text context
+                    for filepath, text_data in text_dict.items():
+                        messages.append(
+                            SystemMessage(
+                                content=f"Document: {filepath}\nText:\n{text_data['text']}\n"
+                            )
+                        )
+                    # Add image context
+                    for filepath, image_data in img_dict.items():
+                        # Assuming image_data['bytes'] is already Base64-encoded
+                        messages.append(
+                            ImageMessage(
+                                content=image_data["bytes"], filename=filepath.name
+                            )
+                        )
+                    # Add the user's question
+                    messages.append(HumanMessage(content=answer.question.question_text))
 
                     logger.debug(f"Invoking GPT for Answer id {answer.id}.")
 
-                    # Invoke the GPT chain synchronously
+                    # Serialize messages to dictionaries
+                    # serialized_messages = [message.to_dict() for message in messages]
+
+                    # Invoke the chain using the custom function
                     draft_answer = chain.invoke(messages)
 
                     # Existing documents in answer_documents

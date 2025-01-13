@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI, AzureChatOpenAI
 import logging
+from typing import Literal
 from pathlib import Path
 from myocyte import settings
 from toxtempass import config
@@ -10,9 +11,14 @@ from langchain_community.document_loaders import (
     TextLoader,
     UnstructuredWordDocumentLoader,
 )
+from PIL import Image
+from io import BytesIO
 from pypdf import PdfReader
-from langchain_core.prompts import PromptTemplate, ChatPromptTemplate
+from langchain_core.messages import BaseMessage
+from pydantic import BaseModel, Field, model_validator
+from typing import Any
 
+import base64
 
 # Load environment variables from the .env file
 load_dotenv(Path(settings.BASE_DIR).with_name(".env"))
@@ -61,7 +67,7 @@ logging.basicConfig(
 )
 
 
-def get_text_filepaths(document_filenames: list[str | Path]):
+def get_text_or_bytes_filepaths(document_filenames: list[str | Path]):
     """
     Load content from a list of documents and return a dictionary mapping filenames to their content.
 
@@ -69,7 +75,7 @@ def get_text_filepaths(document_filenames: list[str | Path]):
     document_filenames (list of str): List of file paths to the documents.
 
     Returns:
-    dict: A dictionary where keys are filenames and values are the loaded document content.
+    dict: A dictionary where keys are filenames and values are the loaded document content or bytes for images.
     """
     # coherce paths of type str to Path elements:
     document_filenames: list[Path] = [Path(path) for path in document_filenames]
@@ -77,6 +83,7 @@ def get_text_filepaths(document_filenames: list[str | Path]):
 
     for context_filename in document_filenames:
         text = None
+        img_bytestring = None
         suffix = context_filename.suffix.lower()
 
         try:
@@ -101,11 +108,20 @@ def get_text_filepaths(document_filenames: list[str | Path]):
                 text = loader.load().page_content.replace("\n", "")
 
             elif suffix == ".docx":
-                loader = UnstructuredWordDocumentLoader(context_filename)
+                loader = UnstructuredWordDocumentLoader(str(context_filename))
                 text = loader.load()[0].page_content
+
+            elif suffix == ".png":
+                img = Image.open(context_filename)
+                s = BytesIO()
+                img.save(s, "png")
+                img_bytestring = base64.b64encode(s.getvalue())
 
             if text:
                 document_contents[context_filename] = {"text": text}
+                logger.info(f"The file '{context_filename}' was read successfully.")
+            elif img_bytestring:
+                document_contents[context_filename] = {"bytes": img_bytestring}
                 logger.info(f"The file '{context_filename}' was read successfully.")
 
         except Exception as e:
@@ -114,6 +130,44 @@ def get_text_filepaths(document_filenames: list[str | Path]):
     context_filename.unlink()
 
     return document_contents
+
+
+image_accept_files = [
+    ".png",
+]
+text_accept_files = [".pdf", ".docx", ".txt", ".md", ".html"]
+allowed_mime_types = [
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/msword",
+    "text/plain",
+    "text/markdown",
+    "text/html",
+    "image/png",
+]
+
+
+class ImageMessage(BaseMessage):
+    type: Literal["image"] = Field(default="image")
+    content: str  # Base64-encoded image string
+    filename: str
+
+    @model_validator(mode="before")
+    def validate_fields(cls, values: dict) -> dict:
+        content = values.get("content")
+        filename = values.get("filename")
+        if not content:
+            raise ValueError("Image content must be provided.")
+        if not filename:
+            raise ValueError("Filename must be provided.")
+        return values
+
+    def to_dict(self) -> dict:
+        return {"type": self.type, "content": self.content, "filename": self.filename}
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "ImageMessage":
+        return cls(content=data["content"], filename=data["filename"])
 
 
 chain = llm

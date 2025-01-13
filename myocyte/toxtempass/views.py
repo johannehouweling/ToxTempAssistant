@@ -8,7 +8,7 @@ import logging
 from pathlib import Path
 from django.urls import reverse
 from langchain_core.messages import HumanMessage, SystemMessage
-from toxtempass.filehandling import get_text_from_django_uploaded_file
+from toxtempass.filehandling import get_text_or_imagebytes_from_django_uploaded_file
 from django.contrib.humanize.templatetags.humanize import naturaltime
 from django.utils.text import Truncator
 from django.shortcuts import get_object_or_404, render, redirect
@@ -96,7 +96,7 @@ def start_form_view(request):
                 form_empty_answers = AssayAnswerForm({}, assay=assay)
                 if form_empty_answers.is_valid():
                     form_empty_answers.save()
-                doc_dict = get_text_from_django_uploaded_file(
+                doc_dict = get_text_or_imagebytes_from_django_uploaded_file(
                     files
                 )  # dict of structure {Path(filename.pdf): {'text': 'lorem ipsum'}}
                 try:
