@@ -59,7 +59,7 @@ def generate_json_from_assay(assay: Assay):
         for answer in assay.answers.all():
             question_data = json.loads(serialize("json", [answer.question]))[0]
             questions_with_answers.append(
-                {"question": question_data, "answer": answer.answer_text}
+                {"question": question_data, "answer": answer.answer_text, "source": answer.answer_documents}
             )
         export_data["questions_with_answers"] = questions_with_answers
 

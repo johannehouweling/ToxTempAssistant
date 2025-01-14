@@ -117,7 +117,7 @@ def start_form_view(request):
                             ]
                         )
                         answer.answer_text = draft_answer.content
-                        answer.documents = [key.name for key in doc_dict.keys()]
+                        answer.answer_documents = [key.name for key in doc_dict.keys()]
                         answer.save()
                         answer_ids.append(answer.id)
                     # store which doc has been used to answer which answers (in this case all of them cause it's the start gpt)
