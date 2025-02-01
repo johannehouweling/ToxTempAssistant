@@ -6,46 +6,40 @@
   <thead>
     <tr>
       <th>When</th>
-      <th>Field</th>
-      <th>Old</th>
-      <th>New</th>
+      <th>Answer</th>
+      <th>Context Document(s)</th>
       <th>Changed by</th>
       <th>ID</th>
     </tr>
   </thead>
   <tbody>
     {% for entry in version_changes %}
-    
-    <tr>
-      <td>{{ entry.version.history_date }}</td>
-      {% if entry.changes %}
-      <td>
-        <!-- List all field anmes with changes between versions -->
-        {% for change in entry.changes %}
-        {{ change.field }}<br>
-        {% endfor %}
+      <tr>
+        {% if entry.changes %}
+          <td>{{ entry.version.history_date }}</td>
 
-      </td>
-      <td>
-        <!-- List all field changes between versions -->
-        {% for change in entry.changes %}
-        {{ change.old }}<br>
-        {% endfor %}
-      </td>
-      <td>
-        <!-- List all field changes between versions -->
-        {% for change in entry.changes %}
-        {{ change.new }}<br>
-        {% endfor %}
-      </td>
-      {% else %}
-      <td></td>
-      <td></td>
-      <td><em>No previous record</em></td>
-      {% endif %}
-      <td>{{ entry.version.history_user }}</td>
-      <td>{{ entry.version.history_id }}</td>
-    </tr>
+          <!-- Column for Answer Text -->
+          <td>
+            {% for change in entry.changes %}
+              {% if change.field == "answer_text" %}
+              {{entry.answer_text_changes_html|safe}}
+              {% endif %}
+            {% endfor %}
+          </td>
+
+          <!-- Column for Answer Document -->
+          <td>
+            {% for change in entry.changes %}
+              {% if change.field == "answer_documents" %}
+                {{ change.new }}
+              {% endif %}
+            {% endfor %}
+          </td>
+
+          <td>{{ entry.version.history_user }}</td>
+          <td>{{ entry.version.history_id }}</td>
+        {% endif %}
+      </tr>
     {% endfor %}
   </tbody>
 </table>

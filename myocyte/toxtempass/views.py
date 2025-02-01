@@ -1,9 +1,12 @@
+from collections.abc import Iterator
+import difflib
 from django.http import FileResponse, HttpRequest
 from toxtempass import config
 from django.http.response import JsonResponse
 from django.db import transaction
 import json
 import logging
+import re
 
 from pathlib import Path
 from django.urls import reverse
@@ -400,13 +403,47 @@ def get_version_history(request, assay_id, question_id):
     # List to store version and corresponding changes
     version_changes = []
 
-    # Iterate through the history and compute differences
+    class DotDict(dict):
+        """A simple subclass of dict to allow dot notation access."""
+
+        def __getattr__(self, key):
+            try:
+                return self[key]
+            except KeyError:
+                raise AttributeError(f"'DotDict' object has no attribute '{key}'")
+
+        def __setattr__(self, key, value):
+            self[key] = value
+
+    def _split_into_words(text: str) -> list:
+        """Split words"""
+        return re.findall(r"\S+|\n", text)
+
+    def _get_diff_html(diff: Iterator) -> str:
+        # HTML template for displaying word-level diff
+        html_diff = ""
+
+        for word in diff:
+            if word.startswith("-"):  # Word removed
+                html_diff += f'<span style="color: red; text-decoration: line-through;">{word[2:]}</span> '
+            elif word.startswith("+"):  # Word added
+                html_diff += f'<span style="color: green;">{word[2:]}</span> '
+            else:
+                html_diff += f"{word[2:]} "  # Keep unchanged words
+            # Iterate through the history and compute differences
+        return html_diff
+
     for version in history:
         changes = None
         # Check if there is a previous record
         if version.prev_record:
             # Calculate the differences using diff_against
             changes = version.diff_against(version.prev_record).changes
+        else:
+            # Handle the case where there is no previous record (first entry)
+            changes = version.diff_against(version).changes
+
+        # Get word-level diff
 
         # Append the version and its changes to the list
         version_changes.append({"version": version, "changes": changes})
@@ -414,11 +451,21 @@ def get_version_history(request, assay_id, question_id):
         version_changes[-1]["version"].history_date = naturaltime(
             version_changes[-1]["version"].history_date
         )
-        if (
-            changes
-            and version_changes[-1]["changes"][0].field == "accepted"
-            and version_changes[-1]["changes"][0].old == None
-        ):
+        # show a diff highlighting
+        print(version_changes[-1]["changes"], "\n")
+        last_changes_answer_text = [
+            change
+            for change in version_changes[-1]["changes"]
+            if change.field == "answer_text"
+        ]
+        if last_changes_answer_text:
+            version_changes[-1]["answer_text_changes_html"] = _get_diff_html(
+                difflib.ndiff(
+                    _split_into_words(last_changes_answer_text[0].old),
+                    _split_into_words(last_changes_answer_text[0].new),
+                )
+            )
+        if changes and version_changes[-1]["changes"][0].field == "accepted":
             version_changes.pop(-1)
 
     # Pass the version changes and the instance to the template
