@@ -41,6 +41,7 @@ def get_text_or_imagebytes_from_django_uploaded_file(
     {Path(filename.pdf): {'text': 'lorem ipsum'} or {"bytes": b"dskhasdhak"}
     """
     temp_files = [
+        # rename the temporary-file to keep the user provided filename even for the tempfile
         str(Path(file.temporary_file_path()).rename(file.name))
         for file in files
         if isinstance(file, TemporaryUploadedFile)
