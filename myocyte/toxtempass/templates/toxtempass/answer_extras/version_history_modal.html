@@ -1,0 +1,57 @@
+<!-- Version History Modal -->
+<div class="modal fade" id="versionHistoryModal" tabindex="-1" aria-labelledby="versionHistoryLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="versionHistoryLabel">Version History</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Content will be loaded dynamically via AJAX -->
+          <div id="modal-body-content">
+            <p>Loading version history...</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Get the modal element and modal body
+      var modal = document.getElementById('versionHistoryModal');
+      var modalBody = document.getElementById('modal-body-content');
+  
+      // Add event listener to the modal to fire when it is about to be shown
+      modal.addEventListener('show.bs.modal', function (event) {
+        // Button that triggered the modal
+        var button = event.relatedTarget;
+        // Extract model_id, assay_id, and question_id from data-* attributes
+        var modelId = button.getAttribute('data-model-id');
+        var assayId = button.getAttribute('data-assay-id');
+        var questionId = button.getAttribute('data-question-id');
+        // Clear previous content in modal
+        modalBody.innerHTML = '<p>Loading version history...</p>';
+        if (questionId) {
+        // Fetch the version history with assay_id and question_id as query parameters
+        fetch(`question/${questionId}/version-history/`)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Network response was not ok');
+            }
+            return response.text(); // Get response as HTML
+          })
+          .then(data => {
+            // Insert the version history HTML into the modal body
+            modalBody.innerHTML = data;
+          })
+          .catch(error => {
+            modalBody.innerHTML = '<p>Error loading version history. Please save the answers at least once for the version history to be displayed.</p>';
+          });
+        }
+      });
+    });
+  </script>

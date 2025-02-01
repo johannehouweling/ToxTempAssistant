@@ -1,23 +1,23 @@
 
 
-<h1>{{ instance|title}}</h1>
+<h2 class="d-inline-block text-truncate w-100">{{ instance|title}}</h2>
 <div class="table-responsive">
 <table class="table table-striped">
   <thead>
     <tr>
-      <th>ID</th>
+      <th>When</th>
       <th>Field</th>
       <th>Old</th>
       <th>New</th>
-      <th>Date</th>
       <th>Changed by</th>
+      <th>ID</th>
     </tr>
   </thead>
   <tbody>
     {% for entry in version_changes %}
     
     <tr>
-      <td>{{ entry.version.history_id }}</td>
+      <td>{{ entry.version.history_date }}</td>
       {% if entry.changes %}
       <td>
         <!-- List all field anmes with changes between versions -->
@@ -43,8 +43,8 @@
       <td></td>
       <td><em>No previous record</em></td>
       {% endif %}
-      <td>{{ entry.version.history_date }}</td>
       <td>{{ entry.version.history_user }}</td>
+      <td>{{ entry.version.history_id }}</td>
     </tr>
     {% endfor %}
   </tbody>

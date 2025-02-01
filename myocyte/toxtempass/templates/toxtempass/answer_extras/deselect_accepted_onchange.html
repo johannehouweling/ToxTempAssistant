@@ -1,0 +1,25 @@
+<script>
+    // Deselect the Accepted switch as soon as the content in Textarea changes:
+    document.addEventListener("DOMContentLoaded", function() {
+      // Get all textarea elements
+      const textareas = document.querySelectorAll("textarea[id^='id_question_']");
+      
+      // Iterate over each textarea
+      textareas.forEach(function(textarea) {
+          // Extract the index from the textarea's ID (assuming the pattern id_question_X)
+          const index = textarea.id.split('_')[2];
+    
+          // Get the corresponding "Accepted" checkbox/switch
+          const acceptedSwitch = document.getElementById(`id_accepted_${index}`);
+    
+          // Add an input event listener to the textarea
+          textarea.addEventListener('input', function() {
+              // Uncheck the "Accepted" switch when the textarea content changes
+              if (acceptedSwitch) {
+                  acceptedSwitch.checked = false;
+              }
+          });
+      });
+    });
+    </script>
+    

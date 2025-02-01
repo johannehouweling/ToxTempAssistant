@@ -1,0 +1,15 @@
+<script>
+    // Resizing the textareas
+    function autoResizeTextarea(textarea) {
+        textarea.style.height = ""; // Reset height
+        textarea.style.height = textarea.scrollHeight + 3 + "px"; // Set new height
+    }
+
+    // When the page loads
+    document.addEventListener("DOMContentLoaded", function() {
+        var textareas = document.querySelectorAll("textarea");
+        textareas.forEach(function(textarea){
+          autoResizeTextarea(textarea); // Adjust the textarea's height on load
+        })
+    });
+</script>

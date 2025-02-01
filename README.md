@@ -15,8 +15,9 @@ LLM-added population of ToxTemp for test method description. [1]
 - luaLaTeX (Mactex)
 ## TODO
 ### Functionality
+- Fix document references. Implement RAG after all?
 - Filtering: User
-- Login capability. Account management. Define user model
+- Login capability. Account management. Define user model. Github login? 
 - Collaboration option? Easier option to show User study only to users
 - Disclaimer on Privacy etc.
 - Write tests
@@ -96,6 +97,8 @@ LLM-added population of ToxTemp for test method description. [1]
 -  History: Make sure we Cache the Answers on first shipment of the Answer.html, so that if we store answers we don't have to hit the database again.
 -  Handle concurrency / prevent multiple users from checking/editing the same item (only need if we allow colaboration) 
 ### Infrastructure
+- Check for context window, are we not cutting it off if someone upload uploads oomany files
+- Implement RAG to refer to most relevant chunks
 - VHP4Safety GPT endpoint. Set limit to number of draft generations.
 - Where will this app be hosted? 
 - Dockerize in and host on AzureDocker?

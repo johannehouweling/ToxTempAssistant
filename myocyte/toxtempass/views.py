@@ -424,8 +424,8 @@ def get_version_history(request, assay_id, question_id):
     # Pass the version changes and the instance to the template
     return render(
         request,
-        "version_history_modal.html",
-        {"version_changes": version_changes, "instance": Truncator(answer).words(7)},
+        "answer_extras/version_history_modal_body.html",
+        {"version_changes": version_changes, "instance": answer},
     )
 
 

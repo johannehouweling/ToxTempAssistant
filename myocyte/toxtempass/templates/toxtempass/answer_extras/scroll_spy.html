@@ -1,0 +1,37 @@
+<!-- Scrollspy Auto Scroll Script -->
+<script>
+    // let the full body be target (otherwise we need to put vh-100 onto question-content)
+    var scrollSpy = new bootstrap.ScrollSpy(document.body, {
+      target: '#navbar-questions'
+    });
+    document.body.setAttribute('data-bs-spy', 'scroll');
+    document.body.setAttribute('data-bs-target', '#navbar-questions');
+    document.body.setAttribute('data-bs-smooth-scroll', 'true');
+    document.body.setAttribute('tabindex', '0');
+  
+    // make sure the highlihgtted element in the scrollspy nav bar is always visibkle
+
+    document.addEventListener('activate.bs.scrollspy', function () {
+      const activeLinks = document.querySelectorAll('.nav-link.active');
+
+      // Select the last element from the NodeList
+      const activeLink = activeLinks[activeLinks.length - 1];
+      const sidebar = document.querySelector('.bd-sidebar');
+  
+      if (activeLink && sidebar) {
+          const sidebarRect = sidebar.getBoundingClientRect();
+          const linkRect = activeLink.getBoundingClientRect();
+  
+          // Sticky header height (adjust based on your layout)
+          const stickyHeaderHeight = 0;
+  
+          // Check if the active link is outside the visible range of the sidebar
+          if (linkRect.top < sidebarRect.top || linkRect.bottom > sidebarRect.bottom) {
+              const offset = linkRect.top - sidebarRect.top - stickyHeaderHeight;
+  
+              // Scroll the sidebar to bring the link into view
+              sidebar.scrollTop += offset;
+          }
+      }
+  });
+</script>

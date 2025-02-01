@@ -25,7 +25,8 @@ SECRET_KEY = "django-insecure-sna(wj&wf880h!5049$nv)^wx9n(b2oj6nvx07awtae%^=#d33
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []  # ["192.168.2.5"] <--macbooks ip, for hosting inside the own network and iphones to be able to connect
+ALLOWED_HOSTS = []  # ["192.168.2.5"]['de2b-2a02-a46e-e224-0-bcdf-dd21-e5ba-3d34.ngrok-free.app'] <--macbooks ip, for hosting inside the own network and iphones to be able to connect
+
 
 
 # Application definition

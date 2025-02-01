@@ -1,0 +1,53 @@
+<script>
+    // Global variable to track the last focused checkbox index
+    let lastFocusedIndex = -1; // -1 means no checkbox has been focused yet
+  
+    // Function to find and focus on the next unchecked "Accepted" checkbox
+    function focusNextUnaccepted() {
+      // Get all the checkboxes with the class 'form-check-input'
+      const checkboxes = document.querySelectorAll('.form-check-input[role="switch"]');
+      let foundUnchecked = false;  // Flag to track if an unchecked checkbox is found
+      
+      // Loop through the checkboxes starting from the next one after the last focused one
+      for (let i = lastFocusedIndex + 1; i < checkboxes.length; i++) {
+        // If the checkbox is not checked, focus on its corresponding question
+        if (!checkboxes[i].checked) {
+          foundUnchecked = true;  // Set the flag to true if we find an unchecked checkbox
+          
+          // Find the closest parent .has-validation div for the unchecked checkbox
+          const parentDiv = checkboxes[i].closest('.row');
+          
+          // Find the textarea or question div within the same parent container
+          const question_label = parentDiv ? parentDiv.querySelector('.form-label') : null;
+          
+          // If a question label is found, scroll to it and focus on it
+          if (question_label) {
+            question_label.scrollIntoView({ behavior: 'smooth' }); // Smooth scroll to the label
+            question_label.focus(); // Set focus on the label
+          } else {
+            console.warn('No question found within the parent div:', parentDiv);
+          }
+          
+          // Update the last focused checkbox index
+          lastFocusedIndex = i;
+          break; // Exit the loop once we find the first unchecked checkbox
+        }
+      }
+      
+      // If no unchecked checkbox was found, reset the lastFocusedIndex to -1 and start over
+      if (!foundUnchecked) {
+        lastFocusedIndex = -1; // Reset to start over
+      
+        // Check if there are any unchecked checkboxes
+        if (Array.from(checkboxes).filter(switchElement => switchElement.checked === false).length !== 0) {
+          focusNextUnaccepted(); // Call the function to focus on the next unchecked switch
+        } else {
+          // Alert the user when all checkboxes are checked
+          alert('Congratulations, you completed the Toxtemp! Please remember to still save unsaved changes.');
+        }
+      }
+    }
+    
+      // Add event listener to the button that triggers this function
+      document.getElementById('btn_next_unaccepted').addEventListener('click', focusNextUnaccepted);
+</script>

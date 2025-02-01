@@ -121,15 +121,26 @@
                                               {% bootstrap_field form|form_field:earmark_num placeholder="" wrapper_class="mb-2"%}
                                               {% endwith %}
                                           </div>
+                                          <div class="btn-group" role="group">
 
-                                          <button type="button" class="btn btn-outline-primary mb-2" id="openModalButton"
-                                                  data-bs-toggle="modal"
-                                                  data-bs-target="#versionHistoryModal"
-                                                  data-assay-id="{{ assay.id }}"
-                                                  data-question-id="{{question.id}}">
-                                              History
-                                          </button>
-                                          
+                                            <button type="button" class="btn btn-sm btn-outline-primary mb-2" id="openViewmdModalButton"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#markdownModal"
+                                            data-assay-id="{{ assay.id }}"
+                                            data-question-id="{{question.id}}">
+                                              .md
+                                            </button>
+                                            
+                                            <button type="button" class="btn btn-sm btn-outline-primary mb-2" id="openHistoryModalButton"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#versionHistoryModal"
+                                                    data-assay-id="{{ assay.id }}"
+                                                    data-question-id="{{question.id}}">
+                                                History
+                                            </button>
+
+                                            
+                                          </div>
                                           <div class="mb-3 has-validation">
                                             {% with accepted_num='accepted_'|add_asstring:question.id %}
                                             {% bootstrap_field form|form_field:accepted_num placeholder="" wrapper_class="form-check form-switch ps-3" %}
@@ -202,208 +213,14 @@
     </div>
 </div>
 
-<!-- Version History Modal -->
-<div class="modal fade" id="versionHistoryModal" tabindex="-1" aria-labelledby="versionHistoryLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="versionHistoryLabel">Version History</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <!-- Content will be loaded dynamically via AJAX -->
-          <div id="modal-body-content">
-            <p>Loading version history...</p>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      // Get the modal element and modal body
-      var modal = document.getElementById('versionHistoryModal');
-      var modalBody = document.getElementById('modal-body-content');
-  
-      // Add event listener to the modal to fire when it is about to be shown
-      modal.addEventListener('show.bs.modal', function (event) {
-        // Button that triggered the modal
-        var button = event.relatedTarget;
-        // Extract model_id, assay_id, and question_id from data-* attributes
-        var modelId = button.getAttribute('data-model-id');
-        var assayId = button.getAttribute('data-assay-id');
-        var questionId = button.getAttribute('data-question-id');
-        console.log(questionId)
-        // Clear previous content in modal
-        modalBody.innerHTML = '<p>Loading version history...</p>';
-        if (questionId) {
-        // Fetch the version history with assay_id and question_id as query parameters
-        fetch(`question/${questionId}/version-history/`)
-          .then(response => {
-            if (!response.ok) {
-              throw new Error('Network response was not ok');
-            }
-            return response.text(); // Get response as HTML
-          })
-          .then(data => {
-            // Insert the version history HTML into the modal body
-            modalBody.innerHTML = data;
-          })
-          .catch(error => {
-            modalBody.innerHTML = '<p>Error loading version history. Please save the answers at least once for the version history to be displayed.</p>';
-          });
-        }
-      });
-    });
-  </script>
-
-<!-- Scrollspy Auto Scroll Script -->
-  <script>
-    // let the full body be target (otherwise we need to put vh-100 onto question-content)
-    var scrollSpy = new bootstrap.ScrollSpy(document.body, {
-      target: '#navbar-questions'
-    });
-    document.body.setAttribute('data-bs-spy', 'scroll');
-    document.body.setAttribute('data-bs-target', '#navbar-questions');
-    document.body.setAttribute('data-bs-smooth-scroll', 'true');
-    document.body.setAttribute('tabindex', '0');
-  
-    // make sure the highlihgtted element in the scrollspy nav bar is always visibkle
-
-    document.addEventListener('activate.bs.scrollspy', function () {
-      const activeLinks = document.querySelectorAll('.nav-link.active');
-
-      // Select the last element from the NodeList
-      const activeLink = activeLinks[activeLinks.length - 1];
-      const sidebar = document.querySelector('.bd-sidebar');
-  
-      if (activeLink && sidebar) {
-          const sidebarRect = sidebar.getBoundingClientRect();
-          const linkRect = activeLink.getBoundingClientRect();
-  
-          // Sticky header height (adjust based on your layout)
-          const stickyHeaderHeight = 0;
-  
-          // Check if the active link is outside the visible range of the sidebar
-          if (linkRect.top < sidebarRect.top || linkRect.bottom > sidebarRect.bottom) {
-              const offset = linkRect.top - sidebarRect.top - stickyHeaderHeight;
-  
-              // Scroll the sidebar to bring the link into view
-              sidebar.scrollTop += offset;
-          }
-      }
-  });
-  
-  
-  
-  </script>
-
-
-
-  {% comment %} <script>
-  
-    // Function to handle the validation class based on checkbox state
-    function toggleValidClass(checkbox) {
-      // Get the parent .mb-3 has-validation div
-      const parentDiv = checkbox.closest('.has-validation');
-      
-      // Find the textarea within the same parent div
-      const textarea = parentDiv.querySelector('textarea');
-      
-      // Toggle the 'is-valid' class based on the checkbox state
-      if (checkbox.checked) {
-        textarea.classList.add('is-valid');
-      } else {
-        textarea.classList.remove('is-valid');
-      }
-    }
-  
-    // Apply the function on page load for all checkboxes
-    document.querySelectorAll('.form-check-input').forEach(function(checkbox) {
-      toggleValidClass(checkbox);
-  
-      // Add event listener for checkbox state change
-      checkbox.addEventListener('change', function() {
-        toggleValidClass(this);
-      });
-    });
-  </script> {% endcomment %}
-
-  <script>
-  // Global variable to track the last focused checkbox index
-  let lastFocusedIndex = -1; // -1 means no checkbox has been focused yet
-
-  // Function to find and focus on the next unchecked "Accepted" checkbox
-  function focusNextUnaccepted() {
-    // Get all the checkboxes with the class 'form-check-input'
-    const checkboxes = document.querySelectorAll('.form-check-input[role="switch"]');
-    let foundUnchecked = false;  // Flag to track if an unchecked checkbox is found
-    
-    // Loop through the checkboxes starting from the next one after the last focused one
-    for (let i = lastFocusedIndex + 1; i < checkboxes.length; i++) {
-      // If the checkbox is not checked, focus on its corresponding question
-      if (!checkboxes[i].checked) {
-        foundUnchecked = true;  // Set the flag to true if we find an unchecked checkbox
-        
-        // Find the closest parent .has-validation div for the unchecked checkbox
-        const parentDiv = checkboxes[i].closest('.row');
-        
-        // Find the textarea or question div within the same parent container
-        const question_label = parentDiv ? parentDiv.querySelector('.form-label') : null;
-        
-        // If a question label is found, scroll to it and focus on it
-        if (question_label) {
-          question_label.scrollIntoView({ behavior: 'smooth' }); // Smooth scroll to the label
-          question_label.focus(); // Set focus on the label
-        } else {
-          console.warn('No question found within the parent div:', parentDiv);
-        }
-        
-        // Update the last focused checkbox index
-        lastFocusedIndex = i;
-        break; // Exit the loop once we find the first unchecked checkbox
-      }
-    }
-    
-    // If no unchecked checkbox was found, reset the lastFocusedIndex to -1 and start over
-    if (!foundUnchecked) {
-      lastFocusedIndex = -1; // Reset to start over
-    
-      // Check if there are any unchecked checkboxes
-      if (Array.from(checkboxes).filter(switchElement => switchElement.checked === false).length !== 0) {
-        focusNextUnaccepted(); // Call the function to focus on the next unchecked switch
-      } else {
-        // Alert the user when all checkboxes are checked
-        alert('Congratulations, you completed the Toxtemp! Please remember to still save unsaved changes.');
-      }
-    }
-  }
-  
-    // Add event listener to the button that triggers this function
-    document.getElementById('btn_next_unaccepted').addEventListener('click', focusNextUnaccepted);
-  </script>
-
-  <script>
-    // Resizing the textareas
-    function autoResizeTextarea(textarea) {
-        textarea.style.height = ""; // Reset height
-        textarea.style.height = textarea.scrollHeight + 3 + "px"; // Set new height
-    }
-
-    // When the page loads
-    document.addEventListener("DOMContentLoaded", function() {
-        var textareas = document.querySelectorAll("textarea");
-        textareas.forEach(function(textarea){
-          autoResizeTextarea(textarea); // Adjust the textarea's height on load
-        })
-    });
-</script>
-
-
+{% include "answer_extras/version_history_modal.html"%}
+{% include "answer_extras/marked_modal.html" %}
+{% include "answer_extras/scroll_spy.html"%}
+{% include "answer_extras/get_next_unaccepted.html" %}
+{% include "answer_extras/deselect_accepted_onchange.html" %}
+{% include "answer_extras/resize_textarea.html" %}
+{% include "answer_extras/deselect_accepted_onchange.html" %}
 {% include "error_handling.html" %}
 {% endblock %}
 

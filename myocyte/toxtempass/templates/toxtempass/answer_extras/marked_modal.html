@@ -1,0 +1,40 @@
+<script src="https://cdn.jsdelivr.net/npm/marked/lib/marked.umd.min.js"></script>
+<!-- Modal structure -->
+<div class="modal  fade" id="markdownModal" tabindex="-1" aria-labelledby="markdownModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="markdownModalLabel">Markdown Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="markdownOutput">
+                <div class="px-3" id="modal-body-md">
+                <!-- The rendered markdown will be displayed here -->
+                <p> Loading Markdown... </p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Get the modal element and modal body
+        var modal = document.getElementById('markdownModal');
+        var modalBody = document.getElementById('modal-body-md');
+        modal.addEventListener('show.bs.modal', function (event) {
+            // Button that triggered the modal
+            modalBody.innerHTML = '<p> Loading Markdown... </p>';
+            var button = event.relatedTarget;
+            // Extract model_id, assay_id, and question_id from data-* attributes
+            var modelId = button.getAttribute('data-model-id');
+            var assayId = button.getAttribute('data-assay-id');
+            var questionId = button.getAttribute('data-question-id');
+            textarea = document.getElementById(`id_question_${questionId}`)
+            modalBody.innerHTML=marked.marked(textarea.getHTML())
+        });
+    })
+    
+</script>
