@@ -97,7 +97,7 @@
           </div>
             <form id="QuestionsForm" method="post" action="{{action}}" novalidate enctype="multipart/form-data">
                 {% csrf_token %}
-                {{ form.non_field_errors }}
+                <div id="non-field-errors"></div>
                 <div id="question-content">
                     {% for section in sections %}
                         <div id="section-{{ section.id }}" class="p-1 mt-5 border-bottom compensate-sticky-header">

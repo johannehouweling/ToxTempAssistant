@@ -1,16 +1,31 @@
 {% extends "base.html" %}
-
+{% load static %}
 {% block title %}Home Page{% endblock %}
 
 {% block content %}
 {% load django_bootstrap5 %}
 
-<h1>Signup</h1>
-<form method="post" action="{{action}}" novalidate>
-    {{ form.non_field_errors }}
-  {% csrf_token %}
-  {% bootstrap_form form %}
-  <button type="submit" class="btn btn-primary">Sign Up</button>
-</form>
+<div class="row justify-content-center px-3">
+  <div class="col-lg-4 card my-3 py-2 mx-3 ">
+   
+    <h2>Signup</h2>
+    {% if form.orcid_id.value %}
+    {% else %}
+    <div class="d-grid gap-2 ">
+      <a class="btn d-flex align-items-center justify-content-center btn-outline-secondary" href="{% url 'orcid_login' %}">
+        <img class="h-75 pe-2" src="{% static 'toxtempass/img/ORCID-iD_icon_vector.svg' %}" alt="ORCID" >
+        Signup with ORCID
+      </a>
+    </div>
+    <div class="form-text mb-3">If you have an ORCID iD please link it now.</div>
+    {% endif %}
+    <form method="post" action="{{action}}" novalidate>
+      <div id="non-field-errors"></div>
+      {% csrf_token %}
+      {% bootstrap_form form %}
+      <button type="submit" class="btn w-100 btn-primary">Sign Up</button>
+    </form>
+  </div>
+</div>
 {% include "error_handling.html" %}
 {% endblock %}

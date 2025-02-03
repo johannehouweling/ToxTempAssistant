@@ -32,6 +32,7 @@ urlpatterns += [
     path("", views.start_form_view, name="start"),
     # Login stuff
     path("login/", views.LoginView.as_view(), name="login"),
+    path("logout/", views.logout_view, name="logout"),
     path("login/orcid/", views.orcid_login, name="orcid_login"),
     path("login/signup/", views.signup, name="signup"),
     path("orcid/callback/", views.orcid_callback, name="orcid_callback"),

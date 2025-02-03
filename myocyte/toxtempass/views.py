@@ -1,6 +1,6 @@
 from collections.abc import Iterator
 import difflib
-from django.http import FileResponse, HttpRequest, HttpResponse
+from django.http import FileResponse, HttpRequest, HttpResponse, HttpResponseRedirect
 from toxtempass import config
 from django.http.response import JsonResponse
 from django.db import transaction
@@ -43,9 +43,10 @@ from toxtempass.export import export_assay_to_file
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password
-from django.contrib.auth import authenticate, login, get_user_model
+from django.contrib.auth import authenticate, login, get_user_model, logout
 import requests
 from myocyte import settings
+
 
 logger = logging.getLogger("views")
 
@@ -56,8 +57,31 @@ orcid_id_baseurl = (
 )
 
 
+# Custom test function to check if the user is a logged-in
+def is_admin(user: User):
+    """Check is user is admin. Return True if that's the case."""
+    return user.is_superuser
+
+
+# Custom test function to check if the user is a superuser (admin)
+def is_logged_in(user: Person | None):
+    """Check is user is admin. Return True if that's the case."""
+    print(type(user))
+    return isinstance(user, Person)
+
+
+def logout_view(request: HttpRequest) -> HttpResponseRedirect:
+    """Log out."""
+    # Log out the user
+    logout(request)
+    # Redirect to the login page (you can replace '/login/' with your login URL)
+    return redirect(reverse("login"))
+
+
 class LoginView(View):
     def get(self, request):
+        if request.user.is_authenticated:
+            return redirect(reverse("start"))
         form = LoginForm()
         return render(request, "login.html", {"form": form})
 
@@ -69,16 +93,21 @@ class LoginView(View):
             user = authenticate(request, username=username, password=password)
             if user:
                 login(request, user)
-                return redirect("home")
+                return JsonResponse(
+                    dict(
+                        success=True,
+                        errors=form.errors,
+                        redirect_url=reverse("start"),
+                    )
+                )
             else:
                 form.add_error(None, "Invalid credentials.")
-            return JsonResponse(
-                dict(
-                    success=True,
-                    errors=form.errors,
-                    redirect_url=reverse("start"),
+                return JsonResponse(
+                    dict(
+                        success=False,
+                        errors=form.errors,
+                    )
                 )
-            )
         else:
             return JsonResponse(
                 {
@@ -92,6 +121,9 @@ def signup(request: HttpRequest) -> HttpResponse | JsonResponse:
     """
     Normal signup view. If the user is not logged in, they can sign up.
     """
+    if request.user.is_authenticated:
+        return redirect(reverse("start"))
+
     if request.method == "POST":
         form = SignupForm(request.POST)
         if form.is_valid():
@@ -141,12 +173,12 @@ def orcid_login(request):
 
 # Handles the callback from ORCID and logs the user in.
 def orcid_callback(request):
-    """Digest the callback from ORCID and log the user in if found in or directory."""
+    """Digest the callback from ORCID and either log the user in or link their ORCID to their account."""
     code = request.GET.get("code")
     if not code:
         return HttpResponse("No code provided.", status=400)
 
-    # Construct the token URL
+    # Construct the token URL and prepare the token request data.
     token_url = f"{orcid_id_baseurl}/oauth/token"
     client_id = config.orcid_client_id
     client_secret = config.orcid_client_secret
@@ -169,13 +201,40 @@ def orcid_callback(request):
     if not orcid_id:
         return HttpResponse("No ORCID id found in response.", status=400)
 
-    # Check if a user with this ORCID exists.
+    # If the user is already authenticated, link the ORCID id to the logged-in account.
+    if request.user.is_authenticated:
+        try:
+            # Assume your Person model is linked to the User model.
+            # This example retrieves the Person instance via the user.
+            person = Person.objects.get(email=request.user.email)
+        except Person.DoesNotExist:
+            return HttpResponse(
+                "Authenticated user does not have a corresponding profile.", status=400
+            )
+
+        # Optional: Check if another account already has this ORCID linked.
+        if Person.objects.filter(orcid_id=orcid_id).exclude(pk=person.pk).exists():
+            return HttpResponse(
+                "This ORCID id is already linked to another account. Please go orcid.com and logout to be prompted with anohter authentication prompt.",
+                status=400,
+            )
+
+        # Save the ORCID id and token data to the user’s profile.
+        person.orcid_id = orcid_id
+        person.orcid_token_data = token_data  # Ensure your model field supports storing this data (e.g., JSONField)
+        person.save()
+
+        # Optionally, you can add a message to confirm successful linking.
+        return redirect("start")  # Or wherever you wish to redirect the user.
+
+    # If the user is not authenticated, handle the login/signup flow.
     try:
-        user = Person.objects.get(orcid_id=orcid_id)
-        login(request, user)
+        # Attempt to log in if an account with this ORCID exists.
+        user_profile = Person.objects.get(orcid_id=orcid_id)
+        login(request, user_profile)  # Assuming Person has a related user object.
         return redirect("start")
     except Person.DoesNotExist:
-        # Save the ORCID (and optionally token data) in the session so it can be used in the signup view.
+        # Save the ORCID id and token data in the session for use in the signup process.
         request.session["orcid_id"] = orcid_id
         request.session["orcid_token_data"] = token_data
         return redirect("orcid_signup")
@@ -241,12 +300,6 @@ def orcid_signup(request: HttpRequest) -> HttpResponse | JsonResponse:
     return render(request, "signup.html", {"form": form})
 
 
-# Custom test function to check if the user is a superuser (admin)
-def is_admin(user: User):
-    """Check is user is admin. Return True if that's the case."""
-    return user.is_superuser
-
-
 @user_passes_test(is_admin)
 def init_db(request: HttpRequest):
     """Populate database from ToxTemp.json."""
@@ -283,7 +336,8 @@ def init_db(request: HttpRequest):
         return JsonResponse(dict(message="Database not empty"))
 
 
-def start_form_view(request):
+@user_passes_test(is_logged_in, login_url="/login/")
+def start_form_view(request: HttpRequest) -> JsonResponse | HttpResponse:
     if request.method == "POST":
         form = StartingForm(request.POST)
         if form.is_valid():
@@ -363,6 +417,7 @@ def start_form_view(request):
     )
 
 
+@user_passes_test(is_logged_in, login_url="/login/")
 def get_filtered_studies(request: HttpRequest, investigation_id: int):
     """Get the studies of a given investigation"""
     if investigation_id:
@@ -373,6 +428,7 @@ def get_filtered_studies(request: HttpRequest, investigation_id: int):
     return JsonResponse([], safe=False)
 
 
+@user_passes_test(is_logged_in, login_url="/login/")
 def get_filtered_assays(request: HttpRequest, study_id: int):
     """Get the Assays of a given study"""
     if study_id:
@@ -381,6 +437,7 @@ def get_filtered_assays(request: HttpRequest, study_id: int):
     return JsonResponse([], safe=False)
 
 
+@user_passes_test(is_logged_in, login_url="/login/")
 def initial_gpt_allowed_for_assay(request: HttpRequest, pk: int) -> JsonResponse:
     """Answers if gpt is allowed in the first go (all answers empty)."""
     if request.method == "POST":
@@ -392,6 +449,7 @@ def initial_gpt_allowed_for_assay(request: HttpRequest, pk: int) -> JsonResponse
 
 
 # Create or update Investigation
+@user_passes_test(is_logged_in, login_url="/login/")
 def create_or_update_investigation(request, pk=None):
     if pk:
         investigation = get_object_or_404(
@@ -433,6 +491,7 @@ def create_or_update_investigation(request, pk=None):
 
 
 # Delete Investigation via GET
+@user_passes_test(is_logged_in, login_url="/login/")
 def delete_investigation(request, pk):
     if request.method == "GET":
         investigation = get_object_or_404(Investigation, pk=pk)
@@ -442,6 +501,7 @@ def delete_investigation(request, pk):
 
 
 # Create or update Study
+@user_passes_test(is_logged_in, login_url="/login/")
 def create_or_update_study(request, pk=None):
     if pk:
         study = get_object_or_404(
@@ -479,6 +539,7 @@ def create_or_update_study(request, pk=None):
 
 
 # Delete Study via GET
+@user_passes_test(is_logged_in, login_url="/login/")
 def delete_study(request, pk):
     if request.method == "GET":
         study = get_object_or_404(Study, pk=pk)
@@ -488,6 +549,7 @@ def delete_study(request, pk):
 
 
 # Create or update Assay
+@user_passes_test(is_logged_in, login_url="/login/")
 def create_or_update_assay(request, pk=None):
     if pk:
         assay = get_object_or_404(
@@ -525,6 +587,7 @@ def create_or_update_assay(request, pk=None):
 
 
 # Delete Assay via GET
+@user_passes_test(is_logged_in, login_url="/login/")
 def delete_assay(request, pk):
     if request.method == "GET":
         assay = get_object_or_404(Assay, pk=pk)
@@ -533,6 +596,7 @@ def delete_assay(request, pk):
     return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
 
 
+@user_passes_test(is_logged_in, login_url="/login/")
 def answer_assay_questions(request, assay_id):
     assay = get_object_or_404(Assay, pk=assay_id)
     sections = Section.objects.prefetch_related("subsections__questions").all()
@@ -592,6 +656,7 @@ def answer_assay_questions(request, assay_id):
 # Versioning:
 
 
+@user_passes_test(is_logged_in, login_url="/login/")
 def get_version_history(request, assay_id, question_id):
     # Get the answer instance based on assay and question
     answer = get_object_or_404(Answer, assay=assay_id, question=question_id)
@@ -678,6 +743,7 @@ def get_version_history(request, assay_id, question_id):
 # Exporting:
 
 
+@user_passes_test(is_logged_in, login_url="/login/")
 def export_assay(
     request: HttpRequest, assay_id: int, export_type: str
 ) -> FileResponse | JsonResponse:

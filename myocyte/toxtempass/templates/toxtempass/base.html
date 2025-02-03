@@ -54,7 +54,7 @@
         <div class="card bg-white border-0">
             <div class="card m-3 border-0 d-flex align-items-center flex-row bg-primary" style="height:100px;"> <!--background-color:var(--bs-indigo);-->           
                 <h1 class="m-3 text-white"><i class="bi bi-clipboard-heart m-2"></i>ToxTempAssistant</h1>
-                {% if user %}
+                {% if user.is_authenticated %} 
                 <span class="btn orcid-icon-container btn-outline-light ms-auto fs-6 me-3" tabindex="0" role="button" data-bs-toggle="offcanvas" href="#offcanvasUser">
                     <i class="bi bi-person-badge"></i>
                     {{ user.email }}

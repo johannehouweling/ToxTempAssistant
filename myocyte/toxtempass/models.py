@@ -2,23 +2,38 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from simple_history.models import HistoricalRecords
 from django.contrib.auth.models import BaseUserManager
+from django.core.validators import validate_email
 
 
 class PersonManager(BaseUserManager):
-    def create_user(self, email=None, password=None, **extra_fields):
+    def create_user(self, email=None, password=None, **kwargs):
         if not email:
             raise ValueError("The Email field must be set")
         email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
+        user = self.model(email=email, **kwargs)
         user.set_password(password)
         user.save(using=self._db)
         return user
 
+    def create_superuser(self, *args, **kwargs):
+        user = self.model(**kwargs)
+        user.set_password(kwargs.get("password"))
+        user.is_superuser = True
+        user.is_staff = True
+        user.save(using=self._db)
+
 
 class Person(AbstractUser):
+    # Remove the username field by setting it to None.
+    username = None
+    email = models.EmailField("email address", unique=True, validators=[validate_email])
+    organization = models.CharField(default="", blank=True, null=True, max_length=255)
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = []  # Add List of fields which you want to be required
     orcid_id = models.CharField(
         max_length=19,
         blank=True,
+        unique=True,
         null=True,
         # editable=False,
         help_text=(

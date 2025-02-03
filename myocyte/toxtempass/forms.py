@@ -38,29 +38,35 @@ class LoginForm(forms.Form):
     )
 
 
-class SignupForm(UserCreationForm):
-    class Meta:
-        model = Person
-        # Include fields you want the user to fill in.
-        # Since your model only adds an 'orcid_id' to AbstractUser,
-        # you might include username, email, first_name, last_name, etc.
-        fields = ("email", "first_name", "last_name", "orcid_id")
-        # if we come through Orcid this is already known and should not be changed
-        widgets = {
-            "orcid_id": widgets.TextInput(attrs={"disabled": False}),
-        }
-
-
 class SignupFormOrcid(UserCreationForm):
     class Meta:
         model = Person
         # Include fields you want the user to fill in.
         # Since your model only adds an 'orcid_id' to AbstractUser,
         # you might include username, email, first_name, last_name, etc.
-        fields = ("email", "first_name", "last_name", "orcid_id")
+        fields = ("email", "first_name", "last_name", "organization", "orcid_id")
         # if we come through Orcid this is already known and should not be changed
         widgets = {
             "orcid_id": widgets.TextInput(attrs={"disabled": True}),
+        }
+
+    def clean(self):
+        """Clean"""
+        cleaned_data = super().clean()
+        email = cleaned_data.get("email").lower()
+        cleaned_data["email"] = email  # make sure we only store lower case emails
+        if email and Person.objects.filter(email=email).exists():
+            self.add_error("email", "This email address is already in use.")
+        return cleaned_data
+
+
+class SignupForm(SignupFormOrcid):
+    class Meta:
+        model = Person
+        fields = ("email", "first_name", "last_name", "organization")
+        # if we come through Orcid this is already known and should not be changed
+        widgets = {
+            "orcid_id": widgets.TextInput(attrs={"disabled": False}),
         }
 
 

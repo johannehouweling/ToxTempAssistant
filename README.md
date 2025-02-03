@@ -5,6 +5,7 @@ LLM-added population of ToxTemp for test method description. [1]
   - [Install](#install)
   - [TODO](#todo)
     - [Functionality](#functionality)
+    - [Production changes](#production-changes)
     - [Performance optimization](#performance-optimization)
     - [Infrastructure](#infrastructure)
   - [License](#license)
@@ -94,7 +95,37 @@ LLM-added population of ToxTemp for test method description. [1]
 - take care of deleting generated files after download by user
 - likelihood score responses
 ### Production changes
-- get `orcid_client_id` and `orcid_client_secret` for production 
+- get `orcid_client_id` and `orcid_client_secret` for production
+  - Login to ORCDI then click on user-settings -> Developper Tools 
+  - >Developer tools
+    >Back to my record
+    >Client ID
+    >APP-0H3CSLELBDG6NSWO
+    >Client secret
+    >b00fc3ed-3ec0-4ce4-a7a7-d88ea4fac163
+    >Generate a new client secret
+    >Application details
+    >Application name
+    >ToxTempAssistant
+    >The name shown to users on the OAuth authorization screen
+    >Application URL
+    >http://127.0.0.1:8000
+    >Application description
+    >ToxTempAssistance helps researchers fill out the ToxTemp by leveraging large languge models. 
+    >
+    >ToxTemp, "an annotated toxicity test method template was developed (i) to fulfill all requirements of GD211, (ii) to guide the user concerning the types of answers and detail of information required, (iii) >to include acceptance criteria for test elements, and (iv) to define the cells sufficiently and transparently." (dx.doi.org/10.14573/altex.1909271)
+    >The description shown to users on the OAuth authorization screen. Maximum 1000 characters.
+    >Redirect URIs
+    >Once the user has authorized your application, they will be returned to a URI that you specify. You must provide these URIs in advance or your integration users will experience an error.
+    >
+    >Please note
+    >Only HTTPS URIs are accepted in production
+    >Domains registered MUST exactly match the domains used, including subdomains
+    >Register all redirect URIs fully where possible. This is the most secure option and what we recommend. For more information about redirect URIs, please see our redirect URI FAQ
+    >http://127.0.0.1:8000/orcid/callback/
+
+
+
 ### Performance optimization
 -  History: Make sure we Cache the Answers on first shipment of the Answer.html, so that if we store answers we don't have to hit the database again.
 -  Handle concurrency / prevent multiple users from checking/editing the same item (only need if we allow colaboration) 
