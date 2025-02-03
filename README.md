@@ -18,7 +18,6 @@ LLM-added population of ToxTemp for test method description. [1]
 ### Functionality
 - Fix document references. Implement RAG after all?
 - Filtering: User
-- Login capability. Account management. Define user model. Github login? 
 - Collaboration option? Easier option to show User study only to users
 - Disclaimer on Privacy etc.
 - Write tests
