@@ -93,6 +93,8 @@ LLM-added population of ToxTemp for test method description. [1]
 - Add keywords in export files, ontologies?
 - take care of deleting generated files after download by user
 - likelihood score responses
+### Production changes
+- get `orcid_client_id` and `orcid_client_secret` for production 
 ### Performance optimization
 -  History: Make sure we Cache the Answers on first shipment of the Answer.html, so that if we store answers we don't have to hit the database again.
 -  Handle concurrency / prevent multiple users from checking/editing the same item (only need if we allow colaboration) 

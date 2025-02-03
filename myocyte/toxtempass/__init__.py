@@ -1,3 +1,11 @@
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+from myocyte import settings
+
+load_dotenv(Path(settings.BASE_DIR).with_name(".env"))
+
+
 class Config:
     """Put all parameters below here."""
 
@@ -19,5 +27,8 @@ class Config:
     reference = "tbd"
     reference_toxtemp = "https://doi.org/10.14573/altex.1909271"
     max_size_mb = 20
+    orcid_client_id = os.getenv("ORCID_CLIENT_ID")
+    orcid_client_secret = os.getenv("ORCID_CLIENT_SECRET")
+
 
 config = Config()

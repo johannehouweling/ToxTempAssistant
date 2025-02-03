@@ -17,13 +17,64 @@
     const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
     })
 </script>
+<style>
+    /* Ensure both icon spans are positioned so they overlap, if needed */
+    .orcid-icon-container {
+      position: relative;
+      display: inline-block;
+    }
+  
+    /* Apply the transition to both icons */
+    .orcid-icon-container .svg-normal,
+    .orcid-icon-container .svg-focus {
+      transition: opacity 0.15s ease-in-out;
+      display: inline-block; /* or block as needed for your layout */
+    }
+  
+    /* Initially, the normal icon is visible, the focus icon is hidden */
+    .svg-normal {
+      opacity: 1;
+    }
+    .svg-focus {
+      opacity: 0;
+      top: 0;
+      left: 0;
+    }
+  
+    /* On hover, fade out the normal icon and fade in the focus icon */
+    .orcid-icon-container:hover .svg-normal {
+      opacity: 0;
+    }
+    .orcid-icon-container:hover .svg-focus {
+      opacity: 1;
+    }
+  </style>
 <body>
     <header class="sticky-md-top">
         <div class="card bg-white border-0">
-        <div class="card m-3 border-0 d-flex flex-row align-items-center bg-primary" style="height:100px;"> <!--background-color:var(--bs-indigo);-->           
-            <h1 class="m-3 text-white"><i class="bi bi-clipboard-heart m-2"></i>ToxTempAssistant<h1>
+            <div class="card m-3 border-0 d-flex align-items-center flex-row bg-primary" style="height:100px;"> <!--background-color:var(--bs-indigo);-->           
+                <h1 class="m-3 text-white"><i class="bi bi-clipboard-heart m-2"></i>ToxTempAssistant</h1>
+                {% if user %}
+                <span class="btn orcid-icon-container btn-outline-light ms-auto fs-6 me-3" tabindex="0" role="button" data-bs-toggle="offcanvas" href="#offcanvasUser">
+                    <i class="bi bi-person-badge"></i>
+                    {{ user.email }}
+                    {% if user.orcid_id%}<br>
+                        <div class="position-relative d-inline-block">
+                        <span class="svg-normal">
+                            <img class="" style="height:16px" src="{% static 'toxtempass/img/ORCID-iD_icon_reversed_vector.svg' %}" alt="ORCID">
+
+                        </span>
+                        <span class="svg-focus position-absolute">
+                            <img class="" style="height:16px" src="{% static 'toxtempass/img/ORCID-iD_icon_BW_vector.svg' %}" alt="ORCID">
+                        </span>
+                        </div>
+                        {{ user.orcid_id }}
+                    {% endif %}
+                </span>
+                {%endif%}
+            </div>
         </div>
-        </div>
+        {% include "user_offcanvas.html"%}
     </header>
 
     <div class="container">

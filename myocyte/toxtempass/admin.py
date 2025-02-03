@@ -7,7 +7,14 @@ from toxtempass.models import (
     Subsection,
     Investigation,
     Study,
+    Person,
 )
+
+
+@admin.register(Person)
+class PersonAdmin(admin.ModelAdmin):
+    list_display = ("first_name", "last_name", "email", "orcid_id")
+    search_fields = ("first_name", "last_name", "email", "orcid_id")
 
 
 @admin.register(Investigation)

@@ -1,5 +1,32 @@
 from django.db import models
+from django.contrib.auth.models import AbstractUser
 from simple_history.models import HistoricalRecords
+from django.contrib.auth.models import BaseUserManager
+
+
+class PersonManager(BaseUserManager):
+    def create_user(self, email=None, password=None, **extra_fields):
+        if not email:
+            raise ValueError("The Email field must be set")
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+
+class Person(AbstractUser):
+    orcid_id = models.CharField(
+        max_length=19,
+        blank=True,
+        null=True,
+        # editable=False,
+        help_text=(
+            "When the user authenticates with ORCID, "
+            "this field will be populated with the ORCID iD."
+        ),
+    )
+    objects = PersonManager()
 
 
 # Investigation Model

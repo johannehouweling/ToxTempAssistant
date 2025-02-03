@@ -4,6 +4,7 @@ from toxtempass.models import Investigation, Study, Assay, Question, Section, An
 from toxtempass.widgets import (
     BootstrapSelectWithButtonsWidget,
 )  # Import the custom widget
+from django.forms import widgets
 from toxtempass.filehandling import get_text_or_imagebytes_from_django_uploaded_file
 from langchain_core.messages import HumanMessage, SystemMessage
 from toxtempass.llm import ImageMessage
@@ -15,10 +16,52 @@ from toxtempass.llm import (
     allowed_mime_types,
 )
 from toxtempass import config
+from django.contrib.auth.forms import UserCreationForm
+from toxtempass.models import Person
 
 # Form to submit answers to fixed questions for an assay
 
 logger = logging.getLogger("forms")
+
+
+class LoginForm(forms.Form):
+    username = forms.CharField(
+        label="Email or ORCID iD",
+        max_length=150,
+        required=True,
+        widget=forms.TextInput(attrs={"placeholder": "Enter email or ORCID iD"}),
+    )
+    password = forms.CharField(
+        label="Password",
+        required=True,
+        widget=forms.PasswordInput(attrs={"placeholder": "Enter password"}),
+    )
+
+
+class SignupForm(UserCreationForm):
+    class Meta:
+        model = Person
+        # Include fields you want the user to fill in.
+        # Since your model only adds an 'orcid_id' to AbstractUser,
+        # you might include username, email, first_name, last_name, etc.
+        fields = ("email", "first_name", "last_name", "orcid_id")
+        # if we come through Orcid this is already known and should not be changed
+        widgets = {
+            "orcid_id": widgets.TextInput(attrs={"disabled": False}),
+        }
+
+
+class SignupFormOrcid(UserCreationForm):
+    class Meta:
+        model = Person
+        # Include fields you want the user to fill in.
+        # Since your model only adds an 'orcid_id' to AbstractUser,
+        # you might include username, email, first_name, last_name, etc.
+        fields = ("email", "first_name", "last_name", "orcid_id")
+        # if we come through Orcid this is already known and should not be changed
+        widgets = {
+            "orcid_id": widgets.TextInput(attrs={"disabled": True}),
+        }
 
 
 class MultipleFileInput(forms.ClearableFileInput):

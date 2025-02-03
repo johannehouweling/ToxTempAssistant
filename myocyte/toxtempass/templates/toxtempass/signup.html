@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Home Page{% endblock %}
+
+{% block content %}
+{% load django_bootstrap5 %}
+
+<h1>Signup</h1>
+<form method="post" action="{{action}}" novalidate>
+    {{ form.non_field_errors }}
+  {% csrf_token %}
+  {% bootstrap_form form %}
+  <button type="submit" class="btn btn-primary">Sign Up</button>
+</form>
+{% include "error_handling.html" %}
+{% endblock %}

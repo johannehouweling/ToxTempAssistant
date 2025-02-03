@@ -1,12 +1,13 @@
 from collections.abc import Iterator
 import difflib
-from django.http import FileResponse, HttpRequest
+from django.http import FileResponse, HttpRequest, HttpResponse
 from toxtempass import config
 from django.http.response import JsonResponse
 from django.db import transaction
 import json
 import logging
 import re
+from django.views import View
 
 from pathlib import Path
 from django.urls import reverse
@@ -24,22 +25,220 @@ from toxtempass.models import (
     Section,
     Subsection,
     Question,
+    Person,
 )
 from toxtempass.forms import (
+    SignupFormOrcid,
+    SignupForm,
     AssayAnswerForm,
     StartingForm,
     InvestigationForm,
     StudyForm,
     AssayForm,
+    LoginForm,
 )
 from toxtempass.llm import chain
 from toxtempass.export import export_assay_to_file
 
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth.models import User
-from toxtempass.utilis import calculate_md5_multiplefiles
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth import authenticate, login, get_user_model
+import requests
+from myocyte import settings
 
 logger = logging.getLogger("views")
+
+
+# Login stuff
+orcid_id_baseurl = (
+    "https://sandbox.orcid.org" if settings.DEBUG else "https://orcid.org"
+)
+
+
+class LoginView(View):
+    def get(self, request):
+        form = LoginForm()
+        return render(request, "login.html", {"form": form})
+
+    def post(self, request):
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get("username")
+            password = form.cleaned_data.get("password")
+            user = authenticate(request, username=username, password=password)
+            if user:
+                login(request, user)
+                return redirect("home")
+            else:
+                form.add_error(None, "Invalid credentials.")
+            return JsonResponse(
+                dict(
+                    success=True,
+                    errors=form.errors,
+                    redirect_url=reverse("start"),
+                )
+            )
+        else:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "errors": form.errors,
+                }
+            )
+
+
+def signup(request: HttpRequest) -> HttpResponse | JsonResponse:
+    """
+    Normal signup view. If the user is not logged in, they can sign up.
+    """
+    if request.method == "POST":
+        form = SignupForm(request.POST)
+        if form.is_valid():
+            # Create the user but ensure the ORCID id is set from the session.
+            user = form.save(commit=False)
+            user.save()
+            login(request, user)
+            return JsonResponse(
+                dict(
+                    success=True,
+                    errors=form.errors,
+                    redirect_url=reverse("start"),
+                )
+            )
+        else:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "errors": form.errors,
+                }
+            )
+    else:
+        # Prefill the form with the ORCID id.
+        form = SignupForm()
+
+    return render(request, "signup.html", {"form": form})
+
+
+# Redirects the user to ORCID’s OAuth authorization endpoint.
+def orcid_login(request):
+    """ "Redirects the user to ORCID’s OAuth authorization endpoint."""
+    # Use your provided ORCID credentials:
+    client_id = config.orcid_client_id
+    # Build the redirect URI dynamically (ensure it matches the one registered with ORCID)
+    redirect_uri = request.build_absolute_uri("/orcid/callback/")
+
+    # The ORCID OAuth URL. According to the docs, for authentication the scope is `/authenticate`
+    orcid_authorize_url = (
+        f"{orcid_id_baseurl}/oauth/authorize?"  ### NEED TO CHANGE FOR PRODUCTION
+        f"client_id={client_id}"
+        "&response_type=code"
+        "&scope=/authenticate"
+        f"&redirect_uri={redirect_uri}"
+    )
+    return redirect(orcid_authorize_url)
+
+
+# Handles the callback from ORCID and logs the user in.
+def orcid_callback(request):
+    """Digest the callback from ORCID and log the user in if found in or directory."""
+    code = request.GET.get("code")
+    if not code:
+        return HttpResponse("No code provided.", status=400)
+
+    # Construct the token URL
+    token_url = f"{orcid_id_baseurl}/oauth/token"
+    client_id = config.orcid_client_id
+    client_secret = config.orcid_client_secret
+    redirect_uri = request.build_absolute_uri("/orcid/callback/")
+
+    data = {
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "grant_type": "authorization_code",
+        "code": code,
+        "redirect_uri": redirect_uri,
+    }
+
+    response = requests.post(token_url, data=data)
+    if response.status_code != 200:
+        return HttpResponse("Failed to authenticate with ORCID.", status=400)
+
+    token_data = response.json()
+    orcid_id = token_data.get("orcid")
+    if not orcid_id:
+        return HttpResponse("No ORCID id found in response.", status=400)
+
+    # Check if a user with this ORCID exists.
+    try:
+        user = Person.objects.get(orcid_id=orcid_id)
+        login(request, user)
+        return redirect("start")
+    except Person.DoesNotExist:
+        # Save the ORCID (and optionally token data) in the session so it can be used in the signup view.
+        request.session["orcid_id"] = orcid_id
+        request.session["orcid_token_data"] = token_data
+        return redirect("orcid_signup")
+
+
+def orcid_signup(request: HttpRequest) -> HttpResponse | JsonResponse:
+    """
+    In case we don't know the orcid id yet, we can use the token data to sign this user
+    up as a new user.
+    """
+    orcid_id = request.session.get("orcid_id")
+    if not orcid_id:
+        return JsonResponse(
+            dict(
+                success=False,
+                errors={"__all__": ["No ORCID id found in session."]},
+                redirect_url=reverse("start"),
+            )
+        )
+
+    if request.method == "POST":
+        form = SignupFormOrcid(request.POST)
+        if form.is_valid():
+            # Create the user but ensure the ORCID id is set from the session.
+            user = form.save(commit=False)
+            user.orcid_id = orcid_id
+            user.save()
+            login(request, user)
+            # Optionally, clear the ORCID data from the session.
+            request.session.pop("orcid_id", None)
+            request.session.pop("orcid_token_data", None)
+            return JsonResponse(
+                dict(
+                    success=True,
+                    errors=form.errors,
+                    redirect_url=reverse("start"),
+                )
+            )
+        else:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "errors": form.errors,
+                }
+            )
+    else:
+        # Prefill the form with the ORCID id.
+        names = request.session.get("orcid_token_data", {}).get("name").split(" ")
+        if len(names) == 2:
+            first_name, last_name = names
+        elif len(names) < 2:
+            first_name, last_name = names[0], ""
+        elif len(names) > 2:
+            first_name, last_name = names[0], " ".join(names[1:])
+        form = SignupFormOrcid(
+            initial={
+                "orcid_id": orcid_id,
+                "first_name": first_name,
+                "last_name": last_name,
+            }
+        )
+
+    return render(request, "signup.html", {"form": form})
 
 
 # Custom test function to check if the user is a superuser (admin)

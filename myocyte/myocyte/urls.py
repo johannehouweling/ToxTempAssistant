@@ -17,6 +17,8 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path
+from django.conf.urls.static import static
+from myocyte import settings
 from toxtempass import views
 
 urlpatterns = [
@@ -28,6 +30,12 @@ urlpatterns = [
 
 urlpatterns += [
     path("", views.start_form_view, name="start"),
+    # Login stuff
+    path("login/", views.LoginView.as_view(), name="login"),
+    path("login/orcid/", views.orcid_login, name="orcid_login"),
+    path("login/signup/", views.signup, name="signup"),
+    path("orcid/callback/", views.orcid_callback, name="orcid_callback"),
+    path("orcid/signup/", views.orcid_signup, name="orcid_signup"),
     # Investigation URLs
     path(
         "investigation/create/",
@@ -106,3 +114,5 @@ urlpatterns += [
         name="filter_assays_by_study",
     ),
 ]
+
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
