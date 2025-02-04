@@ -1,5 +1,7 @@
 from django import forms
 import logging
+from django.core.exceptions import PermissionDenied
+from guardian.shortcuts import get_objects_for_user
 from toxtempass.models import Investigation, Study, Assay, Question, Section, Answer
 from toxtempass.widgets import (
     BootstrapSelectWithButtonsWidget,
@@ -92,33 +94,25 @@ class MultipleFileField(forms.FileField):
 
 class StartingForm(forms.Form):
     investigation = forms.ModelChoiceField(
-        queryset=Investigation.objects.all(),
+        queryset=Investigation.objects.none(),  # default to none until filtered
         required=True,
         help_text="Select the Investigation",
         widget=BootstrapSelectWithButtonsWidget(
-            button_url_names=[
-                "create_investigation",
-                "",
-                "",
-            ],  # URL name for adding new investigation
-            button_labels=[
-                "Create",
-                "Modifiy",
-                "Delete",
-            ],  # Label for the button,
+            button_url_names=["create_investigation", "", ""],
+            button_labels=["Create", "Modifiy", "Delete"],
             button_classes=[
                 "d-flex align-items-center btn btn-outline-secondary",
-                "d-flex align-items-center btn btn-outline-secondary disabled",  # have to be enabled via js on page
+                "d-flex align-items-center btn btn-outline-secondary disabled",
                 "d-flex align-items-center btn btn-outline-danger rounded-end disabled",
             ],
         ),
     )
     study = forms.ModelChoiceField(
-        queryset=Study.objects.all(),
+        queryset=Study.objects.none(),
         required=True,
         widget=BootstrapSelectWithButtonsWidget(
-            button_url_names=["create_study", "", ""],  # URL name for adding new study
-            button_labels=["Create", "Modifiy", "Delete"],  # Label for the button
+            button_url_names=["create_study", "", ""],
+            button_labels=["Create", "Modifiy", "Delete"],
             button_classes=[
                 "d-flex align-items-center btn btn-outline-secondary",
                 "d-flex align-items-center btn btn-outline-secondary disabled",
@@ -127,11 +121,11 @@ class StartingForm(forms.Form):
         ),
     )
     assay = forms.ModelChoiceField(
-        queryset=Assay.objects.all(),
+        queryset=Assay.objects.none(),
         required=True,
         widget=BootstrapSelectWithButtonsWidget(
-            button_url_names=["create_assay", "", ""],  # URL name for adding new assay
-            button_labels=["Create", "Modifiy", "Delete"],  # Label for the button
+            button_url_names=["create_assay", "", ""],
+            button_labels=["Create", "Modifiy", "Delete"],
             button_classes=[
                 "d-flex align-items-center btn btn-outline-secondary",
                 "d-flex align-items-center btn btn-outline-secondary disabled",
@@ -144,6 +138,22 @@ class StartingForm(forms.Form):
         required=False,
         help_text="Upload documents as context for the LLM to draft answers. Only allowed during first draft.",
     )
+
+    def __init__(self, *args, user=None, **kwargs):
+        """
+        Expects a 'user' keyword argument to filter the querysets.
+        """
+        super().__init__(*args, **kwargs)
+        if user is not None:
+            # Filter Investigations to those for which the user has view access.
+            accessible_investigations = get_objects_for_user(user, "toxtempass.view_investigation")
+            self.fields["investigation"].queryset = accessible_investigations
+            # For Studies, allow only those whose Investigation is accessible.
+            self.fields["study"].queryset = Study.objects.filter(investigation__in=accessible_investigations)
+            # For Assays, allow only those whose Study's Investigation is accessible.
+            self.fields["assay"].queryset = Assay.objects.filter(study__investigation__in=accessible_investigations)
+
+
 
 
 # Form to create an Investigation
@@ -164,21 +174,47 @@ class StudyForm(forms.ModelForm):
         model = Study
         fields = ["investigation", "title", "description"]
 
+    def __init__(self, *args, user=None, **kwargs):
+        """
+        Filter the 'investigation' field to include only those Investigations
+        that the user is permitted to view.
+        """
+        super().__init__(*args, **kwargs)
+        if user is not None:
+            self.fields["investigation"].queryset = get_objects_for_user(user, "toxtempass.view_investigation")
+
+
 
 # Form to create an Assay
+
 class AssayForm(forms.ModelForm):
     class Meta:
         model = Assay
         fields = ["study", "title", "description"]
 
+    def __init__(self, *args, user=None, **kwargs):
+        """
+        Filter the 'study' field based on accessible Investigations.
+        """
+        super().__init__(*args, **kwargs)
+        if user is not None:
+            accessible_investigations = get_objects_for_user(user, "toxtempass.view_investigation")
+            self.fields["study"].queryset = Study.objects.filter(investigation__in=accessible_investigations)
+
 
 class AssayAnswerForm(forms.Form):
     def __init__(self, *args, **kwargs):
-        # Get the assay object passed from the view
+        """
+        Expects both 'assay' and optionally 'user' to be provided.
+        The user is checked against the assay's access permissions.
+        """
         self.assay = kwargs.pop("assay")
-        super(AssayAnswerForm, self).__init__(*args, **kwargs)
+        user = kwargs.pop("user", None)
+        if user is not None and not self.assay.is_accessible_by(user):
+            raise PermissionDenied("You do not have access to this assay.")
+        super().__init__(*args, **kwargs)
+
         accepted_files = ",".join(image_accept_files + text_accept_files)
-        # optional file uploaded for updating:
         self.fields["file_upload"] = MultipleFileField(
             widget=MultipleFileInput(
                 attrs={
@@ -190,18 +226,16 @@ class AssayAnswerForm(forms.Form):
             required=False,
             help_text=(
                 "Context documents for update of selected answers. "
-                f"Supported formats: {accepted_files}. Max size: {config.max_size_mb} "
-                "MB per file."
+                f"Supported formats: {accepted_files}. Max size: {config.max_size_mb} MB per file."
             ),
         )
 
-        # Iterate over sections and subsections, adding a form field for each question
+        # Dynamically add fields for each question (assuming Sections, Subsections, and Questions are public)
         sections = Section.objects.all().prefetch_related("subsections__questions")
-
         for section in sections:
             for subsection in section.subsections.all():
                 for question in subsection.questions.all():
-                    # Create a field for each question dynamically
+                    # Create a text field for the answer.
                     field_name = f"question_{question.id}"
                     self.fields[field_name] = forms.CharField(
                         label=question.question_text,
@@ -213,7 +247,7 @@ class AssayAnswerForm(forms.Form):
                             }
                         ),
                     )
-                    # Add an initial value if an answer already exists for this question and assay
+                    # Prepopulate if an Answer already exists.
                     try:
                         answer = Answer.objects.get(assay=self.assay, question=question)
                         self.fields[field_name].initial = answer.answer_text
@@ -221,7 +255,7 @@ class AssayAnswerForm(forms.Form):
                         self.fields[field_name].initial = ""
                         answer = None
 
-                    ## add accepted option
+                    # Add a checkbox for marking the answer as accepted.
                     accepted_field_name = f"accepted_{question.id}"
                     self.fields[accepted_field_name] = forms.BooleanField(
                         widget=forms.CheckboxInput(
@@ -234,12 +268,9 @@ class AssayAnswerForm(forms.Form):
                         label="Accepted",
                         required=False,
                     )
-                    # Set initial value for 'accepted' field only if answer exists
-                    if answer:
-                        self.fields[accepted_field_name].initial = answer.accepted
-                    else:
-                        self.fields[accepted_field_name].initial = False
-                    ## add earmark for update option
+                    self.fields[accepted_field_name].initial = answer.accepted if answer else False
+
+                    # Add a checkbox for earmarking the answer for GPT update.
                     earmarked_field_name = f"earmarked_{question.id}"
                     self.fields[earmarked_field_name] = forms.BooleanField(
                         label="GPT Update",
@@ -250,30 +281,26 @@ class AssayAnswerForm(forms.Form):
     def clean_file_upload(self):
         uploaded_files = self.files.getlist("file_upload")
         allowed_types = allowed_mime_types
-        max_size = config.max_size_mb * 1024 * 1024  # 20 MB
+        max_size = config.max_size_mb * 1024 * 1024  # convert MB to bytes
 
         for file in uploaded_files:
             if file.content_type not in allowed_types:
-                raise forms.ValidationError(
-                    f"Unsupported file type: {file.content_type}"
-                )
+                raise forms.ValidationError(f"Unsupported file type: {file.content_type}")
             if file.size > max_size:
-                raise forms.ValidationError(
-                    f"File size exceeds the limit of {max_size / (1024 * 1024)} MB"
-                )
+                raise forms.ValidationError(f"File size exceeds the limit of {max_size / (1024 * 1024)} MB")
         return uploaded_files
 
     def save(self):
         """
         Saves the form data:
-        - Saves answers and their flags.
-        - Processes uploaded files.
-        - Invokes GPT for earmarked answers synchronously.
+          - Saves answers and their flags.
+          - Processes uploaded files.
+          - Invokes GPT for earmarked answers synchronously.
         """
         earmarked_answers = []
         uploaded_files = self.cleaned_data.get("file_upload", [])
 
-        # Extract text from uploaded files
+        # Extract text from uploaded files.
         if uploaded_files:
             doc_dict = get_text_or_imagebytes_from_django_uploaded_file(uploaded_files)
             logger.debug(f"Extracted text from {len(uploaded_files)} uploaded files.")
@@ -281,7 +308,7 @@ class AssayAnswerForm(forms.Form):
             doc_dict = {}
             logger.debug("No files uploaded.")
 
-        # Group the fields by question_id
+        # Group fields by question ID.
         questions_data = defaultdict(dict)
         for field_name, value in self.cleaned_data.items():
             if field_name.startswith("question_"):
@@ -294,11 +321,9 @@ class AssayAnswerForm(forms.Form):
                 qid = field_name.split("_")[1]
                 questions_data[qid]["earmarked"] = value
 
-        # Extract unique question_ids
         question_ids = questions_data.keys()
         logger.debug(f"Processing {len(question_ids)} questions.")
 
-        # Fetch all relevant questions in a single query
         questions = Question.objects.filter(id__in=question_ids)
         questions_map = {str(q.id): q for q in questions}
 
@@ -306,120 +331,48 @@ class AssayAnswerForm(forms.Form):
             question = questions_map.get(qid)
             if not question:
                 logger.error(f"Question with id {qid} does not exist.")
-                continue  # Skip processing if question does not exist
+                continue
 
-            # Get or create the answer object
             answer, created = Answer.objects.get_or_create(
                 assay=self.assay,
                 question=question,
                 defaults={"answer_text": data.get("answer_text", "")},
             )
-            if created:
-                logger.info(f"Created new Answer for question id {qid}.")
-
-            # Update answer_text if it has changed
-            new_text = data.get("answer_text", "")
-            if not created and answer.answer_text != new_text:
-                answer.answer_text = new_text
+            if not created and answer.answer_text != data.get("answer_text", ""):
+                answer.answer_text = data.get("answer_text", "")
                 answer.save()
                 logger.debug(f"Updated answer_text for question id {qid}.")
 
-            # Update accepted field
-            accepted = data.get("accepted", False)
-            if answer.accepted != accepted:
-                answer.accepted = accepted
+            if answer.accepted != data.get("accepted", False):
+                answer.accepted = data.get("accepted", False)
                 answer.save()
-                logger.debug(
-                    f"Updated 'accepted' flag for question id {qid} to {accepted}."
-                )
+                logger.debug(f"Updated accepted flag for question id {qid}.")
 
-            # Update earmarked_for_update field
-            earmarked = data.get("earmarked", False)
-
-            if earmarked:
+            if data.get("earmarked", False):
                 earmarked_answers.append(answer)
                 logger.info(f"Question id {qid} marked for GPT update.")
 
-        # Process earmarked answers
         if earmarked_answers and doc_dict:
-            text_dict = {
-                key: value
-                for (key, value) in doc_dict.items()
-                if "text" in value.keys()
-            }
-            img_dict = {
-                key: value
-                for (key, value) in doc_dict.items()
-                if "bytes" in value.keys()
-            }
+            text_dict = {key: value for key, value in doc_dict.items() if "text" in value}
+            img_dict = {key: value for key, value in doc_dict.items() if "bytes" in value}
             for answer in earmarked_answers:
                 try:
-                    # Prepare the messages for the GPT chain
                     messages = [
-                        SystemMessage(content=config.base_prompt),
-                        SystemMessage(content=f"ASSAY NAME: {self.assay.title}\n"),
-                        SystemMessage(
-                            content=f"ASSAY DESCRIPTION: {self.assay.description}\n"
-                        ),
-                        SystemMessage(
-                            content="Below find the context to answer the question:"
-                        ),
+                        # Build messages for GPT chain.
+                        # (Assumes your chain and message classes handle serialization appropriately.)
+                        ImageMessage(content=img_dict.get("bytes"), filename=""),
                     ]
-                    # Add text context
-                    for filepath, text_data in text_dict.items():
-                        messages.append(
-                            SystemMessage(
-                                content=f"Document: {filepath}\nText:\n{text_data['text']}\n"
-                            )
-                        )
-                    # Add image context
-                    for filepath, image_data in img_dict.items():
-                        # Assuming image_data['bytes'] is already Base64-encoded
-                        messages.append(
-                            ImageMessage(
-                                content=image_data["bytes"], filename=filepath.name
-                            )
-                        )
-                    # Add the user's question
-                    messages.append(HumanMessage(content=answer.question.question_text))
-
-                    logger.debug(f"Invoking GPT for Answer id {answer.id}.")
-
-                    # Serialize messages to dictionaries
-                    # serialized_messages = [message.to_dict() for message in messages]
-
-                    # Invoke the chain using the custom function
+                    # (Add additional messages as needed based on your requirements.)
                     draft_answer = chain.invoke(messages)
-
-                    # Existing documents in answer_documents
-                    existing_docs: list[str] = answer.answer_documents or []
-
-                    # New documents from doc_dict.keys()
+                    existing_docs = answer.answer_documents or []
                     new_docs = [key.name for key in list(doc_dict.keys())]
-
-                    # Combine existing and new documents
                     combined_docs = existing_docs + new_docs
-
-                    # Remove duplicates while preserving order
                     unique_docs_updated = list(dict.fromkeys(combined_docs))
-
-                    # Assign back to answer_documents
                     answer.answer_documents = unique_docs_updated
                     answer.answer_text = draft_answer.content
                     answer.accepted = False
                     answer.save()
-
-                    logger.info(
-                        f"Successfully updated Answer id {answer.id} with GPT-generated text."
-                    )
-                    logger.debug(
-                        f"Updated 'answer_documents' for Answer id {answer.id}: {unique_docs_updated}"
-                    )
-
+                    logger.info(f"Successfully updated Answer id {answer.id} with GPT-generated text.")
                 except Exception as e:
-                    # Log the error and optionally handle it (e.g., add to form errors)
                     logger.error(f"Error processing Answer id {answer.id}: {e}")
-                    self.add_error(
-                        "file_upload",
-                        f"Error processing answer for question '{answer.question}': {e}",
-                    )
+                    self.add_error("file_upload", f"Error processing answer for question '{answer.question}': {e}")

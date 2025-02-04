@@ -3,6 +3,52 @@ from django.contrib.auth.models import AbstractUser
 from simple_history.models import HistoricalRecords
 from django.contrib.auth.models import BaseUserManager
 from django.core.validators import validate_email
+from guardian.shortcuts import assign_perm
+from myocyte import settings
+
+
+# we are desinging user access that inherits from the parent object. That way if Investigation
+# is shared, all the children objects will be shared as well.
+class AccessibleModel(models.Model):
+    """
+    Abstract base model for objects that may have hierarchical permissions.
+    """
+
+    class Meta:
+        abstract = True
+
+    def get_parent(self):
+        """
+        Return the immediate parent object in the hierarchy, if any.
+        Override this method in child models that have a parent.
+        """
+        return None
+
+    def is_accessible_by(self, user, perm_prefix="view"):
+        """
+        Check if a user has permission to access this object.
+        The check is recursive: if the user does not have direct permission on
+        this instance, check its parent (if any).
+
+        :param user: The user to check permissions for.
+        :param perm_prefix: The permission prefix (e.g., 'view', 'change', 'delete').
+        :return: True if the permission is granted on this instance or any parent.
+        """
+        # Construct the permission codename, e.g., 'view_investigation'
+        codename = f"{perm_prefix}_{self._meta.model_name}"
+        full_permission = f"{self._meta.app_label}.{codename}"
+
+        # Direct permission check using Django's permission system (or django-guardian)
+        if user.has_perm(full_permission, self):
+            return True
+
+        # Otherwise, try checking the parent's permissions, if a parent exists
+        parent = self.get_parent()
+        if parent is not None:
+            return parent.is_accessible_by(user, perm_prefix=perm_prefix)
+
+        # No permission found in the chain
+        return False
 
 
 class PersonManager(BaseUserManager):
@@ -45,7 +91,10 @@ class Person(AbstractUser):
 
 
 # Investigation Model
-class Investigation(models.Model):
+class Investigation(AccessibleModel):
+    owner = models.ForeignKey(
+        Person, on_delete=models.PROTECT, related_name="investigations"
+    )
     title = models.CharField(max_length=255, blank=False, null=False)
     description = models.TextField(blank=True, null=True)
     submission_date = models.DateTimeField(auto_now_add=True)
@@ -54,9 +103,27 @@ class Investigation(models.Model):
     def __str__(self):
         return self.title
 
+    def save(self, *args, **kwargs) -> None:
+        """Save the object and assign object-level permissions to the owner."""
+        super().save(*args, **kwargs)
+        # Ensure the owner always gets object-level permissions on their own Investigation.
+        assign_perm("view_investigation", self.owner, self)
+        assign_perm("change_investigation", self.owner, self)
+        assign_perm("delete_investigation", self.owner, self)
+
+    def share(self, user: Person) -> None:
+        """Grant full access to the specified user for this Investigation."""
+        assign_perm("view_investigation", user, self)
+        assign_perm("change_investigation", user, self)
+        assign_perm("delete_investigation", user, self)
+
+    def get_parent(self):
+        """Return the parent object in the hierarchy, if any."""
+        return None
+
 
 # Study Model
-class Study(models.Model):
+class Study(AccessibleModel):
     investigation = models.ForeignKey(
         Investigation, on_delete=models.CASCADE, related_name="studies"
     )
@@ -67,12 +134,15 @@ class Study(models.Model):
     def __str__(self):
         return self.title
 
+    def get_parent(self):
+        return self.investigation
+
 
 # Assay Model
-class Assay(models.Model):
+class Assay(AccessibleModel):
     study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name="assays")
     title = models.CharField(max_length=255, blank=False, null=False)
-    description = models.TextField(blank=True)
+    description = models.TextField(blank=False, default="")
     submission_date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -99,9 +169,12 @@ class Assay(models.Model):
         # Count all answers that are marked as accepted
         return self.answers.filter(accepted=True).count()
 
+    def get_parent(self):
+        return self.study
+
 
 # Section, Subsection, and Question Models (fixed)
-class Section(models.Model):
+class Section(AccessibleModel):
     title = models.CharField(max_length=255)
 
     def __str__(self):
@@ -118,8 +191,12 @@ class Section(models.Model):
         # Check if there are any answers and if all are accepted
         return answers.exists() and all(answer.accepted for answer in answers)
 
+    def is_accessible_by(self, user, perm_prefix="view"):
+        # Always return True since questions are public.
+        return True
 
-class Subsection(models.Model):
+
+class Subsection(AccessibleModel):
     section = models.ForeignKey(
         Section, on_delete=models.CASCADE, related_name="subsections"
     )
@@ -139,8 +216,12 @@ class Subsection(models.Model):
         # Check if there are any answers and if all are accepted
         return answers.exists() and all(answer.accepted for answer in answers)
 
+    def is_accessible_by(self, user, perm_prefix="view"):
+        # Always return True since questions are public.
+        return True
 
-class Question(models.Model):
+
+class Question(AccessibleModel):
     subsection = models.ForeignKey(
         Subsection, on_delete=models.CASCADE, related_name="questions"
     )
@@ -157,9 +238,13 @@ class Question(models.Model):
     def __str__(self):
         return str(self.question_text)
 
+    def is_accessible_by(self, user, perm_prefix="view"):
+        # Always return True since questions are public.
+        return True
+
 
 # Answer Model (linked to Assay)
-class Answer(models.Model):
+class Answer(AccessibleModel):
     assay = models.ForeignKey(Assay, on_delete=models.CASCADE, related_name="answers")
     question = models.ForeignKey(
         Question,
@@ -181,3 +266,6 @@ class Answer(models.Model):
 
     def __str__(self):
         return f"Answer to: {self.question} for assay {self.assay}"
+
+    def get_parent(self):
+        return self.assay

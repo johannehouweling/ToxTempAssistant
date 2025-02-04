@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "toxtempass",
     "simple_history",
     "django_extensions",
+    "guardian",
 ]
 
 MIDDLEWARE = [
@@ -53,6 +54,13 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",  # comes with INSTALLED_APPS = "simple_history" and takes care of who made changes
 ]
+
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',  # Default
+    'guardian.backends.ObjectPermissionBackend',  # for guardian
+)
+
+ANONYMOUS_USER_ID = -1
 
 ROOT_URLCONF = "myocyte.urls"
 

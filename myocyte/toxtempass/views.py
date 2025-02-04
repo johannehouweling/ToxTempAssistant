@@ -92,7 +92,9 @@ class LoginView(View):
             password = form.cleaned_data.get("password")
             user = authenticate(request, username=username, password=password)
             if user:
-                login(request, user)
+                login(
+                    request, user, backend="django.contrib.auth.backends.ModelBackend"
+                )
                 return JsonResponse(
                     dict(
                         success=True,
@@ -130,7 +132,7 @@ def signup(request: HttpRequest) -> HttpResponse | JsonResponse:
             # Create the user but ensure the ORCID id is set from the session.
             user = form.save(commit=False)
             user.save()
-            login(request, user)
+            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
             return JsonResponse(
                 dict(
                     success=True,
@@ -231,7 +233,9 @@ def orcid_callback(request):
     try:
         # Attempt to log in if an account with this ORCID exists.
         user_profile = Person.objects.get(orcid_id=orcid_id)
-        login(request, user_profile)  # Assuming Person has a related user object.
+        login(
+            request, user_profile, backend="django.contrib.auth.backends.ModelBackend"
+        )  # Assuming Person has a related user object.
         return redirect("start")
     except Person.DoesNotExist:
         # Save the ORCID id and token data in the session for use in the signup process.
@@ -337,24 +341,25 @@ def init_db(request: HttpRequest):
 
 
 @user_passes_test(is_logged_in, login_url="/login/")
-def start_form_view(request: HttpRequest) -> JsonResponse | HttpResponse:
+def start_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
     if request.method == "POST":
-        form = StartingForm(request.POST)
+        form = StartingForm(request.POST, user=request.user)
         if form.is_valid():
-            # Process form data here
             assay = form.cleaned_data["assay"]
-            # Process the files to generate draft of answers
+            # Check that the user can view the assay
+            if not assay.is_accessible_by(request.user, perm_prefix="view"):
+                from django.core.exceptions import PermissionDenied
+
+                raise PermissionDenied(
+                    "You do not have permission to access this assay."
+                )
             files = request.FILES.getlist("files")
-            if (
-                files and not assay.answers.all()
-            ):  # if the user provides files and no answers have been create yet, we can run GPT to seed the answers for whole assay
-                # to run gpt we need to cycle over the answers, so we shall first create an empty answer set:
-                form_empty_answers = AssayAnswerForm({}, assay=assay)
+            if files and not assay.answers.all():
+                # Create empty answers if none exist
+                form_empty_answers = AssayAnswerForm({}, assay=assay, user=request.user)
                 if form_empty_answers.is_valid():
                     form_empty_answers.save()
-                doc_dict = get_text_or_imagebytes_from_django_uploaded_file(
-                    files
-                )  # dict of structure {Path(filename.pdf): {'text': 'lorem ipsum'}}
+                doc_dict = get_text_or_imagebytes_from_django_uploaded_file(files)
                 try:
                     answer_ids = []
                     for answer in assay.answers.all():
@@ -367,7 +372,7 @@ def start_form_view(request: HttpRequest) -> JsonResponse | HttpResponse:
                                     content=f"ASSAY DESCRIPTION: {assay.description}\n"
                                 ),
                                 SystemMessage(
-                                    content=f"""Below find the context to answer the question:\n CONTEXT:\n{doc_dict}"""  # text_dict can be optimized (e.g. only text)
+                                    content=f"Below find the context to answer the question:\n CONTEXT:\n{doc_dict}"
                                 ),
                                 HumanMessage(content=question),
                             ]
@@ -376,50 +381,31 @@ def start_form_view(request: HttpRequest) -> JsonResponse | HttpResponse:
                         answer.answer_documents = [key.name for key in doc_dict.keys()]
                         answer.save()
                         answer_ids.append(answer.id)
-                    # store which doc has been used to answer which answers (in this case all of them cause it's the start gpt)
                 except Exception as e:
-                    print(e)
                     return JsonResponse(
                         {
                             "success": False,
                             "errors": {"__all__": [str(e)]},
                         }
                     )
-
-            # return a success message (currently not displayed - only browser intern) and redirect
-            return JsonResponse(
-                dict(
-                    success=True,
-                    errors=form.errors,
-                    redirect_url=reverse(  # define where to redirect to on success
-                        "answer_assay_questions", kwargs=dict(assay_id=assay.id)
-                    ),
-                )
-            )
-        else:
             return JsonResponse(
                 {
-                    "success": False,
+                    "success": True,
                     "errors": form.errors,
+                    "redirect_url": reverse(
+                        "answer_assay_questions", kwargs=dict(assay_id=assay.id)
+                    ),
                 }
             )
+        else:
+            return JsonResponse({"success": False, "errors": form.errors})
     else:
-        form = StartingForm()
-
-    return render(
-        request,
-        "start.html",
-        {
-            "form": form,
-            # not really needed will send to page itself if no other action specified for from.
-            # "action": mark_safe(reverse("start")),
-        },
-    )
+        form = StartingForm(user=request.user)
+    return render(request, "start.html", {"form": form})
 
 
 @user_passes_test(is_logged_in, login_url="/login/")
 def get_filtered_studies(request: HttpRequest, investigation_id: int):
-    """Get the studies of a given investigation"""
     if investigation_id:
         studies = Study.objects.filter(investigation_id=investigation_id).values(
             "id", "title"
@@ -430,7 +416,6 @@ def get_filtered_studies(request: HttpRequest, investigation_id: int):
 
 @user_passes_test(is_logged_in, login_url="/login/")
 def get_filtered_assays(request: HttpRequest, study_id: int):
-    """Get the Assays of a given study"""
     if study_id:
         assays = Assay.objects.filter(study_id=study_id).values("id", "title")
         return JsonResponse(list(assays), safe=False)
@@ -439,158 +424,166 @@ def get_filtered_assays(request: HttpRequest, study_id: int):
 
 @user_passes_test(is_logged_in, login_url="/login/")
 def initial_gpt_allowed_for_assay(request: HttpRequest, pk: int) -> JsonResponse:
-    """Answers if gpt is allowed in the first go (all answers empty)."""
     if request.method == "POST":
         assay = get_object_or_404(Assay, pk=pk)
+        if not assay.is_accessible_by(request.user, perm_prefix="view"):
+            from django.core.exceptions import PermissionDenied
+
+            raise PermissionDenied("You do not have permission to access this assay.")
         if not assay.answers.all():
             return JsonResponse({"gpt_allowed": True})
         else:
             return JsonResponse({"gpt_allowed": False})
 
 
-# Create or update Investigation
 @user_passes_test(is_logged_in, login_url="/login/")
 def create_or_update_investigation(request, pk=None):
     if pk:
-        investigation = get_object_or_404(
-            Investigation, pk=pk
-        )  # Retrieve the existing object for updating
-    else:
-        investigation = None  # Creating a new object
+        investigation = get_object_or_404(Investigation, pk=pk)
+        if not investigation.is_accessible_by(request.user, perm_prefix="change"):
+            from django.core.exceptions import PermissionDenied
 
+            raise PermissionDenied(
+                "You do not have permission to modify this investigation."
+            )
+    else:
+        investigation = None
     if request.method == "POST":
         form = InvestigationForm(request.POST, instance=investigation)
         if form.is_valid():
-            form.save()
-            return JsonResponse(
-                dict(
-                    success=True,
-                    errors=form.errors,
-                    redirect_url=reverse("start"),
-                )
-            )
-        else:
+            inv = form.save(commit=False)
+            inv.owner = request.user
+            inv.save()
             return JsonResponse(
                 {
-                    "success": False,
+                    "success": True,
                     "errors": form.errors,
+                    "redirect_url": reverse("start"),
                 }
             )
+        else:
+            return JsonResponse({"success": False, "errors": form.errors})
     else:
         form = InvestigationForm(instance=investigation)
-
     return render(
         request,
         "create.html",
-        dict(
-            form=form,
-            title="Create Investigation",
-            back_url=mark_safe(reverse("start")),
-        ),
+        {
+            "form": form,
+            "title": "Create Investigation",
+            "back_url": mark_safe(reverse("start")),
+        },
     )
 
 
-# Delete Investigation via GET
 @user_passes_test(is_logged_in, login_url="/login/")
 def delete_investigation(request, pk):
     if request.method == "GET":
         investigation = get_object_or_404(Investigation, pk=pk)
+        if not investigation.is_accessible_by(request.user, perm_prefix="delete"):
+            from django.core.exceptions import PermissionDenied
+
+            raise PermissionDenied(
+                "You do not have permission to delete this investigation."
+            )
         investigation.delete()
         return redirect("start")
     return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
 
 
-# Create or update Study
 @user_passes_test(is_logged_in, login_url="/login/")
 def create_or_update_study(request, pk=None):
     if pk:
-        study = get_object_or_404(
-            Study, pk=pk
-        )  # Retrieve the existing object for updating
-    else:
-        study = None  # Creating a new object
+        study = get_object_or_404(Study, pk=pk)
+        if not study.is_accessible_by(request.user, perm_prefix="change"):
+            from django.core.exceptions import PermissionDenied
 
+            raise PermissionDenied("You do not have permission to modify this study.")
+    else:
+        study = None
     if request.method == "POST":
-        form = StudyForm(request.POST, instance=study)
+        form = StudyForm(request.POST, instance=study, user=request.user)
         if form.is_valid():
             form.save()
             return JsonResponse(
-                dict(
-                    success=True,
-                    errors=form.errors,
-                    redirect_url=reverse("start"),
-                )
-            )
-        else:
-            return JsonResponse(
                 {
-                    "success": False,
+                    "success": True,
                     "errors": form.errors,
+                    "redirect_url": reverse("start"),
                 }
             )
+        else:
+            return JsonResponse({"success": False, "errors": form.errors})
     else:
-        form = StudyForm(instance=study)
-
+        form = StudyForm(instance=study, user=request.user)
     return render(
         request,
         "create.html",
-        dict(form=form, title="Create Study", back_url=mark_safe(reverse("start"))),
+        {
+            "form": form,
+            "title": "Create Study",
+            "back_url": mark_safe(reverse("start")),
+        },
     )
 
 
-# Delete Study via GET
 @user_passes_test(is_logged_in, login_url="/login/")
 def delete_study(request, pk):
     if request.method == "GET":
         study = get_object_or_404(Study, pk=pk)
+        if not study.is_accessible_by(request.user, perm_prefix="delete"):
+            from django.core.exceptions import PermissionDenied
+
+            raise PermissionDenied("You do not have permission to delete this study.")
         study.delete()
         return redirect("start")
     return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
 
 
-# Create or update Assay
 @user_passes_test(is_logged_in, login_url="/login/")
 def create_or_update_assay(request, pk=None):
     if pk:
-        assay = get_object_or_404(
-            Assay, pk=pk
-        )  # Retrieve the existing object for updating
-    else:
-        assay = None  # Creating a new object
+        assay = get_object_or_404(Assay, pk=pk)
+        if not assay.is_accessible_by(request.user, perm_prefix="change"):
+            from django.core.exceptions import PermissionDenied
 
+            raise PermissionDenied("You do not have permission to modify this assay.")
+    else:
+        assay = None
     if request.method == "POST":
-        form = AssayForm(request.POST, instance=assay)
+        form = AssayForm(request.POST, instance=assay, user=request.user)
         if form.is_valid():
             form.save()
             return JsonResponse(
-                dict(
-                    success=True,
-                    errors=form.errors,
-                    redirect_url=reverse("start"),
-                )
-            )
-        else:
-            return JsonResponse(
                 {
-                    "success": False,
+                    "success": True,
                     "errors": form.errors,
+                    "redirect_url": reverse("start"),
                 }
             )
+        else:
+            return JsonResponse({"success": False, "errors": form.errors})
     else:
-        form = AssayForm(instance=assay)
-
+        form = AssayForm(instance=assay, user=request.user)
     return render(
         request,
         "create.html",
-        dict(form=form, title="Create Assay", back_url=mark_safe(reverse("start"))),
+        {
+            "form": form,
+            "title": "Create Assay",
+            "back_url": mark_safe(reverse("start")),
+        },
     )
 
 
-# Delete Assay via GET
 @user_passes_test(is_logged_in, login_url="/login/")
 def delete_assay(request, pk):
     if request.method == "GET":
         assay = get_object_or_404(Assay, pk=pk)
+        if not assay.is_accessible_by(request.user, perm_prefix="delete"):
+            from django.core.exceptions import PermissionDenied
+
+            raise PermissionDenied("You do not have permission to delete this assay.")
         assay.delete()
         return redirect("start")
     return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
@@ -599,30 +592,30 @@ def delete_assay(request, pk):
 @user_passes_test(is_logged_in, login_url="/login/")
 def answer_assay_questions(request, assay_id):
     assay = get_object_or_404(Assay, pk=assay_id)
-    sections = Section.objects.prefetch_related("subsections__questions").all()
+    if not assay.is_accessible_by(request.user, perm_prefix="view"):
+        from django.core.exceptions import PermissionDenied
 
+        raise PermissionDenied("You do not have permission to access this assay.")
+    sections = Section.objects.prefetch_related("subsections__questions").all()
     if request.method == "POST":
-        form = AssayAnswerForm(request.POST, request.FILES, assay=assay)
+        form = AssayAnswerForm(
+            request.POST, request.FILES, assay=assay, user=request.user
+        )
         if form.is_valid():
             form.save()
             return JsonResponse(
-                dict(
-                    success=True,
-                    errors=form.errors,
-                    redirect_url=reverse(
+                {
+                    "success": True,
+                    "errors": form.errors,
+                    "redirect_url": reverse(
                         "answer_assay_questions", kwargs=dict(assay_id=assay.pk)
                     ),
-                )
-            )
-        else:
-            return JsonResponse(
-                {
-                    "success": False,
-                    "errors": form.errors,
                 }
             )
+        else:
+            return JsonResponse({"success": False, "errors": form.errors})
     else:
-        form = AssayAnswerForm(assay=assay)
+        form = AssayAnswerForm(assay=assay, user=request.user)
     return render(
         request,
         "answer.html",
@@ -653,23 +646,19 @@ def answer_assay_questions(request, assay_id):
     )
 
 
-# Versioning:
-
-
 @user_passes_test(is_logged_in, login_url="/login/")
 def get_version_history(request, assay_id, question_id):
-    # Get the answer instance based on assay and question
     answer = get_object_or_404(Answer, assay=assay_id, question=question_id)
+    if not answer.is_accessible_by(request.user, perm_prefix="view"):
+        from django.core.exceptions import PermissionDenied
 
-    # Get the version history of the answer
+        raise PermissionDenied(
+            "You do not have permission to access this answer's version history."
+        )
     history = answer.history.all()
-
-    # List to store version and corresponding changes
     version_changes = []
 
     class DotDict(dict):
-        """A simple subclass of dict to allow dot notation access."""
-
         def __getattr__(self, key):
             try:
                 return self[key]
@@ -680,43 +669,28 @@ def get_version_history(request, assay_id, question_id):
             self[key] = value
 
     def _split_into_words(text: str) -> list:
-        """Split words"""
         return re.findall(r"\S+|\n", text)
 
     def _get_diff_html(diff: Iterator) -> str:
-        # HTML template for displaying word-level diff
         html_diff = ""
-
         for word in diff:
-            if word.startswith("-"):  # Word removed
+            if word.startswith("-"):
                 html_diff += f'<span style="color: red; text-decoration: line-through;">{word[2:]}</span> '
-            elif word.startswith("+"):  # Word added
+            elif word.startswith("+"):
                 html_diff += f'<span style="color: green;">{word[2:]}</span> '
             else:
-                html_diff += f"{word[2:]} "  # Keep unchanged words
-            # Iterate through the history and compute differences
+                html_diff += f"{word[2:]} "
         return html_diff
 
     for version in history:
-        changes = None
-        # Check if there is a previous record
         if version.prev_record:
-            # Calculate the differences using diff_against
             changes = version.diff_against(version.prev_record).changes
         else:
-            # Handle the case where there is no previous record (first entry)
             changes = version.diff_against(version).changes
-
-        # Get word-level diff
-
-        # Append the version and its changes to the list
         version_changes.append({"version": version, "changes": changes})
-        # change time display // BETTER DONE with a templatetag but would have to look up how to load it
         version_changes[-1]["version"].history_date = naturaltime(
             version_changes[-1]["version"].history_date
         )
-        # show a diff highlighting
-        print(version_changes[-1]["changes"], "\n")
         last_changes_answer_text = [
             change
             for change in version_changes[-1]["changes"]
@@ -731,22 +705,23 @@ def get_version_history(request, assay_id, question_id):
             )
         if changes and version_changes[-1]["changes"][0].field == "accepted":
             version_changes.pop(-1)
-
-    # Pass the version changes and the instance to the template
     return render(
         request,
         "answer_extras/version_history_modal_body.html",
-        {"version_changes": version_changes, "instance": answer},
+        {
+            "version_changes": version_changes,
+            "instance": answer,
+        },
     )
-
-
-# Exporting:
 
 
 @user_passes_test(is_logged_in, login_url="/login/")
 def export_assay(
     request: HttpRequest, assay_id: int, export_type: str
 ) -> FileResponse | JsonResponse:
-    """Export View to ship Files to user per assay."""
-    assay = Assay.objects.get(id=assay_id)
+    assay = get_object_or_404(Assay, id=assay_id)
+    if not assay.is_accessible_by(request.user, perm_prefix="view"):
+        from django.core.exceptions import PermissionDenied
+
+        raise PermissionDenied("You do not have permission to export this assay.")
     return export_assay_to_file(request, assay, export_type)
