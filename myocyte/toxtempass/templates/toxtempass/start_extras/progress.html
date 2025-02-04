@@ -1,0 +1,92 @@
+<!-- Modal for progress -->
+<div class="modal fade" id="progressModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="progressModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="progressModalLabel">Processing</h5>
+        </div>
+        <div class="modal-body">
+          <div class="progress" role="progressbar" aria-label="Processing progress" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%" id="progressBar"></div>
+          </div>
+          <p id="progressText" class="mt-2 text-center">0%</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // CSRF token from Django template tag
+
+    // Show progress modal and start polling when the form is submitted
+    {% comment %} const startButton = document.getElementById('startButton'); {% endcomment %}
+    {% comment %} const spinner = document.getElementById('startButtonSpinner'); {% endcomment %}
+    const startButtonText = document.getElementById('startButtonText');
+    const progressModal = new bootstrap.Modal(document.getElementById('progressModal'));
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+
+    document.querySelector("form").addEventListener("submit", function(event) {
+        // Prevent immediate form submission
+        // (Optional: You may allow form submission if you use AJAX to submit it.)
+        event.preventDefault();
+
+        // Show the progress modal
+        progressModal.show();
+
+        // Disable the submit button and show the spinner
+        startButton.classList.add('disabled');
+        spinner.classList.remove('d-none');
+
+        // Now submit the form via AJAX
+        const formData = new FormData(this);
+        fetch(this.action, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Optionally redirect after processing is done
+                window.location.href = data.redirect_url;
+            } else {
+                // Hide the modal and re-enable the button if errors occurred
+                progressModal.hide();
+                startButton.classList.remove('disabled');
+                spinner.classList.add('d-none');
+                // Display errors (you might want to update your error handling accordingly)
+                console.error(data.errors);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            progressModal.hide();
+            startButton.classList.remove('disabled');
+            spinner.classList.add('d-none');
+        });
+    });
+
+    // Poll the progress endpoint every 1 second to update the progress bar
+    const progressInterval = setInterval(function() {
+        fetch("{% url 'progress_status' %}", {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': csrftoken,
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            const progress = data.progress;
+            progressBar.style.width = progress + '%';
+            progressText.textContent = progress + '%';
+            if (progress >= 100) {
+                // Stop polling when progress is complete
+                clearInterval(progressInterval);
+            }
+        })
+        .catch(error => console.error('Error fetching progress:', error));
+    }, 1000);
+</script>
