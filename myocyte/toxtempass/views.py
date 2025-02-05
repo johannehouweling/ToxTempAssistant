@@ -9,6 +9,8 @@ import logging
 import re
 from django.views import View
 
+from django.core.cache import cache
+import uuid
 from pathlib import Path
 from django.urls import reverse
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -66,7 +68,6 @@ def is_admin(user: User):
 # Custom test function to check if the user is a superuser (admin)
 def is_logged_in(user: Person | None):
     """Check is user is admin. Return True if that's the case."""
-    print(type(user))
     return isinstance(user, Person)
 
 
@@ -341,28 +342,59 @@ def init_db(request: HttpRequest):
 
 
 @user_passes_test(is_logged_in, login_url="/login/")
+def progress_status(request: HttpRequest) -> JsonResponse:
+    task_id = request.session.get("progress_task_id")
+    if not task_id:
+        # If no task id is set, assume 0 progress.
+        progress = 0
+    else:
+        progress = cache.get(f"progress_{task_id}", 0)
+    return JsonResponse({"progress": progress})
+
+
+@user_passes_test(is_logged_in, login_url="/login/")
 def start_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
+    # When the view is first loaded (GET), also generate a task id and store it in the session.
+    if request.method == "GET":
+        task_id = str(uuid.uuid4())
+        request.session["progress_task_id"] = task_id
+        # Initialize progress to 0
+        cache.set(f"progress_{task_id}", 0, timeout=3600)
+        form = StartingForm(user=request.user)
+        return render(request, "start.html", {"form": form})
+
+    # For POST, process the form and update progress as you work.
     if request.method == "POST":
         form = StartingForm(request.POST, user=request.user)
         if form.is_valid():
             assay = form.cleaned_data["assay"]
-            # Check that the user can view the assay
             if not assay.is_accessible_by(request.user, perm_prefix="view"):
                 from django.core.exceptions import PermissionDenied
 
                 raise PermissionDenied(
                     "You do not have permission to access this assay."
                 )
+
             files = request.FILES.getlist("files")
+            # Assume that if files are provided and no answers exist, we seed answers.
             if files and not assay.answers.all():
                 # Create empty answers if none exist
                 form_empty_answers = AssayAnswerForm({}, assay=assay, user=request.user)
                 if form_empty_answers.is_valid():
                     form_empty_answers.save()
+
                 doc_dict = get_text_or_imagebytes_from_django_uploaded_file(files)
                 try:
-                    answer_ids = []
-                    for answer in assay.answers.all():
+                    total = assay.answers.count()
+                    # Get or generate the task id
+                    task_id = request.session.get("progress_task_id")
+                    if not task_id:
+                        task_id = str(uuid.uuid4())
+                        request.session["progress_task_id"] = task_id
+                        cache.set(f"progress_{task_id}", 0, timeout=3600)
+
+                    # Process each answer and update progress
+                    for idx, answer in enumerate(assay.answers.all()):
                         question = answer.question.question_text
                         draft_answer = chain.invoke(
                             [
@@ -380,7 +412,11 @@ def start_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                         answer.answer_text = draft_answer.content
                         answer.answer_documents = [key.name for key in doc_dict.keys()]
                         answer.save()
-                        answer_ids.append(answer.id)
+
+                        # Calculate progress as a percentage and update the cache
+                        progress = int(((idx + 1) / total) * 100)
+                        cache.set(f"progress_{task_id}", progress, timeout=3600)
+
                 except Exception as e:
                     return JsonResponse(
                         {
@@ -399,9 +435,6 @@ def start_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
             )
         else:
             return JsonResponse({"success": False, "errors": form.errors})
-    else:
-        form = StartingForm(user=request.user)
-    return render(request, "start.html", {"form": form})
 
 
 @user_passes_test(is_logged_in, login_url="/login/")

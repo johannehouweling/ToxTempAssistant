@@ -63,7 +63,7 @@ urlpatterns += [
     ),  # hard-coded in start.html
     # Assay URLs
     path("assay/create/", views.create_or_update_assay, name="create_assay"),
-    # path('assay/progress-status/', views.progress_status, name="progress_status"),
+    path("assay/progress-status/", views.progress_status, name="progress_status"),
     path(
         "assay/gpt-allowed/<int:pk>",
         views.initial_gpt_allowed_for_assay,
