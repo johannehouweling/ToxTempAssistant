@@ -2,7 +2,8 @@
 LLM-added population of ToxTemp for test method description. [1]
 
 - [ToxTempAssistantApp](#toxtempassistantapp)
-  - [Install](#install)
+  - [Install Server](#install-server)
+    - [via Conda](#via-conda)
   - [TODO](#todo)
     - [Functionality](#functionality)
     - [Production changes](#production-changes)
@@ -12,13 +13,27 @@ LLM-added population of ToxTemp for test method description. [1]
   - [Maintainer](#maintainer)
   - [References](#references)
 
-## Install
-- luaLaTeX (Mactex)
+## Install Server
+### via Conda
+- Create virtual environment (optional; named 'toxtempass' below)
+- Activate virtual environment
+- Install required python packages
+- Install pandoc for export into different formats (PDF, WORD etc)
+
+CLI: 
+```bash
+conda create -n toxtempass python=3.12 pip
+conda activate toxtempass
+pip install requirements.txt
+conda install conda-forge::pandoc
+```
+
 ## TODO
 ### Functionality
-- Fix document references. Implement RAG after all?
-- Filtering: User
-- Collaboration option? Easier option to show User study only to users
+- Check XML export
+- Fix Update single answer (appears to not take documents but only image into account)
+- Fix document references. Prompt engineering or implement RAG after all?
+- Collaboration option? Easier option to show User study only to users  
 - Disclaimer on Privacy etc.
 - Write tests
 - Add possibility to use images (untested code):
@@ -110,7 +125,7 @@ LLM-added population of ToxTemp for test method description. [1]
     >Application URL
     >http://127.0.0.1:8000
     >Application description
-    >ToxTempAssistance helps researchers fill out the ToxTemp by leveraging large languge models. 
+    >ToxTempAssistant helps researchers fill out the ToxTemp by leveraging Large Languge Models. 
     >
     >ToxTemp, "an annotated toxicity test method template was developed (i) to fulfill all requirements of GD211, (ii) to guide the user concerning the types of answers and detail of information required, (iii) >to include acceptance criteria for test elements, and (iv) to define the cells sufficiently and transparently." (dx.doi.org/10.14573/altex.1909271)
     >The description shown to users on the OAuth authorization screen. Maximum 1000 characters.
@@ -129,7 +144,7 @@ LLM-added population of ToxTemp for test method description. [1]
 -  History: Make sure we Cache the Answers on first shipment of the Answer.html, so that if we store answers we don't have to hit the database again.
 -  Handle concurrency / prevent multiple users from checking/editing the same item (only need if we allow colaboration) 
 ### Infrastructure
-- Check for context window, are we not cutting it off if someone upload uploads oomany files
+- Check for context window, are we not cutting it off if someone upload uploads too many files
 - Implement RAG to refer to most relevant chunks
 - VHP4Safety GPT endpoint. Set limit to number of draft generations.
 - Where will this app be hosted? 
@@ -138,7 +153,7 @@ LLM-added population of ToxTemp for test method description. [1]
 ## License
 
 ## Maintainer
-- Johanne Houweling | firstname.lastname@rivm.nl
+- Johanne Houweling | firstname.lastname@gmail.com
 - Matthias Arras | firstname.lastname@gmail.com
 ## References
 [1]: Krebs, Alice, et al. "Template for the description of cell-based toxicological test methods to allow evaluation and regulatory use of the data." ALTEX-Alternatives to animal experimentation 36.4 (2019): 682-699.
