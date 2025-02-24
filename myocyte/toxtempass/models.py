@@ -4,7 +4,6 @@ from simple_history.models import HistoricalRecords
 from django.contrib.auth.models import BaseUserManager
 from django.core.validators import validate_email
 from guardian.shortcuts import assign_perm
-from myocyte import settings
 
 
 # we are desinging user access that inherits from the parent object. That way if Investigation

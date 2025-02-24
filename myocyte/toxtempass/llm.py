@@ -12,11 +12,10 @@ from langchain_community.document_loaders import (
     UnstructuredWordDocumentLoader,
 )
 from PIL import Image
-from io import BytesIO
+from io import BytesIO  
 from pypdf import PdfReader
 from langchain_core.messages import BaseMessage
-from pydantic import BaseModel, Field, model_validator
-from typing import Any
+from pydantic import Field, model_validator
 
 import base64
 

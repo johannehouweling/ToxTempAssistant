@@ -8,7 +8,6 @@ from toxtempass.widgets import (
 )  # Import the custom widget
 from django.forms import widgets
 from toxtempass.filehandling import get_text_or_imagebytes_from_django_uploaded_file
-from langchain_core.messages import HumanMessage, SystemMessage
 from toxtempass.llm import ImageMessage
 from collections import defaultdict
 from toxtempass.llm import (
