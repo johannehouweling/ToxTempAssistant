@@ -159,7 +159,7 @@
 
             </form>
         </main>
-        <nav class="fixed-bottom card border-0 bg-white">
+        <nav class="fixed-bottom card border-0 bg-white" style="z-index: unset;">
           <div class="container">
             <!-- Progress bar -->
             {% with percentanswers=assay.get_n_accepted_answers|intdivperc:assay.get_n_answers %}
