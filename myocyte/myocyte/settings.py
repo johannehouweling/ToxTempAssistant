@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     "toxtempass",
     "simple_history",
     "django_extensions",
-    "guardian",
+    "guardian",  # Model instance user access filtering
 ]
 
 MIDDLEWARE = [
