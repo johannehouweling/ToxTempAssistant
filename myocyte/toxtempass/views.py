@@ -16,7 +16,6 @@ from django.urls import reverse
 from langchain_core.messages import HumanMessage, SystemMessage
 from toxtempass.filehandling import get_text_or_imagebytes_from_django_uploaded_file
 from django.contrib.humanize.templatetags.humanize import naturaltime
-from django.utils.text import Truncator
 from django.shortcuts import get_object_or_404, render, redirect
 from django.utils.safestring import mark_safe
 from toxtempass.models import (
@@ -44,8 +43,7 @@ from toxtempass.export import export_assay_to_file
 
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth.models import User
-from django.contrib.auth.hashers import make_password
-from django.contrib.auth import authenticate, login, get_user_model, logout
+from django.contrib.auth import authenticate, login, logout
 import requests
 from myocyte import settings
 
@@ -159,7 +157,7 @@ def signup(request: HttpRequest) -> HttpResponse | JsonResponse:
 def orcid_login(request):
     """ "Redirects the user to ORCID’s OAuth authorization endpoint."""
     # Use your provided ORCID credentials:
-    client_id = config.orcid_client_id
+    client_id = config.__orcid_client_id
     # Build the redirect URI dynamically (ensure it matches the one registered with ORCID)
     redirect_uri = request.build_absolute_uri("/orcid/callback/")
 
@@ -183,8 +181,8 @@ def orcid_callback(request):
 
     # Construct the token URL and prepare the token request data.
     token_url = f"{orcid_id_baseurl}/oauth/token"
-    client_id = config.orcid_client_id
-    client_secret = config.orcid_client_secret
+    client_id = config.__orcid_client_id
+    client_secret = config.__orcid_client_secret
     redirect_uri = request.build_absolute_uri("/orcid/callback/")
 
     data = {
@@ -656,6 +654,7 @@ def answer_assay_questions(request, assay_id):
             "form": form,
             "assay": assay,
             "sections": sections,
+            "config": config,
             "back_url": reverse("start"),
             "export_json_url": reverse(
                 "export_assay", kwargs=dict(assay_id=assay.id, export_type="json")

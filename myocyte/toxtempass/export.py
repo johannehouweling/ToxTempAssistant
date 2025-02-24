@@ -1,7 +1,6 @@
-import datetime
 from pathlib import Path
 from myocyte import settings
-from toxtempass.models import Question, Answer, Assay, Section, Subsection
+from toxtempass.models import Assay, Section
 import json
 from django.core.serializers import serialize
 from django.http import FileResponse, HttpRequest, JsonResponse
@@ -43,7 +42,7 @@ def generate_json_from_assay(assay: Assay):
                 "config": {
                     key: value
                     for key, value in vars(Config).items()
-                    if not key.startswith("__")
+                    if not (key.startswith("_") or key.startswith("__"))
                 },
             },
             "investigation": json.loads(serialize("json", [assay.study.investigation]))[
@@ -59,7 +58,11 @@ def generate_json_from_assay(assay: Assay):
         for answer in assay.answers.all():
             question_data = json.loads(serialize("json", [answer.question]))[0]
             questions_with_answers.append(
-                {"question": question_data, "answer": answer.answer_text, "source": answer.answer_documents}
+                {
+                    "question": question_data,
+                    "answer": answer.answer_text,
+                    "source": answer.answer_documents,
+                }
             )
         export_data["questions_with_answers"] = questions_with_answers
 
@@ -185,7 +188,7 @@ def get_create_meta_data_yaml(
     current_date = current_time.date()
 
     metadata_dict = {
-        "author": str(request.user),  # Example author; replace as needed
+        "author": str(request.user.first_name),  # Example author; replace as needed
         "date": str(current_date),  # Current date;
         "keywords": (
             "metadata template, "
@@ -287,7 +290,7 @@ def export_assay_to_file(
             content_type=mime_type_suffix_dict[export_type]["mime_type"],
         )
         return response
-    except Exception as e:
+    except Exception:
         JsonResponse(
             dict(
                 success=False,
