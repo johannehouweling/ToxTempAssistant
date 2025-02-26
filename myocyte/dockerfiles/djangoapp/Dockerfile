@@ -11,7 +11,7 @@ LABEL last_update="2025-02-25"
 
 
 # Set environment variables
-ENV APP_HOME=/home/djangoapp
+ENV APP_HOME=/home/myocyte
 ENV DATABASE=postgres
 # NO INTERACTIVE
 ENV DEBIAN_FRONTEND=noninteractive
@@ -59,4 +59,4 @@ RUN mkdir -p $APP_HOME/logs && \
 RUN chmod +x $APP_HOME/django_startup.sh && chown root:root $APP_HOME/django_startup.sh
 # Switch to the non-root user
 USER root
-ENTRYPOINT ["/home/djangoapp/django_startup.sh"]
+ENTRYPOINT ["/home/myocyte/django_startup.sh"]

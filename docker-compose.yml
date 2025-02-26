@@ -20,11 +20,11 @@ services:
     user: root
     container_name: djangoapp
     restart: unless-stopped
-    command: gunicorn myocyte.wsgi:application --bind 0.0.0.0:8000 --log-level=info --max-requests=1000 --timeout=120 --keep-alive=5 --graceful-timeout=120 --error-logfile=/home/djangoapp/logs/gunicorn-error.log --access-logfile=/home/djangoapp/logs/gunicorn-access.log --access-logfile=/home/djangoapp/logs/gunicorn-access.log
+    command: gunicorn myocyte.wsgi:application --bind 0.0.0.0:8000 --log-level=info --max-requests=1000 --timeout=120 --keep-alive=5 --graceful-timeout=120 --error-logfile=/home/myocyte/logs/gunicorn-error.log --access-logfile=/home/myocyte/logs/gunicorn-access.log --access-logfile=/home/myocyte/logs/gunicorn-access.log
     volumes:
-      - ./logs:/home/djangoapp/logs
-      - ./static:/home/djangoapp/static
-      - ./media:/home/djangoapp/media
+      - ./myocyte/logs:/home/myocyte/logs
+      - ./myocyte/static:/home/myocyte/static
+      - ./myocyte/media:/home/myocyte/media
     expose:
       - 8000
     depends_on:
@@ -41,8 +41,8 @@ services:
     container_name: nginx
     restart: unless-stopped
     volumes:
-      - ./static:/home/djangoapp/static
-      - ./media:/home/djangoapp/media
+      - ./myocyte/static:/home/myocyte/static
+      - ./myocyte/media:/home/myocyte/media
     ports:
       - "80:80"
       - "443:443"
