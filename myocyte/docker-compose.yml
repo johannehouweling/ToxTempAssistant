@@ -1,0 +1,61 @@
+name: toxtempass
+services:
+  # Database
+  postgres_for_django:
+    image: postgres:17-alpine
+    container_name: postgres_for_django
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    expose:
+      - 5432
+    networks:
+      - db_network
+    volumes:
+      - db_data:/var/lib/postgresql/data
+  djangoapp:
+    build: 
+      context: .
+      dockerfile: dockerfiles/djangoapp/Dockerfile
+    user: root
+    container_name: djangoapp
+    restart: unless-stopped
+    command: gunicorn myocyte.wsgi:application --bind 0.0.0.0:8000 --log-level=info --max-requests=1000 --timeout=120 --keep-alive=5 --graceful-timeout=120 --error-logfile=/home/djangoapp/logs/gunicorn-error.log --access-logfile=/home/djangoapp/logs/gunicorn-access.log --access-logfile=/home/djangoapp/logs/gunicorn-access.log
+    volumes:
+      - ./logs:/home/djangoapp/logs
+      - ./static:/home/djangoapp/static
+      - ./media:/home/djangoapp/media
+    expose:
+      - 8000
+    depends_on:
+      - postgres_for_django
+    env_file:
+      - ./.env
+    networks:
+      - db_network
+      - nginx_network
+  nginx:
+    build: 
+      context: ./dockerfiles/nginx
+      dockerfile: Dockerfile
+    container_name: nginx
+    restart: unless-stopped
+    volumes:
+      - ./static:/home/djangoapp/static
+      - ./media:/home/djangoapp/media
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - djangoapp
+    networks:
+      - nginx_network
+networks:
+  db_network:
+    driver: bridge
+  nginx_network:
+    driver: bridge
+volumes:
+  db_data:
+    
+  

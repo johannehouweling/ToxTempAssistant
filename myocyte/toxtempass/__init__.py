@@ -1,13 +1,9 @@
 import os
-from pathlib import Path
-from dotenv import load_dotenv
-from myocyte import settings
-
-load_dotenv(Path(settings.BASE_DIR).with_name(".env"))
 
 
 class Config:
     """Put all parameters below here."""
+
     ## IMPORTANT ALL PARAMETERS ARE DUMPED INTO THE METADATA OF THE USER EXPORT, UNLESS MARKED WITH __ (double underscore) ##
 
     model = "gpt-4o-mini"

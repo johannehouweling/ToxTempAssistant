@@ -10,22 +10,32 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(
+    Path(BASE_DIR).with_name(".env")
+)  # load Environment variables from .env file
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-sna(wj&wf880h!5049$nv)^wx9n(b2oj6nvx07awtae%^=#d33"
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+if (os.getenv("DEBUG")).lower() == "false":
+    DEBUG = False
+elif (os.getenv("DEBUG")).lower() == "true":
+    DEBUG = True
 
-ALLOWED_HOSTS = []  # ["192.168.2.5"]['de2b-2a02-a46e-e224-0-bcdf-dd21-e5ba-3d34.ngrok-free.app'] <--macbooks ip, for hosting inside the own network and iphones to be able to connect
+ALLOWED_HOSTS = (
+    os.getenv("ALLOWED_HOSTS").split(",") if os.getenv("ALLOWED_HOSTS") else []
+)
 
 
 # Application definition
@@ -56,8 +66,8 @@ MIDDLEWARE = [
 ]
 
 AUTHENTICATION_BACKENDS = (
-    'django.contrib.auth.backends.ModelBackend',  # Default
-    'guardian.backends.ObjectPermissionBackend',  # for guardian
+    "django.contrib.auth.backends.ModelBackend",  # Default
+    "guardian.backends.ObjectPermissionBackend",  # for guardian
 )
 
 ANONYMOUS_USER_ID = -1
@@ -86,12 +96,25 @@ WSGI_APPLICATION = "myocyte.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+if DEBUG:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
     }
-}
+else:
+    print("In Production: Using Postgres")
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("POSTGRES_DB"),
+            "USER": os.getenv("POSTGRES_USER"),
+            "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
+            "HOST": os.getenv("POSTGRES_HOST"),
+            "PORT": os.getenv("POSTGRES_PORT"),
+        }
+    }
 
 
 # Password validation
@@ -168,7 +191,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = "static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_ROOT = BASE_DIR / "static"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

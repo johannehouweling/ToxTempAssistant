@@ -6,7 +6,6 @@ LLM-added population of ToxTemp for test method description. [1]
     - [via Conda](#via-conda)
   - [TODO](#todo)
     - [Functionality](#functionality)
-    - [Production changes](#production-changes)
     - [Performance optimization](#performance-optimization)
     - [Infrastructure](#infrastructure)
   - [License](#license)
@@ -27,6 +26,57 @@ conda activate toxtempass
 pip install requirements.txt
 conda install conda-forge::pandoc
 ```
+
+Have '.env'-file in 'BASEDIR' with configuration data on server
+
+- `DEBUG` settitng for django
+- `SECRET_KEY` for django, salt for pw hashes
+- `OPENAI_API_KEY` for LLM access
+- `ORCID_CLIENT_ID` and `ORCID_CLIENT_SECRECT` to facilitate login via ORCID
+  - To obtain orcid id and secret, login to personal or instutional orcid
+  - then click on user-settings -> Developper Tools 
+  - >Developer tools
+    >Back to my record
+    >Client ID
+    >APP-0H3CSLELBDG6NSWO
+    >Client secret
+    >b00fc3ed-3ec0-4ce4-a7a7-d88ea4fac163
+    >Generate a new client secret
+    >Application details
+    >Application name
+    >ToxTempAssistant
+    >The name shown to users on the OAuth authorization screen
+    >Application URL
+    >http://127.0.0.1:8000
+    >Application description
+    >ToxTempAssistant helps researchers fill out the ToxTemp by leveraging Large Languge Models. 
+    >
+    >ToxTemp, "an annotated toxicity test method template was developed (i) to fulfill all requirements of GD211, (ii) to guide the user concerning the types of answers and detail of information required, (iii) >to include acceptance criteria for test elements, and (iv) to define the cells sufficiently and transparently." (dx.doi.org/10.14573/altex.1909271)
+    >The description shown to users on the OAuth authorization screen. Maximum 1000 characters.
+    >Redirect URIs
+    >Once the user has authorized your application, they will be returned to a URI that you specify. You must provide these URIs in advance or your integration users will experience an error.
+    >
+    >Please note
+    >Only HTTPS URIs are accepted in production
+    >Domains registered MUST exactly match the domains used, including subdomains
+    >Register all redirect URIs fully where possible. This is the most secure option and what we recommend. For more information about redirect URIs, please see our redirect URI FAQ
+    >http://127.0.0.1:8000/orcid/callback/
+
+
+Dummy .env:
+```bash
+DEBUG=False
+SECRET_KEY=YOURKEYHERE
+OPENAI_API_KEY=YOURKEYHERE
+ORCID_CLIENT_ID=APP-YOURKEY
+ORCID_CLIENT_SECRET=
+POSTGRES_USER=
+POSTGRES_PASSWORD=
+POSTGRES_DB=
+POSTGRES_HOST=
+POSTGRES_PORT=
+```
+
 
 ## TODO
 ### Functionality
@@ -108,35 +158,7 @@ conda install conda-forge::pandoc
 - Add keywords in export files, ontologies?
 - take care of deleting generated files after download by user
 - likelihood score responses
-### Production changes
-- get `orcid_client_id` and `orcid_client_secret` for production
-  - Login to ORCDI then click on user-settings -> Developper Tools 
-  - >Developer tools
-    >Back to my record
-    >Client ID
-    >APP-0H3CSLELBDG6NSWO
-    >Client secret
-    >b00fc3ed-3ec0-4ce4-a7a7-d88ea4fac163
-    >Generate a new client secret
-    >Application details
-    >Application name
-    >ToxTempAssistant
-    >The name shown to users on the OAuth authorization screen
-    >Application URL
-    >http://127.0.0.1:8000
-    >Application description
-    >ToxTempAssistant helps researchers fill out the ToxTemp by leveraging Large Languge Models. 
-    >
-    >ToxTemp, "an annotated toxicity test method template was developed (i) to fulfill all requirements of GD211, (ii) to guide the user concerning the types of answers and detail of information required, (iii) >to include acceptance criteria for test elements, and (iv) to define the cells sufficiently and transparently." (dx.doi.org/10.14573/altex.1909271)
-    >The description shown to users on the OAuth authorization screen. Maximum 1000 characters.
-    >Redirect URIs
-    >Once the user has authorized your application, they will be returned to a URI that you specify. You must provide these URIs in advance or your integration users will experience an error.
-    >
-    >Please note
-    >Only HTTPS URIs are accepted in production
-    >Domains registered MUST exactly match the domains used, including subdomains
-    >Register all redirect URIs fully where possible. This is the most secure option and what we recommend. For more information about redirect URIs, please see our redirect URI FAQ
-    >http://127.0.0.1:8000/orcid/callback/
+
 
 
 
