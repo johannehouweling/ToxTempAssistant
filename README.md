@@ -2,8 +2,11 @@
 LLM-added population of ToxTemp for test method description. [1]
 
 - [ToxTempAssistantApp](#toxtempassistantapp)
-  - [Install Server](#install-server)
-    - [via Conda](#via-conda)
+  - [About](#about)
+  - [Spin up server with docker](#spin-up-server-with-docker)
+    - [Get OpenAI API credentials](#get-openai-api-credentials)
+    - [Get Orcid iD credentials](#get-orcid-id-credentials)
+    - [Create Certificate](#create-certificate)
   - [TODO](#todo)
     - [Functionality](#functionality)
     - [Performance optimization](#performance-optimization)
@@ -11,71 +14,52 @@ LLM-added population of ToxTemp for test method description. [1]
   - [License](#license)
   - [Maintainer](#maintainer)
   - [References](#references)
+## About
+LLM based web-app to assist users in drafting an annotated toxicity test method template (ToxTemp).
 
-## Install Server
-### via Conda
-- Create virtual environment (optional; named 'toxtempass' below)
-- Activate virtual environment
-- Install required python packages
-- Install pandoc for export into different formats (PDF, WORD etc)
+ToxTemp "was developed (i) to fulfill all requirements of GD211, (ii) to guide the user concerning the types of answers and detail of information required, (iii) >to include acceptance criteria for test elements, and (iv) to define the cells sufficiently and transparently." (dx.doi.org/10.14573/altex.1909271)
 
-CLI: 
-```bash
-conda create -n toxtempass python=3.12 pip
-conda activate toxtempass
-pip install requirements.txt
-conda install conda-forge::pandoc
-```
+## Spin up server with docker
+We work with a `.env` file to store mission critical information and setups. These need to be set to match your local environment. In addition, please revise `myocyte/dockerfiles/nginx/nginx.conf` to the settings needed for your specific setup.
 
-Have '.env'-file in 'BASEDIR' with configuration data on server
+Modify and rename the '.env.dummy'-file to `.env` in same path as the `docker-compose.yml` with configuration data on server
 
-- `DEBUG` settitng for django
+- `DEBUG` settitng for django should be False for production
 - `SECRET_KEY` for django, salt for pw hashes
 - `OPENAI_API_KEY` for LLM access
-- `ORCID_CLIENT_ID` and `ORCID_CLIENT_SECRECT` to facilitate login via ORCID
-  - To obtain orcid id and secret, login to personal or instutional orcid
-  - then click on user-settings -> Developper Tools 
-  - >Developer tools
-    >Back to my record
-    >Client ID
-    >APP-0H3CSLELBDG6NSWO
-    >Client secret
-    >b00fc3ed-3ec0-4ce4-a7a7-d88ea4fac163
-    >Generate a new client secret
-    >Application details
-    >Application name
-    >ToxTempAssistant
-    >The name shown to users on the OAuth authorization screen
-    >Application URL
-    >http://127.0.0.1:8000
-    >Application description
-    >ToxTempAssistant helps researchers fill out the ToxTemp by leveraging Large Languge Models. 
-    >
-    >ToxTemp, "an annotated toxicity test method template was developed (i) to fulfill all requirements of GD211, (ii) to guide the user concerning the types of answers and detail of information required, (iii) >to include acceptance criteria for test elements, and (iv) to define the cells sufficiently and transparently." (dx.doi.org/10.14573/altex.1909271)
-    >The description shown to users on the OAuth authorization screen. Maximum 1000 characters.
-    >Redirect URIs
-    >Once the user has authorized your application, they will be returned to a URI that you specify. You must provide these URIs in advance or your integration users will experience an error.
-    >
-    >Please note
-    >Only HTTPS URIs are accepted in production
-    >Domains registered MUST exactly match the domains used, including subdomains
-    >Register all redirect URIs fully where possible. This is the most secure option and what we recommend. For more information about redirect URIs, please see our redirect URI FAQ
-    >http://127.0.0.1:8000/orcid/callback/
+- `ORCID_CLIENT_ID` and `ORCID_CLIENT_SECRECT` to facilitate login via ORCID (see below for details)
+- `ALLOWED_HOSTS` URI of the app, and IP address of server, potentaially also furhter aliases
+- `POSTGRES_HOST` IP address of dedicated Postgres server if available, otherwise postgres_for_django to use postgres included in docker compose (obviously, the postgres server can be taken out of the docker compose if an external server is used)
+- `POSTGRES_PORT` Port of Postgres Server, usually 5432, also use 5432 for docker compose postgres
+- `POSTGRES_USER` Postgres User, default 'postgres'
+- `POSTGRES_PASSWORD` Password for user, needs to be set using psql (see below)
+- `POSTGRES_DB` Database name for django to use, also postgres user needs to be granted permissions to said db (see below)
 
 
-Dummy .env:
+The easier way to spin up the server is by using our docker compose file, if you are using an external PostGres Server, it is best to remove the postgres portion and its network from the docker-file. 
 ```bash
-DEBUG=False
-SECRET_KEY=YOURKEYHERE
-OPENAI_API_KEY=YOURKEYHERE
-ORCID_CLIENT_ID=APP-YOURKEY
-ORCID_CLIENT_SECRET=
-POSTGRES_USER=
-POSTGRES_PASSWORD=
-POSTGRES_DB=
-POSTGRES_HOST=
-POSTGRES_PORT=
+docker compose -f docker-compose.yml up
 ```
+
+### Get OpenAI API credentials
+https://platform.openai.com/api-keys
+
+### Get Orcid iD credentials
+To obtain orcid id and secret perform the following steps:
+- login to personal or instutional orcid
+- then click on user-settings -> Developper Tools 
+- Confirm Terms of Servicen and click 'Register for your ORCID Public API credentials'
+- Fill in Application Name, Application URL, Application Description and Redirect URIs
+- Application Name: ToxTempAssistant
+- Application URL: URL e.g. https://toxtempass.mainlvldomain.nl
+- Application Description (suggestion): ToxTemp, "an annotated toxicity test method template was developed (i) to fulfill all requirements of GD211, (ii) to guide the user concerning the types of answers and detail of information required, (iii) >to include acceptance criteria for test elements, and (iv) to define the cells sufficiently and transparently." (dx.doi.org/10.14573/altex.1909271)
+- Redirect URI: URL/orcid/callback/ e.g. https://toxtempass.mailvldomain.nl/orcid/callback/
+   
+  
+### Create Certificate
+Required for orcid login and general privacy considerations, it is advised to setup https. To this end a certificate is required. Create a Certificate Signing Request and send it to Certifying Authority, your institution should have someone. 
+See this article, which also has some details on making the certificiate work with nginx: https://www.digitalocean.com/community/tutorials/how-to-create-a-self-signed-ssl-certificate-for-nginx-in-ubuntu-20-04-1
+
 
 
 ## TODO
@@ -86,80 +70,9 @@ POSTGRES_PORT=
 - Collaboration option? Easier option to show User study only to users  
 - Disclaimer on Privacy etc.
 - Write tests
-- Add possibility to use images (untested code):
-  ```python
-  import os
-  import requests
-
-  # Replace with the correct model name
-  MODEL_NAME = "gpt-4-vision"
-
-  # Path to your local image
-  IMAGE_PATH = "./img1.png"
-
-  # System message indicating vision capabilities
-  system_message = {
-      "role": "system",
-      "content": """
-      You are ChatPal, an AI assistant powered by GPT-4 with computer vision.
-      AI knowledge cutoff: October 2023
-
-      Built-in vision capabilities:
-      - extract text from image
-      - describe images
-      - analyze image contents
-      - logical problem solving requiring reasoning and contextual consideration
-      """.strip()
-  }
-
-  # User message requesting image analysis
-  user_message = {
-      "role": "user",
-      "content": "Analyze this image, using built-in vision."
-  }
-
-  # Prepare the payload
-  payload = {
-      "model": MODEL_NAME,
-      "messages": [system_message, user_message],
-      "max_tokens": 1500,
-      "top_p": 0.5,
-      "temperature": 0.5,
-  }
-
-  # Prepare the files payload
-  files = {
-      "file": (
-          os.path.basename(IMAGE_PATH),
-          open(IMAGE_PATH, "rb"),
-          "image/png"  # Adjust MIME type based on your image format
-      )
-  }
-
-  # Headers with authorization
-  headers = {
-      "Authorization": f"Bearer {os.environ.get('OPENAI_API_KEY')}"
-  }
-
-  # Make the POST request
-  response = requests.post(
-      "https://api.openai.com/v1/chat/completions",
-      headers=headers,
-      data={'payload': json.dumps(payload)},  # Some APIs require JSON payload as a string
-      files=files
-  )
-
-  # Check the response
-  if response.status_code == 200:
-      print("Response:", response.json())
-  else:
-      print(f"Error {response.status_code}: {response.text}")
-  ```
 - Add keywords in export files, ontologies?
 - take care of deleting generated files after download by user
 - likelihood score responses
-
-
 
 
 ### Performance optimization
@@ -170,10 +83,9 @@ POSTGRES_PORT=
 - Implement RAG to refer to most relevant chunks
 - VHP4Safety GPT endpoint. Set limit to number of draft generations.
 - Where will this app be hosted? 
-- Dockerize in and host on AzureDocker?
 - What is stored? At the moment answers and document-names and username ISA.
 ## License
-
+This project is licensed under the GNU Affero General Public License, see the LICENSE file for details.
 ## Maintainer
 - Johanne Houweling | firstname.lastname@gmail.com
 - Matthias Arras | firstname.lastname@gmail.com
