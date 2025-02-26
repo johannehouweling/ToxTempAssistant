@@ -73,6 +73,7 @@ See this article, which also has some details on making the certificiate work wi
 - Add keywords in export files, ontologies?
 - take care of deleting generated files after download by user
 - likelihood score responses
+- nginx config for ssl 443
 
 
 ### Performance optimization
