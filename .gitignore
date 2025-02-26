@@ -17,10 +17,9 @@ venv/
 
 # misc
 .DS_Store
-launch.json
 .env
 models_diagram.png
 /*.png
 /*/*.png 
 !/*/*/*/*.png
-.vscode/
+.vscode

@@ -15,7 +15,7 @@ services:
       - db_data:/var/lib/postgresql/data
   djangoapp:
     build: 
-      context: .
+      context: ./myocyte
       dockerfile: dockerfiles/djangoapp/Dockerfile
     user: root
     container_name: djangoapp
@@ -36,7 +36,7 @@ services:
       - nginx_network
   nginx:
     build: 
-      context: ./dockerfiles/nginx
+      context: ./myocyte/dockerfiles/nginx
       dockerfile: Dockerfile
     container_name: nginx
     restart: unless-stopped
