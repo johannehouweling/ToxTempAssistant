@@ -1,15 +1,33 @@
 import os
 
+BASEURL = None
+LLM_API_KEY = None
+
+# Endpoints
+BASEURL_OPENAI = "https://api.openai.com/v1/chat/completions"
+BASEURL_OPENROUTER = "https://openrouter.ai/api/v1/chat/completions"
+
+# Access environment variables (.env file defined in settings.py)
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+
+# Use
+if OPENAI_API_KEY and BASEURL_OPENAI:
+    BASEURL = BASEURL_OPENAI
+    LLM_API_KEY = OPENAI_API_KEY
+elif OPENROUTER_API_KEY and BASEURL_OPENROUTER:
+    BASEURL = BASEURL_OPENROUTER
+    LLM_API_KEY = OPENROUTER_API_KEY
+
 
 class Config:
     """Put all parameters below here."""
 
     ## IMPORTANT ALL PARAMETERS ARE DUMPED INTO THE METADATA OF THE USER EXPORT, UNLESS MARKED WITH __ (double underscore) ##
-
-    model = "gpt-4o-mini"
-    url = "https://api.openai.com/v1/chat/completions"  # for gpt-4o mini
+    # See https://openrouter.ai/models for available models.
+    model = "gpt-4o-mini" if OPENAI_API_KEY == LLM_API_KEY else "openai/gpt-4o-mini"
+    url = BASEURL
     temperature = 0
-    reference_toxtemp = "https://doi.org/10.14573/altex.1909271"
     base_prompt = """
     You are an agent tasked with answering individual questions from a larger template regarding cell-based toxicological test methods (also referred to as assays). Each question will be addressed one at a time, and together, they aim to create a complete and thorough documentation of the assay.
 
@@ -28,9 +46,11 @@ class Config:
         - Extrapolate from similar assays or procedures
         - Combine partial information to form complete answers
     """
-
+    license = "AGPL"
+    license_url = "https://www.gnu.org/licenses/agpl-3.0.html"
     version = "0.1"
     reference = "tbd"
+    github_repo_url = "https://github.com/johannehouweling/ToxTempAssistant"
     reference_toxtemp = "https://doi.org/10.14573/altex.1909271"
     max_size_mb = 20
     __orcid_client_id = os.getenv("ORCID_CLIENT_ID")

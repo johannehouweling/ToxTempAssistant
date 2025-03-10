@@ -1,60 +1,36 @@
-import os
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI, AzureChatOpenAI
+from langchain_openai import ChatOpenAI
 import logging
 from typing import Literal
 from pathlib import Path
-from myocyte import settings
-from toxtempass import config
+
+from toxtempass import config, LLM_API_KEY, BASEURL
 from langchain_community.document_loaders import (
     BSHTMLLoader,
     TextLoader,
     UnstructuredWordDocumentLoader,
 )
 from PIL import Image
-from io import BytesIO  
+from io import BytesIO
 from pypdf import PdfReader
 from langchain_core.messages import BaseMessage
 from pydantic import Field, model_validator
 
 import base64
 
-# Load environment variables from the .env file
-load_dotenv(Path(settings.BASE_DIR).with_name(".env"))
-
 # Get logger
 logger = logging.getLogger("langchain")
 
-# Access environment variables
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-LOCAL_OPENAI_API_KEY = os.getenv("LOCAL_OPENAI_API_KEY")
-LOCAL_OPENAI_ENDPOINT = os.getenv("LOCAL_OPENAI_ENDPOINT")
-LOCAL_OPENAI_DEPLOYMENT_ID = os.getenv("LOCAL_OPENAI_DEPLOYMENT_ID")
-LOCAL_OPENAI_API_VERSION = os.getenv("LOCAL_OPENAI_API_VERSION")
 
 # Initialize language models based on environment variables
-if OPENAI_API_KEY:
+if LLM_API_KEY and BASEURL:
     llm = ChatOpenAI(
-        api_key=OPENAI_API_KEY,
+        api_key=LLM_API_KEY,
+        base_url=config.url,
         temperature=config.temperature,
         model=config.model,
         # base_url=config.url,
     )
     logger.info(f"LLM ({config.model}) loaded")
-elif (
-    LOCAL_OPENAI_API_KEY
-    and LOCAL_OPENAI_ENDPOINT
-    and LOCAL_OPENAI_DEPLOYMENT_ID
-    and LOCAL_OPENAI_API_VERSION
-):
-    llm = AzureChatOpenAI(
-        azure_endpoint=LOCAL_OPENAI_ENDPOINT,
-        api_key=LOCAL_OPENAI_API_KEY,
-        api_version=LOCAL_OPENAI_API_VERSION,
-        azure_deployment=LOCAL_OPENAI_DEPLOYMENT_ID,
-        temperature=config.temperature,
-    )
-    logger.info("LLM (Local OpenAI) loaded")
 else:
     logger.error("Required environment variables are missing")
 
