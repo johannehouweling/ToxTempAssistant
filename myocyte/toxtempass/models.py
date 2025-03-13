@@ -91,6 +91,8 @@ class Person(AbstractUser):
     )
     has_accepted_tos = models.BooleanField(
         default=False,
+        null=False,
+        blank=False,
         verbose_name="I accept the terms of service.",
         help_text="<button type='button' class='btn btn-sm btn-outline-secondary' data-bs-toggle='modal' data-bs-target='#termsModal'>Terms of service</button>",
     )

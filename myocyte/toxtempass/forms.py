@@ -62,12 +62,19 @@ class SignupFormOrcid(UserCreationForm):
         """Clean"""
         cleaned_data = super().clean()
         print(cleaned_data)
-        email = cleaned_data["email"]
+        email = cleaned_data.get("email")
         if email:
             email = cleaned_data.get("email").lower()
             cleaned_data["email"] = email  # make sure we only store lower case emails
         if email and Person.objects.filter(email=email).exists():
             self.add_error("email", "This email address is already in use.")
+        # enforce that the user has accepted the terms of service
+        has_accepted_tos = cleaned_data.get("has_accepted_tos")
+        if not has_accepted_tos:
+            self.add_error(
+                "has_accepted_tos",
+                "You must accept the terms of service to continue.",
+            )
         return cleaned_data
 
 
