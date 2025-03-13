@@ -4,6 +4,7 @@ from simple_history.models import HistoricalRecords
 from django.contrib.auth.models import BaseUserManager
 from django.core.validators import validate_email
 from guardian.shortcuts import assign_perm
+from django.utils.safestring import mark_safe
 
 
 # we are desinging user access that inherits from the parent object. That way if Investigation
@@ -69,6 +70,8 @@ class PersonManager(BaseUserManager):
 
 
 class Person(AbstractUser):
+    objects = PersonManager()
+
     # Remove the username field by setting it to None.
     username = None
     email = models.EmailField("email address", unique=True, validators=[validate_email])
@@ -86,7 +89,11 @@ class Person(AbstractUser):
             "this field will be populated with the ORCID iD."
         ),
     )
-    objects = PersonManager()
+    has_accepted_tos = models.BooleanField(
+        default=False,
+        verbose_name="I accept the terms of service.",
+        help_text="<button type='button' class='btn btn-sm btn-outline-secondary' data-bs-toggle='modal' data-bs-target='#termsModal'>Terms of service</button>",
+    )
 
 
 # Investigation Model

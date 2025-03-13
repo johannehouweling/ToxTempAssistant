@@ -17,10 +17,10 @@ ENV DATABASE=postgres
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Prevents Python from writing pyc files (equivalent to python -B option): reduces the image size
-ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONDONTWRITEBYTECODE=1
 
 # Prevents Python from buffering stdout and stderr (equivalent to python -u option)
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONUNBUFFERED=1
 ENV DEBUG=False
 
 # Update and upgrade and install python and pip and pandoc
@@ -55,6 +55,11 @@ RUN mkdir -p $APP_HOME/logs && \
     # Location for file interchanges
     mkdir -p $APP_HOME/static && \
     mkdir -p $APP_HOME/media
+
+
+# generate html content from md files (like terms of service for example)
+# run the python script in myocyte/toxtempass/templates/toxtempass/md_content/dependencies/run_pandoc.py to do this
+RUN python3 $APP_HOME/toxtempass/templates/toxtempass/md_content/dependencies/run_pandoc.py
 
 RUN chmod +x $APP_HOME/django_startup.sh && chown root:root $APP_HOME/django_startup.sh
 # Switch to the non-root user

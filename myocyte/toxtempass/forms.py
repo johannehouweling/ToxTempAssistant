@@ -45,7 +45,14 @@ class SignupFormOrcid(UserCreationForm):
         # Include fields you want the user to fill in.
         # Since your model only adds an 'orcid_id' to AbstractUser,
         # you might include username, email, first_name, last_name, etc.
-        fields = ("email", "first_name", "last_name", "organization", "orcid_id")
+        fields = (
+            "email",
+            "first_name",
+            "last_name",
+            "organization",
+            "orcid_id",
+            "has_accepted_tos",
+        )
         # if we come through Orcid this is already known and should not be changed
         widgets = {
             "orcid_id": widgets.TextInput(attrs={"disabled": True}),
@@ -54,21 +61,21 @@ class SignupFormOrcid(UserCreationForm):
     def clean(self):
         """Clean"""
         cleaned_data = super().clean()
-        email = cleaned_data.get("email").lower()
-        cleaned_data["email"] = email  # make sure we only store lower case emails
+        print(cleaned_data)
+        email = cleaned_data["email"]
+        if email:
+            email = cleaned_data.get("email").lower()
+            cleaned_data["email"] = email  # make sure we only store lower case emails
         if email and Person.objects.filter(email=email).exists():
             self.add_error("email", "This email address is already in use.")
         return cleaned_data
 
 
 class SignupForm(SignupFormOrcid):
-    class Meta:
-        model = Person
-        fields = ("email", "first_name", "last_name", "organization")
-        # if we come through Orcid this is already known and should not be changed
-        widgets = {
-            "orcid_id": widgets.TextInput(attrs={"disabled": False}),
-        }
+    class Meta(SignupFormOrcid.Meta):
+        fields = tuple(
+            field for field in SignupFormOrcid.Meta.fields if field != "orcid_id"
+        )
 
 
 class MultipleFileInput(forms.ClearableFileInput):
@@ -145,14 +152,18 @@ class StartingForm(forms.Form):
         super().__init__(*args, **kwargs)
         if user is not None:
             # Filter Investigations to those for which the user has view access.
-            accessible_investigations = get_objects_for_user(user, "toxtempass.view_investigation")
+            accessible_investigations = get_objects_for_user(
+                user, "toxtempass.view_investigation"
+            )
             self.fields["investigation"].queryset = accessible_investigations
             # For Studies, allow only those whose Investigation is accessible.
-            self.fields["study"].queryset = Study.objects.filter(investigation__in=accessible_investigations)
+            self.fields["study"].queryset = Study.objects.filter(
+                investigation__in=accessible_investigations
+            )
             # For Assays, allow only those whose Study's Investigation is accessible.
-            self.fields["assay"].queryset = Assay.objects.filter(study__investigation__in=accessible_investigations)
-
-
+            self.fields["assay"].queryset = Assay.objects.filter(
+                study__investigation__in=accessible_investigations
+            )
 
 
 # Form to create an Investigation
@@ -180,11 +191,13 @@ class StudyForm(forms.ModelForm):
         """
         super().__init__(*args, **kwargs)
         if user is not None:
-            self.fields["investigation"].queryset = get_objects_for_user(user, "toxtempass.view_investigation")
-
+            self.fields["investigation"].queryset = get_objects_for_user(
+                user, "toxtempass.view_investigation"
+            )
 
 
 # Form to create an Assay
+
 
 class AssayForm(forms.ModelForm):
     class Meta:
@@ -197,8 +210,12 @@ class AssayForm(forms.ModelForm):
         """
         super().__init__(*args, **kwargs)
         if user is not None:
-            accessible_investigations = get_objects_for_user(user, "toxtempass.view_investigation")
-            self.fields["study"].queryset = Study.objects.filter(investigation__in=accessible_investigations)
+            accessible_investigations = get_objects_for_user(
+                user, "toxtempass.view_investigation"
+            )
+            self.fields["study"].queryset = Study.objects.filter(
+                investigation__in=accessible_investigations
+            )
 
 
 class AssayAnswerForm(forms.Form):
@@ -267,7 +284,9 @@ class AssayAnswerForm(forms.Form):
                         label="Accepted",
                         required=False,
                     )
-                    self.fields[accepted_field_name].initial = answer.accepted if answer else False
+                    self.fields[accepted_field_name].initial = (
+                        answer.accepted if answer else False
+                    )
 
                     # Add a checkbox for earmarking the answer for GPT update.
                     earmarked_field_name = f"earmarked_{question.id}"
@@ -284,9 +303,13 @@ class AssayAnswerForm(forms.Form):
 
         for file in uploaded_files:
             if file.content_type not in allowed_types:
-                raise forms.ValidationError(f"Unsupported file type: {file.content_type}")
+                raise forms.ValidationError(
+                    f"Unsupported file type: {file.content_type}"
+                )
             if file.size > max_size:
-                raise forms.ValidationError(f"File size exceeds the limit of {max_size / (1024 * 1024)} MB")
+                raise forms.ValidationError(
+                    f"File size exceeds the limit of {max_size / (1024 * 1024)} MB"
+                )
         return uploaded_files
 
     def save(self):
@@ -352,8 +375,12 @@ class AssayAnswerForm(forms.Form):
                 logger.info(f"Question id {qid} marked for GPT update.")
 
         if earmarked_answers and doc_dict:
-            text_dict = {key: value for key, value in doc_dict.items() if "text" in value}
-            img_dict = {key: value for key, value in doc_dict.items() if "bytes" in value}
+            text_dict = {
+                key: value for key, value in doc_dict.items() if "text" in value
+            }
+            img_dict = {
+                key: value for key, value in doc_dict.items() if "bytes" in value
+            }
             for answer in earmarked_answers:
                 try:
                     messages = [
@@ -371,7 +398,12 @@ class AssayAnswerForm(forms.Form):
                     answer.answer_text = draft_answer.content
                     answer.accepted = False
                     answer.save()
-                    logger.info(f"Successfully updated Answer id {answer.id} with GPT-generated text.")
+                    logger.info(
+                        f"Successfully updated Answer id {answer.id} with GPT-generated text."
+                    )
                 except Exception as e:
                     logger.error(f"Error processing Answer id {answer.id}: {e}")
-                    self.add_error("file_upload", f"Error processing answer for question '{answer.question}': {e}")
+                    self.add_error(
+                        "file_upload",
+                        f"Error processing answer for question '{answer.question}': {e}",
+                    )
