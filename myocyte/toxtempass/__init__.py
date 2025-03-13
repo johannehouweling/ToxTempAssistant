@@ -1,11 +1,11 @@
 import os
 
-BASEURL = None
+LLM_ENDPOINT = None
 LLM_API_KEY = None
 
 # Endpoints
-BASEURL_OPENAI = "https://api.openai.com/v1/chat/completions"
-BASEURL_OPENROUTER = "https://openrouter.ai/api/v1/chat/completions"
+BASEURL_OPENAI = "https://api.openai.com/v1"
+BASEURL_OPENROUTER = "https://openrouter.ai/api/v1"
 
 # Access environment variables (.env file defined in settings.py)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -13,10 +13,10 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 # Use
 if OPENAI_API_KEY and BASEURL_OPENAI:
-    BASEURL = BASEURL_OPENAI
+    LLM_ENDPOINT = BASEURL_OPENAI
     LLM_API_KEY = OPENAI_API_KEY
 elif OPENROUTER_API_KEY and BASEURL_OPENROUTER:
-    BASEURL = BASEURL_OPENROUTER
+    LLM_ENDPOINT = BASEURL_OPENROUTER
     LLM_API_KEY = OPENROUTER_API_KEY
 
 
@@ -26,7 +26,7 @@ class Config:
     ## IMPORTANT ALL PARAMETERS ARE DUMPED INTO THE METADATA OF THE USER EXPORT, UNLESS MARKED WITH __ (double underscore) ##
     # See https://openrouter.ai/models for available models.
     model = "gpt-4o-mini" if OPENAI_API_KEY == LLM_API_KEY else "openai/gpt-4o-mini"
-    url = BASEURL
+    url = LLM_ENDPOINT
     temperature = 0
     base_prompt = """
     You are an agent tasked with answering individual questions from a larger template regarding cell-based toxicological test methods (also referred to as assays). Each question will be addressed one at a time, and together, they aim to create a complete and thorough documentation of the assay.

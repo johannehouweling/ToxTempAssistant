@@ -3,7 +3,7 @@ import logging
 from typing import Literal
 from pathlib import Path
 
-from toxtempass import config, LLM_API_KEY, BASEURL
+from toxtempass import config, LLM_API_KEY, LLM_ENDPOINT
 from langchain_community.document_loaders import (
     BSHTMLLoader,
     TextLoader,
@@ -22,7 +22,7 @@ logger = logging.getLogger("langchain")
 
 
 # Initialize language models based on environment variables
-if LLM_API_KEY and BASEURL:
+if LLM_API_KEY and LLM_ENDPOINT:
     llm = ChatOpenAI(
         api_key=LLM_API_KEY,
         base_url=config.url,

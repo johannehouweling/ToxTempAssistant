@@ -20,7 +20,6 @@ load_dotenv(
     Path(BASE_DIR).parent.with_name(".env")
 )  # load Environment variables from .env file
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -28,9 +27,9 @@ load_dotenv(
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-if (os.getenv("DEBUG")).lower() == "false":
+if (os.getenv("DJANGO_DEBUG")).lower() == "false":
     DEBUG = False
-elif (os.getenv("DEBUG")).lower() == "true":
+elif (os.getenv("DJANGO_DEBUG")).lower() == "true":
     DEBUG = True
 
 ALLOWED_HOSTS = (
