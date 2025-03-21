@@ -25,37 +25,49 @@ services:
       - ./myocyte/logs:/home/myocyte/logs
       - ./myocyte/static:/home/myocyte/static
       - ./myocyte/media:/home/myocyte/media
-    expose:
-      - 8000
+    ports:
+      - 8000:8000
     depends_on:
       - postgres_for_django
     env_file:
       - ./.env
     networks:
       - db_network
-      - nginx_network
-  nginx:
-    build: 
-      context: ./myocyte/dockerfiles/nginx
-      dockerfile: Dockerfile
-    container_name: nginx
-    restart: unless-stopped
-    volumes:
-      - ./myocyte/static:/home/myocyte/static
-      - ./myocyte/media:/home/myocyte/media
-    ports:
-      - "80:80"
-      - "443:443"
-    depends_on:
-      - djangoapp
-    networks:
-      - nginx_network
+      # - nginx_networkd
+  # nginx:
+  #   build: 
+  #     context: ./myocyte/dockerfiles/nginx
+  #     dockerfile: Dockerfile
+  #   container_name: nginx
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./myocyte/static:/home/myocyte/static
+  #     - ./myocyte/media:/home/myocyte/media
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   depends_on:
+  #     - djangoapp
+  #   networks:
+  #     - nginx_network
+  # ngrok:
+  #   image: ngrok/ngrok:latest
+  #   container_name: ngrok
+  #   command:
+  #     - "http"
+  #     - "http://host.docker.internal:80"
+  #   environment:
+  #     NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+  #   ports:
+  #     - 4040:4040
+  #   restart: unless-stopped
 networks:
   db_network:
     driver: bridge
-  nginx_network:
-    driver: bridge
+  # nginx_network:
+  #   driver: bridge
 volumes:
   db_data:
+
     
   

@@ -38,6 +38,15 @@ class LoginForm(forms.Form):
         widget=forms.PasswordInput(attrs={"placeholder": "Enter password"}),
     )
 
+    def clean(self):
+        """Clean"""
+        cleaned_data = super().clean()
+        username = cleaned_data.get("username")
+        if username:
+            username = cleaned_data.get("username").lower()
+            cleaned_data["username"] = username
+        return cleaned_data
+
 
 class SignupFormOrcid(UserCreationForm):
     class Meta:
@@ -61,7 +70,6 @@ class SignupFormOrcid(UserCreationForm):
     def clean(self):
         """Clean"""
         cleaned_data = super().clean()
-        print(cleaned_data)
         email = cleaned_data.get("email")
         if email:
             email = cleaned_data.get("email").lower()

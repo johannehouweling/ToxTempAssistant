@@ -36,6 +36,11 @@ ALLOWED_HOSTS = (
     os.getenv("ALLOWED_HOSTS").split(",") if os.getenv("ALLOWED_HOSTS") else []
 )
 
+CSRF_TRUSTED_ORIGINS = (
+    os.getenv("CSRF_TRUSTED_ORIGINS").split(",")
+    if os.getenv("CSRF_TRUSTED_ORIGINS")
+    else []
+)
 
 # Application definition
 
@@ -76,7 +81,7 @@ ROOT_URLCONF = "myocyte.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "toxtempass/templates/toxtempass/"],
+        "DIRS": [BASE_DIR / "toxtempass/templates/toxtempass/", BASE_DIR],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -84,6 +89,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "toxtempass.context_processors.github_repo_url",
             ],
         },
     },

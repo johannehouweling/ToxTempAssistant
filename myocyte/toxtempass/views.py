@@ -88,6 +88,18 @@ class LoginView(View):
         form = LoginForm(request.POST)
         if form.is_valid():
             username = form.cleaned_data.get("username")
+            # if the username is an ORCID id, get the user by the ORCID id
+            if "@" not in username:
+                try:
+                    username = Person.objects.get(orcid_id=username).email
+                except Person.DoesNotExist:
+                    form.add_error(None, "Invalid credentials.")
+                    return JsonResponse(
+                        dict(
+                            success=False,
+                            errors=form.errors,
+                        )
+                    )
             password = form.cleaned_data.get("password")
             user = authenticate(request, username=username, password=password)
             if user:
