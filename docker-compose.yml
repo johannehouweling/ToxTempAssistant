@@ -26,7 +26,7 @@ services:
       - ./myocyte/static:/home/myocyte/static
       - ./myocyte/media:/home/myocyte/media
     ports:
-      - 8000:8000
+      - 0.0.0.0:8000:8000
     depends_on:
       - postgres_for_django
     env_file:
