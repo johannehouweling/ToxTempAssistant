@@ -1,4 +1,7 @@
 import os
+import logging
+
+logger = logging.getLogger("llm")
 
 LLM_ENDPOINT = None
 LLM_API_KEY = None
@@ -15,6 +18,7 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 if OPENAI_API_KEY and BASEURL_OPENAI:
     LLM_ENDPOINT = BASEURL_OPENAI
     LLM_API_KEY = OPENAI_API_KEY
+
 elif OPENROUTER_API_KEY and BASEURL_OPENROUTER:
     LLM_ENDPOINT = BASEURL_OPENROUTER
     LLM_API_KEY = OPENROUTER_API_KEY
@@ -26,6 +30,17 @@ class Config:
     ## IMPORTANT ALL PARAMETERS ARE DUMPED INTO THE METADATA OF THE USER EXPORT, UNLESS MARKED WITH __ (double underscore) ##
     # See https://openrouter.ai/models for available models.
     model = "gpt-4o-mini" if OPENAI_API_KEY == LLM_API_KEY else "openai/gpt-4o-mini"
+    # openrouter allows us to identify the site and title for rankings so that in billing we see which app
+    extra_headers = (
+        {
+            "HTTP-Referer": os.getenv(
+                "SITE_URL"
+            ),  # Optional. Site URL for rankings on openrouter.ai.
+            "X-Title": "ToxTempAssistant",  # Optional. Site title for rankings on openrouter.ai.
+        }
+        if LLM_ENDPOINT == BASEURL_OPENROUTER
+        else {}
+    )
     url = LLM_ENDPOINT
     temperature = 0
     base_prompt = """

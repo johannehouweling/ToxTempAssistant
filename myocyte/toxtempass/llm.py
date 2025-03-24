@@ -18,7 +18,7 @@ from pydantic import Field, model_validator
 import base64
 
 # Get logger
-logger = logging.getLogger("langchain")
+logger = logging.getLogger("llm")
 
 
 # Initialize language models based on environment variables
@@ -28,9 +28,10 @@ if LLM_API_KEY and LLM_ENDPOINT:
         base_url=config.url,
         temperature=config.temperature,
         model=config.model,
+        default_headers=config.extra_headers,
         # base_url=config.url,
     )
-    logger.info(f"LLM ({config.model}) loaded")
+    logger.info(f"Using ({config.model}) at {LLM_ENDPOINT}.")
 else:
     logger.error("Required environment variables are missing")
 

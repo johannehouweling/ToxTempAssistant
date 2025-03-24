@@ -161,7 +161,7 @@ LOGGING = {
         },
     },
     "loggers": {
-        "langchain": {
+        "llm": {
             "handlers": ["console"],
             "level": "INFO",
             "propagate": False,
