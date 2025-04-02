@@ -1,3 +1,4 @@
+version: "3"
 name: toxtempass
 services:
   # Database
@@ -7,10 +8,9 @@ services:
     restart: unless-stopped
     env_file:
       - ./.env
-    expose:
-      - 5432
-    networks:
-      - db_network
+    ports:
+      - 5432:5432
+    network_mode: host
     volumes:
       - db_data:/var/lib/postgresql/data
   djangoapp:
@@ -25,14 +25,15 @@ services:
       - ./myocyte/logs:/home/myocyte/logs
       - ./myocyte/static:/home/myocyte/static
       - ./myocyte/media:/home/myocyte/media
+    network_mode: host
     ports:
-      - 0.0.0.0:8000:8000
+      - "8000:8000"
     depends_on:
       - postgres_for_django
     env_file:
       - ./.env
-    networks:
-      - db_network
+#    networks:
+#      - db_network
       # - nginx_networkd
   # nginx:
   #   build: 
@@ -61,9 +62,10 @@ services:
   #   ports:
   #     - 4040:4040
   #   restart: unless-stopped
-networks:
-  db_network:
-    driver: bridge
+# networks:
+#   db_network:
+#     driver: bridge
+#     attachable: true
   # nginx_network:
   #   driver: bridge
 volumes:
