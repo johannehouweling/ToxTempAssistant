@@ -23,3 +23,8 @@ models_diagram.png
 /*/*.png 
 !/*/*/*/*.png
 .vscode
+
+# Files for VHP4Safety instant
+docker-compose-vhp4safety.yml
+.env-vhp4safety
+
