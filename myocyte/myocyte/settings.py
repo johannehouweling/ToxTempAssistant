@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(
-    Path(BASE_DIR).with_name(".env")
+    Path(BASE_DIR).parent.with_name(".env")
 )  # load Environment variables from .env file
 
 # Quick-start development settings - unsuitable for production
@@ -31,6 +31,13 @@ if (os.getenv("DJANGO_DEBUG")).lower() == "false":
     DEBUG = False
 elif (os.getenv("DJANGO_DEBUG")).lower() == "true":
     DEBUG = True
+
+if os.getenv("USE_POSTGRES").lower() == "true":
+    USE_POSTGRES = True
+else:
+    USE_POSTGRES = False
+    if not DEBUG:
+        print("USE_POSTGRES is not set to true, but DEBUG is false. This is not a valid configuration.")
 
 ALLOWED_HOSTS = (
     os.getenv("ALLOWED_HOSTS").split(",") if os.getenv("ALLOWED_HOSTS") else []
@@ -101,7 +108,7 @@ WSGI_APPLICATION = "myocyte.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-if DEBUG:
+if not USE_POSTGRES:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
