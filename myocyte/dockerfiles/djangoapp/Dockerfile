@@ -32,12 +32,19 @@ RUN apt-get update && apt-get upgrade -y && apt-get install --no-install-recomme
     python3 \
     python3-pip \
     python3-dev \
+    fontconfig \
+    texlive-latex-base \
+    texlive-science \
     texlive-luatex \
+    fonts-texgyre \
+    fonts-texgyre-math \
     pandoc \
     git \
     && rm -rf /var/lib/apt/lists/* 
 
-
+# refresh lualatex font directories
+RUN fc-cache -fv
+RUN luaotfload-tool --update --force
     
 RUN mkdir -p $APP_HOME
 WORKDIR $APP_HOME

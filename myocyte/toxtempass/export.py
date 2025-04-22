@@ -10,6 +10,40 @@ from toxtempass import Config  # Import your configuration module
 import subprocess
 import yaml
 
+import re
+
+# simple regexes to catch display‐math delimiters
+MATH_BLOCK_START = re.compile(r'^\s*(\$\$|\\\[)')
+MATH_BLOCK_END   = re.compile(r'(\$\$|\\\])\s*$')
+
+def quote_answer(text: str) -> str:
+    r"""
+    Take a multi‐line answer_text, and return a Markdown fragment
+    where only non‑math lines are prefixed with '> '.
+    Display math blocks ( $$…$$ or \[…\] ) are emitted raw.
+    """
+    out = []
+    in_math = False
+
+    for line in text.splitlines():
+        # start of a display‐math block?
+        if not in_math and MATH_BLOCK_START.match(line):
+            in_math = True
+            out.append(line)
+            continue
+
+        # end of a display‑math block?
+        if in_math:
+            out.append(line)
+            if MATH_BLOCK_END.search(line):
+                in_math = False
+            continue
+
+        # otherwise normal text → quote it
+        out.append(f"> {line}" if line.strip() else ">")  # keep blank lines too
+
+    return "\n".join(out) + "\n\n"
+
 mime_type_suffix_dict = {
     "html": {"mime_type": "text/html", "suffix": ".html"},
     "xml": {"mime_type": "application/xml", "suffix": ".xml"},
@@ -166,7 +200,7 @@ def generate_markdown_from_assay(assay: Assay):
 
                 # Add question and answer in a list format
                 markdown.append(f"{question_text}\n\n")
-                markdown.append(f">{answer_text.replace('\n','\n>')}\n\n")
+                markdown.append(quote_answer(answer_text))
 
         markdown.append("\n")  # Add an empty line for spacing between sections
 
@@ -195,6 +229,13 @@ def get_create_meta_data_yaml(
             "cell-based toxicological test methods, "
             "New Approach Methodologies"
         ),  # Example keywords; customize as required
+        "header-includes": [
+            r"\usepackage{amsmath}",
+            r"\usepackage{unicode-math}",
+            r"\setmainfont{TeX Gyre Termes}",
+            r"\setmathfont{TeX Gyre Termes Math}",
+            r"\usepackage[a4paper, margin=3cm]{geometry}"
+        ],
         "title": f"ToxTemp for Test Method: {assay.title}",
         "toc": "true",
         "toc-title": "Table of Contents",
@@ -237,8 +278,9 @@ def export_assay_to_file(
         pandoc_command = [
             "pandoc",
             str(md_file_path),
+            "--from=markdown+tex_math_dollars+tex_math_single_backslash+tex_math_double_backslash",
             # Add standalone option for HTML and PDF
-            f"--metadata-file={str(yaml_metadata_file_path)}",
+            f"--metadata-file={str(yaml_metadata_file_path)}",  #<- also defines latex packages
             "--toc",
         ]
 
