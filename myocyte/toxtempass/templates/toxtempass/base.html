@@ -48,12 +48,17 @@
     .orcid-icon-container:hover .svg-focus {
       opacity: 1;
     }
+    .header-tooltip {
+      --bs-tooltip-bg: var(--bs-white);
+      --bs-tooltip-color: var(--bs-primary);
+    }
   </style>
 <body>
     <header class="sticky-md-top">
         <div class="card bg-white border-0">
             <div class="card m-3 border-0 d-flex align-items-center flex-row bg-primary" style="height:100px;"> <!--background-color:var(--bs-indigo);-->           
                 <h1 class="m-3 text-white"><i class="bi bi-clipboard-heart m-2"></i>ToxTempAssistant</h1>
+                <span class="badge bg-warning text-dark" data-bs-toggle="tooltip" data-bs-custom-class="header-tooltip" title="This app is still in beta. Features may change.">Beta</span>
                 {% if user.is_authenticated %} 
                 <span class="btn orcid-icon-container btn-outline-light ms-auto fs-6 me-3" tabindex="0" role="button" data-bs-toggle="offcanvas" href="#offcanvasUser">
                     <i class="bi bi-person-badge"></i>
