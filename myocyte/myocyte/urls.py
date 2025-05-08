@@ -94,11 +94,21 @@ urlpatterns += [
 # Exports
 
 urlpatterns += [
+        path("assay/<int:assay_id>/answer/hasfeedback/",
+        views.assay_hasfeedback,
+        name="assay_hasfeedback",
+    ),
+    path(
+        "assay/<int:assay_id>/answer/feedback/",
+        views.assay_feedback,
+        name="assay_feedback",
+    ),
     path(
         "assay/<int:assay_id>/answer/export/<str:export_type>/",
         views.export_assay,
         name="export_assay",
-    )
+    ),
+
 ]
 
 # Filter Investigation and Study for the first menu on start.html (so we only show hierachical options and not all)

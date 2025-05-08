@@ -180,6 +180,13 @@ class Assay(AccessibleModel):
     def get_parent(self):
         return self.study
 
+    @property 
+    def has_feedback(self):
+        """
+        Check if this assay has feedback.
+        """
+        # Check if there are any feedbacks related to this assay
+        return hasattr(self, "feedback")
 
 # Section, Subsection, and Question Models (fixed)
 class Section(AccessibleModel):
@@ -277,3 +284,19 @@ class Answer(AccessibleModel):
 
     def get_parent(self):
         return self.assay
+
+# Feedback Model
+class Feedback(AccessibleModel):
+    user = models.ForeignKey(
+        Person, on_delete=models.CASCADE, related_name="feedbacks"
+    )
+    feedback_text = models.TextField()
+    submission_date = models.DateTimeField(auto_now_add=True)
+    assay = models.OneToOneField(
+        Assay, on_delete=models.CASCADE, related_name="feedback"
+    )
+
+    def __str__(self):
+        return f"Feedback from {self.user} on {self.submission_date}"
+    
+    

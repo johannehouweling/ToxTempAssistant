@@ -1,0 +1,122 @@
+<script>
+
+function feedback_export(export_url,assay_id){
+    ajax_url = `{% url 'assay_hasfeedback' assay_id='9999999' %}`
+    ajax_url = ajax_url.replace('9999999', assay_id);
+    // Send the FormData object using fetch
+    fetch(ajax_url, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const has_feedback = data.has_feedback;
+            if (has_feedback) {
+                // If feedback exists, proceed with export
+                window.location.href = export_url;
+        } else {
+            openFeedbackModal(export_url,assay_id);
+        }
+    }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert("An error occurred during export.");
+    });
+}
+</script>
+
+<!-- Feedback Modal -->
+<div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <form id="feedbackForm" class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="feedbackModalLabel">Give Feedback</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="feedbackText" class="form-label">Your Feedback</label>
+            <textarea class="form-control" id="feedbackText" name="feedback" rows="4" required></textarea>
+          </div>
+          <input type="hidden" id="assayIdInput" name="assay_id" />
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Submit Feedback</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function openFeedbackModal(export_url, assay_id) {
+        const modal = new bootstrap.Modal(document.getElementById('feedbackModal'));
+        document.getElementById('assayIdInput').value = assay_id;
+
+        // Store export_url globally
+        window.pending_export_url = export_url;
+
+        modal.show();
+    }
+    
+    document.getElementById('feedbackForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        
+        const assay_id = document.getElementById('assayIdInput').value;
+        const form = event.target;
+        const formData = new FormData(form);
+        const feedbackInput = document.getElementById('feedbackText');
+    
+        // Clean up previous errors
+        feedbackInput.classList.remove('is-invalid');
+        const existingError = feedbackInput.parentNode.querySelector('.invalid-feedback');
+        if (existingError) {
+            existingError.remove();
+        }
+        ajax_url = `{% url 'assay_feedback' assay_id='9999999' %}`
+        ajax_url = ajax_url.replace('9999999', assay_id);
+        fetch(ajax_url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) throw new Error("Submission failed");
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                alert("Feedback submitted successfully!");
+                bootstrap.Modal.getInstance(document.getElementById('feedbackModal')).hide();
+                form.reset();
+                
+                // Continue to export
+                if (window.pending_export_url) {
+                    window.location.href = window.pending_export_url;
+                    window.pending_export_url = null; // optional cleanup
+                }
+            } else {
+                if (data.errors && data.errors.feedbackText) {
+                    feedbackInput.classList.add('is-invalid');
+    
+                    const errorDiv = document.createElement('div');
+                    errorDiv.classList.add('invalid-feedback');
+                    errorDiv.textContent = data.errors.feedbackText.join(' ');
+    
+                    feedbackInput.parentNode.appendChild(errorDiv);
+                } else {
+                    alert("There was a problem submitting your feedback.");
+                }
+            }
+        })
+        .catch(error => {
+            console.error(error);
+            alert("An error occurred while submitting feedback.");
+        });
+    });
+    </script>

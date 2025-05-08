@@ -27,6 +27,7 @@ from toxtempass.models import (
     Subsection,
     Question,
     Person,
+    Feedback
 )
 from toxtempass.forms import (
     SignupFormOrcid,
@@ -768,4 +769,53 @@ def export_assay(
         from django.core.exceptions import PermissionDenied
 
         raise PermissionDenied("You do not have permission to export this assay.")
-    return export_assay_to_file(request, assay, export_type)
+    if assay.has_feedback: 
+        return export_assay_to_file(request, assay, export_type)
+    else: 
+        return JsonResponse(
+            {
+                "success": False,
+                "errors": {
+                    "__all__": [
+                        "No feedback has been provided yet."
+                    ]
+                },
+            }
+        )
+
+@user_passes_test(is_logged_in, login_url="/login/")
+def assay_hasfeedback(
+    request: HttpRequest, assay_id: int
+) -> JsonResponse:
+    assay = get_object_or_404(Assay, id=assay_id)
+    return JsonResponse(
+        {   
+            "success": True,
+            "has_feedback": assay.has_feedback
+        }
+    )
+
+@user_passes_test(is_logged_in, login_url="/login/")
+def assay_feedback(
+    request: HttpRequest, assay_id: int
+) -> JsonResponse:
+    assay = get_object_or_404(Assay, id=assay_id)
+    if request.method == "POST":
+        feedback_text = request.POST.get("feedback")
+        if feedback_text:
+            feedback = Feedback.objects.create(feedback_text=feedback_text, assay=assay, user=request.user)
+            assay.feedback = feedback
+            assay.save()
+            return JsonResponse(
+                {
+                    "success": True,
+                    "errors": {},
+                }
+            )
+        else:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "errors": {"feedbackText": ["Feedback cannot be empty."]},
+                }
+            )
