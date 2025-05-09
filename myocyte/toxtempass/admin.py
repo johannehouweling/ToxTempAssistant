@@ -61,6 +61,6 @@ class AnswerAdmin(admin.ModelAdmin):
 
 @admin.register(Feedback)
 class FeedbackAdmin(admin.ModelAdmin):
-    list_display = ("assay", "user", "feedback_text")
+    list_display = ("assay", "user", "feedback_text", "usefulness_rating")
     search_fields = ("assay__name", "user")
 

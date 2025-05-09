@@ -802,8 +802,9 @@ def assay_feedback(
     assay = get_object_or_404(Assay, id=assay_id)
     if request.method == "POST":
         feedback_text = request.POST.get("feedback")
-        if feedback_text:
-            feedback = Feedback.objects.create(feedback_text=feedback_text, assay=assay, user=request.user)
+        usefulness_rating = request.POST.get("usefulness_rating")
+        if feedback_text and usefulness_rating:
+            feedback = Feedback.objects.create(feedback_text=feedback_text, usefulness_rating=usefulness_rating, assay=assay, user=request.user)
             assay.feedback = feedback
             assay.save()
             return JsonResponse(
@@ -813,9 +814,12 @@ def assay_feedback(
                 }
             )
         else:
+            errors = {}
+            if not feedback_text:
+                errors["feedbackText"] = ["Feedback cannot be empty."]
+            if not usefulness_rating:
+                errors["usefulnessRating"] = ["Usefulness rating cannot be empty."]
             return JsonResponse(
                 {
                     "success": False,
-                    "errors": {"feedbackText": ["Feedback cannot be empty."]},
-                }
-            )
+                    "errors": errors})

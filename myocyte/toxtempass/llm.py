@@ -20,8 +20,9 @@ import base64
 # Get logger
 logger = logging.getLogger("llm")
 
-
 # Initialize language models based on environment variables
+llm = None
+
 if LLM_API_KEY and LLM_ENDPOINT:
     llm = ChatOpenAI(
         api_key=LLM_API_KEY,

@@ -27,17 +27,16 @@ load_dotenv(
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-if (os.getenv("DJANGO_DEBUG")).lower() == "false":
+DJANGO_DEBUG = os.getenv("DJANGO_DEBUG", "true").lower()  # default to "true" if not set
+
+if DJANGO_DEBUG == "false":
     DEBUG = False
-elif (os.getenv("DJANGO_DEBUG")).lower() == "true":
+else:
     DEBUG = True
 
-if os.getenv("USE_POSTGRES").lower() == "true":
-    USE_POSTGRES = True
-else:
-    USE_POSTGRES = False
-    if not DEBUG:
-        print("USE_POSTGRES is not set to true, but DEBUG is false. This is not a valid configuration.")
+USE_POSTGRES = os.getenv("USE_POSTGRES", "false").lower() == "true"
+if not USE_POSTGRES and not DEBUG:
+    print("USE_POSTGRES is not set to true, but DEBUG is false. This is not a valid configuration.")
 
 ALLOWED_HOSTS = (
     os.getenv("ALLOWED_HOSTS").split(",") if os.getenv("ALLOWED_HOSTS") else []

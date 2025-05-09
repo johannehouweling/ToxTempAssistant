@@ -291,6 +291,7 @@ class Feedback(AccessibleModel):
         Person, on_delete=models.CASCADE, related_name="feedbacks"
     )
     feedback_text = models.TextField()
+    usefulness_rating = models.FloatField(null=True, blank=True)
     submission_date = models.DateTimeField(auto_now_add=True)
     assay = models.OneToOneField(
         Assay, on_delete=models.CASCADE, related_name="feedback"

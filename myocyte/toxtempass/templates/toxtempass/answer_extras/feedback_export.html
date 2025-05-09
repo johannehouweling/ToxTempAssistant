@@ -55,7 +55,7 @@ function feedback_export(export_url,assay_id){
               </div>
               
               <div class="mb-3">
-                <label class="form-label">How would you rate the usefulness of LLM-generated ToxTemp draft?</label>
+                <label for= "usefulnessRating" class="form-label">How would you rate the usefulness of LLM-generated ToxTemp draft?</label>
                 <div class="form-text">
                     “Useful” refers to whether the draft helped you get started, saved time, or provided relevant structure or content.
                 </div>
@@ -63,7 +63,7 @@ function feedback_export(export_url,assay_id){
                 <input 
                     type="range" 
                     class="form-range mt-3" 
-                    id="usefulnessRange"  
+                    id="usefulnessRating"  
                     min="1" max="5" step="0.1" value="3"
                     name="usefulness_rating" 
                     required 
