@@ -34,10 +34,18 @@ function feedback_export(export_url,assay_id){
     <div class="modal-dialog">
       <form id="feedbackForm" class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="feedbackModalLabel">Give Feedback</h5>
+          <h5 class="modal-title" id="feedbackModalLabel">Submit Feedback Before Export </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
+            <p class="text-muted small mb-4 d-flex align-items-start">
+                <i class="bi bi-info-circle-fill me-2 text-primary" aria-hidden="true"></i>
+                <span>
+                  Prior to exporting the ToxTemp draft, we ask you to provide brief feedback.
+                  Your input contributes to the refinement of both the LLM-generated content and the ToxTempAssistant as documentation support tool for toxicologists.
+                </span>
+            </p>
+
             <div class="mb-3">
                 <label for="feedbackText" class="form-label">What did you think of the LLM-generated responses? </label>
                 <div class="form-text"> 
@@ -51,13 +59,25 @@ function feedback_export(export_url,assay_id){
                 <div class="form-text">
                     “Useful” refers to whether the draft helped you get started, saved time, or provided relevant structure or content.
                 </div>
-                <select class="form-select mt-2" name="usefulness_rating" id="usefulnessRating" required>
-                  <option value="">Select one</option>
-                  <option value="1">1 - Not useful at all </option>
-                  <option value="2">2 - Partially useful (needed major revision)</option>
-                  <option value="3">3 - Mostly useful (some edits needed)</option>
-                  <option value="4">4 - Very useful (good starting point, minor edits)</option>
-                </select>
+                <!-- Slider -->
+                <input 
+                    type="range" 
+                    class="form-range mt-3" 
+                    id="usefulnessRange"  
+                    min="1" max="5" step="0.1" value="3"
+                    name="usefulness_rating" 
+                    required 
+                    oninput="document.getElementById('ratingValue').textContent = this.value"
+                />
+                <!-- Tick labels below slider -->
+                <div class="d-flex justify-content-between text-muted small px-1 mt-0">
+                    <div class="text-start"><em>Not useful</em></div>
+                    <div class="text-end"><em>Very useful</em></div>
+                </div>            
+                <!-- Value display -->
+                <div class="form-text mt-3">
+                    Selected rating: <strong id="ratingValue">3</strong / 5
+                </div>
             </div>
           <input type="hidden" id="assayIdInput" name="assay_id" />
         </div>
