@@ -38,10 +38,27 @@ function feedback_export(export_url,assay_id){
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <div class="mb-3">
-            <label for="feedbackText" class="form-label">Your Feedback</label>
-            <textarea class="form-control" id="feedbackText" name="feedback" rows="4" required></textarea>
-          </div>
+            <div class="mb-3">
+                <label for="feedbackText" class="form-label">What did you think of the LLM-generated responses? </label>
+                <div class="form-text"> 
+                    Please comment on its usefulness, clarity, scientific accuracy, or anything else that stood out — including what worked well or what needed improvement.
+                </div>
+                <textarea class="form-control mt-2 exclude-autoResizeTextarea" id="feedbackText" name="feedback" rows="10" required style="height: 150px !important;"></textarea>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">How would you rate the usefulness of LLM-generated ToxTemp draft?</label>
+                <div class="form-text">
+                    “Useful” refers to whether the draft helped you get started, saved time, or provided relevant structure or content.
+                </div>
+                <select class="form-select mt-2" name="usefulness_rating" id="usefulnessRating" required>
+                  <option value="">Select one</option>
+                  <option value="1">1 - Not useful at all </option>
+                  <option value="2">2 - Partially useful (needed major revision)</option>
+                  <option value="3">3 - Mostly useful (some edits needed)</option>
+                  <option value="4">4 - Very useful (good starting point, minor edits)</option>
+                </select>
+            </div>
           <input type="hidden" id="assayIdInput" name="assay_id" />
         </div>
         <div class="modal-footer">

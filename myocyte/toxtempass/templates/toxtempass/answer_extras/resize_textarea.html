@@ -7,7 +7,7 @@
 
     // When the page loads
     document.addEventListener("DOMContentLoaded", function() {
-        var textareas = document.querySelectorAll("textarea");
+        var textareas = document.querySelectorAll("textarea:not(.exclude-autoResizeTextarea)"); // Select all textareas exclude textarea with class exclude-autoResizeTextarea
         textareas.forEach(function(textarea){
           autoResizeTextarea(textarea); // Adjust the textarea's height on load
         })
