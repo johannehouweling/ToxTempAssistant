@@ -5,6 +5,7 @@ from django.contrib.auth.models import BaseUserManager
 from django.core.validators import validate_email
 from guardian.shortcuts import assign_perm
 from django.utils.safestring import mark_safe
+from toxtempass import config
 
 
 # we are desinging user access that inherits from the parent object. That way if Investigation
@@ -187,7 +188,17 @@ class Assay(AccessibleModel):
         """
         # Check if there are any feedbacks related to this assay
         return hasattr(self, "feedback")
-
+    
+    @property
+    def number_answers_not_found(self):
+        """
+        Check if there are any answers not found for this assay.
+        """
+        not_found_string = config.not_found_string
+        # Get all questions related to this assay
+        return Answer.objects.filter(assay=self, answer_text__icontains=not_found_string).count()
+           
+    
 # Section, Subsection, and Question Models (fixed)
 class Section(AccessibleModel):
     title = models.CharField(max_length=255)

@@ -32,7 +32,7 @@ class StudyAdmin(admin.ModelAdmin):
 
 @admin.register(Assay)
 class AssayAdmin(admin.ModelAdmin):
-    list_display = ("id", "title", "study", "submission_date", "feedback__feedback_text")
+    list_display = ("id", "title", "study", "submission_date", "feedback__feedback_text", "number_answers_not_found")
     search_fields = ("title", "study__name")
 
 
