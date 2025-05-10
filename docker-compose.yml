@@ -1,6 +1,5 @@
 name: toxtempass
 services:
-  # Database
   postgres_for_django:
     image: postgres:17-alpine
     container_name: postgres_for_django
@@ -9,8 +8,7 @@ services:
       - ./.env
     expose:
       - 5432
-    networks:
-      - db_network
+    network_mode: host
     volumes:
       - db_data:/var/lib/postgresql/data
   djangoapp:
@@ -20,53 +18,16 @@ services:
     user: root
     container_name: djangoapp
     restart: unless-stopped
-    command: gunicorn myocyte.wsgi:application --bind 0.0.0.0:8000 --log-level=info --max-requests=1000 --timeout=600 --keep-alive=5 --graceful-timeout=120 --error-logfile=/home/myocyte/logs/gunicorn-error.log --access-logfile=/home/myocyte/logs/gunicorn-access.log --access-logfile=/home/myocyte/logs/gunicorn-access.log --workers=3
+    command: gunicorn myocyte.wsgi:application --bind 0.0.0.0:8000 --log-level=info --max-requests=1000 --timeout=120 --keep-alive=5 --graceful-timeout=120 --error-logfile=/home/myocyte/logs/gunicorn-error.log --access-logfile=/home/myocyte/logs/gunicorn-access.log --access-logfile=/home/myocyte/logs/gunicorn-access.log --workers=3
     volumes:
       - ./myocyte/logs:/home/myocyte/logs
       - ./myocyte/static:/home/myocyte/static
       - ./myocyte/media:/home/myocyte/media
-    ports:
-      - 8000:8000
+    network_mode: host
     depends_on:
       - postgres_for_django
     env_file:
       - ./.env
-    networks:
-      - db_network
-      # - nginx_networkd
-  # nginx:
-  #   build: 
-  #     context: ./myocyte/dockerfiles/nginx
-  #     dockerfile: Dockerfile
-  #   container_name: nginx
-  #   restart: unless-stopped
-  #   volumes:
-  #     - ./myocyte/static:/home/myocyte/static
-  #     - ./myocyte/media:/home/myocyte/media
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
-  #   depends_on:
-  #     - djangoapp
-  #   networks:
-  #     - nginx_network
-  # ngrok:
-  #   image: ngrok/ngrok:latest
-  #   container_name: ngrok
-  #   command:
-  #     - "http"
-  #     - "http://host.docker.internal:80"
-  #   environment:
-  #     NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
-  #   ports:
-  #     - 4040:4040
-  #   restart: unless-stopped
-networks:
-  db_network:
-    driver: bridge
-  # nginx_network:
-  #   driver: bridge
 volumes:
   db_data:
-
     
