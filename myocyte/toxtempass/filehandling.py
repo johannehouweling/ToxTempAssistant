@@ -1,4 +1,5 @@
 import base64
+import logging
 from pathlib import Path
 from django.core.files.uploadedfile import (
     TemporaryUploadedFile,
@@ -6,6 +7,9 @@ from django.core.files.uploadedfile import (
     InMemoryUploadedFile,
 )
 import tempfile
+
+logger = logging.getLogger("llm")
+
 
 # from toxtempass.utilis import calculate_md5_multiplefiles, combine_dicts
 from toxtempass.llm import get_text_or_bytes_perfile_dict
@@ -70,12 +74,15 @@ def split_doc_dict_by_type(dict:dict[str,dict[str,str]],decode=True)-> tuple[dic
     """
     text_dict = {}
     bytes_dict = {}
-    for key, value in dict.items():
-        if "text" in value:
-            text_dict[key] = value
-        elif "encodedbytes" in value:
+    for pathstr, sub_dict in dict.items():
+        if "text" in sub_dict:
+            text_dict[pathstr] = sub_dict
+        elif "encodedbytes" in sub_dict:
             if decode:
-                value["bytes"] = base64.b64decode(value["encodedbytes"])
+                try:
+                    bytes_dict[pathstr] = {"bytes": base64.b64decode(sub_dict["encodedbytes"])}
+                except Exception as e:
+                    logging.error(f"Error decoding base64: {e}")
             else: 
-                value["encodedbytes"] = value["encodedbytes"]
+                bytes_dict[pathstr]= sub_dict
     return text_dict, bytes_dict
