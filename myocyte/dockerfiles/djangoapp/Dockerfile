@@ -41,7 +41,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install --no-install-recomme
     pandoc \
     git \
     # for debuggin 
-    netstat \
+    net-tools \
     curl \
     # cleanup
     && rm -rf /var/lib/apt/lists/* 
