@@ -14,7 +14,7 @@ import uuid
 from pathlib import Path
 from django.urls import reverse
 from langchain_core.messages import HumanMessage, SystemMessage
-from toxtempass.filehandling import get_text_or_imagebytes_from_django_uploaded_file
+from toxtempass.filehandling import get_text_or_imagebytes_from_django_uploaded_file, split_doc_dict_by_type
 from django.contrib.humanize.templatetags.humanize import naturaltime
 from django.shortcuts import get_object_or_404, render, redirect
 from django.utils.safestring import mark_safe
@@ -393,8 +393,9 @@ def start_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                 form_empty_answers = AssayAnswerForm({}, assay=assay, user=request.user)
                 if form_empty_answers.is_valid():
                     form_empty_answers.save()
-
-                doc_dict = get_text_or_imagebytes_from_django_uploaded_file(files)
+                
+                # currently ignoring the images
+                text_dict, _ = split_doc_dict_by_type(get_text_or_imagebytes_from_django_uploaded_file(files))
                 try:
                     total = assay.answers.count()
                     # Get or generate the task id
@@ -415,13 +416,13 @@ def start_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                                     content=f"ASSAY DESCRIPTION: {assay.description}\n"
                                 ),
                                 SystemMessage(
-                                    content=f"Below find the context to answer the question:\n CONTEXT:\n{doc_dict}"
+                                    content=f"Below find the context to answer the question:\n CONTEXT:\n{text_dict}"
                                 ),
                                 HumanMessage(content=question),
                             ]
                         )
                         answer.answer_text = draft_answer.content
-                        answer.answer_documents = [key.name for key in doc_dict.keys()]
+                        answer.answer_documents = [Path(key.name) for key in text_dict.keys()]
                         answer.save()
 
                         # Calculate progress as a percentage and update the cache

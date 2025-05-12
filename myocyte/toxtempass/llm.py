@@ -44,7 +44,7 @@ logging.basicConfig(
 )
 
 
-def get_text_or_bytes_filepaths(document_filenames: list[str | Path]):
+def get_text_or_bytes_perfile_dict(document_filenames: list[str | Path])-> dict[str, dict[str, str ]]:
     """
     Load content from a list of documents and return a dictionary mapping filenames to their content.
 
@@ -52,7 +52,7 @@ def get_text_or_bytes_filepaths(document_filenames: list[str | Path]):
     document_filenames (list of str): List of file paths to the documents.
 
     Returns:
-    dict: A dictionary where keys are filenames and values are the loaded document content or bytes for images.
+    dict: A dictionary where keys are filenames and values are the loaded document content or encoded bytes for images.
     """
     # coherce paths of type str to Path elements:
     document_filenames: list[Path] = [Path(path) for path in document_filenames]
@@ -92,19 +92,19 @@ def get_text_or_bytes_filepaths(document_filenames: list[str | Path]):
                 img = Image.open(context_filename)
                 s = BytesIO()
                 img.save(s, "png")
-                img_bytestring = base64.b64encode(s.getvalue())
+                img_bytestring = base64.b64encode(s.getvalue()).decode("utf-8")
 
             if text:
-                document_contents[context_filename] = {"text": text}
+                document_contents[str(context_filename)] = {"text": text}
                 logger.info(f"The file '{context_filename}' was read successfully.")
             elif img_bytestring:
-                document_contents[context_filename] = {"bytes": img_bytestring}
+                document_contents[str(context_filename)] = {"encodedbytes": img_bytestring}
                 logger.info(f"The file '{context_filename}' was read successfully.")
 
         except Exception as e:
             logger.error(f"Error reading '{context_filename}': {e}")
-    # Here let's remove the files after reading them.
-    context_filename.unlink()
+        # Here let's remove the files after reading them.
+        context_filename.unlink()
 
     return document_contents
 

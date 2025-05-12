@@ -1,3 +1,5 @@
+import base64
+from pathlib import Path
 from django import forms
 import logging
 from django.core.exceptions import PermissionDenied
@@ -7,8 +9,9 @@ from toxtempass.widgets import (
     BootstrapSelectWithButtonsWidget,
 )  # Import the custom widget
 from django.forms import widgets
-from toxtempass.filehandling import get_text_or_imagebytes_from_django_uploaded_file
+from toxtempass.filehandling import get_text_or_imagebytes_from_django_uploaded_file, split_doc_dict_by_type
 from toxtempass.llm import ImageMessage
+from langchain_core.messages import SystemMessage
 from collections import defaultdict
 from toxtempass.llm import (
     chain,
@@ -339,10 +342,11 @@ class AssayAnswerForm(forms.Form):
 
         # Extract text from uploaded files.
         if uploaded_files:
-            doc_dict = get_text_or_imagebytes_from_django_uploaded_file(uploaded_files)
+            text_dict, img_dict = split_doc_dict_by_type(get_text_or_imagebytes_from_django_uploaded_file(uploaded_files))
             logger.debug(f"Extracted text from {len(uploaded_files)} uploaded files.")
         else:
-            doc_dict = {}
+            text_dict = {}
+            img_dict = {}
             logger.debug("No files uploaded.")
 
         # Group fields by question ID.
@@ -389,24 +393,26 @@ class AssayAnswerForm(forms.Form):
                 earmarked_answers.append(answer)
                 logger.info(f"Question id {qid} marked for GPT update.")
 
-        if earmarked_answers and doc_dict:
-            text_dict = {
-                key: value for key, value in doc_dict.items() if "text" in value
-            }
-            img_dict = {
-                key: value for key, value in doc_dict.items() if "bytes" in value
-            }
+        # earmarked for renewed answer generation
+        if earmarked_answers and (text_dict or img_dict):
+            text_dict = {}
+            img_dict = {}
+
             for answer in earmarked_answers:
                 try:
-                    messages = [
-                        # Build messages for GPT chain.
-                        # (Assumes your chain and message classes handle serialization appropriately.)
-                        ImageMessage(content=img_dict.get("bytes"), filename=""),
-                    ]
+                    messages = []
+                    # Add all image messages
+                    for filename, img_bytes in img_dict.items():
+                        messages.append(ImageMessage(content=img_bytes, filename=filename))
+                    # Add all text messages
+                    if text_dict:
+                        messages.append(SystemMessage(
+                                    content=f"Below find the context to answer the question:\n CONTEXT:\n{text_dict}"
+                                )),
                     # (Add additional messages as needed based on your requirements.)
                     draft_answer = chain.invoke(messages)
                     existing_docs = answer.answer_documents or []
-                    new_docs = [key.name for key in list(doc_dict.keys())]
+                    new_docs = [Path(key).name for key in list(text_dict.keys())+list(img_dict.keys())]
                     combined_docs = existing_docs + new_docs
                     unique_docs_updated = list(dict.fromkeys(combined_docs))
                     answer.answer_documents = unique_docs_updated
