@@ -41,7 +41,9 @@ RUN apt-get update && apt-get upgrade -y && apt-get install --no-install-recomme
     pandoc \
     git \
     # for debuggin 
+    netstat \
     curl \
+    # cleanup
     && rm -rf /var/lib/apt/lists/* 
 
 # refresh lualatex font directories
