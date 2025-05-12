@@ -422,7 +422,7 @@ def start_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                             ]
                         )
                         answer.answer_text = draft_answer.content
-                        answer.answer_documents = [Path(key.name) for key in text_dict.keys()]
+                        answer.answer_documents = [Path(key).name for key in text_dict.keys()]
                         answer.save()
 
                         # Calculate progress as a percentage and update the cache
