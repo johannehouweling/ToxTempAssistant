@@ -40,6 +40,8 @@ RUN apt-get update && apt-get upgrade -y && apt-get install --no-install-recomme
     fonts-texgyre-math \
     pandoc \
     git \
+    # for debuggin 
+    curl \
     && rm -rf /var/lib/apt/lists/* 
 
 # refresh lualatex font directories
