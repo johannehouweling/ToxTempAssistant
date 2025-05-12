@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+import time
 import difflib
 from django.http import FileResponse, HttpRequest, HttpResponse, HttpResponseRedirect
 from toxtempass import config
@@ -8,6 +9,9 @@ import json
 import logging
 import re
 from django.views import View
+from django_q.tasks import async_task
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 
 from django.core.cache import cache
 import uuid
@@ -355,13 +359,69 @@ def init_db(request: HttpRequest):
 @user_passes_test(is_logged_in, login_url="/login/")
 def progress_status(request: HttpRequest) -> JsonResponse:
     task_id = request.session.get("progress_task_id")
-    if not task_id:
-        # If no task id is set, assume 0 progress.
-        progress = 0
-    else:
-        progress = cache.get(f"progress_{task_id}", 0)
-    return JsonResponse({"progress": progress})
+    progress = cache.get(f"progress_{task_id}", 0)
+    error = None
 
+    # Check if task has not updated for N minutes
+    last_update = cache.get(f"progress_{task_id}_timestamp")
+    now = time.time()
+    if progress < 100 and last_update and now - last_update > config.single_answer_timeout:
+        error = "Task may have timed out or crashed."
+        progress = -1
+
+    if progress == -1 and not error:
+        error = cache.get(f"progress_{task_id}_error", "Unknown error")
+
+    return JsonResponse({"progress": progress, "error": error})
+
+
+def process_llm_async(assay_id: int, text_dict: dict[str, dict[str, str]], task_id: str):
+    """Prepare to send the text documents to the LLM to get answer draft using DjangoQ. """
+    try:
+        assay = Assay.objects.get(id=assay_id)
+        answers = list(assay.answers.all())
+        total = len(answers)
+
+        # Build shared prompt context
+        context_string = "\n\n".join(
+            f"--- {Path(fp).name} ---\n{meta['text']}"
+            for fp, meta in text_dict.items() if 'text' in meta
+        )
+
+        def generate_answer(answer: Answer):
+            question = answer.question.question_text
+            messages = [
+                SystemMessage(content=config.base_prompt),
+                SystemMessage(content=f"ASSAY NAME: {assay.title}"),
+                SystemMessage(content=f"ASSAY DESCRIPTION: {assay.description}"),
+                SystemMessage(content=f"Below find the context to answer the question:\n{context_string}"),
+                HumanMessage(content=question),
+            ]
+            response = chain.invoke(messages)
+            return answer.id, response.content
+
+        with ThreadPoolExecutor(max_workers=config.max_workers_threading) as executor:
+            futures = {executor.submit(generate_answer, answer): answer for answer in answers}
+
+            for idx, future in enumerate(as_completed(futures)):
+                try:
+                    answer_id, draft = future.result()
+                    answer = Answer.objects.get(id=answer_id)
+                    answer.answer_text = draft
+                    answer.answer_documents = [Path(k).name for k in text_dict.keys()]
+                    answer.save()
+
+                    progress = int(((idx + 1) / total) * 100)
+                    cache.set(f"progress_{task_id}", progress, timeout=3600)
+                except Exception as inner_error:
+                    # Handle per-answer error
+                    cache.set(f"progress_{task_id}_error", f"Error on answer {idx+1}: {inner_error}", timeout=3600)
+                    cache.set(f"progress_{task_id}", -1, timeout=3600)
+                    break
+
+    except Exception as e:
+        cache.set(f"progress_{task_id}_error", str(e), timeout=3600)
+        cache.set(f"progress_{task_id}", -1, timeout=3600)
 
 @user_passes_test(is_logged_in, login_url="/login/")
 def start_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
@@ -405,29 +465,8 @@ def start_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                         request.session["progress_task_id"] = task_id
                         cache.set(f"progress_{task_id}", 0, timeout=3600)
 
-                    # Process each answer and update progress
-                    for idx, answer in enumerate(assay.answers.all()):
-                        question = answer.question.question_text
-                        draft_answer = chain.invoke(
-                            [
-                                SystemMessage(content=config.base_prompt),
-                                SystemMessage(content=f"ASSAY NAME: {assay.title}\n"),
-                                SystemMessage(
-                                    content=f"ASSAY DESCRIPTION: {assay.description}\n"
-                                ),
-                                SystemMessage(
-                                    content=f"Below find the context to answer the question:\n CONTEXT:\n{text_dict}"
-                                ),
-                                HumanMessage(content=question),
-                            ]
-                        )
-                        answer.answer_text = draft_answer.content
-                        answer.answer_documents = [Path(key).name for key in text_dict.keys()]
-                        answer.save()
-
-                        # Calculate progress as a percentage and update the cache
-                        progress = int(((idx + 1) / total) * 100)
-                        cache.set(f"progress_{task_id}", progress, timeout=3600)
+                    # Trigger the async task
+                    async_task(process_llm_async, assay.id, text_dict, task_id)
 
                 except Exception as e:
                     return JsonResponse(

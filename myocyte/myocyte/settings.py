@@ -140,10 +140,11 @@ CACHES = {
 Q_CLUSTER = {
     'name': 'DjangORM',
     'label': 'Toxtempass Task Queue',
-    'workers': 2,
-    'timeout': 300,  # 5 minutes allowed for each task
-    'retry': 320,
-    'queue_limit': 50, 
+    'workers': 1,
+    'timeout': 600,  # 10 minutes allowed for each task
+    'retry': 620,
+    'queue_limit': 50,
+    # 'save_limit': 50,  # delete all task when more than n stored.
     'bulk': 10,
     'orm': 'default',
     'max_attempts': 2,

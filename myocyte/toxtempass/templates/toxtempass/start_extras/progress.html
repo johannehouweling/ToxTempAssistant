@@ -16,12 +16,10 @@
   </div>
 
   <script>
-    // Assume these elements are present in your template:
     const progressModal = new bootstrap.Modal(document.getElementById('progressModal'));
     const progressBar = document.getElementById('progressBar');
     const progressText = document.getElementById('progressText');
 
-    // Function to start polling the progress endpoint
     function startProgressPolling() {
         const progressInterval = setInterval(function() {
             fetch("{% url 'progress_status' %}", {
@@ -33,22 +31,36 @@
             .then(response => response.json())
             .then(data => {
                 const progress = data.progress;
+
+                if (progress === -1) {
+                    clearInterval(progressInterval);
+                    progressBar.classList.remove('progress-bar-animated');
+                    progressBar.classList.add('bg-danger');
+                    progressBar.style.width = '100%';
+                    progressText.textContent = '❌ Error: ' + (data.error || 'An unknown error occurred.');
+                    return;
+                }
+
                 progressBar.style.width = progress + '%';
                 progressText.textContent = progress + '%';
+
                 if (progress >= 100) {
                     clearInterval(progressInterval);
+                    progressModal.hide();  // Optionally hide modal when done
                 }
             })
-            .catch(error => console.error('Error fetching progress:', error));
-        }, 1000);
+            .catch(error => {
+                clearInterval(progressInterval);
+                console.error('Error fetching progress:', error);
+                progressText.textContent = '⚠️ Failed to fetch progress';
+                progressBar.classList.add('bg-warning');
+                progressBar.style.width = '100%';
+            });
+        }, 5000);
     }
 
-    // Attach an event listener in capture phase that only shows the modal and starts polling.
-    // By setting the third argument to true, this handler runs during the capturing phase.
     document.querySelector("form").addEventListener("submit", function(event) {
-        // Do not call event.preventDefault(), so the other listener gets the event.
-        progressModal.show();  // Show the modal immediately.
-        startProgressPolling();  // Start polling for progress.
-        // Note: This handler does not submit the form via AJAX—the other handler will handle submission.
+        progressModal.show();
+        startProgressPolling();
     }, true);
 </script>
