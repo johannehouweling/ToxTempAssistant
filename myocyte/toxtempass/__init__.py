@@ -1,7 +1,7 @@
 import os
 import logging
 
-from myocyte.myocyte import settings
+from myocyte import settings
 
 logger = logging.getLogger("llm")
 
