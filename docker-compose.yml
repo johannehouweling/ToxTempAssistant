@@ -1,5 +1,6 @@
 name: toxtempass
 services:
+  # Database
   postgres_for_django:
     image: postgres:17-alpine
     container_name: postgres_for_django
@@ -8,9 +9,11 @@ services:
       - ./.env
     expose:
       - 5432
-    network_mode: host
+    networks:
+      - db_network
     volumes:
       - db_data:/var/lib/postgresql/data
+  # Django app
   djangoapp:
     build: 
       context: ./myocyte
@@ -18,16 +21,21 @@ services:
     user: root
     container_name: djangoapp
     restart: unless-stopped
-    command: gunicorn myocyte.wsgi:application --bind 0.0.0.0:8000 --log-level=info --max-requests=1000 --timeout=120 --keep-alive=5 --graceful-timeout=120 --error-logfile=/home/myocyte/logs/gunicorn-error.log --access-logfile=/home/myocyte/logs/gunicorn-access.log --workers=3
+    command: gunicorn myocyte.wsgi:application --bind 0.0.0.0:8000 --log-level=info --max-requests=1000 --timeout=600 --keep-alive=5 --graceful-timeout=120 --error-logfile=/home/myocyte/logs/gunicorn-error.log --access-logfile=/home/myocyte/logs/gunicorn-access.log --access-logfile=/home/myocyte/logs/gunicorn-access.log --workers=3
     volumes:
       - ./myocyte/logs:/home/myocyte/logs
       - ./myocyte/static:/home/myocyte/static
       - ./myocyte/media:/home/myocyte/media
-    network_mode: host
+    ports:
+      - 8000:8000
     depends_on:
       - postgres_for_django
     env_file:
       - ./.env
+    networks:
+      - db_network
+networks:
+  db_network:
+    driver: bridge
 volumes:
   db_data:
-    
