@@ -5,7 +5,6 @@ services:
     image: postgres:17-alpine
     container_name: postgres_for_django
     restart: unless-stopped
-    network_mode: bridge
     env_file:
       - ./.env
     expose:
@@ -22,6 +21,7 @@ services:
     user: root
     container_name: djangoapp
     restart: unless-stopped
+    network_mode: bridge
     command: gunicorn myocyte.wsgi:application --bind 0.0.0.0:8000 --log-level=info --max-requests=1000 --timeout=600 --keep-alive=5 --graceful-timeout=120 --error-logfile=/home/myocyte/logs/gunicorn-error.log --access-logfile=/home/myocyte/logs/gunicorn-access.log --access-logfile=/home/myocyte/logs/gunicorn-access.log --workers=3
     volumes:
       - ./myocyte/logs:/home/myocyte/logs
