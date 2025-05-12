@@ -35,6 +35,10 @@ sleep 0.1
 python3 manage.py createcachetable
 sleep 0.1
 
+echo ">>> Run clustering tool in background"
+python3 manage.py qcluster &
+sleep 0.1
+
 # remeber to assing some workers during gunicorn startup
 # echo ">>> Run the clustering tool (in the background)."
 # python3 manage.py qcluster &
