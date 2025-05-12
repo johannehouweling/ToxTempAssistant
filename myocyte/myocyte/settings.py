@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     "simple_history",
     "django_extensions",
     "guardian",  # Model instance user access filtering
+    "django_q" # for task queue
 ]
 
 MIDDLEWARE = [
@@ -134,6 +135,22 @@ CACHES = {
         'LOCATION': 'django_cache_table',
     }
 }
+
+# Django Q settings
+Q_CLUSTER = {
+    'name': 'DjangORM',
+    'label': 'Toxtempass Task Queue',
+    'workers': 2,
+    'timeout': 300,  # 5 minutes allowed for each task
+    'retry': 320,
+    'queue_limit': 50, 
+    'bulk': 10,
+    'orm': 'default',
+    'max_attempts': 2,
+    'sync': False,
+}
+if DEBUG:
+    Q_CLUSTER["sync"] = True  # Use Django ORM for development
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
