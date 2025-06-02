@@ -120,7 +120,7 @@ class StartingForm(forms.Form):
     investigation = forms.ModelChoiceField(
         queryset=Investigation.objects.none(),  # default to none until filtered
         required=True,
-        help_text="Select the Investigation",
+        help_text="Select the Investigation or create a new one.",
         widget=BootstrapSelectWithButtonsWidget(
             button_url_names=["create_investigation", "", ""],
             button_labels=["Create", "Modifiy", "Delete"],
@@ -134,6 +134,8 @@ class StartingForm(forms.Form):
     study = forms.ModelChoiceField(
         queryset=Study.objects.none(),
         required=True,
+        help_text="Select the Study or create a new one.",
+
         widget=BootstrapSelectWithButtonsWidget(
             button_url_names=["create_study", "", ""],
             button_labels=["Create", "Modifiy", "Delete"],
@@ -147,6 +149,7 @@ class StartingForm(forms.Form):
     assay = forms.ModelChoiceField(
         queryset=Assay.objects.none(),
         required=True,
+        help_text="Select the Assay or create a new one.",
         widget=BootstrapSelectWithButtonsWidget(
             button_url_names=["create_assay", "", ""],
             button_labels=["Create", "Modifiy", "Delete"],

@@ -61,7 +61,7 @@ class PersonManager(BaseUserManager):
         user.set_password(password)
         user.save(using=self._db)
         return user
-
+    
     def create_superuser(self, *args, **kwargs):
         user = self.model(**kwargs)
         user.set_password(kwargs.get("password"))

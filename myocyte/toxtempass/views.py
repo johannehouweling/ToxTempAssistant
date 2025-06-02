@@ -425,47 +425,72 @@ def process_llm_async(assay_id: int, text_dict: dict[str, dict[str, str]], task_
 
 @user_passes_test(is_logged_in, login_url="/login/")
 def start_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
-    # When the view is first loaded (GET), also generate a task id and store it in the session.
+    # ————————————————————————————————
+    # GET: render the StartingForm, possibly using ?investigation=?, ?study=?, ?assay=?
+    # ————————————————————————————————
     if request.method == "GET":
+        # 1) Generate a new task_id for our progress bar, store in session/cache
         task_id = str(uuid.uuid4())
         request.session["progress_task_id"] = task_id
-        # Initialize progress to 0
         cache.set(f"progress_{task_id}", 0, timeout=3600)
-        form = StartingForm(user=request.user)
+
+        # 2) Check for any query‐parameters to prefill the form
+        inv_id = request.GET.get("investigation")
+        st_id = request.GET.get("study")
+        assay_id = request.GET.get("assay")
+
+        initial: dict[str, str] = {}
+        if inv_id:
+            initial["investigation"] = inv_id
+        if st_id:
+            initial["study"] = st_id
+        if assay_id:
+            initial["assay"] = assay_id
+
+        # 3) Instantiate StartingForm with initial=… so those <select> fields stay pre-selected
+        form = StartingForm(initial=initial, user=request.user)
+
         return render(request, "start.html", {"form": form})
 
-    # For POST, process the form and update progress as you work.
+    # ————————————————————————————————
+    # POST: process the StartingForm and kick off the async task
+    # ————————————————————————————————
     if request.method == "POST":
         form = StartingForm(request.POST, user=request.user)
+
         if form.is_valid():
             assay = form.cleaned_data["assay"]
+
+            # Security check: does the user still have view-permission on this Assay?
             if not assay.is_accessible_by(request.user, perm_prefix="view"):
                 from django.core.exceptions import PermissionDenied
 
-                raise PermissionDenied(
-                    "You do not have permission to access this assay."
-                )
+                raise PermissionDenied("You do not have permission to access this assay.")
 
             files = request.FILES.getlist("files")
-            # Assume that if files are provided and no answers exist, we seed answers.
+
+            # If files were uploaded and there are no existing answers, seed empty answers.
             if files and not assay.answers.all():
-                # Create empty answers if none exist
                 form_empty_answers = AssayAnswerForm({}, assay=assay, user=request.user)
                 if form_empty_answers.is_valid():
                     form_empty_answers.save()
-                
-                # currently ignoring the images
-                text_dict, _ = split_doc_dict_by_type(get_text_or_imagebytes_from_django_uploaded_file(files))
+
+                # Split text/images, create or retrieve our progress task ID:
+                text_dict, _ = split_doc_dict_by_type(
+                    get_text_or_imagebytes_from_django_uploaded_file(files)
+                )
                 try:
+                    # Count how many answers exist (for progress tracking)
                     total = assay.answers.count()
-                    # Get or generate the task id
+
+                    # Retrieve or generate task_id
                     task_id = request.session.get("progress_task_id")
                     if not task_id:
                         task_id = str(uuid.uuid4())
                         request.session["progress_task_id"] = task_id
                         cache.set(f"progress_{task_id}", 0, timeout=3600)
 
-                    # Trigger the async task
+                    # Fire off the asynchronous worker
                     async_task(process_llm_async, assay.id, text_dict, task_id)
 
                 except Exception as e:
@@ -475,16 +500,20 @@ def start_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                             "errors": {"__all__": [str(e)]},
                         }
                     )
+
+            # On success, return JSON with a redirect to 'answer_assay_questions'
             return JsonResponse(
                 {
                     "success": True,
                     "errors": form.errors,
                     "redirect_url": reverse(
-                        "answer_assay_questions", kwargs=dict(assay_id=assay.id)
+                        "answer_assay_questions", kwargs={"assay_id": assay.id}
                     ),
                 }
             )
+
         else:
+            # Form invalid → return errors back to the AJAX handler
             return JsonResponse({"success": False, "errors": form.errors})
 
 
@@ -574,41 +603,54 @@ def delete_investigation(request, pk):
         return redirect("start")
     return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
 
-
 @user_passes_test(is_logged_in, login_url="/login/")
 def create_or_update_study(request, pk=None):
+    # If pk is provided, we’re editing an existing Study.
     if pk:
         study = get_object_or_404(Study, pk=pk)
         if not study.is_accessible_by(request.user, perm_prefix="change"):
             from django.core.exceptions import PermissionDenied
-
             raise PermissionDenied("You do not have permission to modify this study.")
     else:
         study = None
+
     if request.method == "POST":
         form = StudyForm(request.POST, instance=study, user=request.user)
         if form.is_valid():
-            form.save()
-            return JsonResponse(
-                {
-                    "success": True,
-                    "errors": form.errors,
-                    "redirect_url": reverse("start"),
-                }
-            )
+            saved_study = form.save()
+            inv_id = saved_study.investigation_id
+            st_id = saved_study.id
+
+            # Redirect back to /start/?investigation=<inv_id>&study=<st_id>
+            redirect_url = reverse("start")
+            redirect_url += f"?investigation={inv_id}&study={st_id}"
+
+            return JsonResponse({
+                "success": True,
+                "errors": form.errors,
+                "redirect_url": redirect_url,
+            })
         else:
             return JsonResponse({"success": False, "errors": form.errors})
+
     else:
-        form = StudyForm(instance=study, user=request.user)
-    return render(
-        request,
-        "create.html",
-        {
+        # GET: possibly prefill “investigation” if present in querystring
+        inv_id = request.GET.get("investigation")
+        initial = {}
+        if inv_id:
+            initial["investigation"] = inv_id
+
+        form = StudyForm(instance=study, initial=initial, user=request.user)
+
+        back_url = reverse("start")
+        if inv_id:
+            back_url += f"?investigation={inv_id}"
+
+        return render(request, "create.html", {
             "form": form,
-            "title": "Create Study",
-            "back_url": mark_safe(reverse("start")),
-        },
-    )
+            "title": pk and "Modify Study" or "Create Study",
+            "back_url": mark_safe(back_url),
+        })
 
 
 @user_passes_test(is_logged_in, login_url="/login/")
@@ -617,7 +659,6 @@ def delete_study(request, pk):
         study = get_object_or_404(Study, pk=pk)
         if not study.is_accessible_by(request.user, perm_prefix="delete"):
             from django.core.exceptions import PermissionDenied
-
             raise PermissionDenied("You do not have permission to delete this study.")
         study.delete()
         return redirect("start")
@@ -626,39 +667,60 @@ def delete_study(request, pk):
 
 @user_passes_test(is_logged_in, login_url="/login/")
 def create_or_update_assay(request, pk=None):
+    # If pk is provided, we’re editing an existing Assay.
     if pk:
         assay = get_object_or_404(Assay, pk=pk)
         if not assay.is_accessible_by(request.user, perm_prefix="change"):
             from django.core.exceptions import PermissionDenied
-
             raise PermissionDenied("You do not have permission to modify this assay.")
     else:
         assay = None
+
     if request.method == "POST":
         form = AssayForm(request.POST, instance=assay, user=request.user)
         if form.is_valid():
-            form.save()
-            return JsonResponse(
-                {
-                    "success": True,
-                    "errors": form.errors,
-                    "redirect_url": reverse("start"),
-                }
-            )
+            saved_assay = form.save()
+            st_id = saved_assay.study_id
+            inv_id = saved_assay.study.investigation_id
+            assay_id = saved_assay.id
+
+            # Redirect back to /start/?investigation=<inv_id>&study=<st_id>&assay=<assay_id>
+            redirect_url = reverse("start")
+            redirect_url += f"?investigation={inv_id}&study={st_id}&assay={assay_id}"
+
+            return JsonResponse({
+                "success": True,
+                "errors": form.errors,
+                "redirect_url": redirect_url,
+            })
         else:
             return JsonResponse({"success": False, "errors": form.errors})
-    else:
-        form = AssayForm(instance=assay, user=request.user)
-    return render(
-        request,
-        "create.html",
-        {
-            "form": form,
-            "title": "Create Assay",
-            "back_url": mark_safe(reverse("start")),
-        },
-    )
 
+    else:
+        # GET: possibly prefill “study” (and indirectly Investigation) from querystring
+        inv_id = request.GET.get("investigation")
+        st_id = request.GET.get("study")
+        initial = {}
+        if st_id:
+            initial["study"] = st_id
+        # (AssayForm only needs the “study” field; the Investigation is inferred.)
+
+        form = AssayForm(instance=assay, initial=initial, user=request.user)
+
+        back_url = reverse("start")
+        params = []
+        if inv_id:
+            params.append(f"investigation={inv_id}")
+        if st_id:
+            params.append(f"study={st_id}")
+        if params:
+            back_url += "?" + "&".join(params)
+
+        return render(request, "create.html", {
+            "form": form,
+            "title": pk and "Modify Assay" or "Create Assay",
+            "back_url": mark_safe(back_url),
+        })
 
 @user_passes_test(is_logged_in, login_url="/login/")
 def delete_assay(request, pk):

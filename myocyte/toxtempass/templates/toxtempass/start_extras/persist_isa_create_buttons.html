@@ -1,0 +1,57 @@
+<script>
+    //SUBMIT USER CHOICES TO CREATE BUTTONS  
+  
+    // Whenever the Investigation select changes, rebuild the "Create Study" URL.
+    document.addEventListener('DOMContentLoaded', function() {
+      const invSelect   = document.getElementById("id_investigation");
+      const createStudy = document.getElementById("id_study_btn0"); 
+      // (adjust if your create‐button has a different id)
+  
+      function updateCreateStudyHref() {
+        const invId = invSelect.value;
+        if (!invId) {
+          // If no investigation is chosen, leave it disabled or point to the “blank” create page.
+          createStudy.href = "{% url 'create_study' %}";
+        } else {
+          // Append as a query string.  (You could also add &next=… to return to the same page,
+          // but in our pattern we’ll redirect manually from CreateStudyView.)
+          createStudy.href = "{% url 'create_study' %}?investigation=" + invId;
+        }
+      }
+  
+      // Run on load and whenever invSelect changes:
+      updateCreateStudyHref();
+      invSelect.addEventListener("change", updateCreateStudyHref);
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const invSelect    = document.getElementById("id_investigation");
+        const studySelect  = document.getElementById("id_study");
+        const createAssay  = document.getElementById("id_assay_btn0"); 
+        // (Adjust “id_assay_btn0” if your create‐assay button has a different ID.)
+        console.log('New Selection')
+        function updateCreateAssayHref() {
+        const invId = invSelect.value;
+        const stId  = studySelect.value;
+    
+        // Base “create_assay” URL
+        let baseUrl = "{% url 'create_assay' %}";
+    
+        // Build query‐string parameters array
+        let params = [];
+        if (invId) params.push("investigation=" + invId);
+        if (stId)  params.push("study=" + stId);
+    
+        if (params.length) {
+            createAssay.href = baseUrl + "?" + params.join("&");
+        } else {
+            createAssay.href = baseUrl;
+        }
+        }
+    
+        // Run on load and whenever either invSelect or studySelect changes:
+        updateCreateAssayHref();
+        invSelect.addEventListener("change", updateCreateAssayHref);
+        studySelect.addEventListener("change", updateCreateAssayHref);
+    });
+    </script>
