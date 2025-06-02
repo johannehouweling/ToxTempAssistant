@@ -29,7 +29,7 @@ urlpatterns = [
 ]
 
 urlpatterns += [
-    path("", views.start_form_view, name="start"),
+    path("add/", views.new_form_view, name="add_new"),
     # Login stuff
     path("login/", views.LoginView.as_view(), name="login"),
     path("logout/", views.logout_view, name="logout"),
@@ -62,6 +62,7 @@ urlpatterns += [
         "study/delete/<int:pk>/", views.delete_study, name="delete_study"
     ),  # hard-coded in start.html
     # Assay URLs
+    path("", views.AssayListView.as_view(), name="start"),
     path("assay/create/", views.create_or_update_assay, name="create_assay"),
     path("assay/progress-status/", views.progress_status, name="progress_status"),
     path(
@@ -94,7 +95,8 @@ urlpatterns += [
 # Exports
 
 urlpatterns += [
-        path("assay/<int:assay_id>/answer/hasfeedback/",
+    path(
+        "assay/<int:assay_id>/answer/hasfeedback/",
         views.assay_hasfeedback,
         name="assay_hasfeedback",
     ),
@@ -108,7 +110,6 @@ urlpatterns += [
         views.export_assay,
         name="export_assay",
     ),
-
 ]
 
 # Filter Investigation and Study for the first menu on start.html (so we only show hierachical options and not all)

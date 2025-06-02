@@ -16,6 +16,8 @@
             <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true" id="startButtonSpinner"></span>
             <span id="startButtonText">Create draft</span> 
         </button>
+        <a class="btn btn-outline-danger" href="{% url 'start' %}">Back</a>
+
     </form>
     <script>
         const csrftoken = "{{ csrf_token }}"; // This line uses Django's template tag

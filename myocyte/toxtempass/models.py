@@ -8,6 +8,14 @@ from django.utils.safestring import mark_safe
 from toxtempass import config
 
 
+class LLMStatus(models.TextChoices):
+    NONE = "none", "None"
+    SCHEDULED = "scheduled", "Scheduled"
+    BUSY = "busy", "Busy"
+    DONE = "done", "Done"
+    ERROR = "error", "Error"
+
+
 # we are desinging user access that inherits from the parent object. That way if Investigation
 # is shared, all the children objects will be shared as well.
 class AccessibleModel(models.Model):
@@ -61,7 +69,7 @@ class PersonManager(BaseUserManager):
         user.set_password(password)
         user.save(using=self._db)
         return user
-    
+
     def create_superuser(self, *args, **kwargs):
         user = self.model(**kwargs)
         user.set_password(kwargs.get("password"))
@@ -153,6 +161,11 @@ class Assay(AccessibleModel):
     title = models.CharField(max_length=255, blank=False, null=False)
     description = models.TextField(blank=False, default="")
     submission_date = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(
+        max_length=10,
+        choices=LLMStatus.choices,
+        default=LLMStatus.NONE,
+    )
 
     def __str__(self):
         return self.title
@@ -181,14 +194,14 @@ class Assay(AccessibleModel):
     def get_parent(self):
         return self.study
 
-    @property 
+    @property
     def has_feedback(self):
         """
         Check if this assay has feedback.
         """
         # Check if there are any feedbacks related to this assay
         return hasattr(self, "feedback")
-    
+
     @property
     def number_answers_not_found(self):
         """
@@ -196,9 +209,11 @@ class Assay(AccessibleModel):
         """
         not_found_string = config.not_found_string
         # Get all questions related to this assay
-        return Answer.objects.filter(assay=self, answer_text__icontains=not_found_string).count()
-           
-    
+        return Answer.objects.filter(
+            assay=self, answer_text__icontains=not_found_string
+        ).count()
+
+
 # Section, Subsection, and Question Models (fixed)
 class Section(AccessibleModel):
     title = models.CharField(max_length=255)
@@ -296,11 +311,10 @@ class Answer(AccessibleModel):
     def get_parent(self):
         return self.assay
 
+
 # Feedback Model
 class Feedback(AccessibleModel):
-    user = models.ForeignKey(
-        Person, on_delete=models.CASCADE, related_name="feedbacks"
-    )
+    user = models.ForeignKey(Person, on_delete=models.CASCADE, related_name="feedbacks")
     feedback_text = models.TextField()
     usefulness_rating = models.FloatField(null=True, blank=True)
     submission_date = models.DateTimeField(auto_now_add=True)
@@ -310,5 +324,3 @@ class Feedback(AccessibleModel):
 
     def __str__(self):
         return f"Feedback from {self.user} on {self.submission_date}"
-    
-    

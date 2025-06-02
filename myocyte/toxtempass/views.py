@@ -18,12 +18,16 @@ import uuid
 from pathlib import Path
 from django.urls import reverse
 from langchain_core.messages import HumanMessage, SystemMessage
-from toxtempass.filehandling import get_text_or_imagebytes_from_django_uploaded_file, split_doc_dict_by_type
+from toxtempass.filehandling import (
+    get_text_or_imagebytes_from_django_uploaded_file,
+    split_doc_dict_by_type,
+)
 from django.contrib.humanize.templatetags.humanize import naturaltime
 from django.shortcuts import get_object_or_404, render, redirect
 from django.utils.safestring import mark_safe
 from toxtempass.models import (
     Investigation,
+    LLMStatus,
     Study,
     Assay,
     Answer,
@@ -31,8 +35,12 @@ from toxtempass.models import (
     Subsection,
     Question,
     Person,
-    Feedback
+    Feedback,
 )
+from django_tables2 import SingleTableView
+from django.utils.decorators import method_decorator
+from guardian.shortcuts import get_objects_for_user
+from toxtempass.tables import AssayTable
 from toxtempass.forms import (
     SignupFormOrcid,
     SignupForm,
@@ -365,7 +373,11 @@ def progress_status(request: HttpRequest) -> JsonResponse:
     # Check if task has not updated for N minutes
     last_update = cache.get(f"progress_{task_id}_timestamp")
     now = time.time()
-    if progress < 100 and last_update and now - last_update > config.single_answer_timeout:
+    if (
+        progress < 100
+        and last_update
+        and now - last_update > config.single_answer_timeout
+    ):
         error = "Task may have timed out or crashed."
         progress = -1
 
@@ -375,17 +387,24 @@ def progress_status(request: HttpRequest) -> JsonResponse:
     return JsonResponse({"progress": progress, "error": error})
 
 
-def process_llm_async(assay_id: int, text_dict: dict[str, dict[str, str]], task_id: str):
-    """Prepare to send the text documents to the LLM to get answer draft using DjangoQ. """
+def process_llm_async(
+    assay_id: int, text_dict: dict[str, dict[str, str]], task_id: str
+):
+    """Prepare to send the text documents to the LLM to get answer draft using DjangoQ."""
     try:
         assay = Assay.objects.get(id=assay_id)
         answers = list(assay.answers.all())
         total = len(answers)
 
+        # chnage assay status from Scheduled to BUSY
+        assay.status = LLMStatus.BUSY
+        assay.save()
+
         # Build shared prompt context
         context_string = "\n\n".join(
             f"--- {Path(fp).name} ---\n{meta['text']}"
-            for fp, meta in text_dict.items() if 'text' in meta
+            for fp, meta in text_dict.items()
+            if "text" in meta
         )
 
         def generate_answer(answer: Answer):
@@ -394,14 +413,18 @@ def process_llm_async(assay_id: int, text_dict: dict[str, dict[str, str]], task_
                 SystemMessage(content=config.base_prompt),
                 SystemMessage(content=f"ASSAY NAME: {assay.title}"),
                 SystemMessage(content=f"ASSAY DESCRIPTION: {assay.description}"),
-                SystemMessage(content=f"Below find the context to answer the question:\n{context_string}"),
+                SystemMessage(
+                    content=f"Below find the context to answer the question:\n{context_string}"
+                ),
                 HumanMessage(content=question),
             ]
             response = chain.invoke(messages)
             return answer.id, response.content
 
         with ThreadPoolExecutor(max_workers=config.max_workers_threading) as executor:
-            futures = {executor.submit(generate_answer, answer): answer for answer in answers}
+            futures = {
+                executor.submit(generate_answer, answer): answer for answer in answers
+            }
 
             for idx, future in enumerate(as_completed(futures)):
                 try:
@@ -415,16 +438,48 @@ def process_llm_async(assay_id: int, text_dict: dict[str, dict[str, str]], task_
                     cache.set(f"progress_{task_id}", progress, timeout=3600)
                 except Exception as inner_error:
                     # Handle per-answer error
-                    cache.set(f"progress_{task_id}_error", f"Error on answer {idx+1}: {inner_error}", timeout=3600)
+                    cache.set(
+                        f"progress_{task_id}_error",
+                        f"Error on answer {idx + 1}: {inner_error}",
+                        timeout=3600,
+                    )
                     cache.set(f"progress_{task_id}", -1, timeout=3600)
+                    assay.status = LLMStatus.ERROR
+                    assay.save()
                     break
+        # If we reach here and no errors occurred, set status to DONE
+        if cache.get(f"progress_{task_id}") != -1:
+            assay.status = LLMStatus.DONE
+            assay.save()
 
     except Exception as e:
         cache.set(f"progress_{task_id}_error", str(e), timeout=3600)
         cache.set(f"progress_{task_id}", -1, timeout=3600)
 
+
+@method_decorator(user_passes_test(is_logged_in, login_url="/login/"), name="dispatch")
+class AssayListView(SingleTableView):
+    model = Assay
+    table_class = AssayTable
+    template_name = "toxtempass/overview.html"
+    paginate_by = 10
+
+    def get_queryset(self):
+        user = self.request.user
+        accessible_investigations = get_objects_for_user(
+            user,
+            "toxtempass.view_investigation",
+            klass=Investigation,
+            use_groups=False,
+            any_perm=False,
+        )
+        return Assay.objects.filter(
+            study__investigation__in=accessible_investigations
+        ).order_by("-submission_date")
+
+
 @user_passes_test(is_logged_in, login_url="/login/")
-def start_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
+def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
     # ————————————————————————————————
     # GET: render the StartingForm, possibly using ?investigation=?, ?study=?, ?assay=?
     # ————————————————————————————————
@@ -465,7 +520,9 @@ def start_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
             if not assay.is_accessible_by(request.user, perm_prefix="view"):
                 from django.core.exceptions import PermissionDenied
 
-                raise PermissionDenied("You do not have permission to access this assay.")
+                raise PermissionDenied(
+                    "You do not have permission to access this assay."
+                )
 
             files = request.FILES.getlist("files")
 
@@ -489,6 +546,10 @@ def start_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                         task_id = str(uuid.uuid4())
                         request.session["progress_task_id"] = task_id
                         cache.set(f"progress_{task_id}", 0, timeout=3600)
+
+                    # Set assay status to busy and hand it off to the async worker
+                    assay.status = LLMStatus.BUSY
+                    assay.save()
 
                     # Fire off the asynchronous worker
                     async_task(process_llm_async, assay.id, text_dict, task_id)
@@ -571,7 +632,7 @@ def create_or_update_investigation(request, pk=None):
                 {
                     "success": True,
                     "errors": form.errors,
-                    "redirect_url": reverse("start"),
+                    "redirect_url": reverse("add_new"),
                 }
             )
         else:
@@ -584,7 +645,7 @@ def create_or_update_investigation(request, pk=None):
         {
             "form": form,
             "title": "Create Investigation",
-            "back_url": mark_safe(reverse("start")),
+            "back_url": mark_safe(reverse("add_new")),
         },
     )
 
@@ -600,8 +661,9 @@ def delete_investigation(request, pk):
                 "You do not have permission to delete this investigation."
             )
         investigation.delete()
-        return redirect("start")
+        return redirect("add_new")
     return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
+
 
 @user_passes_test(is_logged_in, login_url="/login/")
 def create_or_update_study(request, pk=None):
@@ -610,6 +672,7 @@ def create_or_update_study(request, pk=None):
         study = get_object_or_404(Study, pk=pk)
         if not study.is_accessible_by(request.user, perm_prefix="change"):
             from django.core.exceptions import PermissionDenied
+
             raise PermissionDenied("You do not have permission to modify this study.")
     else:
         study = None
@@ -622,14 +685,16 @@ def create_or_update_study(request, pk=None):
             st_id = saved_study.id
 
             # Redirect back to /start/?investigation=<inv_id>&study=<st_id>
-            redirect_url = reverse("start")
+            redirect_url = reverse("add_new")
             redirect_url += f"?investigation={inv_id}&study={st_id}"
 
-            return JsonResponse({
-                "success": True,
-                "errors": form.errors,
-                "redirect_url": redirect_url,
-            })
+            return JsonResponse(
+                {
+                    "success": True,
+                    "errors": form.errors,
+                    "redirect_url": redirect_url,
+                }
+            )
         else:
             return JsonResponse({"success": False, "errors": form.errors})
 
@@ -642,15 +707,19 @@ def create_or_update_study(request, pk=None):
 
         form = StudyForm(instance=study, initial=initial, user=request.user)
 
-        back_url = reverse("start")
+        back_url = reverse("add_new")
         if inv_id:
             back_url += f"?investigation={inv_id}"
 
-        return render(request, "create.html", {
-            "form": form,
-            "title": pk and "Modify Study" or "Create Study",
-            "back_url": mark_safe(back_url),
-        })
+        return render(
+            request,
+            "create.html",
+            {
+                "form": form,
+                "title": pk and "Modify Study" or "Create Study",
+                "back_url": mark_safe(back_url),
+            },
+        )
 
 
 @user_passes_test(is_logged_in, login_url="/login/")
@@ -659,9 +728,10 @@ def delete_study(request, pk):
         study = get_object_or_404(Study, pk=pk)
         if not study.is_accessible_by(request.user, perm_prefix="delete"):
             from django.core.exceptions import PermissionDenied
+
             raise PermissionDenied("You do not have permission to delete this study.")
         study.delete()
-        return redirect("start")
+        return redirect("add_new")
     return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
 
 
@@ -672,6 +742,7 @@ def create_or_update_assay(request, pk=None):
         assay = get_object_or_404(Assay, pk=pk)
         if not assay.is_accessible_by(request.user, perm_prefix="change"):
             from django.core.exceptions import PermissionDenied
+
             raise PermissionDenied("You do not have permission to modify this assay.")
     else:
         assay = None
@@ -685,14 +756,16 @@ def create_or_update_assay(request, pk=None):
             assay_id = saved_assay.id
 
             # Redirect back to /start/?investigation=<inv_id>&study=<st_id>&assay=<assay_id>
-            redirect_url = reverse("start")
+            redirect_url = reverse("add_new")
             redirect_url += f"?investigation={inv_id}&study={st_id}&assay={assay_id}"
 
-            return JsonResponse({
-                "success": True,
-                "errors": form.errors,
-                "redirect_url": redirect_url,
-            })
+            return JsonResponse(
+                {
+                    "success": True,
+                    "errors": form.errors,
+                    "redirect_url": redirect_url,
+                }
+            )
         else:
             return JsonResponse({"success": False, "errors": form.errors})
 
@@ -707,7 +780,7 @@ def create_or_update_assay(request, pk=None):
 
         form = AssayForm(instance=assay, initial=initial, user=request.user)
 
-        back_url = reverse("start")
+        back_url = reverse("add_new")
         params = []
         if inv_id:
             params.append(f"investigation={inv_id}")
@@ -716,11 +789,16 @@ def create_or_update_assay(request, pk=None):
         if params:
             back_url += "?" + "&".join(params)
 
-        return render(request, "create.html", {
-            "form": form,
-            "title": pk and "Modify Assay" or "Create Assay",
-            "back_url": mark_safe(back_url),
-        })
+        return render(
+            request,
+            "create.html",
+            {
+                "form": form,
+                "title": pk and "Modify Assay" or "Create Assay",
+                "back_url": mark_safe(back_url),
+            },
+        )
+
 
 @user_passes_test(is_logged_in, login_url="/login/")
 def delete_assay(request, pk):
@@ -731,7 +809,7 @@ def delete_assay(request, pk):
 
             raise PermissionDenied("You do not have permission to delete this assay.")
         assay.delete()
-        return redirect("start")
+        return redirect("add_new")
     return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
 
 
@@ -871,42 +949,36 @@ def export_assay(
         from django.core.exceptions import PermissionDenied
 
         raise PermissionDenied("You do not have permission to export this assay.")
-    if assay.has_feedback: 
+    if assay.has_feedback:
         return export_assay_to_file(request, assay, export_type)
-    else: 
+    else:
         return JsonResponse(
             {
                 "success": False,
-                "errors": {
-                    "__all__": [
-                        "No feedback has been provided yet."
-                    ]
-                },
+                "errors": {"__all__": ["No feedback has been provided yet."]},
             }
         )
 
-@user_passes_test(is_logged_in, login_url="/login/")
-def assay_hasfeedback(
-    request: HttpRequest, assay_id: int
-) -> JsonResponse:
-    assay = get_object_or_404(Assay, id=assay_id)
-    return JsonResponse(
-        {   
-            "success": True,
-            "has_feedback": assay.has_feedback
-        }
-    )
 
 @user_passes_test(is_logged_in, login_url="/login/")
-def assay_feedback(
-    request: HttpRequest, assay_id: int
-) -> JsonResponse:
+def assay_hasfeedback(request: HttpRequest, assay_id: int) -> JsonResponse:
+    assay = get_object_or_404(Assay, id=assay_id)
+    return JsonResponse({"success": True, "has_feedback": assay.has_feedback})
+
+
+@user_passes_test(is_logged_in, login_url="/login/")
+def assay_feedback(request: HttpRequest, assay_id: int) -> JsonResponse:
     assay = get_object_or_404(Assay, id=assay_id)
     if request.method == "POST":
         feedback_text = request.POST.get("feedback")
         usefulness_rating = request.POST.get("usefulness_rating")
         if feedback_text and usefulness_rating:
-            feedback = Feedback.objects.create(feedback_text=feedback_text, usefulness_rating=usefulness_rating, assay=assay, user=request.user)
+            feedback = Feedback.objects.create(
+                feedback_text=feedback_text,
+                usefulness_rating=usefulness_rating,
+                assay=assay,
+                user=request.user,
+            )
             assay.feedback = feedback
             assay.save()
             return JsonResponse(
@@ -921,7 +993,4 @@ def assay_feedback(
                 errors["feedbackText"] = ["Feedback cannot be empty."]
             if not usefulness_rating:
                 errors["usefulnessRating"] = ["Usefulness rating cannot be empty."]
-            return JsonResponse(
-                {
-                    "success": False,
-                    "errors": errors})
+            return JsonResponse({"success": False, "errors": errors})

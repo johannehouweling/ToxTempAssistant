@@ -5,8 +5,8 @@ LABEL affiliation="RIVM - National Institute for Public Health and the Environme
 UM - Maastricht University"
 LABEL email="Jente.Houweling@rivm.nl"
 LABEL developer="Matthias ML Arras"
-LABEL version="0.0.1"
-LABEL last_update="2025-02-25"
+LABEL version="0.7.0"
+LABEL last_update="2025-06-01"
 # Add more stuff here if needed
 
 
@@ -67,8 +67,6 @@ RUN mkdir -p $APP_HOME/logs && \
     mkdir -p $APP_HOME/static && \
     mkdir -p $APP_HOME/media
 
-
-# generate html content from md files (like terms of service for example)
 # run the python script in myocyte/toxtempass/templates/toxtempass/md_content/dependencies/run_pandoc.py to do this
 RUN python3 $APP_HOME/toxtempass/templates/toxtempass/md_content/dependencies/run_pandoc.py
 

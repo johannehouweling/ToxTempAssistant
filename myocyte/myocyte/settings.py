@@ -16,8 +16,13 @@ from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# in Docker system variables are set in the Dockerfile
+# in local development, we use a .env file to set environment variables
+ENV_FILE = Path(BASE_DIR).with_name(".env")
 load_dotenv(
-    Path(BASE_DIR).with_name(".env")
+    Path(BASE_DIR).with_name(".env"),
+    override=True,
 )  # load Environment variables from .env file
 
 # Quick-start development settings - unsuitable for production
@@ -34,9 +39,13 @@ if DJANGO_DEBUG == "false":
 else:
     DEBUG = True
 
-USE_POSTGRES = os.getenv("USE_POSTGRES", "false").lower() == "true"
+USE_POSTGRES = (
+    os.getenv("USE_POSTGRES", "false").strip().lower() == "true"
+)  # default to "false" if not set
 if not USE_POSTGRES and not DEBUG:
-    print("USE_POSTGRES is not set to true, but DEBUG is false. This is not a valid configuration.")
+    print(
+        "USE_POSTGRES is not set to true, but DEBUG is false. This is not a valid  production configuration."
+    )
 
 ALLOWED_HOSTS = (
     os.getenv("ALLOWED_HOSTS").split(",") if os.getenv("ALLOWED_HOSTS") else []
@@ -62,7 +71,8 @@ INSTALLED_APPS = [
     "simple_history",
     "django_extensions",
     "guardian",  # Model instance user access filtering
-    "django_q" # for task queue
+    "django_q",  # for task queue
+    "django_tables2",
 ]
 
 MIDDLEWARE = [
@@ -129,25 +139,25 @@ else:
     }
 
 CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-        'LOCATION': 'django_cache_table',
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "django_cache_table",
     }
 }
 
 # Django Q settings
 Q_CLUSTER = {
-    'name': 'DjangORM',
-    'label': 'Toxtempass Task Queue',
-    'workers': 1,
-    'timeout': 600,  # 10 minutes allowed for each task
-    'retry': 620,
-    'queue_limit': 50,
+    "name": "DjangORM",
+    "label": "Toxtempass Task Queue",
+    "workers": 1,
+    "timeout": 600,  # 10 minutes allowed for each task
+    "retry": 620,
+    "queue_limit": 50,
     # 'save_limit': 50,  # delete all task when more than n stored.
-    'bulk': 10,
-    'orm': 'default',
-    'max_attempts': 2,
-    'sync': False,
+    "bulk": 10,
+    "orm": "default",
+    "max_attempts": 2,
+    "sync": False,
 }
 if DEBUG:
     Q_CLUSTER["sync"] = True  # Use Django ORM for development
