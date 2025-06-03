@@ -21,4 +21,17 @@
       })
     </script>
   {% endblock %}
+  
+  {% block extra_css %}
+        <style>
+        /* only target links inside headers with .no-link-header */
+        th.no-link-header a {
+          color: inherit;
+          text-decoration: none;
+        }
+        th.no-link-header a:hover {
+          text-decoration: underline;
+        }
+        </style>
+  {% endblock %}
 {% endblock %}

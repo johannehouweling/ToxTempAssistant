@@ -9,19 +9,22 @@ class AssayTable(tables.Table):
         accessor="study.investigation.title",
         verbose_name="Investigation",
         orderable=True,
-        linkify=False,  # set to True or a URL pattern name if you want the cell to be clickable
+        linkify=False,
+        attrs={"th": {"class": "no-link-header"}},
     )
     study = tables.Column(
         accessor="study.title",
         verbose_name="Study",
         orderable=True,
         linkify=False,
+        attrs={"th": {"class": "no-link-header"}},
     )
     assay = tables.Column(
         accessor="title",
         verbose_name="Assay",
         orderable=True,
         linkify=False,
+        attrs={"th": {"class": "no-link-header"}},
     )
     progress = tables.Column(
         verbose_name="Answers Accepted",
