@@ -24,7 +24,7 @@ class AssayTable(tables.Table):
         linkify=False,
     )
     progress = tables.Column(
-        verbose_name="Progress",
+        verbose_name="Answers Accepted",
         orderable=False,
         empty_values=(),
     )
@@ -37,20 +37,27 @@ class AssayTable(tables.Table):
     # NEW: Add a "View" button column that links to answer_assay_questions for this assay
     action = tables.TemplateColumn(
         template_code="""
-        {% if record.status == LLMStatus.SCHEDULED %}
-            <button class="btn btn-sm btn-outline-secondary" disabled>Queued</button>
-        {% elif record.status == LLMStatus.BUSY %}
-            <button class="btn btn-sm btn-outline-secondary" disabled>Busy</button>
-        {% elif record.status == LLMStatus.ERROR %}
-            <button class="btn btn-sm btn-outline-danger" disabled>Error</button>
-        {% elif record.status == LLMStatus.DONE %}
+        {% if record.status == LLMStatus.SCHEDULED.value %}
+            <span class="d-inline-block" data-bs-toggle="tooltip" data-bs-container="body" data-bs-placement="top" title="Refresh the page to check for updates. Usually it doesn't take longer than 1-2 minutes.">
+                <button class="btn btn-sm btn-outline-secondary" disabled style="pointer-events: none;">Scheduled</button>
+            </span>
+        {% elif record.status == LLMStatus.BUSY.value %}
+            <span class="d-inline-block" data-bs-toggle="tooltip" data-bs-container="body" data-bs-placement="top" title="Refresh the page to check for updates. Usually it doesn't take longer than 1-2 minutes.">
+                <button class="btn btn-sm btn-outline-secondary" disabled style="pointer-events: none;">Busy</button>
+            </span>
+        {% elif record.status == LLMStatus.ERROR.value %}
+            <span class="d-inline-block" data-bs-toggle="tooltip" data-bs-container="body" data-bs-placement="top" title="LLM did not succeed. This can be temporary error with the LLM, or an issue with your documents, or too many documents at once.">
+                <button class="btn btn-sm btn-outline-danger" disabled style="pointer-events: none;">Error</button>
+            </span>        
+        {% elif record.status == LLMStatus.DONE.value %}
             <a class="btn btn-sm btn-outline-primary" href="{% url 'answer_assay_questions' record.id %}">View</a>
         {% else %}
             <a class="btn btn-sm btn-outline-primary" href="{% url 'answer_assay_questions' record.id %}">View</a>
         {% endif %}
+        <a class="btn ms-2 btn-sm btn-outline-danger" href="{% url 'delete_assay' record.id %}" onclick="return confirm('Are you sure you want to delete this assay and any associated toxtemp answers? This cannot be undone.');">Delete</a>
         """,
         extra_context={"LLMStatus": LLMStatus},
-        verbose_name="Action",
+        verbose_name="Action(s)",
         orderable=False,
     )
 

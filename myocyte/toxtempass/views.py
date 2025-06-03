@@ -364,37 +364,11 @@ def init_db(request: HttpRequest):
         return JsonResponse(dict(message="Database not empty"))
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
-def progress_status(request: HttpRequest) -> JsonResponse:
-    task_id = request.session.get("progress_task_id")
-    progress = cache.get(f"progress_{task_id}", 0)
-    error = None
-
-    # Check if task has not updated for N minutes
-    last_update = cache.get(f"progress_{task_id}_timestamp")
-    now = time.time()
-    if (
-        progress < 100
-        and last_update
-        and now - last_update > config.single_answer_timeout
-    ):
-        error = "Task may have timed out or crashed."
-        progress = -1
-
-    if progress == -1 and not error:
-        error = cache.get(f"progress_{task_id}_error", "Unknown error")
-
-    return JsonResponse({"progress": progress, "error": error})
-
-
-def process_llm_async(
-    assay_id: int, text_dict: dict[str, dict[str, str]], task_id: str
-):
+def process_llm_async(assay_id: int, text_dict: dict[str, dict[str, str]]):
     """Prepare to send the text documents to the LLM to get answer draft using DjangoQ."""
     try:
         assay = Assay.objects.get(id=assay_id)
         answers = list(assay.answers.all())
-        total = len(answers)
 
         # chnage assay status from Scheduled to BUSY
         assay.status = LLMStatus.BUSY
@@ -434,27 +408,17 @@ def process_llm_async(
                     answer.answer_documents = [Path(k).name for k in text_dict.keys()]
                     answer.save()
 
-                    progress = int(((idx + 1) / total) * 100)
-                    cache.set(f"progress_{task_id}", progress, timeout=3600)
-                except Exception as inner_error:
-                    # Handle per-answer error
-                    cache.set(
-                        f"progress_{task_id}_error",
-                        f"Error on answer {idx + 1}: {inner_error}",
-                        timeout=3600,
-                    )
-                    cache.set(f"progress_{task_id}", -1, timeout=3600)
+                except Exception as inner_e:
                     assay.status = LLMStatus.ERROR
                     assay.save()
                     break
-        # If we reach here and no errors occurred, set status to DONE
-        if cache.get(f"progress_{task_id}") != -1:
-            assay.status = LLMStatus.DONE
-            assay.save()
-
+        assay.status = LLMStatus.DONE
+        assay.save()
+        
     except Exception as e:
-        cache.set(f"progress_{task_id}_error", str(e), timeout=3600)
-        cache.set(f"progress_{task_id}", -1, timeout=3600)
+        assay.status = LLMStatus.ERROR
+        assay.save()
+        pass
 
 
 @method_decorator(user_passes_test(is_logged_in, login_url="/login/"), name="dispatch")
@@ -484,11 +448,6 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
     # GET: render the StartingForm, possibly using ?investigation=?, ?study=?, ?assay=?
     # ————————————————————————————————
     if request.method == "GET":
-        # 1) Generate a new task_id for our progress bar, store in session/cache
-        task_id = str(uuid.uuid4())
-        request.session["progress_task_id"] = task_id
-        cache.set(f"progress_{task_id}", 0, timeout=3600)
-
         # 2) Check for any query‐parameters to prefill the form
         inv_id = request.GET.get("investigation")
         st_id = request.GET.get("study")
@@ -532,27 +491,17 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                 if form_empty_answers.is_valid():
                     form_empty_answers.save()
 
-                # Split text/images, create or retrieve our progress task ID:
+                # Split text/images:
                 text_dict, _ = split_doc_dict_by_type(
                     get_text_or_imagebytes_from_django_uploaded_file(files)
                 )
                 try:
-                    # Count how many answers exist (for progress tracking)
-                    total = assay.answers.count()
-
-                    # Retrieve or generate task_id
-                    task_id = request.session.get("progress_task_id")
-                    if not task_id:
-                        task_id = str(uuid.uuid4())
-                        request.session["progress_task_id"] = task_id
-                        cache.set(f"progress_{task_id}", 0, timeout=3600)
-
                     # Set assay status to busy and hand it off to the async worker
                     assay.status = LLMStatus.BUSY
                     assay.save()
 
                     # Fire off the asynchronous worker
-                    async_task(process_llm_async, assay.id, text_dict, task_id)
+                    async_task(process_llm_async, assay.id, text_dict)
 
                 except Exception as e:
                     return JsonResponse(
@@ -567,9 +516,7 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                 {
                     "success": True,
                     "errors": form.errors,
-                    "redirect_url": reverse(
-                        "answer_assay_questions", kwargs={"assay_id": assay.id}
-                    ),
+                    "redirect_url": reverse("start"),
                 }
             )
 

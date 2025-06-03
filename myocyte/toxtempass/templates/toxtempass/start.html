@@ -72,26 +72,7 @@
             startButton.classList.add('disabled');
           
             // THIS IS NOT IDEAL AND MAY FAIL DEPENDING ON NETWORK AND RESORUCE TIMEING (integrate in ajax submission call better)
-            // check is response of form submission (defined in error_handling.html) is not succesful: then we need to rest the button
-            function checkResponseWithBackoff(maxRetries, baseDelay) {
-                let retries = 0;
-            
-                const checkResponse = () => {
-                    // Check if the 'success' property exists and is false
-                    if (response && response.hasOwnProperty('success') && response.success === false) {
-                        spinner.classList.add('d-none'); // Hide the spinner
-                        startButton.classList.remove('disabled'); // Enable the start button
-                    } else if (retries < maxRetries) {
-                        // Increase the delay exponentially
-                        const delay = baseDelay * Math.pow(2, retries);
-                        retries++;
-                        setTimeout(checkResponse, delay); // Retry after the calculated delay
-                    }
-                };
-            
-                checkResponse(); // Start the checking process
-            }
-            checkResponseWithBackoff(5,100)            
+            // check is response of form submission (defined in error_handling.html) is not succesful: then we need to rest the button           
             
         });
         // Function to initialize or update buttons based on the current select value
@@ -269,6 +250,17 @@
 
 
 {% include "start_extras/persist_isa_create_buttons.html"%}
-{% include "start_extras/progress.html" %}
 {% include "error_handling.html" %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Attach confirmation to all delete buttons (IDs ending with "_btn2")
+    document.querySelectorAll('a[id$="_btn2"]').forEach(function(deleteBtn) {
+      deleteBtn.addEventListener('click', function(event) {
+        if (!confirm('Are you sure you want to delete this assay and any associated toxtemp answers? This cannot be undone.')) {
+          event.preventDefault();
+        }
+      });
+    });
+  });
+</script>
 {%endblock%}
