@@ -21,4 +21,4 @@ jobs:
           script: |
             cd "${{ vars.REMOTE_SERVER_PATH }}"
             git pull origin main
-            docker compose up --build -d
+            sudo docker compose up --build -d  # passwordless sudo enabled via /etc/sudoers.d/90-deploy-docker
