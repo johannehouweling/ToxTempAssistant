@@ -15,10 +15,10 @@ jobs:
       - name: Deploy to server
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.REMOTE_SERVER_ADDRESS }}
-          username: ${{ secrets.REMOTE_SERVER_USERNAME }}
+          host: ${{ vars.REMOTE_SERVER_ADDRESS }}
+          username: ${{ vars.REMOTE_SERVER_USERNAME }}
           key_path: ~/.ssh/github_action
           script: |
-            cd "${{ secrets.REMOTE_SERVER_PATH }}"
+            cd "${{ vars.REMOTE_SERVER_PATH }}"
             git pull origin main
             docker compose up --build -d
