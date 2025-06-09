@@ -1,22 +1,22 @@
-name: Docker Compose CI
-
-# 1) When to run this workflow:
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
 jobs:
-  rebuild-compose:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      # 2) Check out your repository so we can see your Dockerfile & compose file
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      # 3) Build and (detached) start your services 
-      # if this works we should also add python tests here
-      - name: Build & start services
+      - uses: actions/checkout@v3
+
+      - name: Install SSH key
         run: |
-          docker compose up --build -d
+          mkdir -p ~/.ssh
+          echo "${{ secrets.GIT_ACTIONS }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.REMOTE_SERVER_ADDRESS }}
+          username: ${{ secrets.REMOTE_SERVER_USERNAME }}
+          key_path: ~/.ssh/id_rsa
+          script: |
+            cd "${{ secrets.REMOTE_SERVER_PATH }}"
+            git pull origin main
+            docker compose up --build -d
