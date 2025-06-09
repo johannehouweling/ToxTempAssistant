@@ -17,7 +17,7 @@ jobs:
         with:
           host: ${{ vars.REMOTE_SERVER_ADDRESS }}
           username: ${{ vars.REMOTE_SERVER_USERNAME }}
-          key_path: ~/.ssh/github_action
+          key_path: /home/runner/.ssh/github_action
           script: |
             cd "${{ vars.REMOTE_SERVER_PATH }}"
             git pull origin main
