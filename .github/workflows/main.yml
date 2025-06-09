@@ -1,3 +1,5 @@
+name: REBUILD ON SERVER
+on: [push]
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -7,15 +9,15 @@ jobs:
       - name: Install SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.GIT_ACTIONS }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
+          echo "${{ secrets.GIT_ACTIONS }}" > ~/.ssh/github_action
+          chmod 600 ~/.ssh/github_action
 
       - name: Deploy to server
-        uses: appleboy/ssh-action@v0.1.7
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.REMOTE_SERVER_ADDRESS }}
           username: ${{ secrets.REMOTE_SERVER_USERNAME }}
-          key_path: ~/.ssh/id_rsa
+          key_path: ~/.ssh/github_action
           script: |
             cd "${{ secrets.REMOTE_SERVER_PATH }}"
             git pull origin main
