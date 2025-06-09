@@ -1,0 +1,22 @@
+name: Docker Compose CI
+
+# 1) When to run this workflow:
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  rebuild-compose:
+    runs-on: ubuntu-latest
+    steps:
+      # 2) Check out your repository so we can see your Dockerfile & compose file
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      # 3) Build and (detached) start your services 
+      # if this works we should also add python tests here
+      - name: Build & start services
+        run: |
+          docker compose up --build -d
