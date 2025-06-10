@@ -104,7 +104,27 @@ class LoginView(View):
             # if the username is an ORCID id, get the user by the ORCID id
             if "@" not in username:
                 try:
-                    username = Person.objects.get(orcid_id=username).email
+                    # Check if the username matches the ORCID pattern: 4x4 digits separated by '-'
+                    orcid_pattern = r"^\d{4}-\d{4}-\d{4}-\d{4}$"
+                    if re.match(orcid_pattern, username):
+                        try:
+                            username = Person.objects.get(orcid_id=username).email
+                        except Person.DoesNotExist:
+                            form.add_error(None, "Invalid credentials.")
+                            return JsonResponse(
+                                dict(
+                                    success=False,
+                                    errors=form.errors,
+                                )
+                            )
+                    else:
+                        form.add_error(None, "ORCID iD must be in the format '0000-0000-0000-0000'.")
+                        return JsonResponse(
+                            dict(
+                                success=False,
+                                errors=form.errors,
+                            )
+                        )
                 except Person.DoesNotExist:
                     form.add_error(None, "Invalid credentials.")
                     return JsonResponse(
