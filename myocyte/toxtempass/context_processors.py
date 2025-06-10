@@ -1,4 +1,6 @@
-from toxtempass import config
+from toxtempass import config, Config
+from django.http import HttpRequest
 
-def config(request):
+
+def toxtempass_config(request: HttpRequest) -> dict[str, Config]:
     return {"config": config}
