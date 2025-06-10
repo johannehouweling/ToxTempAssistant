@@ -50,6 +50,9 @@ if not USE_POSTGRES and not DEBUG:
 ALLOWED_HOSTS = (
     os.getenv("ALLOWED_HOSTS").split(",") if os.getenv("ALLOWED_HOSTS") else []
 )
+# so nginx proxy can set the correct protocol also requires Nginx to set the header
+# proxy_set_header X-Forwarded-Proto $scheme;
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 CSRF_TRUSTED_ORIGINS = (
     os.getenv("CSRF_TRUSTED_ORIGINS").split(",")
