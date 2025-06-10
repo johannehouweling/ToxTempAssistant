@@ -59,11 +59,11 @@ RUN mkdir -p $APP_HOME
 WORKDIR $APP_HOME
 
 # Install python dependencies 
-COPY requirements.txt $APP_HOME/requirements.txt
+COPY myocyte/requirements.txt $APP_HOME/requirements.txt
 RUN python3 -m pip install --no-cache-dir --upgrade pip  --user  --break-system-packages
 RUN python3 -m pip install --user --break-system-packages -r $APP_HOME/requirements.txt 
 
-COPY . $APP_HOME
+COPY myocyte/ $APP_HOME
 
 # setup folder strucutre
 RUN mkdir -p $APP_HOME/logs && \
@@ -72,7 +72,9 @@ RUN mkdir -p $APP_HOME/logs && \
     mkdir -p $APP_HOME/static && \
     mkdir -p $APP_HOME/media
 
-# run the python script in myocyte/toxtempass/templates/toxtempass/md_content/dependencies/run_pandoc.py to do this
+# Copy license so it can be auto converted to html with pandoc in the next step
+COPY LICENSE $APP_HOME/toxtempass/templates/toxtempass/md_content/LICENSE.md
+# run the python script md to html of all files in the md_content folder
 RUN python3 $APP_HOME/toxtempass/templates/toxtempass/md_content/dependencies/run_pandoc.py
 
 RUN chmod +x $APP_HOME/django_startup.sh && chown root:root $APP_HOME/django_startup.sh
