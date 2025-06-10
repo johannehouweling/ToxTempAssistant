@@ -51,7 +51,6 @@ from toxtempass.forms import (
     AssayForm,
     LoginForm,
 )
-from toxtempass.utilities import get_current_git_hash
 from toxtempass.llm import chain
 from toxtempass.export import export_assay_to_file
 
