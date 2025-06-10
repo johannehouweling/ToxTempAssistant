@@ -1,6 +1,7 @@
 import hashlib
 from pathlib import Path
 import subprocess
+from myocyte.settings import BASE_DIR
 
 def get_current_git_hash(short: bool = True) -> str:
     
@@ -8,7 +9,7 @@ def get_current_git_hash(short: bool = True) -> str:
         # Get the full 40-char SHA
         full_sha = (
             subprocess
-            .check_output(['git', 'rev-parse', 'HEAD'], cwd='.', stderr=subprocess.DEVNULL)
+            .check_output(['git', 'rev-parse', 'HEAD'], cwd=BASE_DIR, stderr=subprocess.DEVNULL)
             .decode('ascii')
             .strip()
         )
