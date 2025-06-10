@@ -7,7 +7,11 @@
     <div class="offcanvas-body">
         <div class="mb-3">
             <p class="mb-1">You are logged in as <strong>{{ user.email }}</strong>.</p>
-            <p class="mb-0">From here you can link your ORCID, log out, or cite this tool.</p>
+            {% if user.orcid_id %}
+            <p class="mb-0">Here you can log out, or cite this tool.</p>
+            {% else %}
+            <p class="mb-0">Here you can link your ORCID, log out, or cite this tool.</p>
+            {% endif %}
         </div>
         {% if user.orcid_id %}
         {% else %}
