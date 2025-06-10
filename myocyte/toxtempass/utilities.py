@@ -1,6 +1,23 @@
 import hashlib
 from pathlib import Path
+import subprocess
 
+def get_current_git_hash(short: bool = True) -> str:
+    
+    try:
+        # Get the full 40-char SHA
+        full_sha = (
+            subprocess
+            .check_output(['git', 'rev-parse', 'HEAD'], cwd='.', stderr=subprocess.DEVNULL)
+            .decode('ascii')
+            .strip()
+        )
+        # Shorten to 7 chars
+        short_sha = full_sha[:7]
+    except Exception:
+        short_sha = ''
+        full_sha = ''
+    return short_sha if short else full_sha
 
 def calculate_md5(pdf_file_path):
     """Calculate MD5 hash for a given PDF file."""
