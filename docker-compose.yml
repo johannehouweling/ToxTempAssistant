@@ -16,8 +16,8 @@ services:
   # Django app
   djangoapp:
     build: 
-      context: ./myocyte
-      dockerfile: dockerfiles/djangoapp/Dockerfile
+      context: .
+      dockerfile: myocyte/dockerfiles/djangoapp/Dockerfile
       args:
         # Copy the GIT_HASH from the environment variable or use the current git commit hash
         # defined in github action
