@@ -270,8 +270,7 @@ def orcid_callback(request):
 
 def orcid_signup(request: HttpRequest) -> HttpResponse | JsonResponse:
     """
-    In case we don't know the orcid id yet, we can use the token data to sign this user
-    up as a new user.
+    Handles the signup process after the user has authenticated with ORCID.
     """
     orcid_id = request.session.get("orcid_id")
     if not orcid_id:
@@ -279,7 +278,7 @@ def orcid_signup(request: HttpRequest) -> HttpResponse | JsonResponse:
             dict(
                 success=False,
                 errors={"__all__": ["No ORCID id found in session."]},
-                redirect_url=reverse("start"),
+                redirect_url=reverse("login"),
             )
         )
 
@@ -290,7 +289,7 @@ def orcid_signup(request: HttpRequest) -> HttpResponse | JsonResponse:
             user = form.save(commit=False)
             user.orcid_id = orcid_id
             user.save()
-            login(request, user)
+            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
             # Optionally, clear the ORCID data from the session.
             request.session.pop("orcid_id", None)
             request.session.pop("orcid_token_data", None)
