@@ -21,4 +21,5 @@ jobs:
           script: |
             cd "${{ vars.REMOTE_SERVER_PATH }}"
             git pull origin main
+            export TOXTEMPASS_GIT_HASH=$(git rev-parse HEAD)
             sudo docker compose up --build -d  # passwordless sudo enabled via /etc/sudoers.d/90-deploy-docker

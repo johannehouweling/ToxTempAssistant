@@ -23,6 +23,11 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV DEBUG=False
 
+# write git hash to the image
+# This is useful for debugging and version control
+ARG GIT_HASH
+ENV GIT_HASH=${GIT_HASH}
+
 # Update and upgrade and install python and pip and pandoc
 RUN apt-get update && apt-get upgrade -y && apt-get install --no-install-recommends -y \ 
     gcc \

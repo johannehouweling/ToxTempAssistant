@@ -2,7 +2,6 @@ import os
 import logging
 
 from myocyte import settings
-from toxtempass.utilities import get_current_git_hash
 
 logger = logging.getLogger("llm")
 
@@ -99,7 +98,7 @@ class Config:
     version = "0.1"
     reference = "tbd"
     github_repo_url = "https://github.com/johannehouweling/ToxTempAssistant"
-    git_hash = get_current_git_hash()
+    git_hash = os.getenv("GIT_HASH", "")
     reference_toxtemp = "https://doi.org/10.14573/altex.1909271"
     max_size_mb = 20
     single_answer_timeout = 60  # seconds
