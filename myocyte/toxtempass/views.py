@@ -821,7 +821,7 @@ def answer_assay_questions(request, assay_id):
             "form": form,
             "assay": assay,
             "sections": sections,
-            "config": config,
+            # config is injected via the template context processor
             "back_url": reverse("start"),
             "export_json_url": reverse(
                 "export_assay", kwargs=dict(assay_id=assay.id, export_type="json")

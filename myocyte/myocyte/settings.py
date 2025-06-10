@@ -52,7 +52,7 @@ ALLOWED_HOSTS = (
 )
 # so nginx proxy can set the correct protocol also requires Nginx to set the header
 # proxy_set_header X-Forwarded-Proto $scheme;
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 CSRF_TRUSTED_ORIGINS = (
     os.getenv("CSRF_TRUSTED_ORIGINS").split(",")
@@ -109,7 +109,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "toxtempass.context_processors.github_repo_url",
+                "toxtempass.context_processors.config",
             ],
         },
     },
