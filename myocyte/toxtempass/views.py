@@ -51,6 +51,7 @@ from toxtempass.forms import (
     AssayForm,
     LoginForm,
 )
+from toxtempass.utilities import get_current_git_hash
 from toxtempass.llm import chain
 from toxtempass.export import export_assay_to_file
 
@@ -118,7 +119,10 @@ class LoginView(View):
                                 )
                             )
                     else:
-                        form.add_error(None, "ORCID iD must be in the format '0000-0000-0000-0000'.")
+                        form.add_error(
+                            None,
+                            "ORCID iD must be in the format '0000-0000-0000-0000'.",
+                        )
                         return JsonResponse(
                             dict(
                                 success=False,
@@ -483,7 +487,11 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
         # 3) Instantiate StartingForm with initial=… so those <select> fields stay pre-selected
         form = StartingForm(initial=initial, user=request.user)
 
-        return render(request, "start.html", {"form": form})
+        return render(
+            request,
+            "start.html",
+            {"form": form},
+        )
 
     # ————————————————————————————————
     # POST: process the StartingForm and kick off the async task

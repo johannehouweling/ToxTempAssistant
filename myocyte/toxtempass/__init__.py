@@ -2,6 +2,7 @@ import os
 import logging
 
 from myocyte import settings
+from toxtempass.utilities import get_current_git_hash
 
 logger = logging.getLogger("llm")
 
@@ -63,10 +64,42 @@ class Config:
     
     """
     license = "AGPL"
+    # obsfuscated email for scraper 'privacy'
+    maintainer_email = "".join(
+        [
+            chr(c)
+            for c in [
+                74,
+                101,
+                110,
+                116,
+                101,
+                46,
+                72,
+                111,
+                117,
+                119,
+                101,
+                108,
+                105,
+                110,
+                103,
+                64,
+                114,
+                105,
+                118,
+                109,
+                46,
+                110,
+                108,
+            ]
+        ]
+    )
     license_url = "https://www.gnu.org/licenses/agpl-3.0.html"
     version = "0.1"
     reference = "tbd"
     github_repo_url = "https://github.com/johannehouweling/ToxTempAssistant"
+    git_hash = get_current_git_hash()
     reference_toxtemp = "https://doi.org/10.14573/altex.1909271"
     max_size_mb = 20
     single_answer_timeout = 60  # seconds
