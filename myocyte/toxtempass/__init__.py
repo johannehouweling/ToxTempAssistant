@@ -29,7 +29,7 @@ elif OPENROUTER_API_KEY and BASEURL_OPENROUTER:
 class Config:
     """Put all parameters below here."""
 
-    ## IMPORTANT ALL PARAMETERS ARE DUMPED INTO THE METADATA OF THE USER EXPORT, UNLESS MARKED WITH __ (double underscore) ##
+    ## IMPORTANT ALL PARAMETERS ARE DUMPED INTO THE METADATA OF THE USER EXPORT, UNLESS MARKED WITH _ or __ (underscore or double underscore) ##
     # See https://openrouter.ai/models for available models.
     model = "gpt-4o-mini" if OPENAI_API_KEY == LLM_API_KEY else "openai/gpt-4o-mini"
     # openrouter allows us to identify the site and title for rankings so that in billing we see which app
@@ -69,11 +69,13 @@ class Config:
     github_repo_url = "https://github.com/johannehouweling/ToxTempAssistant"
     reference_toxtemp = "https://doi.org/10.14573/altex.1909271"
     max_size_mb = 20
-    single_answer_timeout = 60 # seconds
+    single_answer_timeout = 60  # seconds
     max_workers_threading = 4
-    max_workers_django_q = settings.Q_CLUSTER["workers"]  # 1 worker for django_q, we use threading for parallelism
-    __orcid_client_id = os.getenv("ORCID_CLIENT_ID")
-    __orcid_client_secret = os.getenv("ORCID_CLIENT_SECRET")
+    max_workers_django_q = settings.Q_CLUSTER[
+        "workers"
+    ]  # 1 worker for django_q, we use threading for parallelism
+    _orcid_client_id = os.getenv("ORCID_CLIENT_ID")
+    _orcid_client_secret = os.getenv("ORCID_CLIENT_SECRET")
 
 
 config = Config()

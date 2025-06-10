@@ -182,7 +182,7 @@ def signup(request: HttpRequest) -> HttpResponse | JsonResponse:
 def orcid_login(request):
     """ "Redirects the user to ORCID’s OAuth authorization endpoint."""
     # Use your provided ORCID credentials:
-    client_id = config.__orcid_client_id
+    client_id = config._orcid_client_id
     # Build the redirect URI dynamically (ensure it matches the one registered with ORCID)
     redirect_uri = request.build_absolute_uri("/orcid/callback/")
 
@@ -206,8 +206,8 @@ def orcid_callback(request):
 
     # Construct the token URL and prepare the token request data.
     token_url = f"{orcid_id_baseurl}/oauth/token"
-    client_id = config.__orcid_client_id
-    client_secret = config.__orcid_client_secret
+    client_id = config._orcid_client_id
+    client_secret = config._orcid_client_secret
     redirect_uri = request.build_absolute_uri("/orcid/callback/")
 
     data = {
@@ -414,7 +414,7 @@ def process_llm_async(assay_id: int, text_dict: dict[str, dict[str, str]]):
                     break
         assay.status = LLMStatus.DONE
         assay.save()
-        
+
     except Exception as e:
         assay.status = LLMStatus.ERROR
         assay.save()
