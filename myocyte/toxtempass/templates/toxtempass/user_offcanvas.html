@@ -35,8 +35,8 @@
         <div class="btn-group" role="group">
             <a class="btn btn-sm btn-outline-primary d-flex align-items-center" type="button" href="{{  config.git_repo_url }}">
                 <i class="bi bi-github"></i>
-                {% if  config.git_hash %}
-                    <span class="ms-1 small text-muted">{{ config.git_hash }}</span>
+                {% if config.git_hash %}
+                    <span class="ms-1 small text-muted">{{ config.git_hash|slice:":7" }}</span>
                 {% endif %}
             </a>
             <a class="btn btn-sm btn-outline-primary" type="button" href="mailto:{{config.maintainer_email}}?subject=%5BToxTempAssistant%5D%20%3CEnter%20Subject%20Here%3E"> <i class="bi bi-envelope-paper-heart"></i></a>
