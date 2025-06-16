@@ -23,7 +23,7 @@ logger = logging.getLogger("llm")
 
 # from toxtempass.utilis import calculate_md5_multiplefiles, combine_dicts
 
-def get_text_or_bytes_perfile_dict(document_filenames: list[str | Path])-> dict[str, dict[str, str ]]:
+def get_text_or_bytes_perfile_dict(document_filenames: list[str | Path], unlink=True)-> dict[str, dict[str, str ]]:
     """
     Load content from a list of documents and return a dictionary mapping filenames to their content.
 
@@ -83,7 +83,8 @@ def get_text_or_bytes_perfile_dict(document_filenames: list[str | Path])-> dict[
         except Exception as e:
             logger.error(f"Error reading '{context_filename}': {e}")
         # Here let's remove the files after reading them.
-        context_filename.unlink()
+        if unlink:
+            context_filename.unlink()
 
     return document_contents
 

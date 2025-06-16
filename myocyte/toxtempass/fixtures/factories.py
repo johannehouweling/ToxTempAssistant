@@ -73,6 +73,7 @@ class DocumentDictFactory(factory.Factory):
         num_text: int = 2,
         num_bytes: int = 1,
         document_filenames: list[Path | str] | None = None,
+        unlink: bool = False,  # if by default we want to consume documents
         **kwargs,
     ) -> dict[str, dict[str, str]]:
         text_dict: dict[str, dict[str, str]] = {}
@@ -81,7 +82,7 @@ class DocumentDictFactory(factory.Factory):
         if document_filenames:
             # Coerce to Path
             paths = [Path(p) for p in document_filenames]
-            real_contents = get_text_or_bytes_perfile_dict(paths)
+            real_contents = get_text_or_bytes_perfile_dict(paths, unlink)
             text_dict.update(real_contents)
             # optionally re-raise or continue with dummy data
 
@@ -94,7 +95,7 @@ class DocumentDictFactory(factory.Factory):
             entry = factory.build(
                 dict,
                 filename=f"{uuid.uuid4()}.txt",
-                text=factory.Faker("text").generate({}),
+                text=factory.Faker("text").evaluate(None, None, {"locale": "en_US"}),
             )
             text_dict[entry["filename"]] = {"text": entry["text"]}
 
