@@ -1,0 +1,10 @@
+
+[tool.pytest.ini_options]
+# tells pytest-django where to find your settings
+DJANGO_SETTINGS_MODULE = "myocyte.settings"
+# which test file patterns to collect
+python_files = [
+  "tests.py",
+  "test_*.py",
+  "*_tests.py",
+]

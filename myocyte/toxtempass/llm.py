@@ -1,21 +1,10 @@
 from langchain_openai import ChatOpenAI
 import logging
 from typing import Literal
-from pathlib import Path
-
 from toxtempass import config, LLM_API_KEY, LLM_ENDPOINT
-from langchain_community.document_loaders import (
-    BSHTMLLoader,
-    TextLoader,
-    UnstructuredWordDocumentLoader,
-)
-from PIL import Image
-from io import BytesIO
-from pypdf import PdfReader
 from langchain_core.messages import BaseMessage
 from pydantic import Field, model_validator
 
-import base64
 
 # Get logger
 logger = logging.getLogger("llm")
@@ -43,70 +32,6 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-
-def get_text_or_bytes_perfile_dict(document_filenames: list[str | Path])-> dict[str, dict[str, str ]]:
-    """
-    Load content from a list of documents and return a dictionary mapping filenames to their content.
-
-    Args:
-    document_filenames (list of str): List of file paths to the documents.
-
-    Returns:
-    dict: A dictionary where keys are filenames and values are the loaded document content or encoded bytes for images.
-    """
-    # coherce paths of type str to Path elements:
-    document_filenames: list[Path] = [Path(path) for path in document_filenames]
-    document_contents = {}
-
-    for context_filename in document_filenames:
-        text = None
-        img_bytestring = None
-        suffix = context_filename.suffix.lower()
-
-        try:
-            if suffix == ".pdf":
-                with open(context_filename, "rb") as file:
-                    reader = PdfReader(file)
-                    paragraphs = [
-                        p.extract_text().strip()
-                        for p in reader.pages
-                        if p.extract_text()
-                    ]
-                    text = "\n".join(paragraphs)
-
-            elif suffix in [".txt", ".md"]:
-                loader = TextLoader(
-                    file_path=context_filename, autodetect_encoding=True
-                )
-                text = loader.load()[0].page_content
-
-            elif suffix == ".html":
-                loader = BSHTMLLoader(context_filename, open_encoding="utf-8")
-                text = loader.load().page_content.replace("\n", "")
-
-            elif suffix == ".docx":
-                loader = UnstructuredWordDocumentLoader(str(context_filename))
-                text = loader.load()[0].page_content
-
-            elif suffix == ".png":
-                img = Image.open(context_filename)
-                s = BytesIO()
-                img.save(s, "png")
-                img_bytestring = base64.b64encode(s.getvalue()).decode("utf-8")
-
-            if text:
-                document_contents[str(context_filename)] = {"text": text}
-                logger.info(f"The file '{context_filename}' was read successfully.")
-            elif img_bytestring:
-                document_contents[str(context_filename)] = {"encodedbytes": img_bytestring}
-                logger.info(f"The file '{context_filename}' was read successfully.")
-
-        except Exception as e:
-            logger.error(f"Error reading '{context_filename}': {e}")
-        # Here let's remove the files after reading them.
-        context_filename.unlink()
-
-    return document_contents
 
 
 image_accept_files = [
