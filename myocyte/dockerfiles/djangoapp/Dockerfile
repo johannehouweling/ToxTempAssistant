@@ -23,11 +23,6 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV DEBUG=False
 
-# write git hash to the image
-# This is useful for debugging and version control
-ARG GIT_HASH
-ENV GIT_HASH=${GIT_HASH}
-
 # Update and upgrade and install python and pip and pandoc
 RUN apt-get update && apt-get upgrade -y && apt-get install --no-install-recommends -y \ 
     gcc \
@@ -71,6 +66,12 @@ RUN mkdir -p $APP_HOME/logs && \
     # Location for file interchanges
     mkdir -p $APP_HOME/static && \
     mkdir -p $APP_HOME/media
+
+# write git hash to the image
+# This is useful for debugging and version control
+# move as late as possible, will change every time so resets the cache layer
+ARG GIT_HASH
+ENV GIT_HASH=${GIT_HASH}
 
 # Copy license so it can be auto converted to html with pandoc in the next step
 COPY LICENSE $APP_HOME/toxtempass/templates/toxtempass/md_content/LICENSE.md
