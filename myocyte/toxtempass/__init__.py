@@ -32,6 +32,7 @@ class Config:
     ## IMPORTANT ALL PARAMETERS ARE DUMPED INTO THE METADATA OF THE USER EXPORT, UNLESS MARKED WITH _ or __ (underscore or double underscore) ##
     # See https://openrouter.ai/models for available models.
     model = "gpt-4o-mini" if OPENAI_API_KEY == LLM_API_KEY else "openai/gpt-4o-mini"
+    model_info_url =f"https://platform.openai.com/docs/models/{model}" if OPENAI_API_KEY else f"https://openrouter.ai/{model}"
     # openrouter allows us to identify the site and title for rankings so that in billing we see which app
     extra_headers = (
         {
