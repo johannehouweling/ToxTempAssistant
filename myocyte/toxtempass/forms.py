@@ -166,7 +166,7 @@ class StartingForm(forms.Form):
         widget=MultipleFileInput(attrs={"multiple": True}),
         required=False,
         help_text=(
-            "Upload documents relevant to your test method to provide context for the LLM-generated answers. This is only possible during the first draft. Examples include publications, SOPS, protocols, certificates of analysis, cell line reports, data management plans, project proposals, lab journals, apparatus metadata, and regulatory guidance. Supported file types: PDF, TXT, MD, HTML, and DOCX. Support for additional formats (e.g., PNG, JPG) may be added in the future." 
+            "Upload documents relevant to your test method to provide context for the LLM-generated answers. This is only possible during the first draft. Examples include publications, SOPs, protocols, certificates of analysis, cell line reports, data management plans, project proposals, lab journals, apparatus metadata, and regulatory guidance. Supported file types: PDF, TXT, MD, HTML, and DOCX. Support for additional formats (e.g., PNG, JPG) may be added in the future." 
         ),
     )
 
