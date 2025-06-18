@@ -42,6 +42,10 @@
             <a class="btn btn-sm btn-outline-primary" type="button" href="mailto:{{config.maintainer_email}}?subject=%5BToxTempAssistant%5D%20%3CEnter%20Subject%20Here%3E"> <i class="bi bi-envelope-paper-heart"></i></a>
             <button class="btn btn-sm btn-outline-primary" type="button" data-bs-target="#copyrightModal" data-bs-toggle="modal"> <i class="bi bi-c-circle"></i></button>
             <button class="btn btn-sm btn-outline-primary" type="button" data-bs-target="#termsModal" data-bs-toggle="modal" href="#"> <i class="bi bi-book"></i> </button>
+            <a class="btn btn-sm btn-outline-primary d-flex align-items-center" type="button" href="{{ config.model_info_url}}">
+                <i class="bi bi-openai"></i>
+                <span class="ms-1 small text-muted">{{config.model}}</span>
+            </a>
         </div>
     </div>
 </div>

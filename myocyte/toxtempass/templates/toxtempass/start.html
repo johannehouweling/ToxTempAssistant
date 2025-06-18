@@ -79,18 +79,6 @@
                 console.error('Error:', error); // Handle errors
             });
         })
-
-        // Deactivate button on submit and add a spinner
-        var startButton = document.getElementById('startButton');
-        var spinner = document.getElementById('startButtonSpinner');
-        startButton.addEventListener('click', function(event) {
-            response = {}
-            // Show the spinner inside the button
-            console.log('show', spinner)
-            spinner.classList.remove('d-none')
-            // Disable the button
-            console.log('disable', startButton)
-            startButton.classList.add('disabled');
           
             // THIS IS NOT IDEAL AND MAY FAIL DEPENDING ON NETWORK AND RESORUCE TIMEING (integrate in ajax submission call better)
             // check is response of form submission (defined in error_handling.html) is not succesful: then we need to rest the button           
