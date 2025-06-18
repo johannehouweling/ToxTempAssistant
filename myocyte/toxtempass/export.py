@@ -73,8 +73,6 @@ def generate_json_from_assay(assay: Assay):
                 "creation_date": current_time.isoformat(),  # Current date and time in ISO format
                 "filename": f"documenation_{slugify(assay.title)}",  # Filename for the export
                 "website": "toxtempassistant.vhp4safety.nl",  # Replace with your actual website name
-                "doi": Config.reference_toxtempassistant,  # DOI for the ToxTempAssistant
-                "version": Config.version,  # Version of the ToxTempAssistant
                 "config": {
                     key: value
                     for key, value in vars(Config).items()
