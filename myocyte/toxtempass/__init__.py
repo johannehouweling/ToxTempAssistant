@@ -101,10 +101,10 @@ class Config:
     github_repo_url = "https://github.com/johannehouweling/ToxTempAssistant"
     git_hash = os.getenv("GIT_HASH", "")
     reference_toxtemp = "https://doi.org/10.14573/altex.1909271"
-    _max_size_mb = 20
-    _single_answer_timeout = 60  # seconds
-    _max_workers_threading = 4
-    _max_workers_django_q = settings.Q_CLUSTER[
+    max_size_mb = 20
+    single_answer_timeout = 60  # seconds
+    max_workers_threading = 4
+    max_workers_django_q = settings.Q_CLUSTER[
         "workers"
     ]  # 1 worker for django_q, we use threading for parallelism
     _orcid_client_id = os.getenv("ORCID_CLIENT_ID")
