@@ -100,6 +100,8 @@ class Config:
     github_repo_url = "https://github.com/johannehouweling/ToxTempAssistant"
     git_hash = os.getenv("GIT_HASH", "")
     reference_toxtemp = "https://doi.org/10.14573/altex.1909271"
+    reference_toxtempassistant ="https://doi.org/10.5281/zenodo.15607643"
+    version_toxtempassistant = "0.9.1"
     max_size_mb = 20
     single_answer_timeout = 60  # seconds
     max_workers_threading = 4

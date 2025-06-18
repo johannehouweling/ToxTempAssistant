@@ -42,7 +42,7 @@ files_tier2 = list(
     Path("/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier2").glob(
         "*.pdf"
     )
-)[0:2]
+)
 output_tier2 = Path(
     "/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier2_results/"
 )
