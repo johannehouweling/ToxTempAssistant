@@ -32,3 +32,5 @@ docker-compose-vhp4safety.yml
 .env-vhp4safety
 docker-compose-MacOs.yml
 
+# Analysis files
+data_analysis/
