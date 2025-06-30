@@ -72,3 +72,4 @@ zstandard==0.23.0
 django_q2==1.8.0
 django-tables2==2.7.5
 factory_boy==3.3.3
+bert-score  # only needed for validation

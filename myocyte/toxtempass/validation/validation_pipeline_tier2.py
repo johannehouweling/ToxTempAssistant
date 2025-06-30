@@ -32,10 +32,6 @@ from toxtempass.views import process_llm_async
 # input_tier1 = Path("/Users/johannehouweling/ToxTempAssistant/myocyte/toxtempass/validation/validation_documents/tier1_positive").glob("*.pdf")
 
 
-def has_answer_not_found(answer_text: str) -> bool:
-    """Check if LLM was not able to find an Answer from the context in document."""
-    return config.not_found_string in answer_text
-
 
 # Tier 2: Negative Control
 files_tier2 = list(

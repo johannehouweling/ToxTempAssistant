@@ -32,7 +32,11 @@ class Config:
     ## IMPORTANT ALL PARAMETERS ARE DUMPED INTO THE METADATA OF THE USER EXPORT, UNLESS MARKED WITH _ or __ (underscore or double underscore) ##
     # See https://openrouter.ai/models for available models.
     model = "gpt-4o-mini" if OPENAI_API_KEY == LLM_API_KEY else "openai/gpt-4o-mini"
-    model_info_url =f"https://platform.openai.com/docs/models/{model}" if OPENAI_API_KEY else f"https://openrouter.ai/{model}"
+    model_info_url = (
+        f"https://platform.openai.com/docs/models/{model}"
+        if OPENAI_API_KEY
+        else f"https://openrouter.ai/{model}"
+    )
     # openrouter allows us to identify the site and title for rankings so that in billing we see which app
     extra_headers = (
         {
@@ -109,6 +113,18 @@ class Config:
     ]  # 1 worker for django_q, we use threading for parallelism
     _orcid_client_id = os.getenv("ORCID_CLIENT_ID")
     _orcid_client_secret = os.getenv("ORCID_CLIENT_SECRET")
+
+    # Validation settings
+    # These are used in the validation pipeline to estimate performance of the LLM
+    # Not used in the actual application, but for validation purposes only.
+
+    _validation_embedding_model = (
+        "text-embedding-3-large"
+        if OPENAI_API_KEY == LLM_API_KEY
+        else "openai/text-embedding-3-large"
+    )
+    _validation_bert_score_model = "microsoft/deberta-xlarge-mnli"
+    _validation_cos_similarity_threshold = 0.7
 
 
 config = Config()
