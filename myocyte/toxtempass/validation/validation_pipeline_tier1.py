@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
+from tqdm.auto import tqdm
 from toxtempass.models import Question
 
 # Ensure project root is on PYTHONPATH so 'toxtempass' imports work
@@ -19,7 +20,7 @@ def setup_django():
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "myocyte.settings")
     import django
 
-    django.setup()
+    django.setup() 
 
 
 setup_django()
@@ -29,7 +30,7 @@ from toxtempass.fixtures.factories import AssayFactory, DocumentDictFactory
 from toxtempass.models import Answer, Question
 from toxtempass.views import process_llm_async
 from toxtempass.validation.utils import has_answer_not_found, generate_comparison_csv
-from tqdm import tqdm
+
 
 
 # get a json with question answers pairs ground truth
@@ -58,8 +59,8 @@ json_pdf_dict = {
 records = []
 
 for json_file, pdf_file_path in tqdm(json_pdf_dict.items(), desc="Processing files"):
-    if pdf_file_path.name != "NPC2-5.pdf":
-        continue
+    # if pdf_file_path.name != "NPC2-5.pdf":
+    #     continue
     pdf_file = pdf_file_path.name
     input_pdf_dict = DocumentDictFactory(
         document_filenames=[pdf_file_path], num_bytes=0

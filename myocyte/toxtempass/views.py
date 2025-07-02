@@ -1,5 +1,4 @@
 from collections.abc import Iterator
-import time
 import difflib
 from django.http import FileResponse, HttpRequest, HttpResponse, HttpResponseRedirect
 from toxtempass import config
@@ -10,11 +9,11 @@ import logging
 import re
 from django.views import View
 from django_q.tasks import async_task
+
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from tqdm.auto import tqdm
 
-from django.core.cache import cache
-import uuid
 from pathlib import Path
 from django.urls import reverse
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -422,7 +421,15 @@ def process_llm_async(assay_id: int, text_dict: dict[str, dict[str, str]]):
                 executor.submit(generate_answer, answer): answer for answer in answers
             }
 
-            for idx, future in enumerate(as_completed(futures)):
+            # Log which LLM endpoint and model we're using
+            logger.info(f"Using LLM endpoint {config.url} with model {config.model}")
+
+            for future in tqdm(
+                as_completed(futures),
+                total=len(futures),
+                desc=f"Getting answers via {config.url} ({config.model})",
+                unit="answer"
+            ):
                 try:
                     answer_id, draft = future.result()
                     answer = Answer.objects.get(id=answer_id)

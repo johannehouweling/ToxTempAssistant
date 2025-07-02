@@ -25,6 +25,9 @@ elif OPENROUTER_API_KEY and BASEURL_OPENROUTER:
     LLM_ENDPOINT = BASEURL_OPENROUTER
     LLM_API_KEY = OPENROUTER_API_KEY
 
+logging.basicConfig(
+    level=logging.WARNING, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 class Config:
     """Put all parameters below here."""

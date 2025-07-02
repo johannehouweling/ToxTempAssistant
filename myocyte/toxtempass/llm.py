@@ -26,13 +26,6 @@ else:
     logger.error("Required environment variables are missing")
 
 
-# Set up logging
-logger = logging.getLogger("document_loader")
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-
-
 
 image_accept_files = [
     ".png",

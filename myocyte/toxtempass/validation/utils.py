@@ -3,12 +3,11 @@ from pathlib import Path
 
 import pandas as pd
 from tqdm.auto import tqdm
-tqdm.pandas()
 from toxtempass import config
 from django.db.models.query import QuerySet
 
 from toxtempass.validation.embeddings import cosine_similarity, bert_score
-
+import warnings
 
 def has_answer_not_found(answer_text: str) -> bool:
     """Check if LLM was not able to find an Answer from the context in document."""
@@ -26,9 +25,12 @@ def generate_comparison_csv(
     :param output_dir: Directory to save the CSV file.
     :param pdf_file: Name of the PDF file being processed.
     """
-    # Load the ground-truth JSON file
-    with json_file.open("r", encoding="utf-8") as f:
-        data = json.load(f)
+    # Load the ground-truth JSON file with error handling
+    try:
+        with json_file.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Failed to parse JSON from {json_file}: {e}") from e
     # 1. Build a mapping from question → ground-truth answer
     qa_list = extract_qa(data)
     gtruth_map = {item["question"]: item["answer"] for item in qa_list}
@@ -49,19 +51,24 @@ def generate_comparison_csv(
 
     # 3. Create DataFrame
     df = pd.DataFrame(rows)
+    # Replace any missing answers with empty strings to avoid NoneType errors
+    df['gtruth_answer'] = df['gtruth_answer'].fillna('')
+    df['llm_answer'] = df['llm_answer'].fillna('')
 
     # 4 append cosine similarity
+    tqdm.pandas(desc="Calculating cosine similarity", position=1, leave=True)
     df["cos_similarity"] = df.progress_apply(
         lambda row: cosine_similarity(row["gtruth_answer"], row["llm_answer"]),
         axis=1,
-        desc="Calculating cosine similarity"
     )
     # Compute BERT scores and append as separate columns
+    warnings.filterwarnings("ignore", message="Empty candidate sentence detected") # Ignore warnings from bert_score
+    tqdm.pandas(desc="Calculating BERT scores", position=1, leave=True)
     scores = df.progress_apply(
         lambda row: bert_score(row['gtruth_answer'], row['llm_answer']),
         axis=1,
-        desc="Calculating BERT scores"
     ).tolist()
+    warnings.resetwarnings()
     scores_df = pd.DataFrame(
         scores,
         columns=["bert_precision", "bert_recall", "bert_f1"],
