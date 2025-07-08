@@ -34,6 +34,8 @@ def generate_comparison_csv(
     # 1. Build a mapping from question → ground-truth answer
     qa_list = extract_qa(data)
     gtruth_map = {item["question"]: item["answer"] for item in qa_list}
+    gtruth_score_map = {item["question"]: item.get("answer_quality_score", "") for item in qa_list}
+    gtruth_justification_map = {item["question"]: item.get("answer_quality_justification", "") for item in qa_list}
 
     # 2. Assemble one dict per answer
     rows = []
@@ -42,12 +44,16 @@ def generate_comparison_csv(
             ans.question.question_text
         )  # or ans.question.text, depending on your object
         llm_ans = ans.answer_text
-        gtruth = gtruth_map.get(q_text)  # None if not found
-        # have to embedd both answers to compute cosine similarity
-
-        rows.append(
-            {"question": q_text, "gtruth_answer": gtruth, "llm_answer": llm_ans}
-        )
+        gtruth = gtruth_map.get(q_text, "")
+        gtruth_score = gtruth_score_map.get(q_text, "")
+        gtruth_justification = gtruth_justification_map.get(q_text, "")
+        rows.append({
+            "question": q_text,
+            "gtruth_answer": gtruth,
+            "gtruth_answer_quality_score": gtruth_score,
+            "gtruth_answer_quality_justification": gtruth_justification,
+            "llm_answer": llm_ans
+        })
 
     # 3. Create DataFrame
     df = pd.DataFrame(rows)

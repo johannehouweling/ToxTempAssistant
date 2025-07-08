@@ -32,13 +32,12 @@ from toxtempass.views import process_llm_async
 from toxtempass.validation.utils import has_answer_not_found, generate_comparison_csv
 
 
-
 # get a json with question answers pairs ground truth
 # get a pdf that is the source of grond trutht to run through toxtempass and generate
 # answers, then we have to compare both for semantiv similarity
 
 gtruth_jsons = Path(
-    "/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier1/processed/"
+    "/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier1/processed/scored/"
 ).glob("*.json")
 gtruth_pdfs = Path(
     "/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier1/raw/"
