@@ -1,5 +1,7 @@
 from collections.abc import Iterator
 import difflib
+import time
+from openai import RateLimitError
 from django.http import FileResponse, HttpRequest, HttpResponse, HttpResponseRedirect
 from toxtempass import config
 from django.http.response import JsonResponse
@@ -51,6 +53,7 @@ from toxtempass.forms import (
     LoginForm,
 )
 from toxtempass.llm import chain
+from langchain_openai import ChatOpenAI
 from toxtempass.export import export_assay_to_file
 
 from django.contrib.auth.decorators import user_passes_test
@@ -385,7 +388,9 @@ def init_db(request: HttpRequest):
         return JsonResponse(dict(message="Database not empty"))
 
 
-def process_llm_async(assay_id: int, text_dict: dict[str, dict[str, str]]):
+def process_llm_async(
+    assay_id: int, text_dict: dict[str, dict[str, str]], chatopenai: ChatOpenAI = chain
+):
     """Prepare to send the text documents to the LLM to get answer draft using DjangoQ."""
     try:
         assay = Assay.objects.get(id=assay_id)
@@ -402,7 +407,7 @@ def process_llm_async(assay_id: int, text_dict: dict[str, dict[str, str]]):
             if "text" in meta
         )
 
-        def generate_answer(answer: Answer):
+        def generate_answer(answer: Answer, chatopenai: ChatOpenAI) -> tuple[int, str]:
             question = answer.question.question_text
             messages = [
                 SystemMessage(content=config.base_prompt),
@@ -413,34 +418,56 @@ def process_llm_async(assay_id: int, text_dict: dict[str, dict[str, str]]):
                 ),
                 HumanMessage(content=question),
             ]
-            response = chain.invoke(messages)
-            return answer.id, response.content
+            try:
+                response = chatopenai.invoke(messages)
+                if not hasattr(response, "content") or response.content is None:
+                    logger.warning(f"No content returned for answer ID {answer.id}. Response: {response}")
+                    return answer.id, ''
+                return answer.id, response.content
+            except RateLimitError as e:
+                logger.warning(f"Rate limit hit for answer ID {answer.id}. Retrying in 2 seconds.")
+                time.sleep(2)
+                try:
+                    response = chatopenai.invoke(messages)
+                    if not hasattr(response, "content") or response.content is None:
+                        logger.warning(f"No content returned after retry for answer ID {answer.id}. Response: {response}")
+                        return answer.id, ''
+                    return answer.id, response.content
+                except Exception as retry_exception:
+                    logger.exception(f"Retry failed for answer ID {answer.id}: {retry_exception}")
+                    return answer.id, ''
+            except Exception as e:
+                logger.exception(f"Failed to generate answer for answer ID {answer.id}: {e}")
+                return answer.id, ''
 
         with ThreadPoolExecutor(max_workers=config.max_workers_threading) as executor:
             futures = {
-                executor.submit(generate_answer, answer): answer for answer in answers
+                executor.submit(generate_answer, answer, chatopenai): answer
+                for answer in answers
             }
 
             # Log which LLM endpoint and model we're using
-            logger.info(f"Using LLM endpoint {config.url} with model {config.model}")
+            logger.info(
+                f"Using LLM endpoint {chatopenai.openai_api_base} with model {chatopenai.model_name}"
+            )
 
             for future in tqdm(
                 as_completed(futures),
                 total=len(futures),
-                desc=f"Getting answers via {config.url} ({config.model})",
-                unit="answer"
+                desc=f"Getting answers via {chatopenai.openai_api_base} ({chatopenai.model_name})",
+                unit="answer",
             ):
                 try:
                     answer_id, draft = future.result()
                     answer = Answer.objects.get(id=answer_id)
-                    answer.answer_text = draft
+                    answer.answer_text = draft or ''
                     answer.answer_documents = [Path(k).name for k in text_dict.keys()]
                     answer.save()
 
                 except Exception as inner_e:
                     assay.status = LLMStatus.ERROR
                     assay.save()
-                    break
+                    continue
         assay.status = LLMStatus.DONE
         assay.save()
 

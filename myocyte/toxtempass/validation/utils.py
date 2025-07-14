@@ -83,7 +83,7 @@ def generate_comparison_csv(
     df = pd.concat([df, scores_df], axis=1)
 
     # Save DataFrame to CSV
-    output_file = output_dir / f"tier1_comparison_{Path(pdf_file).stem}.csv"
+    output_file = output_dir / f"tier1_comparison_{Path(pdf_file).stem}_{model}.csv"
     df.to_csv(output_file, index=False)
     print(f"Comparison CSV saved to {output_file}")
     return df
