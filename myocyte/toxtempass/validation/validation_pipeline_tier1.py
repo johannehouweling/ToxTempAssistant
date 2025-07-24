@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pandas as pd
 from tqdm.auto import tqdm
-from toxtempass.models import Question
 
 # Ensure project root is on PYTHONPATH so 'toxtempass' imports work
+PROJECT_ROOT = Path("/Users/johannehouweling/ToxTempAssistant/myocyte")
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -39,8 +39,8 @@ llm = None
 repeat = False
 def_temp = config.temperature
 for model, temp in zip(
-    [config.model] + ["gpt-4.1-nano", "o3-mini"],
-    [def_temp, def_temp, None],
+    ["o3-mini"],
+    [None],
     strict=True,
 ):
     if LLM_API_KEY and LLM_ENDPOINT:
@@ -69,7 +69,8 @@ for model, temp in zip(
     output_tier1 = Path(
         f"/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier1_results/{model}"
     )
-    if output_tier1.exists():
+    output_summary = list(output_tier1.glob("tier1_summary*.json"))
+    if output_summary:
         # print(f"{output_tier2.name:s} exists, sure you want to repeat the analysis for {model}?")
         if repeat:
             pass
@@ -90,6 +91,7 @@ for model, temp in zip(
     for json_file, pdf_file_path in tqdm(
         json_pdf_dict.items(), desc="Processing files"
     ):
+
         # if pdf_file_path.name != "NPC2-5.pdf":
         #     continue
         pdf_file = pdf_file_path.name
@@ -110,7 +112,7 @@ for model, temp in zip(
         # 5) Generate comparison CSV ALSO SAVES THE FILE
         if not output_tier1.exists():
             output_tier1.mkdir(parents=True)
-        df = generate_comparison_csv(json_file, answers, output_tier1, pdf_file)
+        df = generate_comparison_csv(json_file, answers, output_tier1, pdf_file, model=llm)
         # df is file with [question, gtruth_answer, llm_answer, cos_similarity, bert_precision, bert_recall, bert_f1]
         # now using this file to create a summary of the results
         # 6) Collect summary results

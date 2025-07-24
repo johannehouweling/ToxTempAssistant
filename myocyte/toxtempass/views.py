@@ -425,17 +425,31 @@ def process_llm_async(
                     return answer.id, ''
                 return answer.id, response.content
             except RateLimitError as e:
-                logger.warning(f"Rate limit hit for answer ID {answer.id}. Retrying in 2 seconds.")
-                time.sleep(2)
-                try:
-                    response = chatopenai.invoke(messages)
-                    if not hasattr(response, "content") or response.content is None:
-                        logger.warning(f"No content returned after retry for answer ID {answer.id}. Response: {response}")
+                while True:
+                    try:
+                        wait_time = 5  # Default wait time
+                        if hasattr(e, 'response') and e.response is not None:
+                            try:
+                                err_json = e.response.json()
+                                suggested_wait = err_json.get('error', {}).get('message', '')
+                                match = re.search(r'try again in ([\d\.]+)s', suggested_wait)
+                                if match:
+                                    wait_time = float(match.group(1)) + 0.5  # buffer
+                            except Exception:
+                                pass
+                        logger.warning(f"Rate limit hit for answer ID {answer.id}. Retrying in {wait_time} seconds.")
+                        time.sleep(wait_time)
+                        response = chatopenai.invoke(messages)
+                        if not hasattr(response, "content") or response.content is None:
+                            logger.warning(f"No content returned after retry for answer ID {answer.id}. Response: {response}")
+                            return answer.id, ''
+                        return answer.id, response.content
+                    except RateLimitError as retry_e:
+                        e = retry_e  # update for next loop iteration
+                        continue
+                    except Exception as retry_exception:
+                        logger.exception(f"Retry failed for answer ID {answer.id}: {retry_exception}")
                         return answer.id, ''
-                    return answer.id, response.content
-                except Exception as retry_exception:
-                    logger.exception(f"Retry failed for answer ID {answer.id}: {retry_exception}")
-                    return answer.id, ''
             except Exception as e:
                 logger.exception(f"Failed to generate answer for answer ID {answer.id}: {e}")
                 return answer.id, ''

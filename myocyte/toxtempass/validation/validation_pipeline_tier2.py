@@ -41,7 +41,7 @@ logger = logging.getLogger("llm")
 llm = None
 repeat = False # set to True if you want to repeat the analysis for all models
 def_temp = config.temperature
-for model,temp in zip([config.model]+["gpt-4.1-nano", "o3-mini"],[def_temp,def_temp,None], strict=True):
+for model,temp in zip(["gpt-4o", "gpt-4.1-nano", "o3-mini"], [def_temp, def_temp, None], strict=True):
 
     if LLM_API_KEY and LLM_ENDPOINT:
         llm = ChatOpenAI(

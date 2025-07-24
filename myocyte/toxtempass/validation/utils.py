@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+from langchain_openai import ChatOpenAI
 import pandas as pd
 from tqdm.auto import tqdm
 from toxtempass import config
@@ -15,7 +16,7 @@ def has_answer_not_found(answer_text: str) -> bool:
 
 
 def generate_comparison_csv(
-    json_file: Path, answers: QuerySet, output_dir: Path, pdf_file: str
+    json_file: Path, answers: QuerySet, output_dir: Path, pdf_file: str, model:ChatOpenAI = None
 ) -> None:
     """
     Generate a CSV comparing ground-truth answers with LLM-generated answers.
@@ -83,7 +84,10 @@ def generate_comparison_csv(
     df = pd.concat([df, scores_df], axis=1)
 
     # Save DataFrame to CSV
-    output_file = output_dir / f"tier1_comparison_{Path(pdf_file).stem}_{model}.csv"
+    if model:
+        model_name = model.model_name if hasattr(model, 'model_name') else str(model)
+        output_file = output_dir / f"tier1_comparison_{Path(pdf_file).stem}_{model_name}.csv"
+    output_file = output_dir / f"tier1_comparison_{Path(pdf_file).stem}.csv"
     df.to_csv(output_file, index=False)
     print(f"Comparison CSV saved to {output_file}")
     return df

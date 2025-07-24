@@ -1,7 +1,7 @@
 import os
 import logging
 
-from myocyte import settings
+from django.conf import settings
 
 logger = logging.getLogger("llm")
 
@@ -28,6 +28,7 @@ elif OPENROUTER_API_KEY and BASEURL_OPENROUTER:
 logging.basicConfig(
     level=logging.WARNING, format="%(asctime)s - %(levelname)s - %(message)s"
 )
+
 
 class Config:
     """Put all parameters below here."""
