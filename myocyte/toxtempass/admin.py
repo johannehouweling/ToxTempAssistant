@@ -8,7 +8,8 @@ from toxtempass.models import (
     Investigation,
     Study,
     Person,
-    Feedback
+    Feedback,
+    QuestionSet,
 )
 
 
@@ -32,7 +33,14 @@ class StudyAdmin(admin.ModelAdmin):
 
 @admin.register(Assay)
 class AssayAdmin(admin.ModelAdmin):
-    list_display = ("id", "title", "study", "submission_date", "feedback__feedback_text", "number_answers_not_found")
+    list_display = (
+        "id",
+        "title",
+        "study",
+        "submission_date",
+        "feedback__feedback_text",
+        "number_answers_not_found",
+    )
     search_fields = ("title", "study__name")
 
 
@@ -59,8 +67,18 @@ class AnswerAdmin(admin.ModelAdmin):
     list_display = ("assay", "question", "answer_text")
     search_fields = ("assay__name", "question", "answer_text")
 
+
 @admin.register(Feedback)
 class FeedbackAdmin(admin.ModelAdmin):
     list_display = ("assay", "user", "feedback_text", "usefulness_rating")
     search_fields = ("assay__name", "user")
 
+
+@admin.register(QuestionSet)
+class QuestionSetAdmin(admin.ModelAdmin):
+    list_display = ("id", "label", "display_name", "created_at")
+    search_fields = (
+        "label",
+        "display_name",
+    )
+    ordering = ("display_name", "created_at")

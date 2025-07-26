@@ -1,46 +1,61 @@
+<h2 class="d-inline-block text-truncate w-100">{{ instance|title }}</h2>
 
-
-<h2 class="d-inline-block text-truncate w-100">{{ instance|title}}</h2>
 <div class="table-responsive">
-<table class="table table-striped">
-  <thead>
-    <tr>
-      <th>When</th>
-      <th>Answer</th>
-      <th>Context Document(s)</th>
-      <th>Changed by</th>
-      <th>ID</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for entry in version_changes %}
+  <table class="table table-striped">
+    <thead>
       <tr>
-        {% if entry.changes %}
-          <td>{{ entry.version.history_date }}</td>
-
-          <!-- Column for Answer Text -->
-          <td>
-            {% for change in entry.changes %}
-              {% if change.field == "answer_text" %}
-              {{entry.answer_text_changes_html|safe}}
-              {% endif %}
-            {% endfor %}
-          </td>
-
-          <!-- Column for Answer Document -->
-          <td>
-            {% for change in entry.changes %}
-              {% if change.field == "answer_documents" %}
-                {{ change.new }}
-              {% endif %}
-            {% endfor %}
-          </td>
-
-          <td>{{ entry.version.history_user }}</td>
-          <td>{{ entry.version.history_id }}</td>
-        {% endif %}
+        <th>When</th>
+        <th>Answer</th>
+        <th>Context Document(s)</th>
+        <th>Changed by</th>
+        <th>ID</th>
       </tr>
-    {% endfor %}
-  </tbody>
-</table>
+    </thead>
+    <tbody>
+      {# Only render real change‑rows if there are any #}
+      {% if version_changes %}
+        {% for entry in version_changes %}
+          {% if entry.changes %}
+            <tr>
+              <td>{{ entry.version.history_date }}</td>
+
+              <!-- Answer Text Column -->
+              <td>
+                {% for change in entry.changes %}
+                  {% if change.field == "answer_text" %}
+                    {{ entry.answer_text_changes_html|safe }}
+                  {% endif %}
+                {% endfor %}
+              </td>
+
+              <!-- Answer Documents Column -->
+              <td>
+                {% for change in entry.changes %}
+                  {% if change.field == "answer_documents" %}
+                    {{ change.new }}
+                  {% endif %}
+                {% endfor %}
+              </td>
+
+              <td>{{ entry.version.history_user }}</td>
+              <td>{{ entry.version.history_id }}</td>
+            </tr>
+          {% endif %}
+        {% endfor %}
+      {% else %}
+        {# Fallback row when there are no version_changes at all #}
+        <tr>
+          <td colspan="5" class="text-center fst-italic text-muted">
+            Original version. No changes yet.
+          </td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  <div class="d-flex justify-content-end">
+    <span class="text-end">
+      ToxTemp question‑set version: {{ question_set_display_name }}
+    </span>
+  </div>
 </div>

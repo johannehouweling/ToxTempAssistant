@@ -35,6 +35,7 @@ from toxtempass.models import (
     Section,
     Subsection,
     Question,
+    QuestionSet,
     Person,
     Feedback,
 )
@@ -353,39 +354,105 @@ def orcid_signup(request: HttpRequest) -> HttpResponse | JsonResponse:
 
 
 @user_passes_test(is_admin)
-def init_db(request: HttpRequest):
-    """Populate database from ToxTemp.json."""
-    with (Path().cwd() / "ToxTemp.json").open() as f:
-        toxtemp = json.load(f)
-    if (
-        Section.objects.count() == 0
-        and Subsection.objects.count() == 0
-        and Question.objects.count() == 0
-    ):
-        with transaction.atomic():  # do all or none
-            for sec_dict in toxtemp["sections"]:
-                section = Section(title=sec_dict["title"])
-                section.save()
-                for question_dict in sec_dict["subsections"]:
-                    subsection = Subsection(
-                        section=section, title=question_dict["title"]
+def init_db(request: HttpRequest, label: str):
+    """Create a brand-new QuestionSet each time you upload."""
+    if not label:
+        return JsonResponse(
+            {
+                "message": (
+                    "Version label is required. "
+                    f"Call: {reverse('init_db', kwargs={'label': 'YOUR_LABEL'})}"
+                )
+            },
+            status=400,
+        )
+
+    if QuestionSet.objects.filter(label=label).exists():
+        return JsonResponse(
+            {"message": f"Version '{label}' already exists"}, status=400
+        )
+
+    # load JSON
+    path = Path().cwd() / f"ToxTemp_{label}.json"
+    try:
+        data = json.loads(path.read_text())
+    except FileNotFoundError:
+        return JsonResponse({"message": f"Could not find {path.name}"}, status=404)
+    except json.JSONDecodeError as e:
+        return JsonResponse({"message": f"JSON parse error: {e}"}, status=400)
+
+    pending_ctx = []  # will hold (Question, [context_title, ...])
+
+    with transaction.atomic():
+        qs = QuestionSet.objects.create(label=label, created_by=request.user)
+
+        # Phase 1: create everything and collect context titles
+        for sec in data.get("sections", []):
+            section = Section.objects.create(
+                question_set=qs,
+                title=sec.get("title", "").strip(),
+            )
+
+            for subsec in sec.get("subsections", []):
+                subsection = Subsection.objects.create(
+                    section=section,
+                    title=subsec.get("title", "").strip(),
+                )
+
+                # MAIN question
+                q = Question.objects.create(
+                    subsection=subsection,
+                    question_text=subsec.get("question", "").strip(),
+                    answer=subsec.get("answer", "").strip(),
+                    answering_round=subsec.get("answering_round", 1),
+                    additional_llm_instruction=subsec.get(
+                        "additional_llm_instruction", ""
+                    ).strip(),
+                    only_subsections_for_context=subsec.get(
+                        "only_subsections_for_context", False
+                    ),
+                )
+
+                # collect context‑titles for later resolution
+                raw_ctx = subsec.get("subsections_for_context_title", [])
+                ctx_list = [raw_ctx] if isinstance(raw_ctx, str) else list(raw_ctx)
+                if ctx_list:
+                    pending_ctx.append((q, ctx_list))
+
+                # SUBquestions
+                for sq in subsec.get("subquestions", []):
+                    subq = Question.objects.create(
+                        subsection=subsection,
+                        parent_question=q,
+                        question_text=sq.get("question", "").strip(),
+                        answer=sq.get("answer", "").strip(),
+                        answering_round=sq.get("answering_round", q.answering_round),
+                        additional_llm_instruction=sq.get(
+                            "additional_llm_instruction", ""
+                        ).strip(),
+                        only_subsections_for_context=sq.get(
+                            "only_subsections_for_context", False
+                        ),
                     )
-                    subsection.save()
-                    question = Question(
-                        subsection=subsection, question_text=question_dict["question"]
+
+                    raw_ctx_sq = sq.get("subsections_for_context_title", [])
+                    ctx_sq = (
+                        [raw_ctx_sq]
+                        if isinstance(raw_ctx_sq, str)
+                        else list(raw_ctx_sq)
                     )
-                    question.save()
-                    if "subquestions" in question_dict.keys():
-                        for subquest_dict in question_dict["subquestions"]:
-                            subquestion = Question(
-                                subsection=subsection,
-                                parent_question=question,
-                                question_text=subquest_dict["question"],
-                            )
-                            subquestion.save()
-        return JsonResponse(dict(message="Success"))
-    else:
-        return JsonResponse(dict(message="Database not empty"))
+                    if ctx_sq:
+                        pending_ctx.append((subq, ctx_sq))
+
+        # Phase 2: resolve all contexts
+        for question_obj, titles in pending_ctx:
+            # find matching subsections in this set
+            subs = Subsection.objects.filter(title__in=titles, section__question_set=qs)
+            question_obj.subsections_for_context.set(subs)
+
+    return JsonResponse(
+        {"message": f"QuestionSet '{label}' successfully created.", "version": label}
+    )
 
 
 def process_llm_async(
@@ -421,38 +488,52 @@ def process_llm_async(
             try:
                 response = chatopenai.invoke(messages)
                 if not hasattr(response, "content") or response.content is None:
-                    logger.warning(f"No content returned for answer ID {answer.id}. Response: {response}")
-                    return answer.id, ''
+                    logger.warning(
+                        f"No content returned for answer ID {answer.id}. Response: {response}"
+                    )
+                    return answer.id, ""
                 return answer.id, response.content
             except RateLimitError as e:
                 while True:
                     try:
                         wait_time = 5  # Default wait time
-                        if hasattr(e, 'response') and e.response is not None:
+                        if hasattr(e, "response") and e.response is not None:
                             try:
                                 err_json = e.response.json()
-                                suggested_wait = err_json.get('error', {}).get('message', '')
-                                match = re.search(r'try again in ([\d\.]+)s', suggested_wait)
+                                suggested_wait = err_json.get("error", {}).get(
+                                    "message", ""
+                                )
+                                match = re.search(
+                                    r"try again in ([\d\.]+)s", suggested_wait
+                                )
                                 if match:
                                     wait_time = float(match.group(1)) + 0.5  # buffer
                             except Exception:
                                 pass
-                        logger.warning(f"Rate limit hit for answer ID {answer.id}. Retrying in {wait_time} seconds.")
+                        logger.warning(
+                            f"Rate limit hit for answer ID {answer.id}. Retrying in {wait_time} seconds."
+                        )
                         time.sleep(wait_time)
                         response = chatopenai.invoke(messages)
                         if not hasattr(response, "content") or response.content is None:
-                            logger.warning(f"No content returned after retry for answer ID {answer.id}. Response: {response}")
-                            return answer.id, ''
+                            logger.warning(
+                                f"No content returned after retry for answer ID {answer.id}. Response: {response}"
+                            )
+                            return answer.id, ""
                         return answer.id, response.content
                     except RateLimitError as retry_e:
                         e = retry_e  # update for next loop iteration
                         continue
                     except Exception as retry_exception:
-                        logger.exception(f"Retry failed for answer ID {answer.id}: {retry_exception}")
-                        return answer.id, ''
+                        logger.exception(
+                            f"Retry failed for answer ID {answer.id}: {retry_exception}"
+                        )
+                        return answer.id, ""
             except Exception as e:
-                logger.exception(f"Failed to generate answer for answer ID {answer.id}: {e}")
-                return answer.id, ''
+                logger.exception(
+                    f"Failed to generate answer for answer ID {answer.id}: {e}"
+                )
+                return answer.id, ""
 
         with ThreadPoolExecutor(max_workers=config.max_workers_threading) as executor:
             futures = {
@@ -474,7 +555,7 @@ def process_llm_async(
                 try:
                     answer_id, draft = future.result()
                     answer = Answer.objects.get(id=answer_id)
-                    answer.answer_text = draft or ''
+                    answer.answer_text = draft or ""
                     answer.answer_documents = [Path(k).name for k in text_dict.keys()]
                     answer.save()
 
@@ -514,11 +595,11 @@ class AssayListView(SingleTableView):
 
 @user_passes_test(is_logged_in, login_url="/login/")
 def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
-    # ————————————————————————————————
+    # -------------------------------
     # GET: render the StartingForm, possibly using ?investigation=?, ?study=?, ?assay=?
-    # ————————————————————————————————
+    # -------------------------------
     if request.method == "GET":
-        # 2) Check for any query‐parameters to prefill the form
+        # 2) Check for any query-parameters to prefill the form
         inv_id = request.GET.get("investigation")
         st_id = request.GET.get("study")
         assay_id = request.GET.get("assay")
@@ -540,15 +621,17 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
             {"form": form},
         )
 
-    # ————————————————————————————————
+    # --------------------------------
     # POST: process the StartingForm and kick off the async task
-    # ————————————————————————————————
+    # --------------------------------
     if request.method == "POST":
         form = StartingForm(request.POST, user=request.user)
 
         if form.is_valid():
             assay = form.cleaned_data["assay"]
-
+            qs = form.cleaned_data["question_set"]
+            assay.question_set = qs
+            assay.save()
             # Security check: does the user still have view-permission on this Assay?
             if not assay.is_accessible_by(request.user, perm_prefix="view"):
                 from django.core.exceptions import PermissionDenied
@@ -841,7 +924,10 @@ def answer_assay_questions(request, assay_id):
         from django.core.exceptions import PermissionDenied
 
         raise PermissionDenied("You do not have permission to access this assay.")
-    sections = Section.objects.prefetch_related("subsections__questions").all()
+    # only the sections belonging to this assay's QuestionSet
+    sections = Section.objects.filter(question_set=assay.question_set).prefetch_related(
+        "subsections__questions"
+    )
     if request.method == "POST":
         form = AssayAnswerForm(
             request.POST, request.FILES, assay=assay, user=request.user
@@ -951,12 +1037,17 @@ def get_version_history(request, assay_id, question_id):
             )
         if changes and version_changes[-1]["changes"][0].field == "accepted":
             version_changes.pop(-1)
+
+    # ─── strip out any “versions” with no changes ───
+    version_changes = [entry for entry in version_changes if entry["changes"]]
+
     return render(
         request,
         "answer_extras/version_history_modal_body.html",
         {
             "version_changes": version_changes,
             "instance": answer,
+            "question_set_display_name": answer.question.subsection.section.question_set.__str__(),
         },
     )
 

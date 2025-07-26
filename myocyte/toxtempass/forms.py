@@ -4,7 +4,15 @@ from django import forms
 import logging
 from django.core.exceptions import PermissionDenied
 from guardian.shortcuts import get_objects_for_user
-from toxtempass.models import Investigation, Study, Assay, Question, Section, Answer
+from toxtempass.models import (
+    Investigation,
+    Study,
+    Assay,
+    Question,
+    Section,
+    Answer,
+    QuestionSet,
+)
 from toxtempass.widgets import (
     BootstrapSelectWithButtonsWidget,
 )  # Import the custom widget
@@ -120,6 +128,22 @@ class MultipleFileField(forms.FileField):
 
 
 class StartingForm(forms.Form):
+    question_set = forms.ModelChoiceField(
+        queryset=QuestionSet.objects.all(),
+        required=True,
+        help_text="Select the Question Set to use for this ToxTemp.",
+        widget=BootstrapSelectWithButtonsWidget(
+            button_url_names=[],
+            button_labels=[],
+            button_classes=[
+                "d-flex align-items-center btn btn-outline-secondary",
+                "d-flex align-items-center btn btn-outline-secondary disabled",
+                "d-flex align-items-center btn btn-outline-danger rounded-end disabled",
+            ],
+            label=QuestionSet._meta.verbose_name,  # Use the verbose name of the model
+        ),
+    )
+
     investigation = forms.ModelChoiceField(
         queryset=Investigation.objects.none(),  # default to none until filtered
         required=True,
@@ -166,7 +190,7 @@ class StartingForm(forms.Form):
         widget=MultipleFileInput(attrs={"multiple": True}),
         required=False,
         help_text=(
-            "Upload documents relevant to your test method to provide context for the LLM-generated answers. This is only possible during the first draft. Examples include publications, SOPs, protocols, certificates of analysis, cell line reports, data management plans, project proposals, lab journals, apparatus metadata, and regulatory guidance. Supported file types: PDF, TXT, MD, HTML, and DOCX. Support for additional formats (e.g., PNG, JPG) may be added in the future." 
+            "Upload documents relevant to your test method to provide context for the LLM-generated answers. This is only possible during the first draft. Examples include publications, SOPs, protocols, certificates of analysis, cell line reports, data management plans, project proposals, lab journals, apparatus metadata, and regulatory guidance. Supported file types: PDF, TXT, MD, HTML, and DOCX. Support for additional formats (e.g., PNG, JPG) may be added in the future."
         ),
     )
 
@@ -176,6 +200,10 @@ class StartingForm(forms.Form):
         """
         super().__init__(*args, **kwargs)
         if user is not None:
+            # Preselect the most recent QuestionSet by created_at
+            most_recent_qs = QuestionSet.objects.order_by("-created_at").first()
+            if most_recent_qs:
+                self.fields["question_set"].initial = most_recent_qs.pk
             # Filter Investigations to those for which the user has view access.
             accessible_investigations = get_objects_for_user(
                 user, "toxtempass.view_investigation"
@@ -274,8 +302,12 @@ class AssayAnswerForm(forms.Form):
             ),
         )
 
-        # Dynamically add fields for each question (assuming Sections, Subsections, and Questions are public)
-        sections = Section.objects.all().prefetch_related("subsections__questions")
+        qs = self.assay.question_set
+
+        # Dynamically add fields for each question in the question_set (assuming Sections, Subsections, and Questions are public)
+        sections = Section.objects.filter(question_set=qs).prefetch_related(
+            "subsections__questions"
+        )
         for section in sections:
             for subsection in section.subsections.all():
                 for question in subsection.questions.all():

@@ -24,7 +24,7 @@ from toxtempass import views
 urlpatterns = [
     path("admin/", admin.site.urls),
     path(
-        "init/", views.init_db
+        "init/<slug:label>", views.init_db, name="init_db"
     ),  # initializes database, meaning it creates the questions, subsections and sections.
 ]
 

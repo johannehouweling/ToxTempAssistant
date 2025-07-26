@@ -33,7 +33,7 @@ class AccessibleModel(models.Model):
         """
         return None
 
-    def is_accessible_by(self, user, perm_prefix="view"):
+    def is_accessible_by(self, user, perm_prefix="view") -> bool:
         """
         Check if a user has permission to access this object.
         The check is recursive: if the user does not have direct permission on
@@ -155,6 +155,45 @@ class Study(AccessibleModel):
         return self.investigation
 
 
+# To allow different Versions of ToxTempQuestions
+class QuestionSet(models.Model):
+    """
+    A named version of the entire question hierarchy.
+    """
+
+    label = models.CharField(max_length=10, unique=True, null=True)  # v1
+    display_name = models.CharField(max_length=50, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        Person,
+        on_delete=models.PROTECT,
+        related_name="questionsets",  # so you can do some_person.questionsets.all()
+    )
+
+    class Meta:
+        verbose_name = "ToxTemp Question Set Version"
+        verbose_name_plural = "ToxTemp Question Set Versions"
+
+    def __str__(self) -> str:
+        if self.display_name:
+            return f"{self.display_name} ({self.created_at.strftime('%b %Y')})"
+        elif self.label:
+            return f"{self.label} ({self.created_at.strftime('%b %Y')})"
+        else:
+            return f"Unnamed Question Set ({self.created_at.strftime('%b %Y')})"
+
+    def __expr__(self) -> str:
+        return f"QuestionSet(label={self.label}, display_name={self.display_name})"
+
+    def is_accessible_by(self, user, perm_prefix="view") -> bool:
+        # Always return True since questions are public.
+        return True
+
+    def display(self) -> str:
+        """Return a safe HTML representation of the question set."""
+        return self.display_name or self.label
+
+
 # Assay Model
 class Assay(AccessibleModel):
     study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name="assays")
@@ -165,6 +204,14 @@ class Assay(AccessibleModel):
         max_length=10,
         choices=LLMStatus.choices,
         default=LLMStatus.NONE,
+    )
+    question_set = models.ForeignKey(
+        QuestionSet,
+        on_delete=models.PROTECT,
+        related_name="assays",
+        blank=True,
+        null=True,
+        help_text="Which version of the questionnaire this assay is using",
     )
 
     def __str__(self):
@@ -216,10 +263,15 @@ class Assay(AccessibleModel):
 
 # Section, Subsection, and Question Models (fixed)
 class Section(AccessibleModel):
+    question_set = models.ForeignKey(
+        QuestionSet,
+        on_delete=models.CASCADE,
+        related_name="sections",
+    )
     title = models.CharField(max_length=255)
 
     def __str__(self):
-        return self.title
+        return self.title + f"({self.question_set.display()})"
 
     @property
     def all_answers_accepted(self) -> bool:
@@ -232,7 +284,7 @@ class Section(AccessibleModel):
         # Check if there are any answers and if all are accepted
         return answers.exists() and all(answer.accepted for answer in answers)
 
-    def is_accessible_by(self, user, perm_prefix="view"):
+    def is_accessible_by(self, user, perm_prefix="view") -> bool:
         # Always return True since questions are public.
         return True
 
@@ -244,7 +296,7 @@ class Subsection(AccessibleModel):
     title = models.CharField(max_length=255)
 
     def __str__(self):
-        return self.title
+        return self.title + f" ({self.section.question_set.display()})"
 
     @property
     def all_answers_accepted(self) -> bool:
@@ -257,7 +309,7 @@ class Subsection(AccessibleModel):
         # Check if there are any answers and if all are accepted
         return answers.exists() and all(answer.accepted for answer in answers)
 
-    def is_accessible_by(self, user, perm_prefix="view"):
+    def is_accessible_by(self, user, perm_prefix="view") -> bool:
         # Always return True since questions are public.
         return True
 
@@ -274,12 +326,32 @@ class Question(AccessibleModel):
         blank=True,
     )
     question_text = models.TextField()
+    subsections_for_context = models.ManyToManyField(
+        Subsection,
+        related_name="context_questions",
+        blank=True,
+        help_text="List of subsections that provide context for this question.",
+    )
+    only_subsections_for_context = models.BooleanField(
+        default=False,
+        help_text="If true, only answers from the subsections listed in subsections_for_context will be used to answer this question.",
+    )
+    answering_round = models.PositiveSmallIntegerField(
+        default=1,
+        help_text="Which round (1, 2, 3, ...) this question should be answered in.",
+    )
+    additional_llm_instruction = models.TextField(
+        blank=True,
+        default="",
+        help_text="Extra prompt instructions for the LLM when answering this question.",
+    )
+
     answer = models.TextField(blank=True)
 
     def __str__(self):
         return str(self.question_text)
 
-    def is_accessible_by(self, user, perm_prefix="view"):
+    def is_accessible_by(self, user, perm_prefix="view") -> bool:
         # Always return True since questions are public.
         return True
 

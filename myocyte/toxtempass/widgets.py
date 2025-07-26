@@ -16,6 +16,7 @@ class BootstrapSelectWithButtonsWidget(Select):
         button_url_names: list[str],
         button_labels: list[str] | None = None,
         button_classes: list[str] | None = None,
+        label: str | None = None,
         *args,
         **kwargs,
     ):
@@ -29,6 +30,7 @@ class BootstrapSelectWithButtonsWidget(Select):
             if button_classes
             else self.num_btns * [self.default_btn_class]
         )
+        self.label_override = label
         super().__init__(*args, **kwargs)
 
     def render(
@@ -38,14 +40,18 @@ class BootstrapSelectWithButtonsWidget(Select):
         attrs: dict[str, str] | None = None,
         renderer: BaseRenderer = None,
     ) -> SafeText:
-        # Get the HTML for the original select widget
+        attrs = attrs or {}
         select_html = super().render(name, value, attrs, renderer)
-        assert isinstance(
-            attrs, dict
-        )  # set internally with an id label so this is for mypy
+
+        # pick the label text: either override, or from attrs, or fallback to name.title()
+        label_text = (
+            self.label_override
+            or attrs.get("label")
+            or name.replace("_", " ").capitalize()
+        )
 
         buttons_html = []
-        for num, (button_url_name, button_label, button_class) in enumerate(
+        for num, (url_name, btn_label, btn_cls) in enumerate(
             zip(
                 self.button_url_names,
                 self.button_labels,
@@ -53,26 +59,20 @@ class BootstrapSelectWithButtonsWidget(Select):
                 strict=False,
             )
         ):
-            # Resolve the URL using the reverse function
-            if button_url_name:
-                button_url = reverse(button_url_name)
-            else:
-                button_url = ""
-
-            # Construct the button HTML
+            button_url = reverse(url_name) if url_name else ""
             buttons_html.append(
-                f'<a href="{button_url}" class="{button_class}" name="{name}_btn{num}"'
-                f' id="{attrs["id"]}_btn{num}" type="button">{button_label}</a>'
+                f'<a href="{button_url}" class="{btn_cls}" '
+                f'name="{name}_btn{num}" id="{attrs.get("id")}_btn{num}" '
+                f'type="button">{btn_label}</a>'
             )
 
-        # Construct the form-floating and input-group structure
         html = (
             '<div class="input-group">'
             '<div class="form-floating">'
             f"{select_html}"
-            f'<label for="{attrs["id"]}">{name.title()}</label>'
+            f'<label for="{attrs.get("id")}">{label_text}</label>'
             "</div>"
             f"{''.join(buttons_html)}"
             "</div>"
         )
-        return mark_safe(html)  # noqa: S308
+        return mark_safe(html)
