@@ -90,7 +90,6 @@ urlpatterns += [
         name="get_version_history",
     ),
 ]
-
 # Exports
 
 urlpatterns += [

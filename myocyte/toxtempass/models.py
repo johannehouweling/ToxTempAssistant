@@ -259,6 +259,13 @@ class Assay(AccessibleModel):
         return Answer.objects.filter(
             assay=self, answer_text__icontains=not_found_string
         ).count()
+        
+    @property
+    def is_saved(self) -> bool:
+        """
+        Returns True if this assay has at least one Answer row (i.e. it’s been seeded/saved).
+        """
+        return self.answers.exists()
 
 
 # Section, Subsection, and Question Models (fixed)
