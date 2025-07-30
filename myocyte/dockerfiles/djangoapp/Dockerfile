@@ -31,6 +31,8 @@ RUN apt-get update && apt-get upgrade -y && apt-get install --no-install-recomme
     python3 \
     python3-pip \
     python3-dev \
+    python3-venv \
+    python3-pipx \
     fontconfig \
     texlive-latex-base \
     texlive-science \
@@ -53,19 +55,13 @@ RUN mkdir -p $APP_HOME
 WORKDIR $APP_HOME
 
 # Install python dependencies 
-# 1. Upgrade pip and install pipx system-wide
-RUN python3 -m pip install --no-cache-dir --upgrade pip \
-    && python3 -m pip install --no-cache-dir pipx \
-    # ensure pipx’s shims directory is on PATH
-    && python3 -m pipx ensurepath
+# Expose pipx’s shims directory
+ENV PATH="/root/.local/bin:${PATH}"
 
-# 2. Make sure the shell can see pipx’s shims
-ENV PATH="${PATH}:/root/.local/bin"
-
-# 3. Use pipx to install Poetry into its own venv
+# Use pipx to install Poetry into its own venv
 RUN pipx install poetry
 
-# 4. Configure Poetry and install your dependencies
+# Configure Poetry and install dependencies
 RUN poetry config virtualenvs.create false \
     && poetry install --no-dev --no-interaction
 
