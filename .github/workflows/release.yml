@@ -1,7 +1,7 @@
 name: Release
 
 permissions:
-  contents: write
+  contents: write # allow pushing commits/tags
 
 on:
   workflow_run:
@@ -10,43 +10,32 @@ on:
 
 jobs:
   semantic-release:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
+          token: ${{ secrets.PA_TOKEN }}
           fetch-depth: 0
-          persist-credentials: false
-
-      - name: Start ssh-agent and load key
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.TAG_RELEASE_KEY }}
-
-      - name: Force SSH origin
-        run: git remote set-url origin git@github.com:johannehouweling/ToxTempAssistant.git
-
-      - name: Verify SSH key works
-        run: |
-          ssh -T -o StrictHostKeyChecking=no git@github.com || true
 
       - name: Set up Python
         uses: actions/setup-python@v5
-        with: { python-version: "3.10" }
+        with:
+          python-version: "3.10"
 
       - name: Install semantic-release
         run: |
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
           pip install "python-semantic-release[git]"
-
       - name: Configure git user
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Bump version & tag
-        run: semantic-release version
-
-      - name: Push bump commit & tags
+      - name: Release Version (bump/tag/changelog)
         run: |
-          git push origin HEAD:${{ github.event.workflow_run.head_branch }}
-          git push origin --tags
+          semantic-release version
