@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.0.4 (2025-07-30)
+
+### Bug Fixes
+
+- **ci**: Removed TAG env from docker
+  ([`2319d5c`](https://github.com/johannehouweling/ToxTempAssistant/commit/2319d5c5cd30058945060e4d7b9a7573ddd0629f))
+
+
 ## v1.0.3 (2025-07-30)
 
 
