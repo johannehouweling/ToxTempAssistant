@@ -7,7 +7,8 @@
           {
             "title": "1.1 Descriptive full-text title",
             "question": "Provide a descriptive title using normal language without technical terms or acronyms.",
-            "additional_llm_instruction":"", 
+            "additional_llm_instruction":"",
+            "only_additional_llm_instruction":false,
             "answer": ""
           },
           {
