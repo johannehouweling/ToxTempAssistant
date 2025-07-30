@@ -72,9 +72,6 @@ RUN mkdir -p $APP_HOME/logs && \
 ARG GIT_HASH
 ENV GIT_HASH=${GIT_HASH}
 
-ARG GIT_TAG
-ENV GIT_TAG=${GIT_TAG}
-
 # Copy license so it can be auto converted to html with pandoc in the next step
 COPY LICENSE $APP_HOME/toxtempass/templates/toxtempass/md_content/LICENSE.md
 # run the python script md to html of all files in the md_content folder
