@@ -40,4 +40,4 @@ jobs:
 
       - name: Publish Release (bump/tag/changelog)
         run: |
-          semantic-release --vv publish
+          semantic-release publish
