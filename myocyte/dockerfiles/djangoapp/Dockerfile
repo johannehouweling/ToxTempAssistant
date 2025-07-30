@@ -51,9 +51,6 @@ RUN apt-get update && apt-get upgrade -y && apt-get install --no-install-recomme
 RUN fc-cache -fv
 RUN luaotfload-tool --update --force
 
-RUN mkdir -p $APP_HOME
-WORKDIR $APP_HOME
-
 # Install python dependencies 
 # Expose pipx’s shims directory
 ENV PATH="/root/.local/bin:${PATH}"
@@ -61,10 +58,13 @@ ENV PATH="/root/.local/bin:${PATH}"
 # Use pipx to install Poetry into its own venv
 RUN pipx install poetry
 
+WORKDIR /home
 # Configure Poetry and install dependencies
 RUN poetry config virtualenvs.create false \
     && poetry install --no-dev --no-interaction
 
+RUN mkdir -p $APP_HOME
+WORKDIR $APP_HOME
 COPY myocyte/ $APP_HOME
 
 # setup folder strucutre
