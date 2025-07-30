@@ -1,0 +1,33 @@
+name: Release
+
+# Trigger after CI workflow completes successfully
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+jobs:
+  semantic-release:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python & Poetry
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry install --no-interaction --no-ansi
+
+      - name: Publish Release (bump/tag/changelog)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          poetry run semantic-release publish
