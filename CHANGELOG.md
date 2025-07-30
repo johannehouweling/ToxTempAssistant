@@ -2,6 +2,29 @@
 
 <!-- version list -->
 
+## v1.0.9 (2025-07-30)
+
+### Bug Fixes
+
+- **ci**: Keep credentials
+  ([`086e73f`](https://github.com/johannehouweling/ToxTempAssistant/commit/086e73f2a50002d078dc48f92864752c039ef505))
+
+- **ci**: Switch back to token
+  ([`c4bbeda`](https://github.com/johannehouweling/ToxTempAssistant/commit/c4bbeda22492e61681ffe3965c699e8a3bfbdf21))
+
+- **ci**: Use token
+  ([`5829818`](https://github.com/johannehouweling/ToxTempAssistant/commit/58298180a88265b89e99f20839ad7aa233fb6814))
+
+- **ci**: Use token
+  ([`8eae80e`](https://github.com/johannehouweling/ToxTempAssistant/commit/8eae80e7aff32824c0c49d693ce01c21ba92e50f))
+
+- **ci**: Use token test GITHUBTOKEN
+  ([`db53ce2`](https://github.com/johannehouweling/ToxTempAssistant/commit/db53ce209e4d2e39c752330021947d0192dd5198))
+
+- **docker**: Install poetry when in home dir
+  ([`b2a716d`](https://github.com/johannehouweling/ToxTempAssistant/commit/b2a716d100838a5abc7185ffd5d4735e125975f3))
+
+
 ## v1.0.8 (2025-07-30)
 
 ### Bug Fixes
