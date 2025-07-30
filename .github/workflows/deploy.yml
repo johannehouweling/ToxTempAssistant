@@ -17,6 +17,7 @@ jobs:
       - name: Install SSH key
         run: |
           mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
           echo "${{ secrets.GIT_ACTIONS }}" > ~/.ssh/github_action
           chmod 600 ~/.ssh/github_action
 
