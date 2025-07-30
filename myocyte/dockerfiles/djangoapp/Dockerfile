@@ -53,9 +53,20 @@ RUN mkdir -p $APP_HOME
 WORKDIR $APP_HOME
 
 # Install python dependencies 
-RUN python3 -m pip install --no-cache-dir --upgrade pip --user --break-system-packages \
-    && python3 -m pip install --no-cache-dir --user --break-system-packages poetry \
-    && poetry config virtualenvs.create false \
+# 1. Upgrade pip and install pipx system-wide
+RUN python3 -m pip install --no-cache-dir --upgrade pip \
+    && python3 -m pip install --no-cache-dir pipx \
+    # ensure pipx’s shims directory is on PATH
+    && python3 -m pipx ensurepath
+
+# 2. Make sure the shell can see pipx’s shims
+ENV PATH="${PATH}:/root/.local/bin"
+
+# 3. Use pipx to install Poetry into its own venv
+RUN pipx install poetry
+
+# 4. Configure Poetry and install your dependencies
+RUN poetry config virtualenvs.create false \
     && poetry install --no-dev --no-interaction
 
 COPY myocyte/ $APP_HOME
