@@ -53,9 +53,10 @@ RUN mkdir -p $APP_HOME
 WORKDIR $APP_HOME
 
 # Install python dependencies 
-COPY myocyte/requirements.txt $APP_HOME/requirements.txt
-RUN python3 -m pip install --no-cache-dir --upgrade pip  --user  --break-system-packages
-RUN python3 -m pip install --user --break-system-packages -r $APP_HOME/requirements.txt 
+RUN python3 -m pip install --no-cache-dir --upgrade pip --user --break-system-packages \
+    && python3 -m pip install --no-cache-dir --user --break-system-packages poetry \
+    && poetry config virtualenvs.create false \
+    && poetry install --no-dev --no-interaction
 
 COPY myocyte/ $APP_HOME
 
