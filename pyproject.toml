@@ -126,7 +126,7 @@ output_format = "md"
 
 [tool.semantic_release.remote]
 name = "origin"
-type = "git"
+type = "github"
 ignore_token_for_push = true
 insecure = false
 
