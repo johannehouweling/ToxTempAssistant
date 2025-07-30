@@ -121,6 +121,9 @@ branch = "main"
 changelog_file = "CHANGELOG.md"
 update_changelog = true
 
+[tool.semantic_release.remote.token]
+env = "GITHUB_TOKEN"
+
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"

@@ -36,11 +36,6 @@ jobs:
           pip install poetry
           poetry install --no-interaction --no-ansi --extras dev
 
-      - name: Debug GITHUB_TOKEN
-        run: |
-          echo "Is GITHUB_TOKEN non‑empty? -> '${GITHUB_TOKEN:+yes}'"
-          # this should print "yes"
-
       - name: Publish Release (bump/tag/changelog)
         run: |
           poetry run semantic-release publish
