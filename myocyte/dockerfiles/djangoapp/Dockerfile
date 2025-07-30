@@ -32,7 +32,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install --no-install-recomme
     python3-pip \
     python3-dev \
     python3-venv \
-    python3-pipx \
+    pipx \
     fontconfig \
     texlive-latex-base \
     texlive-science \
