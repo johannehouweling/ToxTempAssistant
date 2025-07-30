@@ -1,8 +1,10 @@
 name: Deploy
 
 on:
-  release:
-    types: [published]
+  push:
+    # fire whenever any semantic‐release tag (e.g. v0.10.0) is pushed
+    tags:
+      - "v*"
 
 jobs:
   deploy:
