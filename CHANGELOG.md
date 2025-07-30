@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.0.6 (2025-07-30)
+
+### Bug Fixes
+
+- **docker**: Poerty install
+  ([`50efa47`](https://github.com/johannehouweling/ToxTempAssistant/commit/50efa473b64b6455b8508623e64c69cf1621729d))
+
+
 ## v1.0.5 (2025-07-30)
 
 ### Bug Fixes
