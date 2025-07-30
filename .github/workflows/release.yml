@@ -38,6 +38,6 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Publish Release (bump/tag/changelog)
+      - name: Release Version (bump/tag/changelog)
         run: |
-          semantic-release publish
+          semantic-release version
