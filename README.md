@@ -1,10 +1,10 @@
-# ToxTempAssistantApp
+# ToxTempAssistant
 LLM based web-app to assist users in drafting an annotated toxicity test method template (ToxTemp).
 
 ToxTemp "was developed (i) to fulfill all requirements of GD211, (ii) to guide the user concerning the types of answers and detail of information required, (iii) >to include acceptance criteria for test elements, and (iv) to define the cells sufficiently and transparently." [1]
 
 ## TOC
-- [ToxTempAssistantApp](#toxtempassistantapp)
+- [ToxTempAssistant](#toxtempassistant)
   - [TOC](#toc)
   - [Spin up server with docker](#spin-up-server-with-docker)
     - [Get OpenAI API credentials](#get-openai-api-credentials)
@@ -41,15 +41,15 @@ docker compose -f docker-compose.yml up
 ### Get OpenAI API credentials
 https://platform.openai.com/api-keys
 
-### Get Orcid iD credentials
-To obtain orcid id and secret perform the following steps:
-- login to personal or instutional orcid
+### Get ORCID iD credentials
+To obtain ORCID iD and secret perform the following steps:
+- login to personal or institutional orcid
 - then click on user-settings -> Developper Tools 
 - Confirm Terms of Servicen and click 'Register for your ORCID Public API credentials'
 - Fill in Application Name, Application URL, Application Description and Redirect URIs
 - Application Name: ToxTempAssistant
 - Application URL: URL e.g. https://toxtempass.mainlvldomain.nl
-- Application Description (suggestion): ToxTemp, "an annotated toxicity test method template was developed (i) to fulfill all requirements of GD211, (ii) to guide the user concerning the types of answers and detail of information required, (iii) >to include acceptance criteria for test elements, and (iv) to define the cells sufficiently and transparently." (dx.doi.org/10.14573/altex.1909271)
+- Application Description (suggestion): ToxTemp, "an annotated toxicity test method template was developed (i) to fulfill all requirements of GD211, (ii) to guide the user concerning the types of answers and detail of information required, (iii) >to include acceptance criteria for test elements, and (iv) to define the cells sufficiently and transparently." (doi.org/10.14573/altex.1909271)
 - Redirect URI: URL/orcid/callback/ e.g. https://toxtempass.mailvldomain.nl/orcid/callback/
    
 ### Create Certificate
