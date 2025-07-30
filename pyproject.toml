@@ -124,16 +124,9 @@ version_toml = ["pyproject.toml:project.version"]
 changelog_file = "CHANGELOG.md"
 output_format = "md"
 
-[tool.semantic_release.remote]
-name = "origin"
-type = "github"
-ignore_token_for_push = true
-insecure = false
-
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
-
 
 [tool.pytest.ini_options]
 # tells pytest-django where to find your settings
