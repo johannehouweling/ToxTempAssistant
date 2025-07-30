@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.0.5 (2025-07-30)
+
+### Bug Fixes
+
+- **model**: Make created_by optional for question_set
+  ([`ed1e326`](https://github.com/johannehouweling/ToxTempAssistant/commit/ed1e326b58866869136ad007bbd0c1531ac7acab))
+
+
 ## v1.0.4 (2025-07-30)
 
 ### Bug Fixes
