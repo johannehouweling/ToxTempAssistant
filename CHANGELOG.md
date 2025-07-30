@@ -2,6 +2,35 @@
 
 <!-- version list -->
 
+## v1.0.2 (2025-07-30)
+
+### Bug Fixes
+
+- **ci**: Debug
+  ([`073de1c`](https://github.com/johannehouweling/ToxTempAssistant/commit/073de1c0e7456973b4fa0a45f31949e36812d60b))
+
+- **ci**: Debug
+  ([`29bc074`](https://github.com/johannehouweling/ToxTempAssistant/commit/29bc07487b6596fadfb3ebc1177d15149a14d323))
+
+- **ci**: Debug sshkey for semantic release
+  ([`19d4f72`](https://github.com/johannehouweling/ToxTempAssistant/commit/19d4f72e082cecc26ba7da98c564d891e03a10f4))
+
+- **ci**: Push version in ssh-agent
+  ([`d0e5d00`](https://github.com/johannehouweling/ToxTempAssistant/commit/d0e5d00d2d3688667e82d5b12c56ebacba1c49ad))
+
+- **ci**: Try again with ssh
+  ([`579a2b3`](https://github.com/johannehouweling/ToxTempAssistant/commit/579a2b31aa7efbeae45096fb1b87ae1aa0fd1533))
+
+- **ci**: Type github
+  ([`3c6a484`](https://github.com/johannehouweling/ToxTempAssistant/commit/3c6a4849f100598020ac06fad19ab48afbb8fb25))
+
+- **ci**: Use consistent key
+  ([`3efa239`](https://github.com/johannehouweling/ToxTempAssistant/commit/3efa239a2597ae40bdceab0c2fcad713c79aa395))
+
+- **ci**: Use SSH instead of token
+  ([`3b3674f`](https://github.com/johannehouweling/ToxTempAssistant/commit/3b3674ffde3a67ddafd8e3a6576679554021b4c8))
+
+
 ## v1.0.1 (2025-07-30)
 
 
