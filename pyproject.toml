@@ -116,11 +116,11 @@ package-mode = false
 
 
 [tool.semantic_release]
-version_source = "tag"
 branch = "main"
 changelog_file = "CHANGELOG.md"
 update_changelog = true
 allow_zero_version = true
+version_toml = ["pyproject.toml:project.version"]
 
 
 [tool.semantic_release.remote.token]

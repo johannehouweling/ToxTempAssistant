@@ -1,7 +1,7 @@
 name: Release
 
 permissions:
-  contents: write
+  contents: write # allow pushing commits/tags
 
 on:
   workflow_run:
@@ -13,6 +13,9 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -20,12 +23,16 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - name: Semantic Release
-        uses: cycjimmy/semantic-release-action@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          # these plugins will generate/update CHANGELOG.md and push the updated files + tag
-          extra_plugins: |
-            @semantic-release/changelog@6
-            @semantic-release/git@10
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          python-version: "3.10"
+
+      - name: Install semantic-release
+        run: |
+          python -m pip install --upgrade pip
+          pip install "python-semantic-release[git]"
+
+      - name: Publish Release (bump/tag/changelog)
+        run: |
+          semantic-release publish
