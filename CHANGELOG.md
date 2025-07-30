@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.0.7 (2025-07-30)
+
+### Bug Fixes
+
+- **docker**: Poetry install
+  ([`8fcf54a`](https://github.com/johannehouweling/ToxTempAssistant/commit/8fcf54ad640147c4ac5e368136e2bea174ed3cd1))
+
+
 ## v1.0.6 (2025-07-30)
 
 ### Bug Fixes
