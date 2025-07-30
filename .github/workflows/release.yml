@@ -26,6 +26,6 @@ jobs:
           # these plugins will generate/update CHANGELOG.md and push the updated files + tag
           extra_plugins: |
             @semantic-release/changelog@6
-            @semantic-release/git@6
+            @semantic-release/git@10
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
