@@ -1,7 +1,7 @@
 name: Release
 
 permissions:
-  contents: write # allow pushing commits/tags
+  contents: write
 
 on:
   workflow_run:
@@ -13,15 +13,23 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+    # You don't need GITHUB_TOKEN at all when pushing over SSH
     steps:
-      - name: Checkout code
+      - name: Checkout code over SSH
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # Use your deploy key (private key) stored as a secret
+          ssh-key: ${{ secrets.TAG_RELEASE_KEY }}
+          # Ensure the default HTTPS credential helper is disabled
+          persist-credentials: false
           fetch-depth: 0
+
+      - name: Set up known_hosts for GitHub
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -38,6 +46,10 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Release Version (bump/tag/changelog)
+      - name: Bump version & tag
+        run: semantic-release version
+
+      - name: Push bump commit & tags
         run: |
-          semantic-release version
+          git push origin ${{ github.event.workflow_run.head_branch }}
+          git push origin --tags

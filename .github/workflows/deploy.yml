@@ -24,7 +24,7 @@ jobs:
           chmod 600 ~/.ssh/github_action
 
       - name: Extract tag name
-        run: echo "TAG=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
+        run: echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
       - name: Deploy to server
         uses: appleboy/ssh-action@v1
