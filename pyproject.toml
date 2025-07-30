@@ -120,6 +120,8 @@ version_source = "tag"
 branch = "main"
 changelog_file = "CHANGELOG.md"
 update_changelog = true
+allow_zero_version = true
+
 
 [tool.semantic_release.remote.token]
 env = "GITHUB_TOKEN"
