@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.0.8 (2025-07-30)
+
+### Bug Fixes
+
+- **docker**: Pipx install
+  ([`c22df79`](https://github.com/johannehouweling/ToxTempAssistant/commit/c22df79f70f7fcd04241238562771772b8703882))
+
+
 ## v1.0.7 (2025-07-30)
 
 ### Bug Fixes
