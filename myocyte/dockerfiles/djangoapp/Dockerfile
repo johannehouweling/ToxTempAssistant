@@ -2,11 +2,10 @@ FROM ubuntu:24.04
 
 LABEL maintainer="Jente M Houweling"
 LABEL affiliation="RIVM - National Institute for Public Health and the Environment,\
-UM - Maastricht University"
+    UM - Maastricht University"
 LABEL email="Jente.Houweling@rivm.nl"
 LABEL developer="Matthias ML Arras"
-LABEL version="0.7.0"
-LABEL last_update="2025-06-01"
+ARG VERSION
 # Add more stuff here if needed
 
 
@@ -24,7 +23,7 @@ ENV PYTHONUNBUFFERED=1
 ENV DEBUG=False
 
 # Update and upgrade and install python and pip and pandoc
-RUN apt-get update && apt-get upgrade -y && apt-get install --no-install-recommends -y \ 
+RUN apt-get update && apt-get upgrade -y && apt-get install --no-install-recommends -y \
     gcc \
     gunicorn \
     netcat-openbsd \ 
@@ -49,7 +48,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install --no-install-recomme
 # refresh lualatex font directories
 RUN fc-cache -fv
 RUN luaotfload-tool --update --force
-    
+
 RUN mkdir -p $APP_HOME
 WORKDIR $APP_HOME
 
@@ -73,6 +72,9 @@ RUN mkdir -p $APP_HOME/logs && \
 ARG GIT_HASH
 ENV GIT_HASH=${GIT_HASH}
 
+ARG GIT_TAG
+ENV GIT_TAG=${GIT_TAG}
+
 # Copy license so it can be auto converted to html with pandoc in the next step
 COPY LICENSE $APP_HOME/toxtempass/templates/toxtempass/md_content/LICENSE.md
 # run the python script md to html of all files in the md_content folder
@@ -82,3 +84,5 @@ RUN chmod +x $APP_HOME/django_startup.sh && chown root:root $APP_HOME/django_sta
 # Switch to the non-root user
 USER root
 ENTRYPOINT ["/home/myocyte/django_startup.sh"]
+
+LABEL version="${VERSION}"

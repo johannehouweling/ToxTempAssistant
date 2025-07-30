@@ -15,13 +15,14 @@ services:
       - db_data:/var/lib/postgresql/data
   # Django app
   djangoapp:
-    build: 
+    build:
       context: .
       dockerfile: myocyte/dockerfiles/djangoapp/Dockerfile
       args:
         # Copy the GIT_HASH from the environment variable or use the current git commit hash
         # defined in github action
         GIT_HASH: "${TOXTEMPASS_GIT_HASH}"
+        GIT_TAG: "${TOXTEMPASS_TAG}"
     user: root
     container_name: djangoapp
     restart: unless-stopped

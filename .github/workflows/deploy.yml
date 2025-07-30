@@ -23,8 +23,11 @@ jobs:
           echo "${{ secrets.GIT_ACTIONS }}" > ~/.ssh/github_action
           chmod 600 ~/.ssh/github_action
 
-      - name: Extract tag name
-        run: echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+      - name: Extract tag name and version
+        run: |
+          echo "TAG=${GITHUB_REF##*/}" >> $GITHUB_ENV
+          VERSION=$(grep -m1 '^version' pyproject.toml | cut -d '"' -f2)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Deploy to server
         uses: appleboy/ssh-action@v1
@@ -35,8 +38,9 @@ jobs:
           script: |
             cd "${{ vars.REMOTE_SERVER_PATH }}"
             # make sure the tag is present locally
+            git pull origin main
             git fetch --tags
-            git checkout "$TAG"
+            git checkout "${TAG}"
             # inject both hash and tag into the environment for Docker Compose
             GIT_HASH=$(git rev-parse HEAD)
-            sudo TOXTEMPASS_GIT_HASH=$GIT_HASH TOXTEMPASS_TAG="$TAG" docker compose up --build -d
+            sudo TOXTEMPASS_GIT_HASH=$GIT_HASH TOXTEMPASS_TAG=$TAG docker compose up --build -d
