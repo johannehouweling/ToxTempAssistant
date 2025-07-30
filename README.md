@@ -13,6 +13,8 @@ ToxTemp "was developed (i) to fulfill all requirements of GD211, (ii) to guide t
   - [License](#license)
   - [Maintainer](#maintainer)
   - [References](#references)
+  - [Contribute](#contribute)
+    - [Poetry](#poetry)
 
 ## Spin up server with docker
 We work with a `.env` file to store mission critical information and setups. These need to be set to match your local environment. In addition, please revise `myocyte/dockerfiles/nginx/nginx.conf` to the settings needed for your specific setup.
@@ -65,3 +67,9 @@ This project is licensed under the GNU Affero General Public License, see the LI
 ## References
 [1]: Krebs, Alice, et al. "Template for the description of cell-based toxicological test methods to allow evaluation and regulatory use of the data." ALTEX-Alternatives to animal experimentation 36.4 (2019): 682-699. https://dx.doi.org/10.14573/altex.1909271
 
+## Contribute
+We use `poetry`, `ruff` and [conventionalcommits](https://www.conventionalcommits.org/en/v1.0.0/).
+
+### Poetry
+This project uses poetry as package manager, install poetry via `conda install conda-forge::pipx` + `pipx ensurepath` + `pipx install poetry` 
+Use `poetry update` inside of venv to create a new poetry lock and bring python packages up to date. No longer requires a `pip install -r requirements.txt` command.
