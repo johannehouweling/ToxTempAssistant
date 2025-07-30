@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.0.10 (2025-07-30)
+
+### Bug Fixes
+
+- **ci**: Switch to PA TOKEN
+  ([`d46fa92`](https://github.com/johannehouweling/ToxTempAssistant/commit/d46fa92637c374747bca25a56570ec330f334fc1))
+
+
 ## v1.0.9 (2025-07-30)
 
 ### Bug Fixes
