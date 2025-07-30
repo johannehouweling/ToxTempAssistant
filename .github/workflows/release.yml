@@ -19,17 +19,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           # Use your deploy key (private key) stored as a secret
-          ssh-key: ${{ secrets.GIT_ACTIONS }}
+          ssh-key: ${{ secrets.TAG_RELEASE_KEY }}
           # Ensure the default HTTPS credential helper is disabled
           persist-credentials: false
           fetch-depth: 0
-
-      - name: Set up known_hosts for GitHub
-        run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          echo "${{ secrets.GIT_ACTIONS }}" > ~/.ssh/github_action
-          chmod 600 ~/.ssh/known_hosts
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -45,6 +38,12 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Set up SSH known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
 
       - name: Bump version & tag
         run: semantic-release version
