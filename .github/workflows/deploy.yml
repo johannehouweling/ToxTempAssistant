@@ -1,0 +1,39 @@
+name: Deploy
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          # we need full history & tags to checkout the correct tag
+          fetch-depth: 0
+
+      - name: Install SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.GIT_ACTIONS }}" > ~/.ssh/github_action
+          chmod 600 ~/.ssh/github_action
+
+      - name: Extract tag name
+        run: echo "TAG=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ vars.REMOTE_SERVER_ADDRESS }}
+          username: ${{ vars.REMOTE_SERVER_USERNAME }}
+          key_path: /home/runner/.ssh/github_action
+          script: |
+            cd "${{ vars.REMOTE_SERVER_PATH }}"
+            # make sure the tag is present locally
+            git fetch --tags
+            git checkout "$TAG"
+            # inject both hash and tag into the environment for Docker Compose
+            GIT_HASH=$(git rev-parse HEAD)
+            sudo TOXTEMPASS_GIT_HASH=$GIT_HASH TOXTEMPASS_TAG="$TAG" docker compose up --build -d
