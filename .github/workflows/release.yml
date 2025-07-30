@@ -33,6 +33,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install "python-semantic-release[git]"
 
+      - name: Configure git user
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: Publish Release (bump/tag/changelog)
         run: |
           semantic-release --vv publish
