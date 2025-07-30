@@ -168,6 +168,9 @@ class QuestionSet(models.Model):
         Person,
         on_delete=models.PROTECT,
         related_name="questionsets",  # so you can do some_person.questionsets.all()
+        null=True,
+        blank=False,
+        help_text="The user who created this question set version.",
     )
 
     class Meta:

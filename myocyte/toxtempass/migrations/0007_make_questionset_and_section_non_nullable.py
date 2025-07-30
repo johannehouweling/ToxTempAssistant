@@ -27,7 +27,7 @@ class Migration(migrations.Migration):
                 to=settings.AUTH_USER_MODEL,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="questionsets",
-                null=False,
+                null=True,
             ),
         ),
         migrations.AlterField(
