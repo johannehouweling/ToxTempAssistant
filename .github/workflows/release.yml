@@ -22,6 +22,7 @@ jobs:
         with:
           token: ${{ secrets.PA_TOKEN }}
           fetch-depth: 0
+          persist-credentials: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
