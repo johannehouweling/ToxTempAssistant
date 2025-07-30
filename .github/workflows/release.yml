@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
 
     steps:
       - name: Checkout code
@@ -38,6 +38,6 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
       - name: Release Version (bump/tag/changelog)
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
         run: |
           semantic-release version
