@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           # Use your deploy key (private key) stored as a secret
-          ssh-key: ${{ secrets.TAG_RELEASE_KEY }}
+          ssh-key: ${{ secrets.GIT_ACTIONS }}
           # Ensure the default HTTPS credential helper is disabled
           persist-credentials: false
           fetch-depth: 0
@@ -28,7 +28,7 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          echo "${{ secrets.GIT_ACTIONS }}" > ~/.ssh/github_action
           chmod 600 ~/.ssh/known_hosts
 
       - name: Set up Python
