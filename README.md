@@ -8,13 +8,14 @@ ToxTemp "was developed (i) to fulfill all requirements of GD211, (ii) to guide t
   - [TOC](#toc)
   - [Spin up server with docker](#spin-up-server-with-docker)
     - [Get OpenAI API credentials](#get-openai-api-credentials)
-    - [Get Orcid iD credentials](#get-orcid-id-credentials)
+    - [Get ORCID iD credentials](#get-orcid-id-credentials)
     - [Create Certificate](#create-certificate)
   - [License](#license)
   - [Maintainer](#maintainer)
   - [References](#references)
   - [Contribute](#contribute)
     - [Poetry](#poetry)
+    - [Testing](#testing)
 
 ## Spin up server with docker
 We work with a `.env` file to store mission critical information and setups. These need to be set to match your local environment. In addition, please revise `myocyte/dockerfiles/nginx/nginx.conf` to the settings needed for your specific setup.
@@ -73,3 +74,6 @@ We use `poetry`, `ruff` and [conventionalcommits](https://www.conventionalcommit
 ### Poetry
 This project uses poetry as package manager, install poetry via `conda install conda-forge::pipx` + `pipx ensurepath` + `pipx install poetry` 
 Use `poetry update` inside of venv to create a new poetry lock and bring python packages up to date. No longer requires a `pip install -r requirements.txt` command.
+
+### Testing
+We use `factory_boy` and `Faker` and emphermal database settings for testing. To this end we also use poetry shell, can be installed via  `pipx inject poetry poetry-plugin-shell`.
