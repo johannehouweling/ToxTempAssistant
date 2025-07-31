@@ -14,29 +14,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python & Poetry
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
+      - name: Set up Docker
+        uses: docker/setup-docker@v4
 
       - name: Build and Test in Docker
         run: |
-          docker-compose up --abort-on-container-exit --exit-code-from djangoapp
+          echo "🔨 Starting Docker compose tests..."
+          if docker-compose up --abort-on-container-exit --exit-code-from djangoapp; then
+            echo "✅ Tests passed!"
+            exit 0
+          else
+            echo "❌ Tests failed!"
+            exit 1
+          fi
         env:
           TESTING: "true"
 
       - name: Upload test results
+        if: always() # ensures artifacts are uploaded even on failure
         uses: actions/upload-artifact@v4
         with:
           name: test-results
           path: myocyte/tmp/test-results/
-
-      # - name: Install dependencies
-      #   run: |
-      #     python -m pip install --upgrade pip
-      #     pip install poetry
-      #     poetry install --no-interaction --no-ansi
-
-      - name: Skip tests (no tests yet)
-        run: |
-          echo "🚧 No tests present — skipping test step"
