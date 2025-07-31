@@ -57,7 +57,7 @@ echo "--------------------------------"
 if [ "$TESTING" = "true" ]; then
   echo "Running tests because TESTING is true"
   export DJANGO_SETTINGS_MODULE=myocyte.settings
-  pytest -v --junitxml=/tmp/test-results/results.xml --cov=toxtempass --cov-report=xml:/tmp/test-results/coverage.xml
+  pytest -v --junitxml=/home/myocte/test-results/results.xml --cov=toxtempass --cov-report=xml:/home/myocte/test-results/coverage.xml
   exit $?
 fi
 
