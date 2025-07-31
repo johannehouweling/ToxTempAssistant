@@ -37,3 +37,7 @@ data_analysis/
 
 # temp file
 change_toxtemp.md
+
+# testings
+.coverage
+.coverage.*
