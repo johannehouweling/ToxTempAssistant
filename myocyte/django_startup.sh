@@ -53,7 +53,7 @@ sleep 0.1
 
 if [ "$TESTING" = "true" ]; then
   echo "Running tests because TESTING is true"
-  export DJANGO_SETTINGS_MODULE=toxtempass.mycote.settings
+  export DJANGO_SETTINGS_MODULE=myocyte.settings
   pytest -v --junitxml=/tmp/test-results/results.xml --cov=toxtempass --cov-report=xml:/tmp/test-results/coverage.xml
   exit $?
 fi
