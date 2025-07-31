@@ -54,23 +54,21 @@ RUN luaotfload-tool --update --force
 # Expose pipx’s shims directory
 ENV PATH="/root/.local/bin:${PATH}"
 
+
+# 1) Tell Poetry to create a .venv inside your app folder
+ENV POETRY_VIRTUALENVS_CREATE=true \
+    POETRY_VIRTUALENVS_IN_PROJECT=true
+
+WORKDIR /home
+COPY pyproject.toml poetry.lock ./
+
+# 2) Install into that in-project venv
+RUN poetry install --no-interaction ${TESTING:+--with dev}
 # Use pipx to install Poetry into its own venv
 RUN pipx install poetry
 
-WORKDIR /home
-
-# bring in just the lockfiles (so that Docker can cache this layer)
-COPY pyproject.toml poetry.lock ./
-
-# Configure Poetry and install dependencies
-# 3) install deps, conditionally including dev
-ARG TESTING=false
-ENV TESTING=${TESTING}
-RUN if [ "$TESTING" = "true" ]; then \
-    poetry install --no-interaction; \
-    else \
-    poetry install --no-interaction --without dev; \
-    fi
+# This is needed to ensure that the virtual environment is used by default
+ENV PATH="/home/.venv/bin:${PATH}"
 
 RUN mkdir -p $APP_HOME
 WORKDIR $APP_HOME
