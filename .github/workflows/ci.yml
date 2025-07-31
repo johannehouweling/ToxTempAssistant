@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Docker
-        uses: docker/setup-docker-action@v4
+        uses: docker/setup-docker@v4
 
       - name: Build and Test in Docker
         run: |
@@ -27,12 +27,21 @@ jobs:
             echo "❌ Tests failed!"
             exit 1
           fi
+
+          # Figure out which container ran djangoapp
+          CONTAINER_ID=$(docker compose ps -q djangoapp)
+          echo "📦 Copying test-results from container $CONTAINER_ID …"
+          mkdir -p test-results
+          docker cp "$CONTAINER_ID":/tmp/test-results/. ./test-results/ || echo "⚠️ No test-results directory found in the container."
+
+          # Exit with the original pytest exit code so the job still fails if tests failed
+          exit $code
         env:
           TESTING: "true"
 
       - name: Upload test results
-        if: always() # ensures artifacts are uploaded even on failure
+        if: always() # even on failure
         uses: actions/upload-artifact@v4
         with:
           name: test-results
-          path: myocyte/tmp/test-results/
+          path: test-results/
