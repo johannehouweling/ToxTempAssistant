@@ -61,6 +61,7 @@ ENV PATH="/root/.local/bin:${PATH}"
 RUN pipx install poetry
 
 ENV TESTING=${TESTING:-false}
+ARG TESTING=${TESTING:-false}
 # Print to sdtout for debugging purposes Testing
 RUN echo "Testing mode is set to: ${TESTING}"
 

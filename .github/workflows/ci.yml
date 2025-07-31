@@ -18,11 +18,9 @@ jobs:
         uses: docker/setup-docker-action@v4
 
       - name: Build Docker image
-        env:
-          TESTING: "true"
         run: |
           GIT_HASH=$(git rev-parse HEAD)
-          docker compose build --build-arg TESTING=${{ env.TESTING }} --build-arg TOXTEMPASS_GIT_HASH=$GIT_HASH
+          docker compose build --build-arg TESTING=true --build-arg TOXTEMPASS_GIT_HASH=$GIT_HASH
 
       - name: Test in Docker
         run: |
