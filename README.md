@@ -76,4 +76,21 @@ This project uses poetry as package manager, install poetry via `conda install c
 Use `poetry update` inside of venv to create a new poetry lock and bring python packages up to date. No longer requires a `pip install -r requirements.txt` command.
 
 ### Testing
-We use `factory_boy` and `Faker` and emphermal database settings for testing. To this end we also use poetry shell, can be installed via  `pipx inject poetry poetry-plugin-shell`.
+We use `factory_boy` and `Faker` and emphermal database settings for testing. To this end we also use 
+
+on unix
+```shell
+cd myocyte
+export DJANGO_SETTINGS_MODULE=myocyte.settings  
+poetry run pytest
+```
+
+on pwsh:
+```powershell
+cd myocyte
+$env:DJANGO_SETTINGS_MODULE="myocyte.settings"
+poetry run pytest
+```
+
+The testing is done automatically via github_actions inside the docker to stay as close to production as possible. 
+Only if all tests success will github proceed to release and rebuild the new version on the server. 
