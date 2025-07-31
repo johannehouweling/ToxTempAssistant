@@ -60,8 +60,8 @@ ENV PATH="/root/.local/bin:${PATH}"
 # Use pipx to install Poetry into its own venv
 RUN pipx install poetry
 
-ENV TESTING=${TESTING:-false}
 ARG TESTING=${TESTING:-false}
+ENV TESTING=${TESTING:-false}
 # Print to sdtout for debugging purposes Testing
 RUN echo "Testing mode is set to: ${TESTING}"
 
@@ -71,7 +71,7 @@ COPY pyproject.toml poetry.lock ./
 # 2) Install into that in-project venv
 RUN if [ "$TESTING" = "true" ]; then \
     echo "🧪 TESTING mode: installing ALL deps (incl. dev)"; \
-    poetry install --no-interaction; \
+    poetry install --no-interaction --with dev; \
     else \
     echo "🚀 Production mode: installing only main deps"; \
     poetry install --no-interaction --without dev; \
