@@ -51,6 +51,11 @@ echo ">>> Run clustering tool in background"
 python3 manage.py qcluster &
 sleep 0.1
 
+echo "--- ENVIRONMENT AT STARTUP ---"
+env | sort
+echo "--------------------------------"
+
+
 if [ "$TESTING" = "true" ]; then
   echo "Running tests because TESTING is true"
   export DJANGO_SETTINGS_MODULE=myocyte.settings
