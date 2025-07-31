@@ -6,7 +6,7 @@ services:
     container_name: postgres_for_django
     restart: unless-stopped
     env_file:
-      - ./.env
+      - ${ENV_FILE:-./.env}
     expose:
       - 5432
     networks:
@@ -19,7 +19,7 @@ services:
     container_name: postgres_test_for_django
     restart: unless-stopped
     env_file:
-      - ./.env
+      - ${ENV_FILE:-./.env} # Use ENV ENV_FILE to .env.dummy for testing to run properly
     expose:
       - 5432
     networks:
@@ -48,7 +48,7 @@ services:
       - postgres_for_django
       - postgres_test_for_django
     env_file:
-      - ./.env
+      - ${ENV_FILE:-./.env}
     networks:
       - db_network
       - web_network

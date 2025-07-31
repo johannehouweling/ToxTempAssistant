@@ -38,6 +38,8 @@ jobs:
           exit $code
         env:
           TESTING: "true"
+          ENV_FILE: .env.dummy # Use dummy env for testing
+          # OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }} # Uncomment if you need to use OpenAI API in tests
 
       - name: Upload test results
         if: always() # even on failure
