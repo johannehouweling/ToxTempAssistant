@@ -23,7 +23,7 @@ jobs:
         run: |
           docker compose build --build-arg TESTING=${{ env.TESTING }}
 
-      - name:Test in Docker
+      - name: Test in Docker
         run: |
           echo "🔨 Starting Docker compose tests..."
           if docker compose up --abort-on-container-exit --exit-code-from djangoapp; then
