@@ -17,8 +17,6 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Prevents Python from writing pyc files (equivalent to python -B option): reduces the image size
 ENV PYTHONDONTWRITEBYTECODE=1
-# allows pip to break system packages
-ENV PIP_BREAK_SYSTEM_PACKAGES=1
 # Prevents Python from buffering stdout and stderr (equivalent to python -u option)
 ENV PYTHONUNBUFFERED=1
 ENV DEBUG=False
@@ -68,8 +66,7 @@ COPY pyproject.toml poetry.lock ./
 # 3) install deps, conditionally including dev
 ARG TESTING=false
 ENV TESTING=${TESTING}
-RUN poetry config virtualenvs.create false \
-    && if [ "$TESTING" = "true" ]; then \
+RUN if [ "$TESTING" = "true" ]; then \
     poetry install --no-interaction; \
     else \
     poetry install --no-interaction --without dev; \
