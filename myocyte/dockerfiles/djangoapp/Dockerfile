@@ -14,6 +14,9 @@ ENV APP_HOME=/home/myocyte
 ENV DATABASE=postgres
 # NO INTERACTIVE
 ENV DEBIAN_FRONTEND=noninteractive
+# Tell poetry to create virtual environments in the project directory
+ENV POETRY_VIRTUALENVS_CREATE=true \
+    POETRY_VIRTUALENVS_IN_PROJECT=true
 
 # Prevents Python from writing pyc files (equivalent to python -B option): reduces the image size
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -57,9 +60,9 @@ ENV PATH="/root/.local/bin:${PATH}"
 # Use pipx to install Poetry into its own venv
 RUN pipx install poetry
 
-# 1) Tell Poetry to create a .venv inside your app folder
-ENV POETRY_VIRTUALENVS_CREATE=true \
-    POETRY_VIRTUALENVS_IN_PROJECT=true
+ENV TESTING=${TESTING:-false}
+# Print to sdtout for debugging purposes Testing
+RUN echo "Testing mode is set to: ${TESTING}"
 
 WORKDIR /home
 COPY pyproject.toml poetry.lock ./
