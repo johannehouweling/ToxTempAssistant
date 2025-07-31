@@ -59,6 +59,10 @@ ENV PATH="/root/.local/bin:${PATH}"
 RUN pipx install poetry
 
 WORKDIR /home
+
+# bring in just the lockfiles (so that Docker can cache this layer)
+COPY pyproject.toml poetry.lock ./
+
 # Configure Poetry and install dependencies
 RUN poetry config virtualenvs.create false \
     && poetry install --no-dev --no-interaction
