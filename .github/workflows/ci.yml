@@ -23,7 +23,7 @@ jobs:
       - name: Build Docker image
         run: |
           GIT_HASH=$(git rev-parse HEAD)
-          docker compose build --build-arg TESTING=true --build-arg TOXTEMPASS_GIT_HASH=$GIT_HASH --build-arg ENV_FILE=.env.dummy
+          docker compose build --profile test --build-arg TESTING=true --build-arg TOXTEMPASS_GIT_HASH=$GIT_HASH --build-arg ENV_FILE=.env.dummy
 
       - name: Test in Docker
         run: |

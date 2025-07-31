@@ -2,6 +2,7 @@ name: toxtempass
 services:
   # Database
   postgres_for_django:
+    profiles: ["prod"]
     image: postgres:17-alpine
     container_name: postgres_for_django
     restart: unless-stopped
@@ -15,6 +16,7 @@ services:
       - db_data:/var/lib/postgresql/data
 
   postgres_test_for_django:
+    profiles: ["test"]
     image: postgres:17-alpine
     container_name: postgres_test_for_django
     restart: unless-stopped
@@ -28,6 +30,7 @@ services:
 
   # Django app
   djangoapp:
+    profiles: ["test", "prod"]
     build:
       context: .
       dockerfile: myocyte/dockerfiles/djangoapp/Dockerfile

@@ -12,14 +12,12 @@ else
   PG_PORT=${POSTGRES_PORT:-5432}
 fi
 
-if [ "${DATABASE:-}" = "postgres" ]; then
-  echo "Waiting for PostgreSQL at ${PG_HOST}:${PG_PORT}…"
-  # loop until the TCP port is open
-  while ! nc -z -w2 "$PG_HOST" "$PG_PORT"; do
-    sleep 0.2
-  done
-  echo "PostgreSQL is up on ${PG_HOST}:${PG_PORT}"
-fi
+# 2) Wait for Postgres *before* doing anything else
+echo "⏳ Waiting for PostgreSQL to be ready…"
+until pg_isready -h "$PG_HOST" -p "$PG_PORT" >/dev/null 2>&1; do
+  sleep 0.2
+done
+echo "✅ PostgreSQL is up on $PG_HOST:$PG_PORT"
 
 # wait for the database to be ready
 echo ">>> Waiting for the database to be ready"
