@@ -18,9 +18,16 @@ jobs:
         uses: docker/setup-docker-action@v4
 
       - name: Build Docker image
+        env:
+          DOCKER_BUILDKIT: 1
+          COMPOSE_DOCKER_CLI_BUILD: 1
         run: |
           GIT_HASH=$(git rev-parse HEAD)
-          docker compose build --build-arg TESTING=true --build-arg TOXTEMPASS_GIT_HASH=$GIT_HASH
+          docker compose build \
+          --build-arg TESTING=true \
+          --build-arg TOXTEMPASS_GIT_HASH=$GIT_HASH \
+          --cache-from type=gha \
+          --cache-to   type=gha,mode=max
 
       - name: Test in Docker
         run: |
