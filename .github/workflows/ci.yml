@@ -20,7 +20,7 @@ jobs:
       - name: Build and Test in Docker
         run: |
           echo "🔨 Starting Docker compose tests..."
-          if docker-compose up --abort-on-container-exit --exit-code-from djangoapp; then
+          if docker compose up --abort-on-container-exit --exit-code-from djangoapp; then
             echo "✅ Tests passed!"
             exit 0
           else
