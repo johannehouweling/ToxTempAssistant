@@ -49,6 +49,8 @@ services:
       - postgres_test_for_django
     env_file:
       - ${ENV_FILE:-./.env}
+    environment:
+      - TESTING=${TESTING:-false} # Set to true for testing
     networks:
       - db_network
       - web_network
