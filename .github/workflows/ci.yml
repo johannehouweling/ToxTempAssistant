@@ -21,8 +21,11 @@ jobs:
         env:
           DOCKER_BUILDKIT: 1
           COMPOSE_DOCKER_CLI_BUILD: 1
+          TESTING: "true" # Set to true for testing
+          ENV_FILE: .env.dummy # Use dummy env for testing
         run: |
           GIT_HASH=$(git rev-parse HEAD)
+
           docker buildx bake \
           --load \
           --file docker-compose.yml \
