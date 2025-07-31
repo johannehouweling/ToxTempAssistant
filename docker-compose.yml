@@ -51,9 +51,8 @@ services:
       - 8401:8000
     # not compatible with profiles how I want to use them
     # ensure in a production environment that the database is up before starting Django
-    # depends_on:
-    #   - postgres_for_django
-    #   - postgres_test_for_django
+    depends_on:
+      - ${POSTGRES_HOST:-postgres_for_django}
     env_file:
       - ${ENV_FILE:-./.env}
     environment:

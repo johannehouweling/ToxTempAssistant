@@ -138,8 +138,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "myocyte.wsgi.application"
 
-
-
 if not USE_POSTGRES:
     _LOG.info("Using SQLite for development")
     DATABASES = {
@@ -149,7 +147,7 @@ if not USE_POSTGRES:
         }
     }
 else:
-    _LOG.info("In Production: Using Postgres")
+    _LOG.info("Using Postgres")
     if TESTING and os.getenv("POSTGRES_HOST") != "postgres_test_for_django":
         raise ValueError(
             "You must set POSTGRES_HOST to 'postgres_test_for_django' when running tests with USE_POSTGRES set to true."
