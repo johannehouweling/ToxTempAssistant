@@ -6,14 +6,14 @@ from toxtempass.models import LLMStatus
 
 class AssayTable(tables.Table):
     investigation = tables.Column(
-        accessor="study.investigation.title",
+        accessor="study__investigation__title",
         verbose_name="Investigation",
         orderable=True,
         linkify=False,
         attrs={"th": {"class": "no-link-header"}},
     )
     study = tables.Column(
-        accessor="study.title",
+        accessor="study__title",
         verbose_name="Study",
         orderable=True,
         linkify=False,
