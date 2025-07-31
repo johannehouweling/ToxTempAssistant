@@ -94,3 +94,5 @@ poetry run pytest
 
 The testing is done automatically via github_actions inside the docker to stay as close to production as possible. 
 Only if all tests success will github proceed to release and rebuild the new version on the server. 
+
+For testing we use .env.dummy, that means we cannot test API calls unless we inject those via a github secrect.

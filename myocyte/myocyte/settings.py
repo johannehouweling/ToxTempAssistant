@@ -14,23 +14,37 @@ import os
 import sys
 from pathlib import Path
 from dotenv import load_dotenv
+from django.core.management.utils import get_random_secret_key
+import logging 
+
+_LOG = logging.getLogger(__name__)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # in Docker system variables are set in the Dockerfile
 # in local development, we use a .env file to set environment variables
-ENV_FILE = Path(BASE_DIR).with_name(".env")
-load_dotenv(
-    Path(BASE_DIR).with_name(".env"),
-    override=True,
-)  # load Environment variables from .env file
+
+TESTING = bool(os.getenv("TESTING")) or (len(sys.argv) > 1 and sys.argv[1] == "test")
+
+# 2) Build your paths
+env_path       = BASE_DIR / ".env"
+dummy_env_path = BASE_DIR / ".env.dummy"
+
+# 3) Choose which one to load
+if TESTING or not env_path.exists():
+    ENV_FILE = dummy_env_path
+else:
+    ENV_FILE = env_path
+
+# 4) (Optionally) alert the user what you picked
+_LOG.info(f"Using environment file: {ENV_FILE}", file=sys.stderr)
+
+load_dotenv(ENV_FILE,override=True)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DJANGO_DEBUG = os.getenv("DJANGO_DEBUG", "true").lower()  # default to "true" if not set
@@ -41,11 +55,16 @@ else:
     DEBUG = True
     INTERNAL_IPS = ["localhost", "127.0.0.1"]
 
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY and (DEBUG or TESTING):
+    SECRET_KEY = get_random_secret_key()
+
 USE_POSTGRES = (
     os.getenv("USE_POSTGRES", "false").strip().lower() == "true"
 )  # default to "false" if not set
 if not USE_POSTGRES and not DEBUG:
-    print(
+    _LOG.critical(
         "USE_POSTGRES is not set to true, but DEBUG is false. This is not a valid  production configuration."
     )
 
@@ -123,6 +142,7 @@ WSGI_APPLICATION = "myocyte.wsgi.application"
 TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
 
 if TESTING:
+    _LOG.info("Using sqlite for tests")
     USE_POSTGRES = (
         os.getenv("USE_POSTGRES", "false").strip().lower() == "true"
     )
@@ -136,7 +156,7 @@ if TESTING:
         }
     else:
         # Use Postgres for tests, read test-specific env vars
-        print("Testing with Postgres")
+        _LOG.info("Using Postgres for tests")
         DATABASES = {
             "default": {
                 "ENGINE": "django.db.backends.postgresql",
@@ -149,6 +169,7 @@ if TESTING:
         }
 else:
     if not USE_POSTGRES:
+    _LOG.info("Using SQLite for development")
         DATABASES = {
             "default": {
                 "ENGINE": "django.db.backends.sqlite3",
@@ -156,7 +177,7 @@ else:
             }
         }
     else:
-        print("In Production: Using Postgres")
+        _LOG.info("In Production: Using Postgres")
         DATABASES = {
             "default": {
                 "ENGINE": "django.db.backends.postgresql",
