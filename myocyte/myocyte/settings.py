@@ -169,7 +169,7 @@ if TESTING:
         }
 else:
     if not USE_POSTGRES:
-    _LOG.info("Using SQLite for development")
+        _LOG.info("Using SQLite for development")
         DATABASES = {
             "default": {
                 "ENGINE": "django.db.backends.sqlite3",
