@@ -139,8 +139,6 @@ TEMPLATES = [
 WSGI_APPLICATION = "myocyte.wsgi.application"
 
 
-TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
-
 if TESTING:
     _LOG.info("Using sqlite for tests")
     USE_POSTGRES = (
