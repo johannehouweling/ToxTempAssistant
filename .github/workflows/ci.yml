@@ -17,22 +17,13 @@ jobs:
       - name: Set up Docker
         uses: docker/setup-buildx-action@v3
 
+      - name: Set up Docker
+        uses: docker/setup-docker-action@v4
+
       - name: Build Docker image
-        env:
-          DOCKER_BUILDKIT: 1
-          COMPOSE_DOCKER_CLI_BUILD: 1
-          TESTING: "true" # Set to true for testing
-          ENV_FILE: .env.dummy # Use dummy env for testing
         run: |
           GIT_HASH=$(git rev-parse HEAD)
-
-          docker buildx bake \
-            --load \
-            --file docker-compose.yml \
-            --set "*.build.args.TESTING=true" \
-            --set "*.build.args.TOXTEMPASS_GIT_HASH=$GIT_HASH" \
-            --set "*.cache-from=type=gha" \
-            --set "*.cache-to=type=gha,mode=max"
+          docker compose build --build-arg TESTING=true --build-arg TOXTEMPASS_GIT_HASH=$GIT_HASH --build-arg ENV_FILE=.env.dummy
 
       - name: Test in Docker
         run: |
