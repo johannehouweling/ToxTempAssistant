@@ -1,12 +1,24 @@
 #!/bin/sh
 echo "Starting the django_startup.sh file"
 
-if [ "$DATABASE" = "postgres" ]; then
-  echo "Waiting for postgres..."
-  while ! nc -z -w 2 "$POSTGRES_HOST" "$POSTGRES_PORT"; do
+
+# If TESTING=true, override host/port; otherwise use the normal ones
+if [ "${TESTING:-false}" = "true" ]; then
+  PG_HOST=${TEST_POSTGRES_HOST:-localhost}
+  PG_PORT=${TEST_POSTGRES_PORT:-5432}
+  echo "### Running in TESTING mode. ###"
+else
+  PG_HOST=${POSTGRES_HOST:-localhost}
+  PG_PORT=${POSTGRES_PORT:-5432}
+fi
+
+if [ "${DATABASE:-}" = "postgres" ]; then
+  echo "Waiting for PostgreSQL at ${PG_HOST}:${PG_PORT}…"
+  # loop until the TCP port is open
+  while ! nc -z -w2 "$PG_HOST" "$PG_PORT"; do
     sleep 0.2
   done
-  echo "PostgreSQL started"
+  echo "PostgreSQL is up on ${PG_HOST}:${PG_PORT}"
 fi
 
 # wait for the database to be ready
