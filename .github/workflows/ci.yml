@@ -27,12 +27,12 @@ jobs:
           GIT_HASH=$(git rev-parse HEAD)
 
           docker buildx bake \
-          --load \
-          --file docker-compose.yml \
-          --set '*.build-arg.TESTING=true' \
-          --set '*.build-arg.TOXTEMPASS_GIT_HASH='"$GIT_HASH" \
-          --set '*.cache-from=type=gha' \
-          --set '*.cache-to=type=gha,mode=max'
+            --load \
+            --file docker-compose.yml \
+            --set "*.build.args.TESTING=true" \
+            --set "*.build.args.TOXTEMPASS_GIT_HASH=$GIT_HASH" \
+            --set "*.cache-from=type=gha" \
+            --set "*.cache-to=type=gha,mode=max"
 
       - name: Test in Docker
         run: |
