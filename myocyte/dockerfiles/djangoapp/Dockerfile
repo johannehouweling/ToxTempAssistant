@@ -54,6 +54,8 @@ RUN luaotfload-tool --update --force
 # Expose pipx’s shims directory
 ENV PATH="/root/.local/bin:${PATH}"
 
+# Use pipx to install Poetry into its own venv
+RUN pipx install poetry
 
 # 1) Tell Poetry to create a .venv inside your app folder
 ENV POETRY_VIRTUALENVS_CREATE=true \
@@ -64,8 +66,6 @@ COPY pyproject.toml poetry.lock ./
 
 # 2) Install into that in-project venv
 RUN poetry install --no-interaction ${TESTING:+--with dev}
-# Use pipx to install Poetry into its own venv
-RUN pipx install poetry
 
 # This is needed to ensure that the virtual environment is used by default
 ENV PATH="/home/.venv/bin:${PATH}"
