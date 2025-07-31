@@ -14,7 +14,7 @@ fi
 
 # 2) Wait for Postgres *before* doing anything else
 echo "⏳ Waiting for PostgreSQL to be ready…"
-until pg_isready -h "$PG_HOST" -p "$PG_PORT" >/dev/null 2>&1; do
+until nc -z -v -w2 "$PG_HOST" "$PG_PORT" 2>/dev/null; do
   sleep 0.2
 done
 echo "✅ PostgreSQL is up on $PG_HOST:$PG_PORT"
