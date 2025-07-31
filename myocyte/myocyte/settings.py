@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -119,28 +120,53 @@ TEMPLATES = [
 WSGI_APPLICATION = "myocyte.wsgi.application"
 
 
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
 
-if not USE_POSTGRES:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
+if TESTING:
+    USE_POSTGRES = (
+        os.getenv("USE_POSTGRES", "false").strip().lower() == "true"
+    )
+    if not USE_POSTGRES:
+        # Use in-memory SQLite database for tests
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": ":memory:",
+            }
         }
-    }
+    else:
+        # Use Postgres for tests, read test-specific env vars
+        print("Testing with Postgres")
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.postgresql",
+                "NAME": os.getenv("TEST_POSTGRES_DB"),
+                "USER": os.getenv("TEST_POSTGRES_USER"),
+                "PASSWORD": os.getenv("TEST_POSTGRES_PASSWORD"),
+                "HOST": os.getenv("TEST_POSTGRES_HOST"),
+                "PORT": os.getenv("TEST_POSTGRES_PORT"),
+            }
+        }
 else:
-    print("In Production: Using Postgres")
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.getenv("POSTGRES_DB"),
-            "USER": os.getenv("POSTGRES_USER"),
-            "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
-            "HOST": os.getenv("POSTGRES_HOST"),
-            "PORT": os.getenv("POSTGRES_PORT"),
+    if not USE_POSTGRES:
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": BASE_DIR / "db.sqlite3",
+            }
         }
-    }
+    else:
+        print("In Production: Using Postgres")
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.postgresql",
+                "NAME": os.getenv("POSTGRES_DB"),
+                "USER": os.getenv("POSTGRES_USER"),
+                "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
+                "HOST": os.getenv("POSTGRES_HOST"),
+                "PORT": os.getenv("POSTGRES_PORT"),
+            }
+        }
 
 CACHES = {
     "default": {
