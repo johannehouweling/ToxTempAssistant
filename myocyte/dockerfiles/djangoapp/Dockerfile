@@ -69,7 +69,13 @@ WORKDIR /home
 COPY pyproject.toml poetry.lock ./
 
 # 2) Install into that in-project venv
-RUN poetry install --no-interaction ${TESTING:+--with dev}
+RUN if [ "$TESTING" = "true" ]; then \
+    echo "🧪 TESTING mode: installing ALL deps (incl. dev)"; \
+    poetry install --no-interaction; \
+    else \
+    echo "🚀 Production mode: installing only main deps"; \
+    poetry install --no-interaction --without dev; \
+    fi
 
 # This is needed to ensure that the virtual environment is used by default
 ENV PATH="/home/.venv/bin:${PATH}"
