@@ -17,7 +17,13 @@ jobs:
       - name: Set up Docker
         uses: docker/setup-docker-action@v4
 
-      - name: Build and Test in Docker
+      - name: Build Docker image
+        env:
+          TESTING: "true"
+        run: |
+          docker compose build --build-arg TESTING=${{ env.TESTING }}
+
+      - name:Test in Docker
         run: |
           echo "🔨 Starting Docker compose tests..."
           if docker compose up --abort-on-container-exit --exit-code-from djangoapp; then

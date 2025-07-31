@@ -64,8 +64,15 @@ WORKDIR /home
 COPY pyproject.toml poetry.lock ./
 
 # Configure Poetry and install dependencies
+# 3) install deps, conditionally including dev
+ARG TESTING=false
+ENV TESTING=${TESTING}
 RUN poetry config virtualenvs.create false \
-    && poetry install --no-dev --no-interaction
+    && if [ "$TESTING" = "true" ]; then \
+    poetry install --no-interaction; \
+    else \
+    poetry install --no-interaction --without dev; \
+    fi
 
 RUN mkdir -p $APP_HOME
 WORKDIR $APP_HOME
