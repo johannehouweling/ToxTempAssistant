@@ -27,6 +27,7 @@ classifiers = [
 ]
 
 dependencies = [
+    "gunicorn>=23.0.0,<24.0.0",
     "django>=5.2.4,<6.0.0",
     "django-bootstrap5>=25.1,<26.0",
     "django-extensions>=4.1,<5.0",
