@@ -54,8 +54,9 @@ fi
 # python3 manage.py qcluster &
 # sleep 0.1
 
+
 echo "Done setting up Django, exiting the django_startup.sh file."
-exec exec gunicorn myocyte.wsgi:application \
+exec gunicorn myocyte.wsgi:application \
       --bind=0.0.0.0:8000 \
       --log-level=info \
       --max-requests=1000 \
