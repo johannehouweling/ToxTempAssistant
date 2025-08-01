@@ -184,7 +184,7 @@ Q_CLUSTER = {
     "max_attempts": 2,
     "sync": False,
 }
-if DEBUG:
+if DEBUG or TESTING:
     Q_CLUSTER["sync"] = True  # Use Django ORM for development
 
 # Password validation
