@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.2.1 (2025-08-01)
+
+### Bug Fixes
+
+- **ci**: Preserve sudo env
+  ([`5efbeb1`](https://github.com/johannehouweling/ToxTempAssistant/commit/5efbeb1a581b1119ae5053e074804c196fc67444))
+
+
 ## v1.2.0 (2025-08-01)
 
 ### Features
