@@ -4,7 +4,7 @@ echo "Starting the django_startup.sh file"
 
 # Wait for Postgres *before* doing anything else
 if [ "$DATABASE" = "postgres" ]; then
-  echo "Waiting for postgres..."
+  echo "💻🔗🖥️ Waiting for postgres... "
   while ! nc -z -w 2 "$POSTGRES_HOST" "$POSTGRES_PORT"; do
     sleep 0.2
   done
@@ -37,9 +37,13 @@ sleep 0.1
 python3 manage.py createcachetable
 sleep 0.1
 
-echo ">>> Run clustering tool in background"
-python3 manage.py qcluster &
-sleep 0.1
+if [ "${TESTING:-false}" != "true" ]; then
+  echo ">>> Run clustering tool in background"
+  python3 manage.py qcluster &
+  sleep 0.1
+else
+  echo ">>> Skipping qcluster in TESTING mode"
+fi
 
 echo "--- ENVIRONMENT AT STARTUP ---"
 env | sort
