@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.2.3 (2025-08-01)
+
+### Bug Fixes
+
+- **ci**: Remove sh from command
+  ([`f69e3e9`](https://github.com/johannehouweling/ToxTempAssistant/commit/f69e3e991ce084f8b6555271b3f644902a264120))
+
+
 ## v1.2.2 (2025-08-01)
 
 ### Bug Fixes
