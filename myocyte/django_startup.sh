@@ -13,10 +13,12 @@ else
 fi
 
 # 2) Wait for Postgres *before* doing anything else
-echo "⏳ Waiting for PostgreSQL to be ready…"
-until nc -z -v -w2 "$PG_HOST" "$PG_PORT" 2>/dev/null; do
-  sleep 0.2
-done
+if [ "$DATABASE" = "postgres" ]; then
+  echo "Waiting for postgres..."
+  while ! nc -z -w 2 "$PG_HOST" "$PG_PORT"; do
+    sleep 0.2
+  done
+fi
 echo "✅ PostgreSQL is up on $PG_HOST:$PG_PORT"
 
 # wait for the database to be ready
