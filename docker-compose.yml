@@ -22,7 +22,8 @@ services:
     restart: unless-stopped
     env_file:
       - ${ENV_FILE:-./.env} # Use ENV ENV_FILE to .env.dummy for testing to run properly
-
+    stop_grace_period: 30s
+    stop_signal: SIGINT
     expose:
       - 5432
     networks:
