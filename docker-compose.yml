@@ -36,7 +36,7 @@ services:
       context: .
       dockerfile: myocyte/dockerfiles/djangoapp/Dockerfile
       args:
-        GIT_HASH: "${TOXTEMPASS_GIT_HASH}"
+        GIT_HASH: "${GIT_HASH}"
     user: root
     container_name: djangoapp
     restart: unless-stopped

@@ -23,7 +23,11 @@ jobs:
       - name: Build Docker image
         run: |
           GIT_HASH=$(git rev-parse HEAD)
-          docker compose  --profile test build --build-arg TESTING=true --build-arg POSTGRES_HOST=postgres_test_for_django --build-arg GIT_HASH=$GIT_HASH --build-arg ENV_FILE=.env.dummy
+          docker compose --profile test build \
+          --build-arg TESTING=true \
+          --build-arg POSTGRES_HOST=postgres_test_for_django \
+          --build-arg GIT_HASH=$GIT_HASH \
+          --build-arg ENV_FILE=.env.dummy
 
       - name: Test in Docker
         run: |
@@ -35,12 +39,6 @@ jobs:
             echo "❌ Tests failed!"
             exit 1
           fi
-
-          # Figure out which container ran djangoapp
-          CONTAINER_ID=$(docker compose ps -q djangoapp)
-          echo "📦 Copying test-results from container $CONTAINER_ID …"
-          mkdir -p test-results
-          docker cp "$CONTAINER_ID":/tmp/test-results/. ./test-results/ || echo "⚠️ No test-results directory found in the container."
 
           # Exit with the original pytest exit code so the job still fails if tests failed
           exit $code

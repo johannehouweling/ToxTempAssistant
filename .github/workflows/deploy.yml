@@ -43,4 +43,5 @@ jobs:
             git checkout "${TAG}"
             # inject both hash and tag into the environment for Docker Compose
             GIT_HASH=$(git rev-parse HEAD)
-            sudo TOXTEMPASS_GIT_HASH=$GIT_HASH docker compose --profile prod up --build -d
+            sudo GIT_HASH=$GIT_HASH docker compose --profile prod up --build -d \
+            #--build-arg GIT_HASH=$GIT_HASH --build-arg ENV_FILE=.env
