@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.2.0 (2025-08-01)
+
+### Features
+
+- **ci**: Only run release when pushing to main and then deploy
+  ([`c4f275b`](https://github.com/johannehouweling/ToxTempAssistant/commit/c4f275bd5aaba4b9083f2905aa14a5ca416e7b83))
+
+
 ## v1.1.0 (2025-08-01)
 
 ### Bug Fixes
