@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.2.2 (2025-08-01)
+
+### Bug Fixes
+
+- **ci**: TESTING bool from string
+  ([`b3da36e`](https://github.com/johannehouweling/ToxTempAssistant/commit/b3da36ee6bf93082d2e5f35801ea3e629ba89871))
+
+
 ## v1.2.1 (2025-08-01)
 
 ### Bug Fixes
