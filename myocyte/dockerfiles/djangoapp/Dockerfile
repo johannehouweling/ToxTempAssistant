@@ -14,10 +14,12 @@ ENV APP_HOME=/home/myocyte
 ENV DATABASE=postgres
 # NO INTERACTIVE
 ENV DEBIAN_FRONTEND=noninteractive
+# Tell poetry to create virtual environments in the project directory
+ENV POETRY_VIRTUALENVS_CREATE=true \
+    POETRY_VIRTUALENVS_IN_PROJECT=true
 
 # Prevents Python from writing pyc files (equivalent to python -B option): reduces the image size
 ENV PYTHONDONTWRITEBYTECODE=1
-
 # Prevents Python from buffering stdout and stderr (equivalent to python -u option)
 ENV PYTHONUNBUFFERED=1
 ENV DEBUG=False
@@ -58,10 +60,25 @@ ENV PATH="/root/.local/bin:${PATH}"
 # Use pipx to install Poetry into its own venv
 RUN pipx install poetry
 
+ARG TESTING=${TESTING:-false}
+ENV TESTING=${TESTING:-false}
+# Print to sdtout for debugging purposes Testing
+RUN echo "Testing mode is set to: ${TESTING}"
+
 WORKDIR /home
-# Configure Poetry and install dependencies
-RUN poetry config virtualenvs.create false \
-    && poetry install --no-dev --no-interaction
+COPY pyproject.toml poetry.lock ./
+
+# 2) Install into that in-project venv
+RUN if [ "$TESTING" = "true" ]; then \
+    echo "🧪 TESTING mode: installing ALL deps (incl. dev)"; \
+    poetry install --no-interaction --all-extras; \
+    else \
+    echo "🚀 Production mode: installing only main deps"; \
+    poetry install --no-interaction; \
+    fi
+
+# This is needed to ensure that the virtual environment is used by default
+ENV PATH="/home/.venv/bin:${PATH}"
 
 RUN mkdir -p $APP_HOME
 WORKDIR $APP_HOME

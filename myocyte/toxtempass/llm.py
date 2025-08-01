@@ -1,3 +1,4 @@
+import os
 from langchain_openai import ChatOpenAI
 import logging
 from typing import Literal
@@ -23,7 +24,10 @@ if LLM_API_KEY and LLM_ENDPOINT:
     )
     logger.info(f"Using ({config.model}) at {LLM_ENDPOINT}.")
 else:
-    logger.error("Required environment variables are missing")
+    if os.getenv("TESTING"):
+        logger.warning("Tests using LLM will fail expectedly.")
+    else:
+        logger.error("Required environment variables are missing")
 
 
 
