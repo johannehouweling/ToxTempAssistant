@@ -25,9 +25,10 @@ jobs:
           export GIT_HASH=$(git rev-parse HEAD)
           docker compose --profile test build \
           --build-arg TESTING=true \
-          --build-arg POSTGRES_HOST=postgres_test_for_django \
           --build-arg GIT_HASH=$GIT_HASH \
           --build-arg ENV_FILE=.env.dummy
+        env:
+          POSTGRES_HOST: postgres_test_for_django
 
       - name: Test in Docker
         run: |
