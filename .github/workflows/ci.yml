@@ -15,9 +15,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Docker
-        uses: docker/setup-buildx-action@v3
-
-      - name: Set up Docker
         uses: docker/setup-docker-action@v4
 
       - name: Build Docker image
