@@ -2,6 +2,184 @@
 
 <!-- version list -->
 
+## v1.1.0 (2025-08-01)
+
+### Bug Fixes
+
+- **ci**: Add gha cache
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **ci**: Allow pip to use system python in docker
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **ci**: Buildx args
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **ci**: Fancy reports
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **ci**: Give postgres a chance to stop gracefully
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **ci**: Only release on push to main
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **ci**: Other fancy reporting tool
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **ci**: Poetry inside venv
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **ci**: Return to original fancy report
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **ci**: Revert to docker compose
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **ci**: Switch from python to docker
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **ci**: Switch to docker compose
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **ci**: Try isolate test, so can exit w code0
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **ci**: Upload test-results
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **ci**: Use buildx
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **ci**: Use buildx fix env
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **ci**: Use virtualenv by default
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **docker**: Add testing echo
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **docker**: Build for testing
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **docker**: Export test-results / named folder in docker
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **docker**: Forward build env to djangoapp env for TESTING
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **docker**: Include dev packages for poetry install when under TESTING
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **docker**: Poetry install
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **docker**: Poetry only install extra for testing in docker
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **docker**: Poetry without dev in production
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **docker**: Position of --profile flag
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **docker**: Remove depends on, to use profiles more flexibly
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **docker**: Return to nc instead of pg_isready
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **docker**: Set DJANGO_SETTINGS for pytest
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **docker**: Set DJANGO_SETTINGS for pytest - correction
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **docker**: Set TESTING ENV in docker build process
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **settings**: Testing flag wrong
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **testing**: Djangoq not during testing
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **testing**: Djangoq not during testing 2
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **testing**: Pause testing for investigations
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **testing**: Toggle .env.dummy also in docker-compose
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **testing**: Use .env.dummy for testing
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+### Chores
+
+- **debug**: Django startup/test
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **debug**: Dont report missing API Key as error during TESTING
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **testing**: Added __init__
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+### Documentation
+
+- Add content on testing
+  ([`bdf9294`](https://github.com/johannehouweling/ToxTempAssistant/commit/bdf92948b1cf5731b4a7df1b623afe334519c61a))
+
+- Added stub on testing
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+### Features
+
+- **ci**: Added github actions to test, release and deploy automatically
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **ci**: Coverage report
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **ci**: Integrate testing to github_actions
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **docker**: Add profiles for test and prod
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **testing**: Added first dummy test
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **testing**: Added new env variables for test-db
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **testing**: Load testing db in settings for tests
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **testing**: Testing inside docker
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+### Refactoring
+
+- Move all tests to dedicated folder
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **depreciation**: __ instead of . for accessing model attributes
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **docker**: Postgres port
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **docker**: Reintroduced depends on
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+- **settings**: Simplify POSTGRES setup
+  ([`349aec9`](https://github.com/johannehouweling/ToxTempAssistant/commit/349aec9361f15d16fc066e497e3441a77c06a57b))
+
+
 ## v1.0.11 (2025-07-30)
 
 ### Bug Fixes
