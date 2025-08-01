@@ -39,8 +39,7 @@ services:
     user: root
     container_name: djangoapp
     restart: unless-stopped
-    command: >
-      sh -c "gunicorn myocyte.wsgi:application --bind 0.0.0.0:8000 --log-level=info --max-requests=1000 --timeout=600 --keep-alive=5 --graceful-timeout=120 --error-logfile=/home/myocyte/logs/gunicorn-error.log --access-logfile=/home/myocyte/logs/gunicorn-access.log --workers=3"
+    entrypoint: ["/home/myocyte/django_startup.sh"]
     volumes:
       - ./myocyte/logs:/home/myocyte/logs
       - ./myocyte/static:/home/myocyte/static
