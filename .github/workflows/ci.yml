@@ -22,6 +22,7 @@ jobs:
 
       - name: Build Docker image
         run: |
+          # Ideally, we find a way to use caching here
           export GIT_HASH=$(git rev-parse HEAD)
           docker compose --profile test build \
           --build-arg TESTING=true \
