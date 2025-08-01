@@ -45,17 +45,9 @@ else
   echo ">>> Skipping qcluster in TESTING mode"
 fi
 
-echo "--- ENVIRONMENT AT STARTUP ---"
-env | sort
-echo "--------------------------------"
-
-
-if [ "$TESTING" = "true" ]; then
-  echo "Running tests because TESTING is true"
-  export DJANGO_SETTINGS_MODULE=myocyte.settings
-  pytest -v --junitxml=/home/myocte/test-results/results.xml --cov=toxtempass --cov-report=xml:/home/myocte/test-results/coverage.xml
-  exit $?
-fi
+# echo "--- ENVIRONMENT AT STARTUP ---"
+# env | sort
+# echo "--------------------------------"
 
 # remeber to assign some workers during gunicorn startup
 # echo ">>> Run the clustering tool (in the background)."

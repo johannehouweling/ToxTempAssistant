@@ -35,9 +35,31 @@ jobs:
         run: |
           echo "🔨 Starting Docker compose tests…"
           export GIT_HASH=$(git rev-parse HEAD)
-          docker compose --profile test up \
-            --abort-on-container-exit \
-            --exit-code-from djangoapp \
+
+          # 1) bring up only Postgres in the background
+          docker compose --profile test up -d postgres_test_for_django
+
+          # 2) run pytest inside djangoapp, capturing its exit code
+          docker compose --profile test run --rm \
+            -e DJANGO_SETTINGS_MODULE=myocyte.settings \
+            -e TESTING=true \
+            djangoapp \
+            sh -c "pytest -v \
+              --junitxml=/home/myocte/test-results/results.xml \
+              --cov=toxtempass \
+              --cov-report=xml:/home/myocte/test-results/coverage.xml"
+          code=$?
+
+          # 3) tear down all containers & networks
+          docker compose down
+
+          # 4) report
+          if [ $code -eq 0 ]; then
+            echo "✅ Tests passed!"
+          else
+            echo "❌ Tests failed with exit code $code"
+          fi
+          exit $code
         env:
           TESTING: "true"
           ENV_FILE: .env.dummy # Use dummy env for testing
