@@ -104,7 +104,7 @@ RUN python3 $APP_HOME/toxtempass/templates/toxtempass/md_content/dependencies/ru
 
 RUN chmod +x $APP_HOME/django_startup.sh && chown root:root $APP_HOME/django_startup.sh
 # Switch to the non-root user
+LABEL version="${VERSION}"
 USER root
 ENTRYPOINT ["/home/myocyte/django_startup.sh"]
 
-LABEL version="${VERSION}"
