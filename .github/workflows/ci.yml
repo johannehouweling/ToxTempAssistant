@@ -33,18 +33,11 @@ jobs:
 
       - name: Test in Docker
         run: |
-          echo "🔨 Starting Docker compose tests..."
+          echo "🔨 Starting Docker compose tests…"
           export GIT_HASH=$(git rev-parse HEAD)
-          if docker compose --profile test up --abort-on-container-exit --exit-code-from djangoapp; then
-            echo "✅ Tests passed!"
-            exit 0
-          else
-            echo "❌ Tests failed!"
-            exit 1
-          fi
-
-          # Exit with the original pytest exit code so the job still fails if tests failed
-          exit $code
+          docker compose --profile test up \
+            --abort-on-container-exit \
+            --exit-code-from djangoapp \
         env:
           TESTING: "true"
           ENV_FILE: .env.dummy # Use dummy env for testing
