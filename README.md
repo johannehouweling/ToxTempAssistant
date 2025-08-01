@@ -1,3 +1,5 @@
+[![CI](https://github.com/johannehouweling/ToxTempAssistant/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/johannehouweling/ToxTempAssistant/actions/workflows/ci.yml) [![Release](https://github.com/johannehouweling/ToxTempAssistant/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/johannehouweling/ToxTempAssistant/actions/workflows/release.yml) [![Deploy](https://github.com/johannehouweling/ToxTempAssistant/actions/workflows/deploy.yml/badge.svg)](https://github.com/johannehouweling/ToxTempAssistant/actions/workflows/deploy.yml)
+
 # ToxTempAssistant
 LLM based web-app to assist users in drafting an annotated toxicity test method template (ToxTemp).
 
