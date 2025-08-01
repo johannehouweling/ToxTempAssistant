@@ -25,8 +25,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # in Docker system variables are set in the Dockerfile
 # in local development, we use a .env file to set environment variables
 
-TESTING = bool(os.getenv("TESTING")) or (len(sys.argv) > 1 and sys.argv[1] == "test")
-
+TESTING = (
+    os.getenv("TESTING", "false").lower() in ("true", "1", "yes")
+    or (len(sys.argv) > 1 and sys.argv[1] == "test")
+)
 # 2) Build your paths
 env_path       = BASE_DIR / ".env"
 dummy_env_path = BASE_DIR / ".env.dummy"
