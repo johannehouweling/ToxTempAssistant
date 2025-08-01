@@ -1,10 +1,8 @@
 name: Deploy
 
 on:
-  push:
-    # fire whenever any semantic‐release tag (e.g. v0.10.0) is pushed
-    tags:
-      - "v*"
+  release:
+    types: [published] # fires whenever a new GitHub Release is published
 
 jobs:
   deploy:
@@ -15,6 +13,8 @@ jobs:
         with:
           # we need full history & tags to checkout the correct tag
           fetch-depth: 0
+          persist-credentials: false # don’t keep the default GITHUB_TOKEN
+          token: ${{ secrets.PA_TOKEN }} # use your Personal Access Token
 
       - name: Install SSH key
         run: |
@@ -25,7 +25,7 @@ jobs:
 
       - name: Extract tag name and version
         run: |
-          echo "TAG=${GITHUB_REF##*/}" >> $GITHUB_ENV
+          echo "TAG=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
           VERSION=$(grep -m1 '^version' pyproject.toml | cut -d '"' -f2)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
