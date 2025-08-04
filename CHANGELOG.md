@@ -2,6 +2,26 @@
 
 <!-- version list -->
 
+## v1.3.0 (2025-08-04)
+
+### Bug Fixes
+
+- **ci**: Attach docker default network
+  ([`3977fef`](https://github.com/johannehouweling/ToxTempAssistant/commit/3977fef5d811be4a3c0a79c7b037b40ae1f95327))
+
+- **ci**: Poetry run gunicorn
+  ([`b4446aa`](https://github.com/johannehouweling/ToxTempAssistant/commit/b4446aa49efd4e050e3ab9af9c122ae654e74060))
+
+- **ci**: QuestionSet model has Person as optional ForeignKey
+  ([`5d3cd96`](https://github.com/johannehouweling/ToxTempAssistant/commit/5d3cd96106281197c26847da59643103db893cd6))
+
+### Features
+
+- **questionset**: Add visibility control
+  ([#27](https://github.com/johannehouweling/ToxTempAssistant/pull/27),
+  [`a8a5939`](https://github.com/johannehouweling/ToxTempAssistant/commit/a8a5939bcfac02b2ee3a3e91ab8639658095eec6))
+
+
 ## v1.2.2 (2025-08-01)
 
 ### Bug Fixes
