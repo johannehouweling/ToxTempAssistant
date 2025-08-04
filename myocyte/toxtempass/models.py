@@ -172,6 +172,10 @@ class QuestionSet(models.Model):
         blank=False,
         help_text="The user who created this question set version.",
     )
+    is_visible = models.BooleanField(
+        default=True,
+        help_text="Control whether this QuestionSet version is shown to users.",
+    )
 
     class Meta:
         verbose_name = "ToxTemp Question Set Version"

@@ -197,23 +197,35 @@ class StartingForm(forms.Form):
     def __init__(self, *args, user=None, **kwargs):
         """
         Expects a 'user' keyword argument to filter the querysets.
+        Hides the question_set field if only one is available and ensures it's submitted.
         """
         super().__init__(*args, **kwargs)
-        if user is not None:
-            # Preselect the most recent QuestionSet by created_at
-            most_recent_qs = QuestionSet.objects.order_by("-created_at").first()
+
+        visible_question_sets = QuestionSet.objects.filter(is_visible=True)
+
+        if visible_question_sets.count() == 1:
+            single_qs = visible_question_sets.first()
+            self.fields["question_set"].initial = single_qs.pk
+            self.fields["question_set"].widget = forms.HiddenInput()
+
+            # If form is bound (POST), make sure the value is in self.data
+            if self.is_bound:
+                self.data = self.data.copy()
+                self.data["question_set"] = str(single_qs.pk)
+        else:
+            self.fields["question_set"].queryset = visible_question_sets
+            most_recent_qs = visible_question_sets.order_by("-created_at").first()
             if most_recent_qs:
                 self.fields["question_set"].initial = most_recent_qs.pk
-            # Filter Investigations to those for which the user has view access.
+
+        if user is not None:
             accessible_investigations = get_objects_for_user(
                 user, "toxtempass.view_investigation"
             )
             self.fields["investigation"].queryset = accessible_investigations
-            # For Studies, allow only those whose Investigation is accessible.
             self.fields["study"].queryset = Study.objects.filter(
                 investigation__in=accessible_investigations
             )
-            # For Assays, allow only those whose Study's Investigation is accessible.
             self.fields["assay"].queryset = Assay.objects.filter(
                 study__investigation__in=accessible_investigations
             )
