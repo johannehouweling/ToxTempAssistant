@@ -96,7 +96,7 @@ RUN mkdir -p $APP_HOME/logs && \
 # move as late as possible, will change every time so resets the cache layer
 ARG GIT_HASH
 ENV GIT_HASH=${GIT_HASH}
-
+LABEL version="${VERSION}"
 # Copy license so it can be auto converted to html with pandoc in the next step
 COPY LICENSE $APP_HOME/toxtempass/templates/toxtempass/md_content/LICENSE.md
 # run the python script md to html of all files in the md_content folder
@@ -105,6 +105,4 @@ RUN python3 $APP_HOME/toxtempass/templates/toxtempass/md_content/dependencies/ru
 RUN chmod +x $APP_HOME/django_startup.sh && chown root:root $APP_HOME/django_startup.sh
 # Switch to the non-root user
 USER root
-ENTRYPOINT ["/home/myocyte/django_startup.sh"]
-
-LABEL version="${VERSION}"
+ENTRYPOINT ["poetry","run","/home/myocyte/django_startup.sh"]

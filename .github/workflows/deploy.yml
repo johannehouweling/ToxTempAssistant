@@ -45,3 +45,4 @@ jobs:
             GIT_HASH=$(git rev-parse HEAD)
             sudo --preserve-env=GIT_HASH docker compose --profile prod up --build -d \
             #--build-arg GIT_HASH=$GIT_HASH --build-arg ENV_FILE=.env
+            sudo docker network connect bridge djangoapp

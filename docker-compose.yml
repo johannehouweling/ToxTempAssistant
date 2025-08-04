@@ -58,9 +58,8 @@ services:
       - ./test-results:/home/myocte/test-results
     ports:
       - 8401:8000
-    # not compatible with profiles how I want to use them
-    # ensure in a production environment that the database is up before starting Django
     depends_on:
+      # ensure in a production environment that the database is up before starting Django
       - ${POSTGRES_HOST:-postgres_for_django}
     env_file:
       - ${ENV_FILE:-./.env}
@@ -68,11 +67,14 @@ services:
       - TESTING=${TESTING:-false} # Set to true for testing
     networks:
       - db_network
-      - web_network
+      ### ATTENTION ###
+      # The djangoapp container needs to be connected to the db_network
+      # to access the Postgres database, but also to the default bridge network
+      # to allow it to be accessed from the host machine.
+      # This is because the default bridge network is used by Docker Compose
+      # `docker network connect bridge djangoapp`
 networks:
   db_network:
-    driver: bridge
-  web_network:
     driver: bridge
 volumes:
   db_data:
