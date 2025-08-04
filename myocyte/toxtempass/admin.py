@@ -76,9 +76,10 @@ class FeedbackAdmin(admin.ModelAdmin):
 
 @admin.register(QuestionSet)
 class QuestionSetAdmin(admin.ModelAdmin):
-    list_display = ("id", "label", "display_name", "created_at")
+    list_display = ("id", "label", "display_name", "created_at", "is_visible")
     search_fields = (
         "label",
         "display_name",
     )
     ordering = ("display_name", "created_at")
+    list_filter = ("is_visible",)
