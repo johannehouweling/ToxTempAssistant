@@ -105,6 +105,10 @@ dev = [
     "pytest-cov>=4.0.0,<5.0.0",
     "bert-score>=0.3.13,<1.0.0",
     "python-semantic-release[git]>=10.2.0,<11.0.0",
+    "pre-commit>=4.2.0,<5.0.0",
+    "ruff>=0.12.7,<1.0.0",
+    "commitizen>=4.8.3,<5.0.0",
+    "detect-secrets>=1.5.0,<2.0.0",
 ]
 
 [project.urls]
@@ -114,6 +118,7 @@ documentation = "https://toxtempassistant.vhp4safety.nl/docs"
 
 [tool.poetry]
 package-mode = false
+
 
 [tool.semantic_release]
 version_source = "commit"
@@ -127,6 +132,89 @@ output_format = "md"
 
 [tool.semantic_release.remote.token]
 env = "GH_TOKEN"
+
+
+[tool.ruff]
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+    "manage.py",
+]
+extend-exclude =["*/validation/*", "*/migrations/*"]
+
+# Same as Black.
+line-length = 90
+indent-width = 4
+target-version = "py310"
+
+[tool.ruff.lint.per-file-ignores]
+"*/tests/*" = ["S","D","ANN"]
+"*/fixtures/*" = ["S","D","ANN"]
+
+
+[tool.ruff.lint]
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`) codes by default.
+# Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
+# McCabe complexity (`C901`) by default.
+select = ["E", "F", "W", "T", "ANN", "D", "DJ", "I", "S"]
+ignore = ["ANN002", "ANN003", "ANN204", "D100", "D101", "D104", "D106", "D203", "D213"]
+
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+# Enable auto-formatting of code examples in docstrings. Markdown,
+# reStructuredText code/literal blocks and doctests are all supported.e.
+docstring-code-format = true
+
+# Set the line length limit used when formatting code snippets in
+# docstrings.
+#
+# This only has an effect when the `docstring-code-format` setting is
+# enabled.
+docstring-code-line-length = "dynamic"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

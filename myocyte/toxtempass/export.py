@@ -1,38 +1,41 @@
-from pathlib import Path
-from myocyte import settings
-from toxtempass.models import Assay, Section
 import json
+import re
+import subprocess
+from pathlib import Path
+
+import yaml
 from django.core.serializers import serialize
 from django.http import FileResponse, HttpRequest, JsonResponse
-from django.utils.text import slugify
 from django.utils import timezone  # Import timezone utilities
-from toxtempass import Config  # Import your configuration module
-import subprocess
-import yaml
+from django.utils.text import slugify
 
-import re
+from myocyte import settings
+from toxtempass import Config  # Import your configuration module
+from toxtempass.models import Assay, Section
 
 # simple regexes to catch display‐math delimiters
-MATH_BLOCK_START = re.compile(r'^\s*(\$\$|\\\[)')
-MATH_BLOCK_END   = re.compile(r'(\$\$|\\\])\s*$')
+
+MATH_BLOCK_START = re.compile(r"^\s*(\$\$|\\\[)")
+MATH_BLOCK_END = re.compile(r"(\$\$|\\\])\s*$")
+
 
 def quote_answer(text: str) -> str:
-    r"""
-    Take a multi‐line answer_text, and return a Markdown fragment
-    where only non‑math lines are prefixed with '> '.
+    r"""Take a multi-line answer_text, and return a Markdown fragment.
+
+    where only non-math lines are prefixed with '> '.
     Display math blocks ( $$…$$ or \[…\] ) are emitted raw.
     """
     out = []
     in_math = False
 
     for line in text.splitlines():
-        # start of a display‐math block?
+        # start of a display-math block?
         if not in_math and MATH_BLOCK_START.match(line):
             in_math = True
             out.append(line)
             continue
 
-        # end of a display‑math block?
+        # end of a display-math block?
         if in_math:
             out.append(line)
             if MATH_BLOCK_END.search(line):
@@ -44,12 +47,13 @@ def quote_answer(text: str) -> str:
 
     return "\n".join(out) + "\n\n"
 
+mime_type_str =  "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 mime_type_suffix_dict = {
     "html": {"mime_type": "text/html", "suffix": ".html"},
     "xml": {"mime_type": "application/xml", "suffix": ".xml"},
     "pdf": {"mime_type": "application/pdf", "suffix": ".pdf"},
     "docx": {
-        "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "mime_type": mime_type_str,
         "suffix": ".docx",
     },
     "json": {"mime_type": "application/json", "suffix": ".json"},
@@ -57,7 +61,8 @@ mime_type_suffix_dict = {
 }
 
 
-def generate_json_from_assay(assay: Assay):
+def generate_json_from_assay(assay: Assay) -> dict | None:
+    """Generate Json from assay."""
     try:
         # Set the timezone to Amsterdam
         amsterdam_tz = timezone.get_fixed_timezone(
@@ -70,9 +75,12 @@ def generate_json_from_assay(assay: Assay):
         # Prepare the data structure
         export_data = {
             "metadata": {
-                "creation_date": current_time.isoformat(),  # Current date and time in ISO format
-                "filename": f"documenation_{slugify(assay.title)}",  # Filename for the export
-                "website": "toxtempassistant.vhp4safety.nl",  # Replace with your actual website name
+                # Current date and time in ISO format
+                "creation_date": current_time.isoformat(),
+                # Filename for the export
+                "filename": f"documenation_{slugify(assay.title)}",
+                # Replace with your actual website name
+                "website": "toxtempassistant.vhp4safety.nl",
                 "config": {
                     key: value
                     for key, value in vars(Config).items()
@@ -135,14 +143,13 @@ def generate_json_from_assay(assay: Assay):
         return None
 
 
-def generate_markdown_from_assay(assay: Assay):
+def generate_markdown_from_assay(assay: Assay) -> str:
+    """Generate markdown from assay."""
     export_data = generate_json_from_assay(assay)
     # Start with metadata
     markdown = []
     markdown.append("## Metadata\n")
-    markdown.append(
-        f"- **Creation Date:** {export_data['metadata']['creation_date']}\n"
-    )
+    markdown.append(f"- **Creation Date:** {export_data['metadata']['creation_date']}\n")
     markdown.append(f"- **Filename:** {export_data['metadata']['filename']}\n")
     markdown.append(f"- **Website:** {export_data['metadata']['website']}\n")
     markdown.append("\n## App Config\n")
@@ -234,7 +241,7 @@ def get_create_meta_data_yaml(
             r"\usepackage{unicode-math}",
             r"\setmainfont{TeX Gyre Termes}",
             r"\setmathfont{TeX Gyre Termes Math}",
-            r"\usepackage[a4paper, margin=3cm]{geometry}"
+            r"\usepackage[a4paper, margin=3cm]{geometry}",
         ],
         "title": f"ToxTemp for Test Method: {assay.title}",
         "toc": "true",
@@ -249,6 +256,7 @@ def get_create_meta_data_yaml(
 def export_assay_to_file(
     request: HttpRequest, assay: Assay, export_type: str
 ) -> FileResponse:
+    """Export assay to file."""
     file_name = f"document_{slugify(assay.title)}.{export_type}"
     file_path = Path(settings.MEDIA_ROOT) / "toxtempass" / file_name  # Use pathlib.Path
     if not file_path.parent.exists():
@@ -280,7 +288,8 @@ def export_assay_to_file(
             str(md_file_path),
             "--from=markdown+tex_math_dollars+tex_math_single_backslash+tex_math_double_backslash",
             # Add standalone option for HTML and PDF
-            f"--metadata-file={str(yaml_metadata_file_path)}",  #<- also defines latex packages
+            # also defines latex packages
+            f"--metadata-file={str(yaml_metadata_file_path)}",
             "--toc",
         ]
 
@@ -302,7 +311,7 @@ def export_assay_to_file(
         pandoc_command.extend(["-o", str(file_path)])
 
         try:
-            subprocess.run(pandoc_command, check=True)
+            subprocess.run(pandoc_command, check=True)  # noqa: S603
         except subprocess.CalledProcessError as e:
             return JsonResponse(
                 {"error": f"Pandoc conversion failed: {str(e)}"}, status=500

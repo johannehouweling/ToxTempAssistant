@@ -1,7 +1,9 @@
+# ruff: noqa: E501
 import django_tables2 as tables
-from toxtempass.models import Assay
 from django.utils.html import format_html
-from toxtempass.models import LLMStatus
+from django.utils.safestring import SafeText
+
+from toxtempass.models import Assay, LLMStatus
 
 
 class AssayTable(tables.Table):
@@ -52,7 +54,7 @@ class AssayTable(tables.Table):
             {% elif record.status == LLMStatus.ERROR.value %}
                 <span class="d-inline-block" data-bs-toggle="tooltip" data-bs-container="body" data-bs-placement="top" title="LLM did not succeed. This can be temporary error with the LLM, or an issue with your documents, or too many documents at once.">
                     <button class="btn btn-sm btn-outline-danger" disabled style="pointer-events: none;">Error</button>
-                </span>        
+                </span>
             {% elif record.status == LLMStatus.DONE.value %}
                 <a class="btn btn-sm btn-outline-primary" href="{% url 'answer_assay_questions' record.id %}">View</a>
             {% else %}
@@ -66,7 +68,8 @@ class AssayTable(tables.Table):
         orderable=False,
     )
 
-    def render_progress(self, value, record):
+    def render_progress(self, value, record: Assay) -> SafeText:  # noqa: ANN001
+        """Render the progress bar based on the number of answers."""
         total = record.get_n_answers
         accepted = record.get_n_accepted_answers
         if total:
@@ -74,7 +77,12 @@ class AssayTable(tables.Table):
         else:
             pct = 0
         return format_html(
-            '<div class="progress border"><div class="progress-bar" role="progressbar" style="width: {}%;" aria-valuenow="{}" aria-valuemin="0" aria-valuemax="100" data-bs-toggle="tooltip" title="{}%"></div></div>',
+            (
+                '<div class="progress border"><div class="progress-bar" '
+                'role="progressbar" style="width: {}%;" aria-valuenow="{}"'
+                'aria-valuemin="0" aria-valuemax="100" data-bs-toggle="tooltip"'
+                ' title="{}%"></div></div>'
+            ),
             pct,
             pct,
             pct,

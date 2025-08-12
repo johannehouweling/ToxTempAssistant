@@ -1,8 +1,8 @@
-"""
-URL configuration for myocyte project.
+"""URL configuration for myocyte project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/5.1/topics/http/urls/
+
 Examples:
 Function views
     1. Add an import:  from my_app import views
@@ -13,19 +13,21 @@ Class-based views
 Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+
 """
 
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path
-from django.conf.urls.static import static
-from myocyte import settings
 from toxtempass import views
+
+from myocyte import settings
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path(
         "init/<slug:label>", views.init_db, name="init_db"
-    ),  # initializes database, meaning it creates the questions, subsections and sections.
+    ),  # initializes database, meaning it creates the questions, sub/sections.
 ]
 
 urlpatterns += [
@@ -110,7 +112,8 @@ urlpatterns += [
     ),
 ]
 
-# Filter Investigation and Study for the first menu on start.html (so we only show hierachical options and not all)
+# Filter Investigation and Study for the first menu on start.html
+# (so we only show hierachical options and not all)
 
 urlpatterns += [
     # Other paths

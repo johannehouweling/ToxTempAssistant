@@ -41,3 +41,12 @@ change_toxtemp.md
 # testings
 .coverage
 .coverage.*
+*.coveragerc
+
+# pytest cache
+.pytest_cache/
+# Ruff cache
+.ruff_cache/ 
+
+# Queue storage
+__queuestorage__/
