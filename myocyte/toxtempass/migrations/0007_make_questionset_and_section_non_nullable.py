@@ -1,7 +1,8 @@
 # toxtempass/migrations/0007_make_questionset_and_section_non_nullable.py
-from django.db import migrations, models
 import django.db.models.deletion
 from django.conf import settings
+from django.db import migrations, models
+
 
 class Migration(migrations.Migration):
 

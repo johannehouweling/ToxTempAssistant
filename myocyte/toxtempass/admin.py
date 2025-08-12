@@ -1,15 +1,16 @@
 from django.contrib import admin
+
 from toxtempass.models import (
-    Assay,
     Answer,
-    Question,
-    Section,
-    Subsection,
-    Investigation,
-    Study,
-    Person,
+    Assay,
     Feedback,
+    Investigation,
+    Person,
+    Question,
     QuestionSet,
+    Section,
+    Study,
+    Subsection,
 )
 
 

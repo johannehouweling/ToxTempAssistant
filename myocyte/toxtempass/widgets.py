@@ -1,4 +1,3 @@
-from typing import Any
 from django.forms.renderers import BaseRenderer
 from django.forms.widgets import Select
 from django.urls import reverse
@@ -14,16 +13,18 @@ class BootstrapSelectWithButtonsWidget(Select):
     def __init__(
         self,
         button_url_names: list[str],
+        *args,
         button_labels: list[str] | None = None,
         button_classes: list[str] | None = None,
         label: str | None = None,
-        *args,
         **kwargs,
-    ):
+    ) -> None:
+        """Initialize the widget with Bootstrap styling and buttons."""
         self.num_btns = len(button_url_names)
         self.button_url_names = button_url_names
         self.button_labels = (
-            button_labels if button_labels else self.num_btns * [self.default_btn_label]
+            button_labels if button_labels
+            else self.num_btns * [self.default_btn_label]
         )
         self.button_classes = (
             button_classes
@@ -36,14 +37,16 @@ class BootstrapSelectWithButtonsWidget(Select):
     def render(
         self,
         name: str,
-        value: Any,
+        value: str | None,
         attrs: dict[str, str] | None = None,
         renderer: BaseRenderer = None,
     ) -> SafeText:
+        """Render the widget as HTML with Bootstrap styling and buttons."""
         attrs = attrs or {}
         select_html = super().render(name, value, attrs, renderer)
 
-        # pick the label text: either override, or from attrs, or fallback to name.title()
+        # pick the label text: either override, or from attrs, or fallback to
+        # name.title()
         label_text = (
             self.label_override
             or attrs.get("label")
@@ -75,4 +78,4 @@ class BootstrapSelectWithButtonsWidget(Select):
             f"{''.join(buttons_html)}"
             "</div>"
         )
-        return mark_safe(html)
+        return mark_safe(html)  # noqa: S308

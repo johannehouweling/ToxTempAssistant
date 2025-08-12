@@ -1,5 +1,4 @@
-"""
-ASGI config for myocyte project.
+"""ASGI config for myocyte project.
 
 It exposes the ASGI callable as a module-level variable named ``application``.
 

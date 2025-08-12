@@ -1,9 +1,10 @@
 import json
+import logging
 import os
 import sys
 from datetime import datetime
 from pathlib import Path
-import logging
+
 from langchain_openai import ChatOpenAI
 
 # Ensure project root is on PYTHONPATH so 'toxtempass' imports work
@@ -23,10 +24,10 @@ def setup_django():
 
 setup_django()
 
-from toxtempass import config, LLM_API_KEY, LLM_ENDPOINT
-from toxtempass.validation.utils import has_answer_not_found
+from toxtempass import LLM_API_KEY, LLM_ENDPOINT, config
 from toxtempass.fixtures.factories import AssayFactory, DocumentDictFactory
 from toxtempass.models import Answer, Question
+from toxtempass.validation.utils import has_answer_not_found
 from toxtempass.views import process_llm_async
 
 # different test cases

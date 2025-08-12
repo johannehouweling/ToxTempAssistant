@@ -69,30 +69,97 @@ This project is licensed under the GNU Affero General Public License, see the LI
 [1]: Krebs, Alice, et al. "Template for the description of cell-based toxicological test methods to allow evaluation and regulatory use of the data." ALTEX-Alternatives to animal experimentation 36.4 (2019): 682-699. https://dx.doi.org/10.14573/altex.1909271
 
 ## Contribute
-We use `poetry`, `ruff` and [conventionalcommits](https://www.conventionalcommits.org/en/v1.0.0/).
 
-### Poetry
-This project uses poetry as package manager, install poetry via `conda install conda-forge::pipx` + `pipx ensurepath` + `pipx install poetry` 
-Use `poetry update` inside of venv to create a new poetry lock and bring python packages up to date. No longer requires a `pip install -r requirements.txt` command.
+We welcome contributions! Here is how to get started and what our expectations are for contributors.
 
-### Testing
-We use `factory_boy` and `Faker` and emphermal database settings for testing. To this end we also use 
+### Poetry for Dependency Management
 
-on unix
-```shell
-cd myocyte
-export DJANGO_SETTINGS_MODULE=myocyte.settings  
-poetry run pytest
-```
+This project uses [Poetry](https://python-poetry.org/) as the package manager.
 
-on pwsh:
-```powershell
-cd myocyte
-$env:DJANGO_SETTINGS_MODULE="myocyte.settings"
-poetry run pytest
-```
+- To install Poetry, run:
+  ```
+  conda install -c conda-forge pipx
+  pipx ensurepath
+  pipx install poetry
+  ```
 
-The testing is done automatically via github_actions inside the docker to stay as close to production as possible. 
-Only if all tests success will github proceed to release and rebuild the new version on the server. 
+- To update dependencies and the lock file inside your virtual environment, run:
+  ```
+  poetry update
+  ```
 
-For testing we use .env.dummy, that means we cannot test API calls unless we inject those via a github secrect.
+- No need to run `pip install -r requirements.txt`; Poetry manages dependencies and the lock file automatically.
+
+### Running Tests with Pytest
+
+We use [pytest](https://docs.pytest.org/en/stable/) along with `factory_boy`, `Faker`, and ephemeral database settings for testing.
+
+- To run tests locally, navigate to the django `ROOT` (where `manage.py` is located), then:
+
+  On Unix:
+  ```shell
+  cd myocyte
+  export DJANGO_SETTINGS_MODULE=myocyte.settings  
+  poetry run pytest
+  ```
+
+  On PowerShell:
+  ```powershell
+  cd myocyte
+  $env:DJANGO_SETTINGS_MODULE="myocyte.settings"
+  poetry run pytest
+  ```
+  (alternatively use `DJANGO_SETTINGS_MODULE=myocyte.myocyte.settings` if you run from project root, where `pyproject.toml` is).
+
+- Tests are automatically run in GitHub Actions CI inside Docker to mirror production conditions as closely as possible.
+
+- Only if all tests pass will we be able to proceed to include the PR.
+
+### Ruff for Linting
+
+We use [Ruff](https://github.com/charliermarsh/ruff) as the linter to keep the codebase consistent and clean.
+
+- Run Ruff locally using Poetry or directly, for example:
+  ```
+  poetry run ruff check .
+  ```
+
+- You can automatically fix many linting issues by running:
+  ```
+  poetry run ruff check . --fix
+  ```
+
+### Conventional Commits
+
+We follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification.
+
+- Please format your commit messages accordingly to maintain readable and automated changelog generation.
+
+- Example commit messages:
+  - `feat: add new toxicity test endpoint`
+  - `fix: correct calculation error in data normalization`
+  - `docs: update README with contribution instructions`
+
+### Git Pre-Commit Hooks
+
+To help maintain code quality, we provide Git pre-commit hooks.
+
+- Install the hooks by running:
+  ```
+  pip install pre-commit
+  pre-commit install
+  ```
+
+- These hooks will automatically run Ruff and check your commit messages before allowing commits.
+
+### Pull Requests (PRs)
+
+- We encourage you to create Pull Requests for your contributions.
+
+- On each PR, GitHub Actions will automatically run our CI workflow (`.github/workflows/ci.yml`) which builds the Docker image and runs the test suite.
+
+- All tests must pass before the PR can be merged.
+
+- Please include tests with any new features or bug fixes you contribute.
+
+Thank you for helping make this project better!
