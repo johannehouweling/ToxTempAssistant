@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.3.1 (2025-08-05)
+
+### Bug Fixes
+
+- **validation**: Update model imports and improve zip formatting in validation pipelines
+  ([`c1236f7`](https://github.com/johannehouweling/ToxTempAssistant/commit/c1236f70506ba0824a7fdc6f20486dd8e793a154))
+
+
 ## v1.3.0 (2025-08-04)
 
 ### Bug Fixes

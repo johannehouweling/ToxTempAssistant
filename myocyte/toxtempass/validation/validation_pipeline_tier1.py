@@ -41,8 +41,8 @@ llm = None
 repeat = False
 def_temp = config.temperature
 for model, temp in zip(
-    ["o3-mini"],
-    [None],
+    ["gpt-4o-mini","gpt-4.1-nano","o3-mini"],
+    [0,0, None],
     strict=True,
 ):
     if LLM_API_KEY and LLM_ENDPOINT:
@@ -110,20 +110,19 @@ for model, temp in zip(
         print(f"Success: {assay.status}")
         # 4) Retrieve generated answers for this specific assay
         answers = Answer.objects.filter(assay=assay)
-
         # 5) Generate comparison CSV ALSO SAVES THE FILE
         if not output_tier1.exists():
-            output_tier1.mkdir(parents=True)
-        df = generate_comparison_csv(json_file, answers, output_tier1, pdf_file, model=llm)
+            (output_tier1).mkdir(parents=True)
+        df = generate_comparison_csv(json_file, answers, output_tier1, pdf_file, model=llm, overwrite=False)
         # df is file with [question, gtruth_answer, llm_answer, cos_similarity, bert_precision, bert_recall, bert_f1]
         # now using this file to create a summary of the results
         # 6) Collect summary results
         # Total number of questions with ground truth answers
-        total = int(df["gtruth_answer"].notna().sum())
+        total = int(df[df["gtruth_answer"]!=""].dropna().shape[0]) 
+        # df filter empty answers   
         # Filter out failures for summary statistics
         passed_mask = (
-            df["gtruth_answer"].notna()
-            & df["gtruth_answer"].astype(bool)
+            (df["gtruth_answer"]!="").astype(bool) & df["gtruth_answer"].notna()
             & df["llm_answer"].notna()
             & df["llm_answer"].astype(bool)
             & ~df["llm_answer"].apply(has_answer_not_found)

@@ -40,10 +40,11 @@ logger = logging.getLogger("llm")
 
 # Initialize language models based on environment variables
 llm = None
-repeat = False # set to True if you want to repeat the analysis for all models
+repeat = False  # set to True if you want to repeat the analysis for all models
 def_temp = config.temperature
-for model,temp in zip(["gpt-4o", "gpt-4.1-nano", "o3-mini"], [def_temp, def_temp, None], strict=True):
-
+for model, temp in zip(
+    ["gpt-4o", "gpt-4.1-nano", "o3-mini"], [def_temp, def_temp, None], strict=True
+):
     if LLM_API_KEY and LLM_ENDPOINT:
         llm = ChatOpenAI(
             api_key=LLM_API_KEY,
@@ -57,8 +58,6 @@ for model,temp in zip(["gpt-4o", "gpt-4.1-nano", "o3-mini"], [def_temp, def_temp
     else:
         logger.error("Required environment variables are missing")
 
-
-
     # Tier 2: Negative Control
     files_tier2 = list(
         Path("/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier2").glob(
@@ -69,7 +68,7 @@ for model,temp in zip(["gpt-4o", "gpt-4.1-nano", "o3-mini"], [def_temp, def_temp
         f"/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier2_results/{model}/"
     )
     if output_tier2.exists():
-        #print(f"{output_tier2.name:s} exists, sure you want to repeat the analysis for {model}?")
+        # print(f"{output_tier2.name:s} exists, sure you want to repeat the analysis for {model}?")
         if repeat:
             pass
         else:
@@ -90,7 +89,11 @@ for model,temp in zip(["gpt-4o", "gpt-4.1-nano", "o3-mini"], [def_temp, def_temp
         # 2) Call LLM
         process_llm_async(
             assay.id,
-            {key: value for key, value in input_tier2_dict.items() if document_name in key},
+            {
+                key: value
+                for key, value in input_tier2_dict.items()
+                if document_name in key
+            },
             chatopenai=llm,
         )
         print(f"Success: {assay.status}")
