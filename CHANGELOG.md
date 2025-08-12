@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.4.0 (2025-08-12)
+
+### Features
+
+- **housekeeping**: Installed pre-commit, setup ruff as lint and fixed all ruff linting errors.
+  ([`91391cc`](https://github.com/johannehouweling/ToxTempAssistant/commit/91391ccda4ae6f5961629726d1a6495a604d700f))
+
+
 ## v1.3.1 (2025-08-05)
 
 ### Bug Fixes
