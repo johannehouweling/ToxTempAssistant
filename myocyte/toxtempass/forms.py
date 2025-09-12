@@ -9,6 +9,8 @@ from django.core.files.uploadedfile import UploadedFile
 from django.forms import widgets
 from guardian.shortcuts import get_objects_for_user
 from langchain_core.messages import SystemMessage
+import mimetypes
+
 
 from toxtempass import config
 from toxtempass.filehandling import (
@@ -18,7 +20,7 @@ from toxtempass.filehandling import (
 from toxtempass.llm import (
     ImageMessage,
     allowed_mime_types,
-    chain,
+    get_llm,
     image_accept_files,
     text_accept_files,
 )
@@ -388,20 +390,46 @@ class AssayAnswerForm(forms.Form):
                     )
                     self.fields[earmarked_field_name].initial = False
 
-    def clean_file_upload(self) -> list:
-        """Validate uploaded files."""
-        uploaded_files = self.files.getlist("file_upload")
-        allowed_types = allowed_mime_types
-        max_size = config.max_size_mb * 1024 * 1024  # convert MB to bytes
+    def clean_file_upload(self) -> list[UploadedFile]:
+        """Validate uploaded files and return the accepted list."""
+        files: list[UploadedFile] = self.files.getlist("file_upload")
+        if not files:
+            return []
 
-        for file in uploaded_files:
-            if file.content_type not in allowed_types:
-                raise forms.ValidationError(f"Unsupported file type: {file.content_type}")
-            if file.size > max_size:
-                raise forms.ValidationError(
-                    f"File size exceeds the limit of {max_size / (1024 * 1024)} MB"
+        allowed_types = allowed_mime_types
+        max_size_bytes = int(config.max_size_mb * 1024 * 1024)
+
+        errors: list[forms.ValidationError] = []
+        cleaned: list[UploadedFile] = []
+
+        for f in files:
+            # Be resilient: fall back to guessing by filename if content_type is missing
+            ct = getattr(f, "content_type", "") or (mimetypes.guess_type(f.name)[0] or "")
+
+            if ct not in allowed_types:
+                errors.append(
+                    forms.ValidationError(
+                        f"{f.name}: unsupported file type ({ct or 'unknown'})"
+                    )
                 )
-        return uploaded_files[UploadedFile]
+                continue
+
+            if f.size > max_size_bytes:
+                mb = f.size / (1024 * 1024)
+                errors.append(
+                    forms.ValidationError(
+                        f"{f.name}: {mb:.1f} MB exceeds {config.max_size_mb} MB"
+                    )
+                )
+                continue
+
+            cleaned.append(f)
+
+        if errors:
+            # Show all problems at once
+            raise forms.ValidationError(errors)
+
+        return cleaned
 
     def save(self) -> None:
         """Save the form data.
@@ -494,7 +522,8 @@ class AssayAnswerForm(forms.Form):
                             ),
                         )
                     # (Add additional messages as needed based on your requirements.)
-                    draft_answer = chain.invoke(messages)
+                    llm = get_llm()
+                    draft_answer = llm.invoke(messages)
                     existing_docs = answer.answer_documents or []
                     new_docs = [
                         Path(key).name
