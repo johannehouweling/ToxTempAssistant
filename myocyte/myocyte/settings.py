@@ -14,38 +14,36 @@ import os
 import sys
 from pathlib import Path
 
-from django.core.management.utils import get_random_secret_key
 from django.core.exceptions import ImproperlyConfigured
+from django.core.management.utils import get_random_secret_key
 from dotenv import load_dotenv
 
 _LOG = logging.getLogger(__name__)
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-# in Docker system variables are set in the Dockerfile also via the .env
-# in local development, we use a .env file to set environment variables
+PROJECT_ROOT = BASE_DIR.parent
 
 TESTING = os.getenv("TESTING", "false").lower() in ("true", "1", "yes") or (
     len(sys.argv) > 1 and sys.argv[1] == "test"
 )
-# 2) Build your paths
-env_path = BASE_DIR.parent / ".env"
-dummy_env_path = BASE_DIR.parent / ".env.dummy"
 
-# 3) Choose which one to load
-if TESTING or not env_path.exists():
-    ENV_FILE = dummy_env_path
+
+# Allow explicit override via environment
+dotenv_path = os.getenv("DOTENV_PATH")
+
+if dotenv_path:
+    dotenv_file = Path(dotenv_path)
 else:
-    ENV_FILE = env_path
-if not ENV_FILE.exists():
-    raise ImproperlyConfigured(f"Environment file {ENV_FILE} does not exist.")
+    env_file = PROJECT_ROOT / ".env"
+    dummy_file = PROJECT_ROOT / ".env.dummy"
+    dotenv_file = env_file if env_file.exists() else dummy_file
 
-# 4) (Optionally) alert the user what you picked
-_LOG.warning(f"Using environment file: {ENV_FILE}")
-
-load_dotenv(ENV_FILE, override=True)
-
+if dotenv_file.exists():
+    load_dotenv(dotenv_file, override=False)  # keep OS env vars as primary source
+    _LOG.info(f"Loaded environment file: {dotenv_file}")
+else:
+    _LOG.warning("No .env or .env.dummy found. Relying on OS environment only.")
+# ── End env loading policy ─────────────────────────────────────────────────────
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -229,22 +227,27 @@ LOGGING = {
     },
     "formatters": {
         "detailed": {
-            "format": "{asctime} {levelname} {message}",
+            "format": "{asctime} - {levelname} - {message}",
             "style": "{",
         },
     },
     "loggers": {
-        "llm": {
+        "toxtempass.apps": {
             "handlers": ["console"],
             "level": "INFO",
             "propagate": False,
         },
-        "views": {
+        "toxtempass.views": {
             "handlers": ["console"],
             "level": "INFO",
             "propagate": False,
         },
-        "forms": {
+        "toxtempass.forms": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "toxtempass.llm": {
             "handlers": ["console"],
             "level": "INFO",
             "propagate": False,
