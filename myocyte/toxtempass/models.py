@@ -30,7 +30,7 @@ class AccessibleModel(models.Model):
         """
         return None
 
-    def is_accessible_by(self, user:"Person", perm_prefix:str="view") -> bool:
+    def is_accessible_by(self, user: "Person", perm_prefix: str = "view") -> bool:
         """Check if a user has permission to access this object.
 
         The check is recursive: if the user does not have direct permission on
@@ -117,7 +117,7 @@ class Investigation(AccessibleModel):
         Person, on_delete=models.PROTECT, related_name="investigations"
     )
     title = models.CharField(max_length=255, blank=False, null=False)
-    description = models.TextField(blank=True)
+    description = models.TextField(blank=True, default="")
     submission_date = models.DateTimeField(auto_now_add=True)
     public_release_date = models.DateTimeField(null=True, blank=True)
 
@@ -168,7 +168,13 @@ class QuestionSet(models.Model):
     """A named version of the entire question hierarchy."""
 
     label = models.CharField(max_length=10, unique=True, null=True)  # v1  # noqa: DJ001
-    display_name = models.CharField(max_length=50)
+    display_name = models.CharField(
+        max_length=50,
+        default="v2019",
+        help_text="A user-friendly name for this question set version, e.g.,"
+        " 'ToxTemp Questions v1.0'.",
+    )  # noqa: DJ001
+
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(
         Person,
@@ -221,6 +227,7 @@ class Assay(AccessibleModel):
         choices=LLMStatus.choices,
         default=LLMStatus.NONE,
     )
+    status_context = models.TextField(blank=True, default="")
     question_set = models.ForeignKey(
         QuestionSet,
         on_delete=models.PROTECT,
@@ -399,7 +406,7 @@ class Answer(AccessibleModel):
         blank=True,
         help_text="Store list of Filenames used to answer this question.",
     )  # chnage this to VectorField with for a real database.
-    answer_text = models.TextField(blank=True)
+    answer_text = models.TextField(blank=True, default="")
     accepted = models.BooleanField(
         null=True, blank=True, help_text="Marked as final answer."
     )
