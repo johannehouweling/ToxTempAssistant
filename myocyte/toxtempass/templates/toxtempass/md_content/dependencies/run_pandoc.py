@@ -1,21 +1,23 @@
-from pathlib import Path
+import logging
 import subprocess
+from pathlib import Path
 
+_LOG = logging.getLogger(__name__)
 
 cwd = Path(__file__).parent.parent
 out_folder = cwd / "auto_generated_html"
 if not out_folder.exists():
     out_folder.mkdir()
 for md_file in list(cwd.glob("**/*.md")):
-    # Define the output file name (you can adjust the extension or output directory as needed)
+    # Define the output file name (you can adjust the extension or output directory)
     output_file = (
         out_folder / md_file.with_suffix(".html").name
     )  # Convert markdown to HTML
 
     # Run pandoc using subprocess
     try:
-        subprocess.run(
-            [
+        subprocess.run(  # noqa: S603,
+            [  # noqa: S607
                 "pandoc",
                 str(md_file),
                 f"--template={cwd / 'dependencies/GitHub.html5'}",
@@ -24,6 +26,6 @@ for md_file in list(cwd.glob("**/*.md")):
             ],
             check=True,
         )
-        print(f"Successfully converted {md_file} to {output_file}")
+        _LOG.info(f"Successfully converted {md_file} to {output_file}")
     except subprocess.CalledProcessError as e:
-        print(f"Error processing {md_file}: {e}")
+        _LOG.warning(f"Error processing {md_file}: {e}")

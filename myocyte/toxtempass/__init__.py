@@ -1,5 +1,6 @@
-import os
+# ruff: noqa: W293, W291, E501
 import logging
+import os
 
 from django.conf import settings
 

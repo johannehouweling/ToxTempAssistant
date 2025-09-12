@@ -16,169 +16,142 @@ from django.db import transaction
 import json
 import logging
 import re
+import time
+from collections.abc import Iterator
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
+
+import requests
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import user_passes_test
+from django.contrib.auth.models import User
+from django.contrib.humanize.templatetags.humanize import naturaltime
+from django.db import transaction
+from django.db.models import QuerySet
+from django.http import FileResponse, HttpRequest, HttpResponse, HttpResponseRedirect
+from django.http.response import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils.decorators import method_decorator
+from django.utils.safestring import mark_safe
 from django.views import View
 from django_q.tasks import async_task
-
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
+from django_tables2 import SingleTableView
+from guardian.shortcuts import get_objects_for_user
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_openai import ChatOpenAI
+from openai import RateLimitError
 from tqdm.auto import tqdm
 
-from pathlib import Path
-from django.urls import reverse
-from langchain_core.messages import HumanMessage, SystemMessage
+from myocyte import settings
+from toxtempass import config
+from toxtempass.export import export_assay_to_file
 from toxtempass.filehandling import (
     get_text_or_imagebytes_from_django_uploaded_file,
     split_doc_dict_by_type,
 )
-from django.contrib.humanize.templatetags.humanize import naturaltime
-from django.shortcuts import get_object_or_404, render, redirect
-from django.utils.safestring import mark_safe
-from toxtempass.models import (
-    Investigation,
-    LLMStatus,
-    Study,
-    Assay,
-    Answer,
-    Section,
-    Subsection,
-    Question,
-    QuestionSet,
-    Person,
-    Feedback,
-)
-from django_tables2 import SingleTableView
-from django.utils.decorators import method_decorator
-from guardian.shortcuts import get_objects_for_user
-from toxtempass.tables import AssayTable
 from toxtempass.forms import (
-    SignupFormOrcid,
-    SignupForm,
     AssayAnswerForm,
-    StartingForm,
-    InvestigationForm,
-    StudyForm,
     AssayForm,
+    InvestigationForm,
     LoginForm,
+    SignupForm,
+    SignupFormOrcid,
+    StartingForm,
+    StudyForm,
 )
 from toxtempass.llm import chain
-from langchain_openai import ChatOpenAI
-from toxtempass.export import export_assay_to_file
-
-from django.contrib.auth.decorators import user_passes_test
-from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login, logout
-import requests
-from myocyte import settings
-
+from toxtempass.models import (
+    Answer,
+    Assay,
+    Feedback,
+    Investigation,
+    LLMStatus,
+    Person,
+    Question,
+    QuestionSet,
+    Section,
+    Study,
+    Subsection,
+)
+from toxtempass.tables import AssayTable
 
 logger = logging.getLogger("views")
 
 
 # Login stuff
-orcid_id_baseurl = (
-    "https://sandbox.orcid.org" if settings.DEBUG else "https://orcid.org"
-)
+orcid_id_baseurl = "https://sandbox.orcid.org" if settings.DEBUG else "https://orcid.org"
 
 
 # Custom test function to check if the user is a logged-in
-def is_admin(user: User):
+def is_admin(user: User)-> bool:
     """Check is user is admin. Return True if that's the case."""
     return user.is_superuser
 
 
 # Custom test function to check if the user is a superuser (admin)
-def is_logged_in(user: Person | None):
-    """Check is user is admin. Return True if that's the case."""
+def is_logged_in(user: Person | None) -> bool:
+    """Check if user is logged in as a Person instance."""
     return isinstance(user, Person)
 
 
 def logout_view(request: HttpRequest) -> HttpResponseRedirect:
-    """Log out."""
-    # Log out the user
+    """Log out the current user and redirect to the login page."""
     logout(request)
-    # Redirect to the login page (you can replace '/login/' with your login URL)
     return redirect(reverse("login"))
 
 
 class LoginView(View):
-    def get(self, request):
+    """View to handle user login via GET and POST methods."""
+
+    def get(self, request: HttpRequest) -> HttpResponse:
+        """Render the login page with the login form if user is not authenticated."""
         if request.user.is_authenticated:
             return redirect(reverse("start"))
         form = LoginForm()
         return render(request, "login.html", {"form": form})
 
-    def post(self, request):
+    def post(self, request: HttpRequest) -> JsonResponse:
+        """Process login form submission and authenticate user."""
         form = LoginForm(request.POST)
         if form.is_valid():
             username = form.cleaned_data.get("username")
-            # if the username is an ORCID id, get the user by the ORCID id
+            # Check if username looks like an ORCID id and get the email associated
             if "@" not in username:
-                try:
-                    # Check if the username matches the ORCID pattern: 4x4 digits separated by '-'
-                    orcid_pattern = r"^\d{4}-\d{4}-\d{4}-\d{4}$"
-                    if re.match(orcid_pattern, username):
-                        try:
-                            username = Person.objects.get(orcid_id=username).email
-                        except Person.DoesNotExist:
-                            form.add_error(None, "Invalid credentials.")
-                            return JsonResponse(
-                                dict(
-                                    success=False,
-                                    errors=form.errors,
-                                )
-                            )
-                    else:
-                        form.add_error(
-                            None,
-                            "ORCID iD must be in the format '0000-0000-0000-0000'.",
-                        )
-                        return JsonResponse(
-                            dict(
-                                success=False,
-                                errors=form.errors,
-                            )
-                        )
-                except Person.DoesNotExist:
-                    form.add_error(None, "Invalid credentials.")
-                    return JsonResponse(
-                        dict(
-                            success=False,
-                            errors=form.errors,
-                        )
+                orcid_pattern = r"^\d{4}-\d{4}-\d{4}-\d{4}$"
+                if re.match(orcid_pattern, username):
+                    try:
+                        username = Person.objects.get(orcid_id=username).email
+                    except Person.DoesNotExist:
+                        form.add_error(None, "Invalid credentials.")
+                        return JsonResponse({"success": False, "errors": form.errors})
+                else:
+                    form.add_error(
+                        None, "ORCID iD must be in the format '0000-0000-0000-0000'."
                     )
+                    return JsonResponse({"success": False, "errors": form.errors})
             password = form.cleaned_data.get("password")
             user = authenticate(request, username=username, password=password)
             if user:
-                login(
-                    request, user, backend="django.contrib.auth.backends.ModelBackend"
-                )
+                login(request, user, backend="django.contrib.auth.backends.ModelBackend")
                 return JsonResponse(
-                    dict(
-                        success=True,
-                        errors=form.errors,
-                        redirect_url=reverse("start"),
-                    )
+                    {
+                        "success": True,
+                        "errors": form.errors,
+                        "redirect_url": reverse("start"),
+                    }
                 )
             else:
                 form.add_error(None, "Invalid credentials.")
-                return JsonResponse(
-                    dict(
-                        success=False,
-                        errors=form.errors,
-                    )
-                )
+                return JsonResponse({"success": False, "errors": form.errors})
         else:
-            return JsonResponse(
-                {
-                    "success": False,
-                    "errors": form.errors,
-                }
-            )
+            return JsonResponse({"success": False, "errors": form.errors})
 
 
 def signup(request: HttpRequest) -> HttpResponse | JsonResponse:
-    """
-    Normal signup view. If the user is not logged in, they can sign up.
+    """Show normal signup view.
+
+    If the user is not logged in, they can sign up.
     """
     if request.user.is_authenticated:
         return redirect(reverse("start"))
@@ -212,14 +185,15 @@ def signup(request: HttpRequest) -> HttpResponse | JsonResponse:
 
 
 # Redirects the user to ORCID’s OAuth authorization endpoint.
-def orcid_login(request):
-    """ "Redirects the user to ORCID’s OAuth authorization endpoint."""
+def orcid_login(request: HttpRequest) -> HttpResponse:
+    """Redirect the user to ORCIDs OAuth authorization endpoint."""
     # Use your provided ORCID credentials:
     client_id = config._orcid_client_id
     # Build the redirect URI dynamically (ensure it matches the one registered with ORCID)
     redirect_uri = request.build_absolute_uri("/orcid/callback/")
 
-    # The ORCID OAuth URL. According to the docs, for authentication the scope is `/authenticate`
+    # The ORCID OAuth URL.
+    # According to the docs, for authentication the scope is `/authenticate`
     orcid_authorize_url = (
         f"{orcid_id_baseurl}/oauth/authorize?"  ### NEED TO CHANGE FOR PRODUCTION
         f"client_id={client_id}"
@@ -231,8 +205,11 @@ def orcid_login(request):
 
 
 # Handles the callback from ORCID and logs the user in.
-def orcid_callback(request):
-    """Digest the callback from ORCID and either log the user in or link their ORCID to their account."""
+def orcid_callback(request: HttpRequest) -> HttpResponse | JsonResponse:
+    """Digest the callback from ORCID.
+
+    Either log the user in or link their ORCID to their account.
+    """
     code = request.GET.get("code")
     if not code:
         return HttpResponse("No code provided.", status=400)
@@ -251,7 +228,7 @@ def orcid_callback(request):
         "redirect_uri": redirect_uri,
     }
 
-    response = requests.post(token_url, data=data)
+    response = requests.post(token_url, data=data, timeout=15)
     if response.status_code != 200:
         return HttpResponse("Failed to authenticate with ORCID.", status=400)
 
@@ -274,13 +251,18 @@ def orcid_callback(request):
         # Optional: Check if another account already has this ORCID linked.
         if Person.objects.filter(orcid_id=orcid_id).exclude(pk=person.pk).exists():
             return HttpResponse(
-                "This ORCID id is already linked to another account. Please go orcid.com and logout to be prompted with anohter authentication prompt.",
+                (
+                    "This ORCID id is already linked to another account."
+                    " Please go orcid.com and logout to be prompted with"
+                    " anohter authentication prompt."
+                ),
                 status=400,
             )
 
         # Save the ORCID id and token data to the user’s profile.
         person.orcid_id = orcid_id
-        person.orcid_token_data = token_data  # Ensure your model field supports storing this data (e.g., JSONField)
+        # Ensure your model field supports storing this data (e.g., JSONField)
+        person.orcid_token_data = token_data
         person.save()
 
         # Optionally, you can add a message to confirm successful linking.
@@ -302,9 +284,7 @@ def orcid_callback(request):
 
 
 def orcid_signup(request: HttpRequest) -> HttpResponse | JsonResponse:
-    """
-    Handles the signup process after the user has authenticated with ORCID.
-    """
+    """Handle the signup process after the user has authenticated with ORCID."""
     orcid_id = request.session.get("orcid_id")
     if not orcid_id:
         return JsonResponse(
@@ -361,7 +341,7 @@ def orcid_signup(request: HttpRequest) -> HttpResponse | JsonResponse:
 
 
 @user_passes_test(is_admin)
-def init_db(request: HttpRequest, label: str):
+def init_db(request: HttpRequest, label: str) -> JsonResponse:
     """Create a brand-new QuestionSet each time you upload."""
     if not label:
         return JsonResponse(
@@ -375,9 +355,7 @@ def init_db(request: HttpRequest, label: str):
         )
 
     if QuestionSet.objects.filter(label=label).exists():
-        return JsonResponse(
-            {"message": f"Version '{label}' already exists"}, status=400
-        )
+        return JsonResponse({"message": f"Version '{label}' already exists"}, status=400)
 
     # load JSON
     path = Path().cwd() / f"ToxTemp_{label}.json"
@@ -447,9 +425,7 @@ def init_db(request: HttpRequest, label: str):
 
                     raw_ctx_sq = sq.get("subsections_for_context_title", [])
                     ctx_sq = (
-                        [raw_ctx_sq]
-                        if isinstance(raw_ctx_sq, str)
-                        else list(raw_ctx_sq)
+                        [raw_ctx_sq] if isinstance(raw_ctx_sq, str) else list(raw_ctx_sq)
                     )
                     if ctx_sq:
                         pending_ctx.append((subq, ctx_sq))
@@ -630,12 +606,16 @@ def process_llm_async(
                         timed_out = True
                         continue
 
-                    # save the successful draft
-                    Answer.objects.filter(pk=aid).update(
-                        answer_text=text,
-                        answer_documents=[Path(fp).name for fp in text_dict.keys()],
-                    )
-
+                    try:
+                        # save the successful draft
+                        Answer.objects.filter(pk=aid).update(
+                            answer_text=text,
+                            answer_documents=[Path(fp).name for fp in text_dict.keys()],
+                        )
+                    except Exception:
+                        assay.status = LLMStatus.ERROR
+                        assay.save()
+                        continue
         assay.status = LLMStatus.DONE
         assay.save()
 
@@ -652,7 +632,8 @@ class AssayListView(SingleTableView):
     template_name = "toxtempass/overview.html"
     paginate_by = 10
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Assay]:
+        """Return a queryset of Assays accessible by the user."""
         user = self.request.user
         accessible_investigations = get_objects_for_user(
             user,
@@ -668,6 +649,7 @@ class AssayListView(SingleTableView):
 
 @user_passes_test(is_logged_in, login_url="/login/")
 def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
+    """View to handle the starting form for new Assays."""
     # -------------------------------
     # GET: render the StartingForm, possibly using ?investigation=?, ?study=?, ?assay=?
     # -------------------------------
@@ -685,7 +667,8 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
         if assay_id:
             initial["assay"] = assay_id
 
-        # 3) Instantiate StartingForm with initial=… so those <select> fields stay pre-selected
+        # 3) Instantiate StartingForm with initial=… so those
+        # <select> fields stay pre-selected
         form = StartingForm(initial=initial, user=request.user)
 
         return render(
@@ -709,13 +692,12 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
             if not assay.is_accessible_by(request.user, perm_prefix="view"):
                 from django.core.exceptions import PermissionDenied
 
-                raise PermissionDenied(
-                    "You do not have permission to access this assay."
-                )
+                raise PermissionDenied("You do not have permission to access this assay.")
 
             files = request.FILES.getlist("files")
 
-            # If files were uploaded and there are no existing answers, seed empty answers.
+            # If files were uploaded and there are no existing answers,
+            # seed empty answers.
             if files and not assay.answers.all():
                 form_empty_answers = AssayAnswerForm({}, assay=assay, user=request.user)
                 if form_empty_answers.is_valid():
@@ -756,7 +738,8 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
 
 
 @user_passes_test(is_logged_in, login_url="/login/")
-def get_filtered_studies(request: HttpRequest, investigation_id: int):
+def get_filtered_studies(request: HttpRequest, investigation_id: int) -> JsonResponse:
+    """Get filtered Studies based on the Investigation ID."""
     if investigation_id:
         studies = Study.objects.filter(investigation_id=investigation_id).values(
             "id", "title"
@@ -766,7 +749,8 @@ def get_filtered_studies(request: HttpRequest, investigation_id: int):
 
 
 @user_passes_test(is_logged_in, login_url="/login/")
-def get_filtered_assays(request: HttpRequest, study_id: int):
+def get_filtered_assays(request: HttpRequest, study_id: int) -> JsonResponse:
+    """Get filtered Assays based on the Study ID."""
     if study_id:
         assays = Assay.objects.filter(study_id=study_id).values("id", "title")
         return JsonResponse(list(assays), safe=False)
@@ -775,6 +759,7 @@ def get_filtered_assays(request: HttpRequest, study_id: int):
 
 @user_passes_test(is_logged_in, login_url="/login/")
 def initial_gpt_allowed_for_assay(request: HttpRequest, pk: int) -> JsonResponse:
+    """Check if GPT is allowed for the given Assay."""
     if request.method == "POST":
         assay = get_object_or_404(Assay, pk=pk)
         if not assay.is_accessible_by(request.user, perm_prefix="view"):
@@ -788,7 +773,10 @@ def initial_gpt_allowed_for_assay(request: HttpRequest, pk: int) -> JsonResponse
 
 
 @user_passes_test(is_logged_in, login_url="/login/")
-def create_or_update_investigation(request, pk=None):
+def create_or_update_investigation(
+    request: HttpRequest, pk: int | None = None
+) -> JsonResponse | HttpResponse:
+    """Create or update an Investigation."""
     if pk:
         investigation = get_object_or_404(Investigation, pk=pk)
         if not investigation.is_accessible_by(request.user, perm_prefix="change"):
@@ -822,13 +810,16 @@ def create_or_update_investigation(request, pk=None):
         {
             "form": form,
             "title": "Create Investigation",
-            "back_url": mark_safe(reverse("add_new")),
+            "back_url": mark_safe(reverse("add_new")),  # noqa: S308
         },
     )
 
 
 @user_passes_test(is_logged_in, login_url="/login/")
-def delete_investigation(request, pk):
+def delete_investigation(
+    request: HttpRequest, pk: int
+) -> JsonResponse | HttpResponseRedirect:
+    """Delete an investigation if the user has permission."""
     if request.method == "GET":
         investigation = get_object_or_404(Investigation, pk=pk)
         if not investigation.is_accessible_by(request.user, perm_prefix="delete"):
@@ -843,7 +834,10 @@ def delete_investigation(request, pk):
 
 
 @user_passes_test(is_logged_in, login_url="/login/")
-def create_or_update_study(request, pk=None):
+def create_or_update_study(
+    request: HttpRequest, pk: int | None = None
+) -> JsonResponse | HttpResponse:
+    """Create or update a Study."""
     # If pk is provided, we’re editing an existing Study.
     if pk:
         study = get_object_or_404(Study, pk=pk)
@@ -894,13 +888,14 @@ def create_or_update_study(request, pk=None):
             {
                 "form": form,
                 "title": pk and "Modify Study" or "Create Study",
-                "back_url": mark_safe(back_url),
+                "back_url": mark_safe(back_url),  # noqa: S308
             },
         )
 
 
 @user_passes_test(is_logged_in, login_url="/login/")
-def delete_study(request, pk):
+def delete_study(request: HttpRequest, pk: int) -> JsonResponse | HttpResponseRedirect:
+    """Delete a study if the user has permission."""
     if request.method == "GET":
         study = get_object_or_404(Study, pk=pk)
         if not study.is_accessible_by(request.user, perm_prefix="delete"):
@@ -913,7 +908,10 @@ def delete_study(request, pk):
 
 
 @user_passes_test(is_logged_in, login_url="/login/")
-def create_or_update_assay(request, pk=None):
+def create_or_update_assay(
+    request: HttpRequest, pk: int | None = None
+) -> JsonResponse | HttpResponse:
+    """Create or update an Assay."""
     # If pk is provided, we’re editing an existing Assay.
     if pk:
         assay = get_object_or_404(Assay, pk=pk)
@@ -932,7 +930,8 @@ def create_or_update_assay(request, pk=None):
             inv_id = saved_assay.study.investigation_id
             assay_id = saved_assay.id
 
-            # Redirect back to /start/?investigation=<inv_id>&study=<st_id>&assay=<assay_id>
+            # Redirect back to
+            # /start/?investigation=<inv_id>&study=<st_id>&assay=<assay_id>
             redirect_url = reverse("add_new")
             redirect_url += f"?investigation={inv_id}&study={st_id}&assay={assay_id}"
 
@@ -972,13 +971,14 @@ def create_or_update_assay(request, pk=None):
             {
                 "form": form,
                 "title": pk and "Modify Assay" or "Create Assay",
-                "back_url": mark_safe(back_url),
+                "back_url": mark_safe(back_url),  # noqa: S308
             },
         )
 
 
 @user_passes_test(is_logged_in, login_url="/login/")
-def delete_assay(request, pk):
+def delete_assay(request: HttpRequest, pk: int) -> JsonResponse | HttpResponseRedirect:
+    """Delete an assay if the user has permission."""
     if request.method == "GET":
         assay = get_object_or_404(Assay, pk=pk)
         if not assay.is_accessible_by(request.user, perm_prefix="delete"):
@@ -991,7 +991,10 @@ def delete_assay(request, pk):
 
 
 @user_passes_test(is_logged_in, login_url="/login/")
-def answer_assay_questions(request, assay_id):
+def answer_assay_questions(
+    request: HttpRequest, assay_id: int
+) -> JsonResponse | HttpResponse:
+    """Render the form to answer questions for a specific assay."""
     assay = get_object_or_404(Assay, pk=assay_id)
     if not assay.is_accessible_by(request.user, perm_prefix="view"):
         from django.core.exceptions import PermissionDenied
@@ -1052,7 +1055,10 @@ def answer_assay_questions(request, assay_id):
 
 
 @user_passes_test(is_logged_in, login_url="/login/")
-def get_version_history(request, assay_id, question_id):
+def get_version_history(
+    request: HttpRequest, assay_id: int, question_id: int
+) -> HttpResponse:
+    """Fetch the version history of an answer to a question in an assay."""
     answer = get_object_or_404(Answer, assay=assay_id, question=question_id)
     if not answer.is_accessible_by(request.user, perm_prefix="view"):
         from django.core.exceptions import PermissionDenied
@@ -1064,13 +1070,13 @@ def get_version_history(request, assay_id, question_id):
     version_changes = []
 
     class DotDict(dict):
-        def __getattr__(self, key):
+        def __getattr__(self, key: str):
             try:
                 return self[key]
             except KeyError:
                 raise AttributeError(f"'DotDict' object has no attribute '{key}'")
 
-        def __setattr__(self, key, value):
+        def __setattr__(self, key: str, value: object) -> None:
             self[key] = value
 
     def _split_into_words(text: str) -> list:
@@ -1080,7 +1086,10 @@ def get_version_history(request, assay_id, question_id):
         html_diff = ""
         for word in diff:
             if word.startswith("-"):
-                html_diff += f'<span style="color: red; text-decoration: line-through;">{word[2:]}</span> '
+                html_diff += (
+                    '<span style="color: red; text-decoration: line-through;">'
+                    f"{word[2:]}</span> "
+                )
             elif word.startswith("+"):
                 html_diff += f'<span style="color: green;">{word[2:]}</span> '
             else:
@@ -1114,13 +1123,14 @@ def get_version_history(request, assay_id, question_id):
     # ─── strip out any “versions” with no changes ───
     version_changes = [entry for entry in version_changes if entry["changes"]]
 
+    question_set_display_name = str(answer.question.subsection.section.question_set)
     return render(
         request,
         "answer_extras/version_history_modal_body.html",
         {
             "version_changes": version_changes,
             "instance": answer,
-            "question_set_display_name": answer.question.subsection.section.question_set.__str__(),
+            "question_set_display_name": question_set_display_name,
         },
     )
 
@@ -1129,6 +1139,7 @@ def get_version_history(request, assay_id, question_id):
 def export_assay(
     request: HttpRequest, assay_id: int, export_type: str
 ) -> FileResponse | JsonResponse:
+    """Export an assay to a file in the specified format."""
     assay = get_object_or_404(Assay, id=assay_id)
     if not assay.is_accessible_by(request.user, perm_prefix="view"):
         from django.core.exceptions import PermissionDenied
@@ -1147,12 +1158,14 @@ def export_assay(
 
 @user_passes_test(is_logged_in, login_url="/login/")
 def assay_hasfeedback(request: HttpRequest, assay_id: int) -> JsonResponse:
+    """Check if an assay has feedback. Returns a JSON response."""
     assay = get_object_or_404(Assay, id=assay_id)
     return JsonResponse({"success": True, "has_feedback": assay.has_feedback})
 
 
 @user_passes_test(is_logged_in, login_url="/login/")
 def assay_feedback(request: HttpRequest, assay_id: int) -> JsonResponse:
+    """Handle feedback submission for an assay."""
     assay = get_object_or_404(Assay, id=assay_id)
     if request.method == "POST":
         feedback_text = request.POST.get("feedback")

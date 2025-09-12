@@ -1,11 +1,10 @@
 import hashlib
 from pathlib import Path
-import subprocess
 
 
-def calculate_md5(pdf_file_path):
+def calculate_md5(pdf_file_path:Path)-> str:
     """Calculate MD5 hash for a given PDF file."""
-    md5_hash = hashlib.md5()
+    md5_hash = hashlib.md5(usedforsecurity=False)
 
     # Open the PDF file in binary mode and read it in chunks
     with open(pdf_file_path, "rb") as pdf_file:
@@ -18,7 +17,7 @@ def calculate_md5(pdf_file_path):
 
 
 def calculate_md5_multiplefiles(files: list) -> dict:
-    """Calculate MD5 has for multiple pdf files"""
+    """Calculate MD5 has for multiple pdf files."""
     md5dict = {}
     for file in files:
         md5dict[Path(file)] = calculate_md5(file)

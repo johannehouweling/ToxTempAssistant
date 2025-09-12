@@ -1,11 +1,12 @@
-import os
-from langchain_openai import ChatOpenAI
 import logging
+import os
 from typing import Literal
-from toxtempass import config, LLM_API_KEY, LLM_ENDPOINT
+
 from langchain_core.messages import BaseMessage
+from langchain_openai import ChatOpenAI
 from pydantic import Field, model_validator
 
+from toxtempass import LLM_API_KEY, LLM_ENDPOINT, config
 
 # Get logger
 logger = logging.getLogger("llm")
@@ -53,6 +54,7 @@ class ImageMessage(BaseMessage):
 
     @model_validator(mode="before")
     def validate_fields(cls, values: dict) -> dict:
+        """Validate that content and filename are provided."""
         content = values.get("content")
         filename = values.get("filename")
         if not content:
@@ -62,10 +64,12 @@ class ImageMessage(BaseMessage):
         return values
 
     def to_dict(self) -> dict:
+        """Convert the message to a dictionary."""
         return {"type": self.type, "content": self.content, "filename": self.filename}
 
     @classmethod
     def from_dict(cls, data: dict) -> "ImageMessage":
+        """Create an instance from a dictionary."""
         return cls(content=data["content"], filename=data["filename"])
 
 

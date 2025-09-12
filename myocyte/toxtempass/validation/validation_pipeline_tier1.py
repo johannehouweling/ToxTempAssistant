@@ -24,13 +24,15 @@ def setup_django():
 
 setup_django()
 
-from toxtempass import config, LLM_API_KEY, LLM_ENDPOINT
-from toxtempass.fixtures.factories import AssayFactory, DocumentDictFactory
-from toxtempass.models import Answer, Question, Assay
-from toxtempass.views import process_llm_async
-from toxtempass.validation.utils import has_answer_not_found, generate_comparison_csv
 import logging
+
 from langchain_openai import ChatOpenAI
+
+from toxtempass import LLM_API_KEY, LLM_ENDPOINT, config
+from toxtempass.fixtures.factories import AssayFactory, DocumentDictFactory
+from toxtempass.models import Answer, Question
+from toxtempass.validation.utils import generate_comparison_csv, has_answer_not_found
+from toxtempass.views import process_llm_async
 
 logger = logging.getLogger("llm")
 
