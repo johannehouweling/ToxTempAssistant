@@ -16,7 +16,7 @@ def has_answer_not_found(answer_text: str) -> bool:
 
 
 def generate_comparison_csv(
-    json_file: Path, answers: QuerySet, output_dir: Path, pdf_file: str, model:ChatOpenAI = None
+    json_file: Path, answers: QuerySet, output_dir: Path, pdf_file: str, model:ChatOpenAI = None, overwrite: bool = False
 ) -> None:
     """
     Generate a CSV comparing ground-truth answers with LLM-generated answers.
@@ -30,8 +30,20 @@ def generate_comparison_csv(
     try:
         with json_file.open("r", encoding="utf-8") as f:
             data = json.load(f)
+    
     except json.JSONDecodeError as e:
         raise ValueError(f"Failed to parse JSON from {json_file}: {e}") from e
+    
+    # output file path
+    if model:
+        model_name = model.model_name if hasattr(model, 'model_name') else str(model)
+        output_file = output_dir / f"tier1_comparison_{Path(pdf_file).stem}_{model_name}.csv"
+    output_file = output_dir / f"tier1_comparison_{Path(pdf_file).stem}.csv"
+    
+    if output_file.exists() and not overwrite:
+        df = pd.read_csv(output_file)
+        print(f"Comparison CSV already exists at {output_file}, skipping generation.")
+        return df 
     # 1. Build a mapping from question → ground-truth answer
     qa_list = extract_qa(data)
     gtruth_map = {item["question"]: item["answer"] for item in qa_list}
@@ -84,12 +96,10 @@ def generate_comparison_csv(
     df = pd.concat([df, scores_df], axis=1)
 
     # Save DataFrame to CSV
-    if model:
-        model_name = model.model_name if hasattr(model, 'model_name') else str(model)
-        output_file = output_dir / f"tier1_comparison_{Path(pdf_file).stem}_{model_name}.csv"
-    output_file = output_dir / f"tier1_comparison_{Path(pdf_file).stem}.csv"
-    df.to_csv(output_file, index=False)
-    print(f"Comparison CSV saved to {output_file}")
+
+    if not output_file.exists():
+        df.to_csv(output_file, index=False)
+        print(f"Comparison CSV saved to {output_file}")
     return df
 
 
