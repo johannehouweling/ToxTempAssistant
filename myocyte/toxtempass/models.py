@@ -166,9 +166,8 @@ class Study(AccessibleModel):
 # To allow different Versions of ToxTempQuestions
 class QuestionSet(models.Model):
     """A named version of the entire question hierarchy."""
-
     label = models.CharField(max_length=10, unique=True, null=True)  # v1
-    display_name = models.CharField(max_length=50, null=True)
+    display_name = models.CharField(max_length=50, null=True, default="")
     hide_from_display = models.BooleanField(
         default=True,
         help_text="If true, this question set will not be displayed in the UI.",

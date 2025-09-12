@@ -607,12 +607,16 @@ def process_llm_async(
                         timed_out = True
                         continue
 
-                    # save the successful draft
-                    Answer.objects.filter(pk=aid).update(
-                        answer_text=text,
-                        answer_documents=[Path(fp).name for fp in text_dict.keys()],
-                    )
-
+                    try:
+                        # save the successful draft
+                        Answer.objects.filter(pk=aid).update(
+                            answer_text=text,
+                            answer_documents=[Path(fp).name for fp in text_dict.keys()],
+                        )
+                    except Exception:
+                        assay.status = LLMStatus.ERROR
+                        assay.save()
+                        continue
         assay.status = LLMStatus.DONE
         assay.save()
 
