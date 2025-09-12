@@ -1,38 +1,40 @@
-import base64
-from pathlib import Path
-from django import forms
 import logging
+from collections import defaultdict
+from pathlib import Path
+
+from django import forms
+from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import PermissionDenied
-from guardian.shortcuts import get_objects_for_user
-from toxtempass.models import (
-    Investigation,
-    Study,
-    Assay,
-    Question,
-    Section,
-    Answer,
-    QuestionSet,
-)
-from toxtempass.widgets import (
-    BootstrapSelectWithButtonsWidget,
-)  # Import the custom widget
+from django.core.files.uploadedfile import UploadedFile
 from django.forms import widgets
+from guardian.shortcuts import get_objects_for_user
+from langchain_core.messages import SystemMessage
+
+from toxtempass import config
 from toxtempass.filehandling import (
     get_text_or_imagebytes_from_django_uploaded_file,
     split_doc_dict_by_type,
 )
-from toxtempass.llm import ImageMessage
-from langchain_core.messages import SystemMessage
-from collections import defaultdict
 from toxtempass.llm import (
+    ImageMessage,
+    allowed_mime_types,
     chain,
     image_accept_files,
     text_accept_files,
-    allowed_mime_types,
 )
-from toxtempass import config
-from django.contrib.auth.forms import UserCreationForm
-from toxtempass.models import Person
+from toxtempass.models import (
+    Answer,
+    Assay,
+    Investigation,
+    Person,
+    Question,
+    QuestionSet,
+    Section,
+    Study,
+)
+from toxtempass.widgets import (
+    BootstrapSelectWithButtonsWidget,
+)  # Import the custom widget
 
 # Form to submit answers to fixed questions for an assay
 
@@ -52,8 +54,8 @@ class LoginForm(forms.Form):
         widget=forms.PasswordInput(attrs={"placeholder": "Enter password"}),
     )
 
-    def clean(self):
-        """Clean"""
+    def clean(self) -> dict:
+        """Clean."""
         cleaned_data = super().clean()
         username = cleaned_data.get("username")
         if username:
@@ -81,8 +83,8 @@ class SignupFormOrcid(UserCreationForm):
             "orcid_id": widgets.TextInput(attrs={"readonly": True}),
         }
 
-    def clean(self):
-        """Clean"""
+    def clean(self) -> dict:
+        """Clean."""
         cleaned_data = super().clean()
         email = cleaned_data.get("email")
         if email:
@@ -115,10 +117,12 @@ class MultipleFileInput(forms.ClearableFileInput):
 
 class MultipleFileField(forms.FileField):
     def __init__(self, *args, **kwargs):
+        """Set MultipleFileInput."""
         kwargs.setdefault("widget", MultipleFileInput())
         super().__init__(*args, **kwargs)
 
-    def clean(self, data, initial=None):
+    def clean(self, data: object, initial: object | None = None) -> list:
+        """Clean."""
         single_file_clean = super().clean
         if isinstance(data, (list, tuple)):
             result = [single_file_clean(d, initial) for d in data]
@@ -190,13 +194,19 @@ class StartingForm(forms.Form):
         widget=MultipleFileInput(attrs={"multiple": True}),
         required=False,
         help_text=(
-            "Upload documents relevant to your test method to provide context for the LLM-generated answers. This is only possible during the first draft. Examples include publications, SOPs, protocols, certificates of analysis, cell line reports, data management plans, project proposals, lab journals, apparatus metadata, and regulatory guidance. Supported file types: PDF, TXT, MD, HTML, and DOCX. Support for additional formats (e.g., PNG, JPG) may be added in the future."
+            """Upload documents relevant to your test method to provide context for the
+              LLM-generated answers. This is only possible during the first draft.
+              Examples include publications, SOPs, protocols, certificates of analysis,
+              cell line reports, data management plans, project proposals, lab journals,
+              apparatus metadata, and regulatory guidance. Supported file types: PDF,
+              TXT, MD, HTML, and DOCX. Support for additional formats (e.g., PNG, JPG)
+              may be added in the future."""
         ),
     )
 
-    def __init__(self, *args, user=None, **kwargs):
-        """
-        Expects a 'user' keyword argument to filter the querysets.
+    def __init__(self, *args, user: Person = None, **kwargs):
+        """Expect a 'user' keyword argument to filter the querysets.
+
         Hides the question_set field if only one is available and ensures it's submitted.
         """
         super().__init__(*args, **kwargs)
@@ -237,9 +247,7 @@ class InvestigationForm(forms.ModelForm):
         model = Investigation
         fields = ["title", "description", "public_release_date"]
         widgets = {
-            "public_release_date": forms.DateTimeInput(
-                attrs={"type": "datetime-local"}
-            ),
+            "public_release_date": forms.DateTimeInput(attrs={"type": "datetime-local"}),
         }
 
 
@@ -249,10 +257,10 @@ class StudyForm(forms.ModelForm):
         model = Study
         fields = ["investigation", "title", "description"]
 
-    def __init__(self, *args, user=None, **kwargs):
-        """
-        Filter the 'investigation' field to include only those Investigations
-        that the user is permitted to view.
+    def __init__(self, *args, user: Person = None, **kwargs):
+        """Filter the 'investigation' field.
+
+        Include only those Investigations that the user is permitted to view.
         """
         super().__init__(*args, **kwargs)
         if user is not None:
@@ -269,13 +277,19 @@ class AssayForm(forms.ModelForm):
         model = Assay
         fields = ["study", "title", "description"]
         help_texts = {
-            "description": "Please provide a concise description of the assay that specifies: (1) the test purpose (e.g., cytotoxicity); (2) the test system (e.g., human neural stem cells differentiated into a neuron–astrocyte co-culture in a 2D monolayer); and (3) the measured endpoint (e.g., cell viability assessed by formazan conversion using a luminescence assay)."
+            "description": (
+                "Please provide a concise description of the assay that"
+                " specifies: (1) the test purpose (e.g., cytotoxicity);"
+                " (2) the test system (e.g., human neural stem cells"
+                " differentiated into a neuron-astrocyte co-culture in a"
+                " 2D monolayer); and (3) the measured endpoint (e.g., "
+                "cell viability assessed by formazan conversion using "
+                "a luminescence assay)."
+            )
         }
 
-    def __init__(self, *args, user=None, **kwargs):
-        """
-        Filter the 'study' field based on accessible Investigations.
-        """
+    def __init__(self, *args, user: Person = None, **kwargs):
+        """Filter the 'study' field based on accessible Investigations."""
         super().__init__(*args, **kwargs)
         if user is not None:
             accessible_investigations = get_objects_for_user(
@@ -288,8 +302,8 @@ class AssayForm(forms.ModelForm):
 
 class AssayAnswerForm(forms.Form):
     def __init__(self, *args, **kwargs):
-        """
-        Expects both 'assay' and optionally 'user' to be provided.
+        """Expect both 'assay' and optionally 'user' to be provided.
+
         The user is checked against the assay's access permissions.
         """
         self.assay = kwargs.pop("assay")
@@ -310,13 +324,15 @@ class AssayAnswerForm(forms.Form):
             required=False,
             help_text=(
                 "Context documents for update of selected answers. "
-                f"Supported formats: {accepted_files}. Max size: {config.max_size_mb} MB per file."
+                f"Supported formats: {accepted_files}."
+                f" Max size: {config.max_size_mb} MB per file."
             ),
         )
 
         qs = self.assay.question_set
 
-        # Dynamically add fields for each question in the question_set (assuming Sections, Subsections, and Questions are public)
+        # Dynamically add fields for each question in the question_set
+        # (assuming Sections, Subsections, and Questions are public)
         sections = Section.objects.filter(question_set=qs).prefetch_related(
             "subsections__questions"
         )
@@ -331,7 +347,11 @@ class AssayAnswerForm(forms.Form):
                         widget=forms.Textarea(
                             attrs={
                                 "rows": 2,
-                                "oninput": 'this.style.height = "";this.style.height = this.scrollHeight + 3 + "px"',
+                                "oninput": (
+                                    'this.style.height = "";'
+                                    "this.style.height = "
+                                    'this.scrollHeight + 3 + "px"'
+                                ),
                             }
                         ),
                     )
@@ -368,28 +388,27 @@ class AssayAnswerForm(forms.Form):
                     )
                     self.fields[earmarked_field_name].initial = False
 
-    def clean_file_upload(self):
+    def clean_file_upload(self) -> list:
+        """Validate uploaded files."""
         uploaded_files = self.files.getlist("file_upload")
         allowed_types = allowed_mime_types
         max_size = config.max_size_mb * 1024 * 1024  # convert MB to bytes
 
         for file in uploaded_files:
             if file.content_type not in allowed_types:
-                raise forms.ValidationError(
-                    f"Unsupported file type: {file.content_type}"
-                )
+                raise forms.ValidationError(f"Unsupported file type: {file.content_type}")
             if file.size > max_size:
                 raise forms.ValidationError(
                     f"File size exceeds the limit of {max_size / (1024 * 1024)} MB"
                 )
-        return uploaded_files
+        return uploaded_files[UploadedFile]
 
-    def save(self):
-        """
-        Saves the form data:
-          - Saves answers and their flags.
-          - Processes uploaded files.
-          - Invokes GPT for earmarked answers synchronously.
+    def save(self) -> None:
+        """Save the form data.
+
+        - Saves answers and their flags.
+        - Processes uploaded files.
+        - Invokes GPT for earmarked answers synchronously.
         """
         earmarked_answers = []
         uploaded_files = self.cleaned_data.get("file_upload", [])
@@ -467,7 +486,10 @@ class AssayAnswerForm(forms.Form):
                         (
                             messages.append(
                                 SystemMessage(
-                                    content=f"Below find the context to answer the question:\n CONTEXT:\n{text_dict}"
+                                    content=(
+                                        "Below find the context to answer"
+                                        f" the question:\n CONTEXT:\n{text_dict}"
+                                    )
                                 )
                             ),
                         )
@@ -485,7 +507,10 @@ class AssayAnswerForm(forms.Form):
                     answer.accepted = False
                     answer.save()
                     logger.info(
-                        f"Successfully updated Answer id {answer.id} with GPT-generated text."
+                        (
+                            "Successfully updated Answer id"
+                            f" {answer.id} with GPT-generated text."
+                        )
                     )
                 except Exception as e:
                     logger.error(f"Error processing Answer id {answer.id}: {e}")

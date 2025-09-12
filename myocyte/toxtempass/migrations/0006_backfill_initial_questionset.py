@@ -1,6 +1,7 @@
 # toxtempass/migrations/0006_backfill_initial_questionset.py
 from django.db import migrations
 
+
 def create_initial_questionset(apps, schema_editor):
     QuestionSet = apps.get_model("toxtempass", "QuestionSet")
     Section     = apps.get_model("toxtempass", "Section")

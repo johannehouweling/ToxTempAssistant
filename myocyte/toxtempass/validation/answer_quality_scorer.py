@@ -1,12 +1,11 @@
 import json
-from pathlib import Path
 import logging
-from typing import Literal
-from toxtempass import config, LLM_API_KEY, LLM_ENDPOINT
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import BaseMessage
-from pydantic import Field, model_validator
 import re
+from pathlib import Path
+
+from langchain_openai import ChatOpenAI
+
+from toxtempass import LLM_API_KEY, LLM_ENDPOINT, config
 
 # Get logger
 logger = logging.getLogger("llm")
@@ -47,9 +46,9 @@ Return only the JSON object.
 def score_answer_with_llm(question, answer):
     if not answer or not answer.strip():
         return "Low", "No answer provided; treated as missing."
-    
+
     prompt = f"{SCORING_INSTRUCTIONS}\n\nQuestion: {question}\nAnswer: {answer}\nResult:"
-    
+
     if not chain:
         logger.error("LLM chain not initialized")
         raise RuntimeError("LLM chain not initialized")
@@ -57,7 +56,7 @@ def score_answer_with_llm(question, answer):
     content = response.content.strip()
     # Strip markdown code fences if present
     clean_content = re.sub(r"^```(?:json)?\s*|\s*```$", "", content).strip()
-    
+
     try:
         result = json.loads(clean_content)
         score = result.get("score")
@@ -77,7 +76,7 @@ def score_answer_with_llm(question, answer):
         else:
             score = None
         justification = clean_content
-    
+
     return score, justification
 
 def apply_quality_scores(json_path, output_path):
@@ -91,7 +90,7 @@ def apply_quality_scores(json_path, output_path):
             score, justification = score_answer_with_llm(question, answer)
             subsection["answer_quality_score"] = score
             subsection["answer_quality_justification"] = justification
-            
+
             if "subquestions" in subsection:
                 for subq in subsection["subquestions"]:
                     subq_question = subq.get("question", "")

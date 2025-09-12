@@ -1,9 +1,8 @@
+import numpy as np
+from bert_score import score as bert_score_score
 from langchain_openai import OpenAIEmbeddings
 
-import numpy as np
-from toxtempass import config, LLM_API_KEY
-from bert_score import score as bert_score_score
-
+from toxtempass import LLM_API_KEY, config
 
 embeddings = OpenAIEmbeddings(
     model=config._validation_embedding_model,
@@ -15,8 +14,7 @@ embeddings = OpenAIEmbeddings(
 
 
 def cosine_similarity(text1: str, text2: str) -> float:
-    """
-    Compute the cosine similarity between two texts using their embeddings.
+    """Compute the cosine similarity between two texts using their embeddings.
     """
     # embed both texts in one call for efficiency
     vec1, vec2 = embeddings.embed_documents([text1, text2])
@@ -25,8 +23,7 @@ def cosine_similarity(text1: str, text2: str) -> float:
 
 
 def bert_score(text1: str, text2: str) -> tuple[float, float, float]:
-    """
-    Compute the BERTScore F1 between two texts.
+    """Compute the BERTScore F1 between two texts.
     """
     # compute BERTScore (using rescaling to baseline)
     P, R, F1 = bert_score_score(

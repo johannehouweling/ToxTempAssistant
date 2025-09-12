@@ -1,14 +1,15 @@
 import json
+import warnings
 from pathlib import Path
 
-from langchain_openai import ChatOpenAI
 import pandas as pd
-from tqdm.auto import tqdm
-from toxtempass import config
 from django.db.models.query import QuerySet
+from langchain_openai import ChatOpenAI
+from tqdm.auto import tqdm
 
-from toxtempass.validation.embeddings import cosine_similarity, bert_score
-import warnings
+from toxtempass import config
+from toxtempass.validation.embeddings import bert_score, cosine_similarity
+
 
 def has_answer_not_found(answer_text: str) -> bool:
     """Check if LLM was not able to find an Answer from the context in document."""
@@ -18,8 +19,7 @@ def has_answer_not_found(answer_text: str) -> bool:
 def generate_comparison_csv(
     json_file: Path, answers: QuerySet, output_dir: Path, pdf_file: str, model:ChatOpenAI = None, overwrite: bool = False
 ) -> None:
-    """
-    Generate a CSV comparing ground-truth answers with LLM-generated answers.
+    """Generate a CSV comparing ground-truth answers with LLM-generated answers.
 
     :param data: Ground-truth data as a dictionary.
     :param answers: QuerySet of Answer objects.
@@ -104,8 +104,7 @@ def generate_comparison_csv(
 
 
 def extract_qa(data: dict) -> list[dict]:
-    """
-    Recursively search through nested dicts and lists, extracting
+    """Recursively search through nested dicts and lists, extracting
     all dicts that have both 'question' and 'answer' keys.
 
     :param data: The input data (dict, list, or any).

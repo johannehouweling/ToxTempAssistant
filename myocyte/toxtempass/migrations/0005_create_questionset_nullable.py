@@ -1,7 +1,8 @@
 # toxtempass/migrations/0005_create_questionset_nullable.py
-from django.db import migrations, models
 import django.db.models.deletion
 from django.conf import settings
+from django.db import migrations, models
+
 
 class Migration(migrations.Migration):
 
@@ -36,4 +37,4 @@ class Migration(migrations.Migration):
                 blank=True,
             ),
         ),
-    ]    
+    ]
