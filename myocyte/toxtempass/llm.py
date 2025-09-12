@@ -1,35 +1,58 @@
 import logging
 import os
+from functools import lru_cache
 from typing import Literal
 
+from django.core.exceptions import ImproperlyConfigured
 from langchain_core.messages import BaseMessage
 from langchain_openai import ChatOpenAI
 from pydantic import Field, model_validator
 
-from toxtempass import LLM_API_KEY, LLM_ENDPOINT, config
-
 # Get logger
 logger = logging.getLogger("llm")
 
-# Initialize language models based on environment variables
-llm = None
 
-if LLM_API_KEY and LLM_ENDPOINT:
-    llm = ChatOpenAI(
-        api_key=LLM_API_KEY,
-        base_url=config.url,
-        temperature=config.temperature,
-        model=config.model,
-        default_headers=config.extra_headers,
-        # base_url=config.url,
+@lru_cache(maxsize=1)
+def get_llm() -> ChatOpenAI:
+    """Minimal lazy builder; safe at import time. Reads config/env *now*,not earlier, and only constructs when first called."""
+    # Import here to avoid early import-time races
+    try:
+        from toxtempass import config, LLM_API_KEY, LLM_ENDPOINT
+    except Exception:
+        config = None
+        LLM_API_KEY = None
+        LLM_ENDPOINT = None
+
+    api_key = (
+        LLM_API_KEY
+        or (getattr(config, "api_key", None) if config else None)
+        or os.getenv("OPENAI_API_KEY")
     )
-    logger.info(f"Using ({config.model}) at {LLM_ENDPOINT}.")
-else:
-    if os.getenv("TESTING"):
-        logger.warning("Tests using LLM will fail expectedly.")
-    else:
-        logger.error("Required environment variables are missing")
 
+    base_url = (
+        LLM_ENDPOINT
+        or (getattr(config, "url", None) if config else None)
+        or os.getenv("OPENAI_BASE_URL")
+    )
+
+    model = (getattr(config, "model", None) if config else None) or "gpt-4o-mini"
+    temperature = (getattr(config, "temperature", None) if config else None) or 0
+    extra_headers = getattr(config, "extra_headers", None) if config else None
+
+    if not api_key:
+        raise ImproperlyConfigured(
+            "OpenAI API key missing (LLM_API_KEY / config.api_key / OPENAI_API_KEY)."
+        )
+
+    logger.info(f"LLM configured: model={model}, base_url={base_url!s}")
+    return ChatOpenAI(
+        api_key=api_key,
+        base_url=base_url,  # fine if None
+        model=model,
+        temperature=temperature,
+        default_headers=extra_headers,
+        timeout=30,
+    )
 
 
 image_accept_files = [
@@ -71,6 +94,3 @@ class ImageMessage(BaseMessage):
     def from_dict(cls, data: dict) -> "ImageMessage":
         """Create an instance from a dictionary."""
         return cls(content=data["content"], filename=data["filename"])
-
-
-chain = llm

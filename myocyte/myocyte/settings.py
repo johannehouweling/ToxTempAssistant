@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 
 from django.core.management.utils import get_random_secret_key
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 _LOG = logging.getLogger(__name__)
@@ -22,24 +23,26 @@ _LOG = logging.getLogger(__name__)
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# in Docker system variables are set in the Dockerfile
+# in Docker system variables are set in the Dockerfile also via the .env
 # in local development, we use a .env file to set environment variables
 
 TESTING = os.getenv("TESTING", "false").lower() in ("true", "1", "yes") or (
     len(sys.argv) > 1 and sys.argv[1] == "test"
 )
 # 2) Build your paths
-env_path = BASE_DIR / ".env"
-dummy_env_path = BASE_DIR / ".env.dummy"
+env_path = BASE_DIR.parent / ".env"
+dummy_env_path = BASE_DIR.parent / ".env.dummy"
 
 # 3) Choose which one to load
 if TESTING or not env_path.exists():
     ENV_FILE = dummy_env_path
 else:
     ENV_FILE = env_path
+if not ENV_FILE.exists():
+    raise ImproperlyConfigured(f"Environment file {ENV_FILE} does not exist.")
 
 # 4) (Optionally) alert the user what you picked
-_LOG.info(f"Using environment file: {ENV_FILE}", file=sys.stderr)
+_LOG.warning(f"Using environment file: {ENV_FILE}")
 
 load_dotenv(ENV_FILE, override=True)
 
@@ -110,7 +113,8 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     # comes with INSTALLED_APPS = "simple_history" and takes care of who made changes
-    "simple_history.middleware.HistoryRequestMiddleware",  ]
+    "simple_history.middleware.HistoryRequestMiddleware",
+]
 
 AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",  # Default
@@ -163,6 +167,7 @@ else:
             "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
             "HOST": os.getenv("POSTGRES_HOST"),
             "PORT": os.getenv("POSTGRES_PORT"),
+            "CONN_HEALTH_CHECKS": True,  # Django 4.1+; proactively checks/reopens
         }
     }
 
