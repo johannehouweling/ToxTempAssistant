@@ -30,7 +30,7 @@ class AccessibleModel(models.Model):
         """
         return None
 
-    def is_accessible_by(self, user:"Person", perm_prefix:str="view") -> bool:
+    def is_accessible_by(self, user: "Person", perm_prefix: str = "view") -> bool:
         """Check if a user has permission to access this object.
 
         The check is recursive: if the user does not have direct permission on
@@ -167,8 +167,12 @@ class Study(AccessibleModel):
 class QuestionSet(models.Model):
     """A named version of the entire question hierarchy."""
 
-    label = models.CharField(max_length=10, unique=True, null=True)  # v1  # noqa: DJ001
-    display_name = models.CharField(max_length=50)
+    label = models.CharField(max_length=10, unique=True, null=True)  # v1
+    display_name = models.CharField(max_length=50, null=True)
+    hide_from_display = models.BooleanField(
+        default=True,
+        help_text="If true, this question set will not be displayed in the UI.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(
         Person,
@@ -370,6 +374,12 @@ class Question(AccessibleModel):
         blank=True,
         default="",
         help_text="Extra prompt instructions for the LLM when answering this question.",
+    )
+    only_additional_llm_instruction = models.BooleanField(
+        blank=False,
+        null=False,
+        default=False,
+        help_text="Extra flag to determine if additional llm instruction shall replace all others.",
     )
 
     answer = models.TextField(blank=True)

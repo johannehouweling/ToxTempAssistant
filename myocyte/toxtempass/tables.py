@@ -7,31 +7,47 @@ from toxtempass.models import Assay, LLMStatus
 
 
 class AssayTable(tables.Table):
+    new = tables.Column(
+        verbose_name="New",
+        orderable=False,
+        empty_values=(),  # forces render_new to be called
+        attrs={"td": {"class": "align-middle my-0 py-0 text-center"}},
+    )
+
+    def render_new(self, record):
+        # show a red bullet if the assay isn’t yet saved, else blank
+        if not record.is_saved:
+            return format_html(
+                '<i class="bi fs-3 text-primary bi-dot"></i><span class="visually-hidden">New</span>'
+            )
+        return ""
+
     investigation = tables.Column(
         accessor="study__investigation__title",
         verbose_name="Investigation",
         orderable=True,
         linkify=False,
-        attrs={"th": {"class": "no-link-header"}},
+        attrs={"th": {"class": "no-link-header "}, "td": {"class": "align-middle"}},
     )
     study = tables.Column(
         accessor="study__title",
         verbose_name="Study",
         orderable=True,
         linkify=False,
-        attrs={"th": {"class": "no-link-header"}},
+        attrs={"th": {"class": "no-link-header"}, "td": {"class": "align-middle"}},
     )
     assay = tables.Column(
         accessor="title",
         verbose_name="Assay",
         orderable=True,
         linkify=False,
-        attrs={"th": {"class": "no-link-header"}},
+        attrs={"th": {"class": "no-link-header"}, "td": {"class": "align-middle"}},
     )
     progress = tables.Column(
         verbose_name="Answers Accepted",
         orderable=False,
         empty_values=(),
+        attrs={"td": {"class": "align-middle"}},
     )
     # not_found_answers = tables.Column(
     #     accessor="number_answers_not_found",
@@ -53,8 +69,8 @@ class AssayTable(tables.Table):
                 </span>
             {% elif record.status == LLMStatus.ERROR.value %}
                 <span class="d-inline-block" data-bs-toggle="tooltip" data-bs-container="body" data-bs-placement="top" title="LLM did not succeed. This can be temporary error with the LLM, or an issue with your documents, or too many documents at once.">
-                    <button class="btn btn-sm btn-outline-danger" disabled style="pointer-events: none;">Error</button>
-                </span>
+                    <a class="btn btn-sm btn-outline-danger" href="{% url 'answer_assay_questions' record.id %}">Error</a>
+                </span>        
             {% elif record.status == LLMStatus.DONE.value %}
                 <a class="btn btn-sm btn-outline-primary" href="{% url 'answer_assay_questions' record.id %}">View</a>
             {% else %}
@@ -92,6 +108,7 @@ class AssayTable(tables.Table):
         model = Assay
         # We only need to list the columns we defined above; django-tables2 uses them in this order.
         fields = (
+            "new",
             "investigation",
             "study",
             "assay",
