@@ -2,6 +2,41 @@
 
 <!-- version list -->
 
+## v1.5.0 (2025-09-12)
+
+### Chores
+
+- Update dependencies ([#32](https://github.com/johannehouweling/ToxTempAssistant/pull/32),
+  [`edfbd32`](https://github.com/johannehouweling/ToxTempAssistant/commit/edfbd32a212ae6fb67ba702235b9a82e874bfdc9))
+
+### Documentation
+
+- Update toc ([#32](https://github.com/johannehouweling/ToxTempAssistant/pull/32),
+  [`edfbd32`](https://github.com/johannehouweling/ToxTempAssistant/commit/edfbd32a212ae6fb67ba702235b9a82e874bfdc9))
+
+### Features
+
+- Improve error reporting ([#32](https://github.com/johannehouweling/ToxTempAssistant/pull/32),
+  [`edfbd32`](https://github.com/johannehouweling/ToxTempAssistant/commit/edfbd32a212ae6fb67ba702235b9a82e874bfdc9))
+
+- **debug**: Add INFO list of ENV variables
+  ([#32](https://github.com/johannehouweling/ToxTempAssistant/pull/32),
+  [`edfbd32`](https://github.com/johannehouweling/ToxTempAssistant/commit/edfbd32a212ae6fb67ba702235b9a82e874bfdc9))
+
+- **housekeeping**: Installed pre-commit, setup ruff as lint and fixed all ruff linting errors.
+  ([#32](https://github.com/johannehouweling/ToxTempAssistant/pull/32),
+  [`edfbd32`](https://github.com/johannehouweling/ToxTempAssistant/commit/edfbd32a212ae6fb67ba702235b9a82e874bfdc9))
+
+- **llm**: More robust error reporting
+  ([#32](https://github.com/johannehouweling/ToxTempAssistant/pull/32),
+  [`edfbd32`](https://github.com/johannehouweling/ToxTempAssistant/commit/edfbd32a212ae6fb67ba702235b9a82e874bfdc9))
+
+### Refactoring
+
+- Update folder structure ([#32](https://github.com/johannehouweling/ToxTempAssistant/pull/32),
+  [`edfbd32`](https://github.com/johannehouweling/ToxTempAssistant/commit/edfbd32a212ae6fb67ba702235b9a82e874bfdc9))
+
+
 ## v1.4.0 (2025-08-12)
 
 ### Features
