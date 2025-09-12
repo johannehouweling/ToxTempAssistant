@@ -60,7 +60,7 @@ from toxtempass.forms import (
     StartingForm,
     StudyForm,
 )
-from toxtempass.llm import chain
+from toxtempass.llm import get_llm
 from toxtempass.models import (
     Answer,
     Assay,
@@ -84,7 +84,7 @@ orcid_id_baseurl = "https://sandbox.orcid.org" if settings.DEBUG else "https://o
 
 
 # Custom test function to check if the user is a logged-in
-def is_admin(user: User)-> bool:
+def is_admin(user: User) -> bool:
     """Check is user is admin. Return True if that's the case."""
     return user.is_superuser
 
@@ -441,10 +441,33 @@ def init_db(request: HttpRequest, label: str) -> JsonResponse:
     )
 
 
+def add_status_context(
+    assay: Assay, msg: str, clear_first: bool = False, is_error: bool = True
+) -> None:
+    """Add an error message to the assay's status_context field.
+
+    If clear_first is True, overwrite the field; otherwise, append.
+    """
+    preamble = "Error occured: " if is_error else "Info: "
+    new_entry = f"{preamble}: {msg}"
+    if clear_first:
+        setattr(assay, "status_context", new_entry)
+    else:
+        prev_context = getattr(assay, "status_context", "") or ""
+        setattr(
+            assay,
+            "status_context",
+            prev_context + ("\n" if prev_context else "") + new_entry,
+        )
+
+
+llm = get_llm()
+
+
 def process_llm_async(
     assay_id: int,
     text_dict: dict[str, dict[str, str]],
-    chatopenai: ChatOpenAI = chain,
+    chatopenai: ChatOpenAI = get_llm(),
 ):
     """Process llm answer async.
 
@@ -606,7 +629,6 @@ def process_llm_async(
                         )
                         timed_out = True
                         continue
-
                     try:
                         # save the successful draft
                         Answer.objects.filter(pk=aid).update(
@@ -614,15 +636,18 @@ def process_llm_async(
                             answer_documents=[Path(fp).name for fp in text_dict.keys()],
                         )
                     except Exception:
+                        add_status_context(assay, str(e))
                         assay.status = LLMStatus.ERROR
                         assay.save()
                         continue
+
         assay.status = LLMStatus.DONE
         assay.save()
 
     except Exception as e:
         logger.exception(f"Fatal error in process_llm_async: {e}")
         assay.status = LLMStatus.ERROR
+        add_status_context(assay, str(e))
         assay.save()
 
 

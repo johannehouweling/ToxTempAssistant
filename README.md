@@ -14,8 +14,12 @@ ToxTemp "was developed (i) to fulfill all requirements of GD211, (ii) to guide t
   - [Maintainer](#maintainer)
   - [References](#references)
   - [Contribute](#contribute)
-    - [Poetry](#poetry)
-    - [Testing](#testing)
+    - [Poetry for Dependency Management](#poetry-for-dependency-management)
+    - [Running Tests with Pytest](#running-tests-with-pytest)
+    - [Ruff for Linting](#ruff-for-linting)
+    - [Conventional Commits](#conventional-commits)
+    - [Git Pre-Commit Hooks](#git-pre-commit-hooks)
+    - [Pull Requests (PRs)](#pull-requests-prs)
 
 ## Spin up server with docker
 We work with a `.env` file to store mission critical information and setups. These need to be set to match your local environment. In addition, please revise `myocyte/dockerfiles/nginx/nginx.conf` to the settings needed for your specific setup.

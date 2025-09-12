@@ -1,7 +1,7 @@
 # import pytest
 # from django.urls import reverse
 # from toxtempass.models import Investigation
-# from toxtempass.fixtures.factories import PersonFactory, InvestigationFactory
+# from toxtempass.tests.fixtures.factories import PersonFactory, InvestigationFactory
 
 
 # @pytest.fixture

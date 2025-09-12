@@ -5,6 +5,7 @@ from pathlib import Path
 
 from langchain_openai import ChatOpenAI
 
+from myocyte.toxtempass.llm import get_llm
 from toxtempass import LLM_API_KEY, LLM_ENDPOINT, config
 
 # Get logger
@@ -25,7 +26,6 @@ if LLM_API_KEY and LLM_ENDPOINT:
 else:
     logger.error("Required environment variables are missing")
 
-chain = llm
 
 # Define the scoring prompt
 SCORING_INSTRUCTIONS = """
@@ -49,10 +49,8 @@ def score_answer_with_llm(question, answer):
 
     prompt = f"{SCORING_INSTRUCTIONS}\n\nQuestion: {question}\nAnswer: {answer}\nResult:"
 
-    if not chain:
-        logger.error("LLM chain not initialized")
-        raise RuntimeError("LLM chain not initialized")
-    response = chain.invoke(prompt)
+    llm=llm
+    response = llm.invoke(prompt)
     content = response.content.strip()
     # Strip markdown code fences if present
     clean_content = re.sub(r"^```(?:json)?\s*|\s*```$", "", content).strip()

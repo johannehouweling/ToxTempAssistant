@@ -1,6 +1,6 @@
 import pytest
 
-from toxtempass.fixtures.factories import PersonFactory
+from toxtempass.tests.fixtures.factories import PersonFactory
 
 
 @pytest.mark.django_db
