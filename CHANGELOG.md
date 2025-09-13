@@ -2,6 +2,28 @@
 
 <!-- version list -->
 
+## v1.6.3 (2025-09-13)
+
+### Bug Fixes
+
+- **ci**: PAT Token
+  ([`29ae57f`](https://github.com/johannehouweling/ToxTempAssistant/commit/29ae57fc11ae1a41ecea0bfcdb3a63e7c2bc7b13))
+
+- **ci**: Persists crentials and bump actions
+  ([`a06d6f6`](https://github.com/johannehouweling/ToxTempAssistant/commit/a06d6f631001f3dfcd2d69d4b5f93a73edc3589c))
+
+- **ci**: Reverse to PATOKEN [skip ci]
+  ([`d3e5f23`](https://github.com/johannehouweling/ToxTempAssistant/commit/d3e5f23c53cb615963012ec9c50ce1a4df5c64aa))
+
+- **ci**: Token
+  ([`f4a4d7d`](https://github.com/johannehouweling/ToxTempAssistant/commit/f4a4d7d361d8c3eec0798ad9ca5f5e3a7e0d92da))
+
+### Chores
+
+- **ci**: Trigger build
+  ([`73008af`](https://github.com/johannehouweling/ToxTempAssistant/commit/73008af5c3a08ad1394f9dd5829b46847f1fa7d2))
+
+
 ## v1.6.2 (2025-09-13)
 
 ### Bug Fixes
