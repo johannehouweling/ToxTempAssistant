@@ -39,7 +39,7 @@ def get_llm() -> ChatOpenAI:
     temperature = (getattr(config, "temperature", None) if config else None) or 0
     extra_headers = getattr(config, "extra_headers", None) if config else None
 
-    if not api_key:
+    if not api_key and not os.getenv("TESTING"): # allow missing key in tests
         raise ImproperlyConfigured(
             "OpenAI API key missing (LLM_API_KEY / config.api_key / OPENAI_API_KEY)."
         )
