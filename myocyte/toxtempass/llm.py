@@ -14,10 +14,14 @@ logger = logging.getLogger("llm")
 
 @lru_cache(maxsize=1)
 def get_llm() -> ChatOpenAI:
-    """Minimal lazy builder; safe at import time. Reads config/env *now*,not earlier, and only constructs when first called."""
+    """Minimal lazy builder; safe at import time.
+
+    Reads config/env *now*,not earlier,
+    and only constructs when first called.
+    """
     # Import here to avoid early import-time races
     try:
-        from toxtempass import config, LLM_API_KEY, LLM_ENDPOINT
+        from toxtempass import config, LLM_API_KEY, LLM_ENDPOINT  # noqa: I001
     except Exception:
         config = None
         LLM_API_KEY = None
