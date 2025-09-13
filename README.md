@@ -1,4 +1,4 @@
-# ToxTempAssistant
+# ToxTempAssistant 
 LLM based web-app to assist users in drafting an annotated toxicity test method template (ToxTemp).
 
 ToxTemp "was developed (i) to fulfill all requirements of GD211, (ii) to guide the user concerning the types of answers and detail of information required, (iii) >to include acceptance criteria for test elements, and (iv) to define the cells sufficiently and transparently." [1]
