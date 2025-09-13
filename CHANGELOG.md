@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.6.2 (2025-09-13)
+
+### Bug Fixes
+
+- **ci**: Change to hybrid GITHUB/PAT Token
+  ([`e6b49ff`](https://github.com/johannehouweling/ToxTempAssistant/commit/e6b49ffa674d3ce4f7915d0b2035b315014a370b))
+
+
 ## v1.6.1 (2025-09-13)
 
 ### Bug Fixes
