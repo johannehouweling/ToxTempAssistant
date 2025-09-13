@@ -1006,12 +1006,16 @@ def create_or_update_assay(
 def delete_assay(request: HttpRequest, pk: int) -> JsonResponse | HttpResponseRedirect:
     """Delete an assay if the user has permission."""
     if request.method == "GET":
+        # allows to distuigish between deleting from overview tables
+        source_page = request.GET.get("from")
         assay = get_object_or_404(Assay, pk=pk)
         if not assay.is_accessible_by(request.user, perm_prefix="delete"):
             from django.core.exceptions import PermissionDenied
 
             raise PermissionDenied("You do not have permission to delete this assay.")
         assay.delete()
+        if source_page == "overview":
+            return redirect("start")
         return redirect("add_new")
     return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
 
