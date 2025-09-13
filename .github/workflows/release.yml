@@ -22,7 +22,6 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: true
-          token: ${{ secrets.PA_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -38,5 +37,7 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
       - name: Release Version (bump/tag/changelog)
+        env:
+          GH_TOKEN: ${{ secrets.PA_TOKEN }}
         run: |
           semantic-release version
