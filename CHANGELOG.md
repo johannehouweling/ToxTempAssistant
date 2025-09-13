@@ -2,6 +2,27 @@
 
 <!-- version list -->
 
+## v1.7.0 (2025-09-13)
+
+### Bug Fixes
+
+- **llm**: Allow missing OpenAI API key during testing
+  ([`eec94ec`](https://github.com/johannehouweling/ToxTempAssistant/commit/eec94ec50973df064ac9681568296584fded9d66))
+
+### Code Style
+
+- **llm**: Format docstring for get_llm function for better readability
+  ([`f5b837d`](https://github.com/johannehouweling/ToxTempAssistant/commit/f5b837d5fd434311b08a594a32d6bb6b19cb9726))
+
+### Features
+
+- **migrations**: Add new fields and alter existing fields in assay and questionset models
+  ([`6a0df8c`](https://github.com/johannehouweling/ToxTempAssistant/commit/6a0df8c7e1e81230baa73b58203a6c8dd23ad7d9))
+
+- **test**: Add comprehensive tests for DocumentDictFactory and process_llm_async functionality
+  ([`f8cfafa`](https://github.com/johannehouweling/ToxTempAssistant/commit/f8cfafaae7ad4c5819462e022beca48d227e6f40))
+
+
 ## v1.6.3 (2025-09-13)
 
 ### Bug Fixes
