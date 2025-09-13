@@ -14,10 +14,14 @@ logger = logging.getLogger("llm")
 
 @lru_cache(maxsize=1)
 def get_llm() -> ChatOpenAI:
-    """Minimal lazy builder; safe at import time. Reads config/env *now*,not earlier, and only constructs when first called."""
+    """Minimal lazy builder; safe at import time.
+
+    Reads config/env *now*,not earlier,
+    and only constructs when first called.
+    """
     # Import here to avoid early import-time races
     try:
-        from toxtempass import config, LLM_API_KEY, LLM_ENDPOINT
+        from toxtempass import config, LLM_API_KEY, LLM_ENDPOINT  # noqa: I001
     except Exception:
         config = None
         LLM_API_KEY = None
@@ -39,7 +43,7 @@ def get_llm() -> ChatOpenAI:
     temperature = (getattr(config, "temperature", None) if config else None) or 0
     extra_headers = getattr(config, "extra_headers", None) if config else None
 
-    if not api_key:
+    if not api_key and not os.getenv("TESTING"): # allow missing key in tests
         raise ImproperlyConfigured(
             "OpenAI API key missing (LLM_API_KEY / config.api_key / OPENAI_API_KEY)."
         )
