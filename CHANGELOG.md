@@ -2,6 +2,23 @@
 
 <!-- version list -->
 
+## v1.6.0 (2025-09-13)
+
+### Features
+
+- **question**: Git commit -m ' update UI logic for new question set displa_
+  ([#31](https://github.com/johannehouweling/ToxTempAssistant/pull/31),
+  [`5f12fd7`](https://github.com/johannehouweling/ToxTempAssistant/commit/5f12fd78683fc486b6d9688ffce776e1fe1b6fe8))
+
+- **question**: Update UI logic for new question set
+  ([#31](https://github.com/johannehouweling/ToxTempAssistant/pull/31),
+  [`5f12fd7`](https://github.com/johannehouweling/ToxTempAssistant/commit/5f12fd78683fc486b6d9688ffce776e1fe1b6fe8))
+
+- **validation**: Enhance CSV generation with model name and overwrite option
+  ([#31](https://github.com/johannehouweling/ToxTempAssistant/pull/31),
+  [`5f12fd7`](https://github.com/johannehouweling/ToxTempAssistant/commit/5f12fd78683fc486b6d9688ffce776e1fe1b6fe8))
+
+
 ## v1.5.0 (2025-09-12)
 
 ### Chores
