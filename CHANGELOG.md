@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.6.1 (2025-09-13)
+
+### Bug Fixes
+
+- **ci**: Change to github token for authentication
+  ([`0ec61e4`](https://github.com/johannehouweling/ToxTempAssistant/commit/0ec61e4e683bfccf17eaa1e3934db54707d965e8))
+
+
 ## v1.6.0 (2025-09-13)
 
 ### Features
