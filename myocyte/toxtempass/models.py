@@ -166,7 +166,6 @@ class Study(AccessibleModel):
 # To allow different Versions of ToxTempQuestions
 class QuestionSet(models.Model):
     """A named version of the entire question hierarchy."""
-
     label = models.CharField(max_length=10, unique=True, null=True)  # v1  # noqa: DJ001
     display_name = models.CharField(
         max_length=50,
@@ -174,7 +173,10 @@ class QuestionSet(models.Model):
         help_text="A user-friendly name for this question set version, e.g.,"
         " 'ToxTemp Questions v1.0'.",
     )  # noqa: DJ001
-
+    hide_from_display = models.BooleanField(
+        default=True,
+        help_text="If true, this question set will not be displayed in the UI.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(
         Person,
@@ -377,6 +379,12 @@ class Question(AccessibleModel):
         blank=True,
         default="",
         help_text="Extra prompt instructions for the LLM when answering this question.",
+    )
+    only_additional_llm_instruction = models.BooleanField(
+        blank=False,
+        null=False,
+        default=False,
+        help_text="Extra flag to determine if additional llm instruction shall replace all others.",
     )
 
     answer = models.TextField(blank=True)

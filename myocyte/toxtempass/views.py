@@ -1,4 +1,18 @@
+from collections import defaultdict
+from collections.abc import Iterator
 import difflib
+import time
+from openai import RateLimitError
+from django.http import (
+    FileResponse,
+    HttpRequest,
+    HttpResponse,
+    HttpResponseRedirect,
+    Http404,
+)
+from toxtempass import config
+from django.http.response import JsonResponse
+from django.db import transaction
 import json
 import logging
 import re
@@ -379,6 +393,9 @@ def init_db(request: HttpRequest, label: str) -> JsonResponse:
                     additional_llm_instruction=subsec.get(
                         "additional_llm_instruction", ""
                     ).strip(),
+                    only_additional_llm_instruction=subsec.get(
+                        "only_additional_llm_instruction", False
+                    ),
                     only_subsections_for_context=subsec.get(
                         "only_subsections_for_context", False
                     ),
@@ -450,142 +467,188 @@ llm = get_llm()
 def process_llm_async(
     assay_id: int,
     text_dict: dict[str, dict[str, str]],
-    chatopenai: ChatOpenAI = llm,
-) -> None:
-    """Prepare to send the text documents to the LLM to get answer draft using DjangoQ."""
-    try:
-        assay = Assay.objects.get(id=assay_id)
-        answers = list(assay.answers.all())
+    chatopenai: ChatOpenAI = get_llm(),
+):
+    """Process llm answer async.
 
-        # chnage assay status from Scheduled to BUSY
+    1) Seed answers in round 1,
+    2) save them, then round 2, etc.
+    Each question can override or replace instructions,
+    and can scope context to specific subsections or use the PDFs.
+    """
+    try:
+        assay = Assay.objects.get(pk=assay_id)
         assay.status = LLMStatus.BUSY
         assay.save()
 
-        # Build shared prompt context
-        context_string = "\n\n".join(
+        # compute a soft deadline based on Django‑Q timeout (90% of it)
+        q_timeout = settings.Q_CLUSTER.get("timeout", None)
+        if q_timeout:
+            deadline = time.time() + q_timeout * 0.9
+        else:
+            deadline = None
+
+        # Pre‐compute the global PDF context once
+        full_pdf_context = "\n\n".join(
             f"--- {Path(fp).name} ---\n{meta['text']}"
             for fp, meta in text_dict.items()
             if "text" in meta
         )
 
-        def generate_answer(answer: Answer, chatopenai: ChatOpenAI) -> tuple[int, str]:
-            question = answer.question.question_text
-            messages = [
-                SystemMessage(content=config.base_prompt),
-                SystemMessage(content=f"ASSAY NAME: {assay.title}"),
-                SystemMessage(content=f"ASSAY DESCRIPTION: {assay.description}"),
-                SystemMessage(
-                    content=(
-                        "Below find the context to answer"
-                        f" the question:\n{context_string}"
-                    )
-                ),
-                HumanMessage(content=question),
-            ]
-            try:
-                response = chatopenai.invoke(messages)
-                if not hasattr(response, "content") or response.content is None:
-                    logger.warning(
-                        f"No content returned for answer ID {answer.id}."
-                        f" Response: {response}"
-                    )
-                    return answer.id, ""
-                return answer.id, response.content
-            except RateLimitError as e:
-                while True:
-                    try:
-                        wait_time = 5  # Default wait time
-                        if hasattr(e, "response") and e.response is not None:
-                            try:
-                                err_json = e.response.json()
-                                suggested_wait = err_json.get("error", {}).get(
-                                    "message", ""
-                                )
-                                match = re.search(
-                                    r"try again in ([\d\.]+)s", suggested_wait
-                                )
+        # Load all answers, grouped by their question.answering_round
+        all_answers = list(
+            assay.answers.select_related("question__subsection__section__question_set")
+        )
+        max_ans_id = max(a.id for a in all_answers) if all_answers else None
+        min_ans_id = min(a.id for a in all_answers) if all_answers else None
+        delta_ans = max_ans_id - min_ans_id if max_ans_id and min_ans_id else 0
+        rounds = sorted({a.question.answering_round for a in all_answers})
+        answers_by_round = defaultdict(list)
+        for ans in all_answers:
+            answers_by_round[ans.question.answering_round].append(ans)
 
-                                if match:
-                                    wait_time = float(match.group(1)) + 0.5  # buffer
-                            except Exception as ex:
-                                logger.warning(
-                                    f"Exception parsing rate limit retry time: {ex}"
-                                )
-                        logger.warning(
-                            (
-                                f"Rate limit hit for answer ID {answer.id}."
-                                f" Retrying in {wait_time} seconds."
-                            )
-                        )
-                        time.sleep(wait_time)
-                        response = chatopenai.invoke(messages)
-                        if not hasattr(response, "content") or response.content is None:
-                            logger.warning(
-                                (
-                                    "No content returned after retry"
-                                    f" for answer ID {answer.id}. Response: {response}"
-                                )
-                            )
-                            return answer.id, ""
-                        return answer.id, response.content
-                    except RateLimitError as retry_e:
-                        e = retry_e  # update for next loop iteration
-                        continue
-                    except Exception as retry_exception:
-                        logger.exception(
-                            f"Retry failed for answer ID {answer.id}: {retry_exception}"
-                        )
-                        return answer.id, ""
-            except Exception as e:
-                logger.exception(
-                    f"Failed to generate answer for answer ID {answer.id}: {e}"
-                )
-                return answer.id, ""
+        for rnd in rounds:
+            round_answers = answers_by_round[rnd]
 
-        with ThreadPoolExecutor(max_workers=config.max_workers_threading) as executor:
-            futures = {
-                executor.submit(generate_answer, answer, chatopenai): answer
-                for answer in answers
-            }
-
-            # Log which LLM endpoint and model we're using
             logger.info(
-                (
-                    f"Using LLM endpoint {chatopenai.openai_api_base} with model"
-                    f" {chatopenai.model_name}"
-                )
+                f"Starting answering_round={rnd} with {len(round_answers)} questions"
             )
 
-            for future in tqdm(
-                as_completed(futures),
-                total=len(futures),
-                desc=(
-                    f"Getting answers via {chatopenai.openai_api_base}"
-                    f" ({chatopenai.model_name})"
-                ),
-                unit="answer",
-            ):
-                try:
-                    answer_id, draft = future.result()
-                    answer = Answer.objects.get(id=answer_id)
-                    answer.answer_text = draft or ""
-                    answer.answer_documents = [Path(k).name for k in text_dict.keys()]
-                    answer.save()
+            def generate_answer(ans: Answer) -> tuple[int, str]:
+                """Generate an answer for a single Answer instance."""
+                q = ans.question
 
-                except Exception as e:
-                    assay.status = LLMStatus.ERROR
-                    # status_context is a TextField, so store as a string
-                    add_status_context(assay, str(e))
-                    assay.save()
-                    continue
+                # pick system messages
+                if q.only_additional_llm_instruction and q.additional_llm_instruction:
+                    sys_msgs = [SystemMessage(content=q.additional_llm_instruction)]
+                else:
+                    # base + question‐specific appended
+                    sys_msgs = [
+                        SystemMessage(content=config.base_prompt),
+                        SystemMessage(content=f"ASSAY NAME: {assay.title}"),
+                        SystemMessage(
+                            content=f"ASSAY DESCRIPTION: {assay.description}"
+                        ),
+                    ]
+                    if q.additional_llm_instruction:
+                        sys_msgs.append(
+                            SystemMessage(content=q.additional_llm_instruction)
+                        )
+
+                # build context string
+                if (
+                    q.only_subsections_for_context
+                    and q.subsections_for_context.exists()
+                ):
+                    # gather answers to *all* questions in those subsections
+                    ctx_answers = Answer.objects.filter(
+                        assay=assay,
+                        question__subsection__in=q.subsections_for_context.all(),
+                        answer_text__isnull=False,
+                    )
+                    context_blocks = [
+                        f"--- Q: {ca.question.question_text}\nA: {ca.answer_text}"
+                        for ca in ctx_answers
+                    ]
+                    context_str = "\n\n".join(context_blocks)
+                else:
+                    # use full PDF + *optional* subsection‑scoped answers
+                    context_str = full_pdf_context
+                    if q.subsections_for_context.exists():
+                        ctx_answers = Answer.objects.filter(
+                            assay=assay,
+                            question__subsection__in=q.subsections_for_context.all(),
+                            answer_text__isnull=False,
+                        )
+                        extra = "\n\n".join(
+                            f"--- Q: {ca.question.question_text}\nA: {ca.answer_text}"
+                            for ca in ctx_answers
+                        )
+                        context_str += "\n\n" + extra
+
+                # build messages
+                messages = []
+                messages.extend(sys_msgs)
+                if context_str:
+                    messages.append(
+                        SystemMessage(
+                            content="Context for this question:\n" + context_str
+                        )
+                    )
+                messages.append(HumanMessage(content=q.question_text))
+
+                # retry loop with dynamic waits and soft deadline
+                while True:
+                    if deadline is not None and time.time() > deadline:
+                        logger.error(
+                            f"Timed out retrying answer {ans.id} [{max_ans_id - ans.id} of {delta_ans}] after {q_timeout}s total"
+                        )
+                        raise TimeoutError(
+                            f"Answer {ans.id} [{max_ans_id - ans.id} of {delta_ans}] timed out"
+                        )
+
+                    try:
+                        resp = chatopenai.invoke(messages)
+                        return ans.id, (resp.content or "")
+
+                    except RateLimitError as e:
+                        # parse “try again in Xs” if present
+                        wait = 5.0
+                        try:
+                            msg = e.response.json().get("error", {}).get("message", "")
+                            m = re.search(r"try again in ([\d\.]+)s", msg)
+                            if m:
+                                wait = float(m.group(1)) + 0.5
+                        except Exception:
+                            pass
+
+                        logger.warning(
+                            f"RateLimit hit for answer {ans.id} [{max_ans_id - ans.id} of {delta_ans}], retrying in {wait:.1f}s"
+                        )
+                        time.sleep(wait)
+
+                    except Exception as exc:
+                        logger.exception(
+                            f"LLM error for answer {ans.id} [{max_ans_id - ans.id} of {delta_ans}]: {exc}"
+                        )
+                        return ans.id, ""
+
+            # fire off the round in parallel
+            with ThreadPoolExecutor(max_workers=config.max_workers_threading) as pool:
+                futures = {pool.submit(generate_answer, a): a for a in round_answers}
+                for future in as_completed(futures):
+                    try:
+                        aid, text = future.result()
+                    except TimeoutError as te:
+                        logger.error(str(te))
+                        timed_out = True
+                        continue
+                    except Exception as exc:
+                        logger.exception(
+                            f"Fatal error for answer {futures[future].id}: {exc}"
+                        )
+                        timed_out = True
+                        continue
+                    try:
+                        # save the successful draft
+                        Answer.objects.filter(pk=aid).update(
+                            answer_text=text,
+                            answer_documents=[Path(fp).name for fp in text_dict.keys()],
+                        )
+                    except Exception:
+                        add_status_context(assay, str(e))
+                        assay.status = LLMStatus.ERROR
+                        assay.save()
+                        continue
+
         assay.status = LLMStatus.DONE
         assay.save()
 
     except Exception as e:
+        logger.exception(f"Fatal error in process_llm_async: {e}")
         assay.status = LLMStatus.ERROR
         add_status_context(assay, str(e))
         assay.save()
-        pass
 
 
 @method_decorator(user_passes_test(is_logged_in, login_url="/login/"), name="dispatch")
