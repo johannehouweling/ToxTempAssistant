@@ -140,6 +140,7 @@ class AssayTable(tables.Table):
             "investigation",
             "study",
             "assay",
+            "last_changed",
             "progress",
             "action",
         )
