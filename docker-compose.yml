@@ -35,7 +35,11 @@ services:
       context: .
       dockerfile: myocyte/dockerfiles/djangoapp/Dockerfile
       args:
-        GIT_HASH: "${GIT_HASH}"
+        GIT_HASH: ${GIT_HASH}
+        GIT_TAG: ${GIT_TAG}
+    labels:
+      org.opencontainers.image.revision: ${GIT_HASH}
+      org.opencontainers.image.version: ${GIT_TAG}
     user: root
     container_name: djangoapp
     restart: unless-stopped
@@ -65,6 +69,8 @@ services:
       - ${ENV_FILE:-./.env}
     environment:
       - TESTING=${TESTING:-false} # Set to true for testing
+      - GIT_HASH=${GIT_HASH}
+      - GIT_TAG=${GIT_TAG}
     networks:
       - db_network
       ### ATTENTION ###

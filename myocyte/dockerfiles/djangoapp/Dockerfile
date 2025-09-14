@@ -94,9 +94,16 @@ RUN mkdir -p $APP_HOME/logs && \
 # write git hash to the image
 # This is useful for debugging and version control
 # move as late as possible, will change every time so resets the cache layer
-ARG GIT_HASH
-ENV GIT_HASH=${GIT_HASH}
-LABEL version="${VERSION}"
+ARG GIT_HASH=unknown
+ARG GIT_TAG=unknown
+ENV GIT_HASH=$GIT_HASH \
+    GIT_TAG=$GIT_TAG
+
+RUN echo "This is version : ${GIT_TAG} (git hash: ${GIT_HASH})" > $APP_HOME/version.txt
+
+# Optional but recommended OCI labels
+LABEL org.opencontainers.image.revision=$GIT_HASH \
+      org.opencontainers.image.version=$GIT_TAG
 # Copy license so it can be auto converted to html with pandoc in the next step
 COPY LICENSE $APP_HOME/toxtempass/templates/toxtempass/md_content/LICENSE.md
 # run the python script md to html of all files in the md_content folder
