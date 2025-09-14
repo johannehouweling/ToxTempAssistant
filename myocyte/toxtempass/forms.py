@@ -205,6 +205,12 @@ class StartingForm(forms.Form):
               may be added in the future."""
         ),
     )
+    overwrite = forms.BooleanField(
+        required=False,
+        initial=False,
+        label="Overwrite",
+        help_text="Permission to overwrite.",
+    )
 
     def __init__(self, *args, user: Person = None, **kwargs):
         """Expect a 'user' keyword argument to filter the querysets.
@@ -241,6 +247,23 @@ class StartingForm(forms.Form):
             self.fields["assay"].queryset = Assay.objects.filter(
                 study__investigation__in=accessible_investigations
             )
+
+    def clean(self) -> dict:
+        """Clean Form."""
+        cleaned_data = super().clean()
+        assay = cleaned_data.get("assay")
+        overwrite = cleaned_data.get("overwrite", False)
+
+        if assay is not None and not overwrite:
+            if assay.question_set is not None:
+                self.add_error(
+                    "overwrite",
+                    (
+                        "Check here to overwrite. Eventual previous answers will still "
+                        "be visible in the history."
+                    ),
+                )
+        return cleaned_data
 
 
 # Form to create an Investigation
