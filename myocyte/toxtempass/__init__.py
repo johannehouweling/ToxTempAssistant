@@ -110,7 +110,7 @@ class Config:
     github_repo_url = "https://github.com/johannehouweling/ToxTempAssistant"
     git_hash = os.getenv("GIT_HASH", "")
     reference_toxtemp = "https://doi.org/10.14573/altex.1909271"
-    max_size_mb = 20
+    max_size_mb = 30
     single_answer_timeout = 60  # seconds
     max_workers_threading = 4
     max_workers_django_q = settings.Q_CLUSTER[

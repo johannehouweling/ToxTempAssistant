@@ -76,7 +76,7 @@ class AssayTable(tables.Table):
             {% else %}
                 <a class="btn btn-sm btn-outline-primary" href="{% url 'answer_assay_questions' record.id %}">View</a>
             {% endif %}
-            <a class="btn btn-sm btn-outline-danger" href="{% url 'delete_assay' record.id %}" onclick="return confirm('Are you sure you want to delete this assay and any associated toxtemp answers? This cannot be undone.');">Delete</a>
+            <a class="btn btn-sm btn-outline-danger" href="{% url 'delete_assay' record.id %}?from=overview" onclick="return confirm('Are you sure you want to delete this assay and any associated toxtemp answers? This cannot be undone.');">Delete</a>
         </div>
         """,
         extra_context={"LLMStatus": LLMStatus},
