@@ -60,17 +60,23 @@ class AssayTable(tables.Table):
         template_code="""
         <div class="btn-group" role="group">
             {% if record.status == LLMStatus.SCHEDULED.value %}
-                <span class="d-inline-block" data-bs-toggle="tooltip" data-bs-container="body" data-bs-placement="top" title="Refresh the page to check for updates. Usually it doesn't take longer than 5-10 minutes.">
-                    <button class="btn btn-sm btn-outline-secondary" disabled style="pointer-events: none;">Scheduled</button>
-                </span>
+                <button class="btn btn-sm btn-outline-secondary" disabled style="pointer-events: none;">
+                    <span class="d-inline-block" data-bs-toggle="tooltip" data-bs-container="body" data-bs-placement="top" title="Refresh the page to check for updates. Usually it doesn't take longer than 5-10 minutes.">
+                        Scheduled
+                    </span>
+                </button>
             {% elif record.status == LLMStatus.BUSY.value %}
-                <span class="d-inline-block" data-bs-toggle="tooltip" data-bs-container="body" data-bs-placement="top" title="Refresh the page to check for updates. Usually it doesn't take longer than 5-10 minutes.">
-                    <button class="btn btn-sm btn-outline-secondary" disabled style="pointer-events: none;">Busy</button>
-                </span>
+                <button class="btn btn-sm btn-outline-secondary" disabled style="pointer-events: none;">
+                    <span class="d-inline-block" data-bs-toggle="tooltip" data-bs-container="body" data-bs-placement="top" title="Refresh the page to check for updates. Usually it doesn't take longer than 5-10 minutes.">
+                        Busy
+                    </span>
+                </button>
             {% elif record.status == LLMStatus.ERROR.value %}
-                <span class="d-inline-block" data-bs-toggle="tooltip" data-bs-container="body" data-bs-placement="top" title="LLM did not succeed. This can be temporary error with the LLM, or an issue with your documents, or too many documents at once.">
-                    <a class="btn btn-sm btn-outline-danger" href="{% url 'answer_assay_questions' record.id %}">Error</a>
-                </span>        
+                <a class="btn btn-sm btn-outline-danger" href="{% url 'answer_assay_questions' record.id %}">
+                    <span class="d-inline-block" data-bs-toggle="tooltip" data-bs-container="body" data-bs-placement="top" title="LLM did not succeed. This can be temporary error with the LLM, or an issue with your documents, or too many documents at once.">
+                        Error
+                    </span>
+                </a>
             {% elif record.status == LLMStatus.DONE.value %}
                 <a class="btn btn-sm btn-outline-primary" href="{% url 'answer_assay_questions' record.id %}">View</a>
             {% else %}
