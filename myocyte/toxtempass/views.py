@@ -526,9 +526,7 @@ def process_llm_async(
                     sys_msgs = [
                         SystemMessage(content=config.base_prompt),
                         SystemMessage(content=f"ASSAY NAME: {assay.title}"),
-                        SystemMessage(
-                            content=f"ASSAY DESCRIPTION: {assay.description}"
-                        ),
+                        SystemMessage(content=f"ASSAY DESCRIPTION: {assay.description}"),
                     ]
                     if q.additional_llm_instruction:
                         sys_msgs.append(
@@ -536,10 +534,7 @@ def process_llm_async(
                         )
 
                 # build context string
-                if (
-                    q.only_subsections_for_context
-                    and q.subsections_for_context.exists()
-                ):
+                if q.only_subsections_for_context and q.subsections_for_context.exists():
                     # gather answers to *all* questions in those subsections
                     ctx_answers = Answer.objects.filter(
                         assay=assay,
@@ -635,7 +630,7 @@ def process_llm_async(
                             answer_text=text,
                             answer_documents=[Path(fp).name for fp in text_dict.keys()],
                         )
-                    except Exception:
+                    except Exception as e:
                         add_status_context(assay, str(e))
                         assay.status = LLMStatus.ERROR
                         assay.save()
@@ -659,7 +654,7 @@ class AssayListView(SingleTableView):
     paginate_by = 10
 
     def get_queryset(self) -> QuerySet[Assay]:
-        """Return a queryset of Assays accessible by the user."""
+        """Return a queryset of Assays accessible by the user, filtered to only those with a question_set."""
         user = self.request.user
         accessible_investigations = get_objects_for_user(
             user,
@@ -669,7 +664,8 @@ class AssayListView(SingleTableView):
             any_perm=False,
         )
         return Assay.objects.filter(
-            study__investigation__in=accessible_investigations
+            study__investigation__in=accessible_investigations,
+            question_set__isnull=False,
         ).order_by("-submission_date")
 
 
