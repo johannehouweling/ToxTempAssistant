@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.12.0 (2025-09-14)
+
+### Features
+
+- **ui**: Optimizations for small screens (responsiveness)
+  ([`5b15096`](https://github.com/johannehouweling/ToxTempAssistant/commit/5b1509611ffe6111791d3eb2009d1f98c5507f5f))
+
+
 ## v1.11.2 (2025-09-14)
 
 
