@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v1.11.0 (2025-09-14)
+
+### Bug Fixes
+
+- **ui**: Switched position of last_changed
+  ([`a51c953`](https://github.com/johannehouweling/ToxTempAssistant/commit/a51c9536a30e6879b26c61c2dcf6984f280bb25d))
+
+### Features
+
+- **ci**: Include TAG and version in deploy and frontend
+  ([`5e34dab`](https://github.com/johannehouweling/ToxTempAssistant/commit/5e34dab37e7882b74ce16ff9a0e026397e6b7a5f))
+
+
 ## v1.10.0 (2025-09-14)
 
 
