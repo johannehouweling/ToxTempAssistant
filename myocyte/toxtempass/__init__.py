@@ -105,8 +105,8 @@ class Config:
         ]
     )
     license_url = "https://www.gnu.org/licenses/agpl-3.0.html"
-    version = "0.9.1"
-    reference_toxtempassistant = "https://doi.org/10.5281/zenodo.15690719"
+    version = "1.9.1"
+    reference_toxtempassistant = "https://doi.org/10.5281/zenodo.15607642"
     github_repo_url = "https://github.com/johannehouweling/ToxTempAssistant"
     git_hash = os.getenv("GIT_HASH", "")
     reference_toxtemp = "https://doi.org/10.14573/altex.1909271"
