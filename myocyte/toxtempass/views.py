@@ -774,8 +774,15 @@ def get_filtered_studies(request: HttpRequest, investigation_id: int) -> JsonRes
 def get_filtered_assays(request: HttpRequest, study_id: int) -> JsonResponse:
     """Get filtered Assays based on the Study ID."""
     if study_id:
-        assays = Assay.objects.filter(study_id=study_id).values("id", "title")
-        return JsonResponse(list(assays), safe=False)
+        assays = Assay.objects.filter(study_id=study_id)
+        assays_list = [
+            {
+                "id": assay.id,
+                "title": str(assay),
+            }
+            for assay in assays
+        ]
+        return JsonResponse(assays_list, safe=False)
     return JsonResponse([], safe=False)
 
 

@@ -166,6 +166,7 @@ class Study(AccessibleModel):
 # To allow different Versions of ToxTempQuestions
 class QuestionSet(models.Model):
     """A named version of the entire question hierarchy."""
+
     label = models.CharField(max_length=10, unique=True, null=True)  # v1  # noqa: DJ001
     display_name = models.CharField(
         max_length=50,
@@ -239,9 +240,12 @@ class Assay(AccessibleModel):
         help_text="Which version of the questionnaire this assay is using",
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Assay as string."""
-        return self.title
+        # if unique title within study, just show title otherwise title + submission date
+        if Assay.objects.filter(title=self.title).count() == 1:
+            return self.title
+        return f"{self.title} ({self.submission_date.strftime('%Y/%m/%d-%H:%M')})"
 
     @property
     def get_n_questions(self) -> float:
