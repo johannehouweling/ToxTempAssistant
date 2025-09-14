@@ -2,6 +2,27 @@
 
 <!-- version list -->
 
+## v1.8.0 (2025-09-14)
+
+### Features
+
+- **config**: Increase max_size_mb from 20 to 30
+  ([`e4d7c23`](https://github.com/johannehouweling/ToxTempAssistant/commit/e4d7c23a50df4cd01aee707ffe89c72a384c4855))
+
+- **ui**: Add source parameter to delete_assay for better navigation
+  ([`34a1034`](https://github.com/johannehouweling/ToxTempAssistant/commit/34a1034897204af807f377484acc5a968dd2e4bf))
+
+### Refactoring
+
+- Delete upload
+  ([`6502595`](https://github.com/johannehouweling/ToxTempAssistant/commit/65025957f228be53920857fccc34fdaf3a736f27))
+
+### Testing
+
+- Add tests for AssayAnswerForm file upload handling
+  ([`1d776e0`](https://github.com/johannehouweling/ToxTempAssistant/commit/1d776e04a2c27fa47bd877d8e480062f7c2dc146))
+
+
 ## v1.7.0 (2025-09-13)
 
 ### Bug Fixes
