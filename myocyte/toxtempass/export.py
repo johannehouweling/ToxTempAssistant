@@ -78,13 +78,22 @@ def generate_json_from_assay(assay: Assay) -> dict | None:
                 # Current date and time in ISO format
                 "creation_date": current_time.isoformat(),
                 # Filename for the export
-                "filename": f"documenation_{slugify(assay.title)}",
+                "filename": f"toxtemp_{slugify(assay.title)}",
                 # Replace with your actual website name
+                "reference_toxtemp": getattr(Config, "reference_toxtemp", None),
                 "website": "toxtempassistant.vhp4safety.nl",
+                # Trimmed config for reproducibility (PII and developer-only fields omitted)
                 "config": {
-                    key: value
-                    for key, value in vars(Config).items()
-                    if not (key.startswith("_") or key.startswith("__"))
+                    "model": getattr(Config, "model", None),
+                    "model_info_url": getattr(Config, "model_info_url", None),
+                    "reference_toxtempassistant": getattr(Config,"reference_toxtempassistant", None),
+                    "reference_toxtemp": getattr(Config, "reference_toxtemp", None),
+                    "website": "toxtempassistant.vhp4safety.nl",
+                    "reference_toxtempassistant": getattr(Config,"reference_toxtempassistant", None),
+                    "version": getattr(Config, "version", None),
+                    "github_repo_url": getattr(Config, "github_repo_url", None),
+                    "git_hash": getattr(Config, "git_hash", None),
+                    "license_url": getattr(Config, "license_url", None),
                 },
             },
             "investigation": json.loads(serialize("json", [assay.study.investigation]))[
@@ -152,7 +161,7 @@ def generate_markdown_from_assay(assay: Assay) -> str:
     markdown.append(f"- **Creation Date:** {export_data['metadata']['creation_date']}\n")
     markdown.append(f"- **Filename:** {export_data['metadata']['filename']}\n")
     markdown.append(f"- **Website:** {export_data['metadata']['website']}\n")
-    markdown.append("\n## App Config\n")
+    markdown.append("\n## ToxTempAssistant configuration\n")
     for key, value in export_data["metadata"]["config"].items():
         markdown.append(f"- {key}: {value}\n")
     markdown.append("\n")
@@ -229,7 +238,7 @@ def get_create_meta_data_yaml(
     current_date = current_time.date()
 
     metadata_dict = {
-        "author": str(request.user.first_name),  # Example author; replace as needed
+        "author": f"{request.user.first_name} {request.user.last_name}",  # Example author; replace as needed
         "date": str(current_date),  # Current date;
         "keywords": (
             "metadata template, "
@@ -257,7 +266,7 @@ def export_assay_to_file(
     request: HttpRequest, assay: Assay, export_type: str
 ) -> FileResponse:
     """Export assay to file."""
-    file_name = f"document_{slugify(assay.title)}.{export_type}"
+    file_name = f"toxtemp_{slugify(assay.title)}.{export_type}"
     file_path = Path(settings.MEDIA_ROOT) / "toxtempass" / file_name  # Use pathlib.Path
     if not file_path.parent.exists():
         file_path.parent.mkdir(parents=True)
