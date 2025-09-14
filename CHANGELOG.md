@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.9.1 (2025-09-14)
+
+### Bug Fixes
+
+- **export**: Update version and references in configuration; improve export filename and metadata
+  ([`e530a43`](https://github.com/johannehouweling/ToxTempAssistant/commit/e530a4310cf0d01d4072afeb80e664d93f1a9748))
+
+
 ## v1.9.0 (2025-09-14)
 
 
