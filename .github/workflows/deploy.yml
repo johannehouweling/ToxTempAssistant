@@ -41,10 +41,9 @@ jobs:
             git pull origin main
             git fetch --tags
             git checkout "$(git describe --tags --abbrev=0)"
-            GIT_TAG=$(git tag --sort=creatordate | tail -n1)
             # inject both hash and tag into the environment for Docker Compose
             GIT_HASH=$(git rev-parse HEAD)
-            sudo --preserve-env=GIT_HASH docker compose --profile prod up --build -d \
-            --build-arg GIT_HASH=$GIT_HASH --build-arg ENV_FILE=.env --build-arg GIT_TAG=$GIT_TAG
+            GIT_TAG=$(git tag --sort=creatordate | tail -n1)
+            sudo --preserve-env=GIT_HASH,GIT_TAG docker compose --profile prod up --build -d 
             # connect to default bridge network to allow communication with other containers
             sudo docker network connect bridge djangoapp
