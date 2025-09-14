@@ -3,7 +3,7 @@ import django_tables2 as tables
 from django.utils.html import format_html
 from django.utils.safestring import SafeText
 
-from toxtempass.models import Assay, LLMStatus
+from toxtempass.models import Answer, Assay, LLMStatus
 
 
 class AssayTable(tables.Table):
@@ -12,6 +12,14 @@ class AssayTable(tables.Table):
         orderable=False,
         empty_values=(),  # forces render_new to be called
         attrs={"td": {"class": "align-middle my-0 py-0 text-center"}},
+    )
+
+    last_changed = tables.DateTimeColumn(
+        verbose_name="Last Changed",
+        orderable=False,
+        linkify=False,
+        format="Y-m-d H:i",
+        attrs={"th": {"class": "no-link-header"}, "td": {"class": "align-middle"}},
     )
 
     def render_new(self, record):
@@ -89,6 +97,20 @@ class AssayTable(tables.Table):
         verbose_name="Action(s)",
         orderable=False,
     )
+
+    def render_last_changed(self, value, record: Assay) -> SafeText:  # noqa: ANN001
+        """Render the last changed date nicely, or 'Never' if None."""
+        answers = Answer.objects.filter(assay=record)
+        for answer in answers:
+            # iterate through all answers and take the most recent history_date as
+            # last changed
+            date = answer.history.all().order_by("-history_date").first().history_date
+            if date and (not value or date > value):
+                value = date
+        if value:
+            return value.strftime("%d %b, %Y")
+        else:
+            return format_html('<span class="text-muted">Never</span>')
 
     def render_progress(self, value, record: Assay) -> SafeText:  # noqa: ANN001
         """Render the progress bar based on the number of answers."""

@@ -245,7 +245,7 @@ class Assay(AccessibleModel):
         # if unique title within study, just show title otherwise title + submission date
         if Assay.objects.filter(title=self.title).count() == 1:
             return self.title
-        return f"{self.title} ({self.submission_date.strftime('%Y/%m/%d-%H:%M')})"
+        return f"{self.title} ({self.submission_date.strftime('%d %b, %Y - %H:%M')})"
 
     @property
     def get_n_questions(self) -> float:
