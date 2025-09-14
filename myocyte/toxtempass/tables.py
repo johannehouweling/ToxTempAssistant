@@ -11,7 +11,10 @@ class AssayTable(tables.Table):
         verbose_name="New",
         orderable=False,
         empty_values=(),  # forces render_new to be called
-        attrs={"td": {"class": "align-middle my-0 py-0 text-center"}},
+        attrs={
+            "th": {"class": "no-link-header d-none d-lg-table-cell"},
+            "td": {"class": "align-middle my-0 py-0 text-center d-none d-lg-table-cell"},
+        },
     )
 
     last_changed = tables.DateTimeColumn(
@@ -19,30 +22,31 @@ class AssayTable(tables.Table):
         orderable=False,
         linkify=False,
         format="Y-m-d H:i",
-        attrs={"th": {"class": "no-link-header"}, "td": {"class": "align-middle"}},
+        attrs={
+            "th": {"class": "no-link-header d-none d-lg-table-cell"},
+            "td": {"class": "align-middle d-none d-lg-table-cell"},
+        },
     )
-
-    def render_new(self, record):
-        # show a red bullet if the assay isn’t yet saved, else blank
-        if not record.is_saved:
-            return format_html(
-                '<i class="bi fs-3 text-primary bi-dot"></i><span class="visually-hidden">New</span>'
-            )
-        return ""
 
     investigation = tables.Column(
         accessor="study__investigation__title",
         verbose_name="Investigation",
         orderable=True,
         linkify=False,
-        attrs={"th": {"class": "no-link-header "}, "td": {"class": "align-middle"}},
+        attrs={
+            "th": {"class": "no-link-header d-none d-lg-table-cell "},
+            "td": {"class": "align-middle d-none d-lg-table-cell"},
+        },
     )
     study = tables.Column(
         accessor="study__title",
         verbose_name="Study",
         orderable=True,
         linkify=False,
-        attrs={"th": {"class": "no-link-header"}, "td": {"class": "align-middle"}},
+        attrs={
+            "th": {"class": "no-link-header d-none d-lg-table-cell"},
+            "td": {"class": "align-middle d-none d-lg-table-cell"},
+        },
     )
     assay = tables.Column(
         accessor="title",
@@ -98,6 +102,15 @@ class AssayTable(tables.Table):
         orderable=False,
     )
 
+    def render_new(self, record: Assay) -> SafeText:
+        """Render a 'New' indicator if the assay isn't yet saved."""
+        # show a red bullet if the assay isn’t yet saved, else blank
+        if not record.is_saved:
+            return format_html(
+                '<i class="bi fs-3 text-primary bi-dot"></i><span class="visually-hidden">New</span>'
+            )
+        return ""
+
     def render_last_changed(self, value, record: Assay) -> SafeText:  # noqa: ANN001
         """Render the last changed date nicely, or 'Never' if None."""
         answers = Answer.objects.filter(assay=record)
@@ -137,9 +150,9 @@ class AssayTable(tables.Table):
         # We only need to list the columns we defined above; django-tables2 uses them in this order.
         fields = (
             "new",
-            "investigation",
-            "study",
             "assay",
+            "study",
+            "investigation",
             "last_changed",
             "progress",
             "action",
