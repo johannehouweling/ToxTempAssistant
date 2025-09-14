@@ -60,13 +60,13 @@ class AssayTable(tables.Table):
         template_code="""
         <div class="btn-group" role="group">
             {% if record.status == LLMStatus.SCHEDULED.value %}
-                <button class="btn btn-sm btn-outline-secondary" disabled style="pointer-events: none;">
+                <button class="btn btn-sm btn-outline-secondary" disabled style="pointer-events: visible;">
                     <span class="d-inline-block" data-bs-toggle="tooltip" data-bs-container="body" data-bs-placement="top" title="Refresh the page to check for updates. Usually it doesn't take longer than 5-10 minutes.">
                         Scheduled
                     </span>
                 </button>
             {% elif record.status == LLMStatus.BUSY.value %}
-                <button class="btn btn-sm btn-outline-secondary" disabled style="pointer-events: none;">
+                <button class="btn btn-sm btn-outline-secondary" disabled style="pointer-events: visible;">
                     <span class="d-inline-block" data-bs-toggle="tooltip" data-bs-container="body" data-bs-placement="top" title="Refresh the page to check for updates. Usually it doesn't take longer than 5-10 minutes.">
                         Busy
                     </span>
