@@ -63,19 +63,21 @@
                 {% if user.is_authenticated %} 
                 <span class="btn orcid-icon-container btn-outline-light ms-auto fs-6 me-3" tabindex="0" role="button" data-bs-toggle="offcanvas" href="#offcanvasUser">
                     <i class="bi bi-person-badge"></i>
-                    {{ user.email }}
-                    {% if user.orcid_id%}<br>
-                        <div class="position-relative d-inline-block">
-                        <span class="svg-normal">
-                            <img class="" style="height:16px" src="{% static 'toxtempass/img/ORCID-iD_icon_reversed_vector.svg' %}" alt="ORCID">
 
-                        </span>
-                        <span class="svg-focus position-absolute">
-                            <img class="" style="height:16px" src="{% static 'toxtempass/img/ORCID-iD_icon_BW_vector.svg' %}" alt="ORCID">
-                        </span>
-                        </div>
-                        {{ user.orcid_id }}
-                    {% endif %}
+                    <div class="d-none d-lg-block">
+                      {{ user.email }}
+                      {% if user.orcid_id%}<br>
+                          <div class="position-relative d-inline-block">
+                            <span class="svg-normal">
+                                <img class="" style="height:16px" src="{% static 'toxtempass/img/ORCID-iD_icon_reversed_vector.svg' %}" alt="ORCID">
+                            </span>
+                            <span class="svg-focus position-absolute">
+                                <img class="" style="height:16px" src="{% static 'toxtempass/img/ORCID-iD_icon_BW_vector.svg' %}" alt="ORCID">
+                            </span>
+                          </div>
+                          {{ user.orcid_id }}
+                      {% endif %}
+                    </div>
                 </span>
                 {%endif%}
             </div>
