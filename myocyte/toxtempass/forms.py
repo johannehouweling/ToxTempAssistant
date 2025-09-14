@@ -248,7 +248,8 @@ class StartingForm(forms.Form):
                 study__investigation__in=accessible_investigations
             )
 
-    def clean(self):
+    def clean(self) -> dict:
+        """Clean Form."""
         cleaned_data = super().clean()
         assay = cleaned_data.get("assay")
         overwrite = cleaned_data.get("overwrite", False)
@@ -257,7 +258,10 @@ class StartingForm(forms.Form):
             if assay.question_set is not None:
                 self.add_error(
                     "overwrite",
-                    "Check here to overwrite. Eventual previous answers will still be visible in the history.",
+                    (
+                        "Check here to overwrite. Eventual previous answers will still "
+                        "be visible in the history."
+                    ),
                 )
         return cleaned_data
 
