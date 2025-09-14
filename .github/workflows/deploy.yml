@@ -44,6 +44,7 @@ jobs:
             # inject both hash and tag into the environment for Docker Compose
             GIT_HASH=$(git rev-parse HEAD)
             GIT_TAG=$(git tag --sort=creatordate | tail -n1)
+            export GIT_HASH GIT_TAG  
             sudo --preserve-env=GIT_HASH,GIT_TAG docker compose --profile prod up --build -d 
             # connect to default bridge network to allow communication with other containers
             sudo docker network connect bridge djangoapp
