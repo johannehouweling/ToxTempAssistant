@@ -2,6 +2,37 @@
 
 <!-- version list -->
 
+## v1.8.1 (2025-09-14)
+
+### Bug Fixes
+
+- **logic**: Hide Assays that don't have a question_set attached to them
+  ([#49](https://github.com/johannehouweling/ToxTempAssistant/pull/49),
+  [`c98318a`](https://github.com/johannehouweling/ToxTempAssistant/commit/c98318a683216f2b8d8c83c7337beccb933a77f4))
+
+- **ui**: Allow interaction with busy and scheduled buttons for tooltip toggling
+  ([#49](https://github.com/johannehouweling/ToxTempAssistant/pull/49),
+  [`c98318a`](https://github.com/johannehouweling/ToxTempAssistant/commit/c98318a683216f2b8d8c83c7337beccb933a77f4))
+
+- **ui**: Distinguish assays by submission_data string in case of identical title
+  ([#49](https://github.com/johannehouweling/ToxTempAssistant/pull/49),
+  [`c98318a`](https://github.com/johannehouweling/ToxTempAssistant/commit/c98318a683216f2b8d8c83c7337beccb933a77f4))
+
+- **ui**: Fix ui buttons in overview don't align up with delete.
+  ([#49](https://github.com/johannehouweling/ToxTempAssistant/pull/49),
+  [`c98318a`](https://github.com/johannehouweling/ToxTempAssistant/commit/c98318a683216f2b8d8c83c7337beccb933a77f4))
+
+- **ui**: Protect overwriting existing ToxTemp, with overwrite checkbox
+  ([#49](https://github.com/johannehouweling/ToxTempAssistant/pull/49),
+  [`c98318a`](https://github.com/johannehouweling/ToxTempAssistant/commit/c98318a683216f2b8d8c83c7337beccb933a77f4))
+
+### Refactoring
+
+- **ui**: Added function description
+  ([#49](https://github.com/johannehouweling/ToxTempAssistant/pull/49),
+  [`c98318a`](https://github.com/johannehouweling/ToxTempAssistant/commit/c98318a683216f2b8d8c83c7337beccb933a77f4))
+
+
 ## v1.8.0 (2025-09-14)
 
 ### Features

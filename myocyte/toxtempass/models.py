@@ -247,6 +247,7 @@ class Assay(AccessibleModel):
             return self.title
         return f"{self.title} ({self.submission_date.strftime('%d %b, %Y - %H:%M')})"
 
+
     @property
     def get_n_questions(self) -> float:
         """Get number of questions associated with assay."""
