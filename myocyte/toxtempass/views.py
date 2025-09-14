@@ -1,22 +1,9 @@
-from collections import defaultdict
-from collections.abc import Iterator
 import difflib
-import time
-from openai import RateLimitError
-from django.http import (
-    FileResponse,
-    HttpRequest,
-    HttpResponse,
-    HttpResponseRedirect,
-    Http404,
-)
-from toxtempass import config
-from django.http.response import JsonResponse
-from django.db import transaction
 import json
 import logging
 import re
 import time
+from collections import defaultdict
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -28,7 +15,13 @@ from django.contrib.auth.models import User
 from django.contrib.humanize.templatetags.humanize import naturaltime
 from django.db import transaction
 from django.db.models import QuerySet
-from django.http import FileResponse, HttpRequest, HttpResponse, HttpResponseRedirect
+from django.http import (
+    FileResponse,
+    Http404,
+    HttpRequest,
+    HttpResponse,
+    HttpResponseRedirect,
+)
 from django.http.response import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -468,7 +461,7 @@ def process_llm_async(
     assay_id: int,
     text_dict: dict[str, dict[str, str]],
     chatopenai: ChatOpenAI = get_llm(),
-):
+) -> None:
     """Process llm answer async.
 
     1) Seed answers in round 1,
@@ -477,7 +470,12 @@ def process_llm_async(
     and can scope context to specific subsections or use the PDFs.
     """
     try:
-        assay = Assay.objects.get(pk=assay_id)
+        try:
+            assay = Assay.objects.get(pk=assay_id)
+        except Assay.DoesNotExist:
+            logger.info(f"Assay with id {assay_id} does not exist. Exiting task early.")
+            return
+
         assay.status = LLMStatus.BUSY
         assay.save()
 
@@ -576,10 +574,12 @@ def process_llm_async(
                 while True:
                     if deadline is not None and time.time() > deadline:
                         logger.error(
-                            f"Timed out retrying answer {ans.id} [{max_ans_id - ans.id} of {delta_ans}] after {q_timeout}s total"
+                            f"Timed out retrying answer {ans.id} [{max_ans_id - ans.id}"
+                            " of {delta_ans}] after {q_timeout}s total"
                         )
                         raise TimeoutError(
-                            f"Answer {ans.id} [{max_ans_id - ans.id} of {delta_ans}] timed out"
+                            f"Answer {ans.id} [{max_ans_id - ans.id} of {delta_ans}]"
+                            " timed out"
                         )
 
                     try:
@@ -598,13 +598,15 @@ def process_llm_async(
                             pass
 
                         logger.warning(
-                            f"RateLimit hit for answer {ans.id} [{max_ans_id - ans.id} of {delta_ans}], retrying in {wait:.1f}s"
+                            f"RateLimit hit for answer {ans.id} [{max_ans_id - ans.id} "
+                            f"of {delta_ans}], retrying in {wait:.1f}s"
                         )
                         time.sleep(wait)
 
                     except Exception as exc:
                         logger.exception(
-                            f"LLM error for answer {ans.id} [{max_ans_id - ans.id} of {delta_ans}]: {exc}"
+                            f"LLM error for answer {ans.id} [{max_ans_id - ans.id} "
+                            "of {delta_ans}]: {exc}"
                         )
                         return ans.id, ""
 
@@ -625,6 +627,16 @@ def process_llm_async(
                         timed_out = True
                         continue
                     try:
+                        # check assay existence before saving
+                        try:
+                            assay.refresh_from_db()
+                        except Assay.DoesNotExist:
+                            logger.info(
+                                f"Assay with id {assay_id} deleted during processing;"
+                                " stopping."
+                            )
+                            return
+
                         # save the successful draft
                         Answer.objects.filter(pk=aid).update(
                             answer_text=text,
@@ -641,9 +653,15 @@ def process_llm_async(
 
     except Exception as e:
         logger.exception(f"Fatal error in process_llm_async: {e}")
-        assay.status = LLMStatus.ERROR
-        add_status_context(assay, str(e))
-        assay.save()
+        # Check if assay exists before updating status and context
+        try:
+            assay.status = LLMStatus.ERROR
+            add_status_context(assay, str(e))
+            assay.save()
+        except (UnboundLocalError, Assay.DoesNotExist):
+            logger.info(
+                f"Assay with id {assay_id} does not exist; skipping error status update."
+            )
 
 
 @method_decorator(user_passes_test(is_logged_in, login_url="/login/"), name="dispatch")
@@ -1099,7 +1117,7 @@ def get_version_history(
         raise PermissionDenied(
             "You do not have permission to access this answer's version history."
         )
-    history = answer.history.all()
+    history = answer.history.all().order_by("-history_date")
     version_changes = []
 
     class DotDict(dict):
@@ -1155,6 +1173,46 @@ def get_version_history(
 
     # ─── strip out any “versions” with no changes ───
     version_changes = [entry for entry in version_changes if entry["changes"]]
+
+    # If no versions with changes found, add a synthetic "original" version entry to show initial data.
+    if not version_changes:
+        # Build a minimal synthetic version entry
+        answer_text = answer.answer_text or ""
+
+        # Create a DotDict-like object for synthetic version metadata
+        class SyntheticVersion(DotDict):
+            pass
+
+        synthetic_version = SyntheticVersion()
+        synthetic_version.history_date = (
+            history.first().history_date if history else "Original"
+        )
+        synthetic_version.history_user = history.first().history_user if history else None
+        synthetic_version.history_id = history.first().history_id if history else None
+
+        # Build changes list for answer_text and answer_documents field
+        changes = []
+        # change dict format matches what is expected
+        # Use attributes to mimic along with "field", "old", and "new"
+        changes.append(DotDict(field="answer_text", old="", new=answer_text))
+        changes.append(
+            DotDict(
+                field="answer_documents",
+                old="",
+                new=", ".join(answer.answer_documents or []),
+            )
+        )
+
+        # Build HTML for answer_text no diffs because original
+        answer_text_html = answer_text.replace("\n", "<br>")
+
+        version_changes.append(
+            {
+                "version": synthetic_version,
+                "changes": changes,
+                "answer_text_changes_html": answer_text_html,
+            }
+        )
 
     question_set_display_name = str(answer.question.subsection.section.question_set)
     return render(
