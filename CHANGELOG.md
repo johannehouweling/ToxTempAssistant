@@ -2,6 +2,34 @@
 
 <!-- version list -->
 
+## v1.14.0 (2025-09-15)
+
+### Bug Fixes
+
+- **ui**: 1/n files on upload bar
+  ([`9cd52f4`](https://github.com/johannehouweling/ToxTempAssistant/commit/9cd52f44de2d431af1d703a245a8fc5b4bcfbbd1))
+
+- **ui**: Logic when to allow file-upload improved.
+  ([`9cd52f4`](https://github.com/johannehouweling/ToxTempAssistant/commit/9cd52f44de2d431af1d703a245a8fc5b4bcfbbd1))
+
+- **ui**: Offcanvas now compatible with additional modals
+  ([`9cd52f4`](https://github.com/johannehouweling/ToxTempAssistant/commit/9cd52f44de2d431af1d703a245a8fc5b4bcfbbd1))
+
+- **ui**: Upload bar
+  ([`9cd52f4`](https://github.com/johannehouweling/ToxTempAssistant/commit/9cd52f44de2d431af1d703a245a8fc5b4bcfbbd1))
+
+- **upload**: Handling of tempfiles
+  ([`9cd52f4`](https://github.com/johannehouweling/ToxTempAssistant/commit/9cd52f44de2d431af1d703a245a8fc5b4bcfbbd1))
+
+### Features
+
+- **ui**: Progressbar during upload
+  ([`9cd52f4`](https://github.com/johannehouweling/ToxTempAssistant/commit/9cd52f44de2d431af1d703a245a8fc5b4bcfbbd1))
+
+- **ui**: User Interface Improvements
+  ([`9cd52f4`](https://github.com/johannehouweling/ToxTempAssistant/commit/9cd52f44de2d431af1d703a245a8fc5b4bcfbbd1))
+
+
 ## v1.13.0 (2025-09-15)
 
 ### Features
