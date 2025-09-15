@@ -104,13 +104,25 @@ document.addEventListener('DOMContentLoaded', function() {
         request.onload = function() {
             if (request.status >= 200 && request.status < 501) {
                 response = JSON.parse(request.responseText);
+
+                function hideModalAndMoveFocus() {
+                    uploadModal.hide();
+                    // Move focus to the form submit button or the form itself after hiding modal
+                    const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.focus();
+                    } else {
+                        form.focus();
+                    }
+                }
+
                 if (response.success) {
                     // Handle success (e.g., redirect, display a success message, etc.)
                     if (uploadModal) {
                         modalProgressBar.style.width = '100%';
                         // Replace completion text with file count text
                         modalProgressBar.textContent = '1/' + filesInForm.length + ' complete';
-                        setTimeout(() => { uploadModal.hide(); }, 500);
+                        setTimeout(() => { hideModalAndMoveFocus(); }, 500);
                     } else if (progressContainer && progressBar) {
                         progressBar.style.width = '100%';
                         // Replace completion text with file count text
@@ -165,7 +177,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     // Hide and reset progress bars
                     if (uploadModal) {
-                        uploadModal.hide();
+                        setTimeout(() => {
+                            hideModalAndMoveFocus();
+                        }, 500);
                         modalProgressBar.style.width = '0%';
                         modalProgressBar.setAttribute('aria-valuenow', 0);
                         modalProgressBar.textContent = '0%';
