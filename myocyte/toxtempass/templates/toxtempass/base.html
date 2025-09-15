@@ -12,6 +12,11 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js" integrity="sha384-j1CDi7MgGQ12Z7Qab0qlWQ/Qqz24Gc6BM0thvEMVjHnfYGF0rmFCozFSxQBxwHKO" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1/font/bootstrap-icons.min.css" integrity="sha256-pdY4ejLKO67E0CM2tbPtq1DJ3VGDVVdqAR6j3ZwdiE4=" crossorigin="anonymous">
     {% comment %} <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script> {% endcomment %}
+    {{ config.user_onboarding_help|json_script:"userOnboardingHelp" }}
+    <script>
+      window.ToxTempConfig = window.ToxTempConfig || {};
+      window.ToxTempConfig._user_onboarding_help = JSON.parse(document.getElementById('userOnboardingHelp').textContent);
+    </script>
 </head>
 <script>
     document.addEventListener("DOMContentLoaded", function(){
@@ -55,41 +60,42 @@
       --bs-tooltip-color: var(--bs-primary);
     }
   </style>
-<body>
-    <header class="sticky-md-top">
-        <div class="card bg-white border-0">
-            <div class="card m-3 border-0 d-flex align-items-center flex-row bg-primary" style="height:100px;"> <!--background-color:var(--bs-indigo);-->           
-                <h2 class="m-3 text-white fs-2 fs-md-1"><a href="{%url 'start'%}" class="text-decoration-none text-white"><i class="bi bi-clipboard-heart me-2"></i>ToxTempAssistant</a></h2>
-                <span class="badge d-none d-md-block bg-warning text-dark" data-bs-toggle="tooltip" data-bs-custom-class="header-tooltip" title="This app is still in beta. Features may change."><a class="text-decoration-none text-dark" href="https://github.com/johannehouweling/ToxTempAssistant/releases">{{config.version}}</a></span>
-                {% if user.is_authenticated %} 
-                <span class="btn orcid-icon-container btn-outline-light ms-auto fs-6 me-3" tabindex="0" role="button" data-bs-toggle="offcanvas" href="#offcanvasUser">
-                    <i class="bi bi-person-badge"></i>
-
-                    <div class="d-none d-lg-block">
-                      {{ user.email }}
-                      {% if user.orcid_id%}<br>
-                          <div class="position-relative d-inline-block">
-                            <span class="svg-normal">
-                                <img class="" style="height:16px" src="{% static 'toxtempass/img/ORCID-iD_icon_reversed_vector.svg' %}" alt="ORCID">
-                            </span>
-                            <span class="svg-focus position-absolute">
-                                <img class="" style="height:16px" src="{% static 'toxtempass/img/ORCID-iD_icon_BW_vector.svg' %}" alt="ORCID">
-                            </span>
-                          </div>
-                          {{ user.orcid_id }}
-                      {% endif %}
-                    </div>
-                </span>
-                {%endif%}
+    <body data-url-name="{% url 'start' as start_url %}start">
+        <header class="sticky-md-top">
+            <div class="card bg-white border-0">
+                <div class="card m-3 border-0 d-flex align-items-center flex-row bg-primary" style="height:100px;"> <!--background-color:var(--bs-indigo);-->           
+                    <h2 class="m-3 text-white fs-2 fs-md-1"><a href="{%url 'start'%}" class="text-decoration-none text-white"><i class="bi bi-clipboard-heart me-2"></i>ToxTempAssistant</a></h2>
+                    <span class="badge d-none d-md-block bg-warning text-dark" data-bs-toggle="tooltip" data-bs-custom-class="header-tooltip" title="This app is still in beta. Features may change."><a class="text-decoration-none text-dark" href="https://github.com/johannehouweling/ToxTempAssistant/releases">{{config.version}}</a></span>
+                    {% if user.is_authenticated %} 
+                    <span class="btn orcid-icon-container btn-outline-light ms-auto fs-6 me-3" tabindex="0" role="button" data-bs-toggle="offcanvas" href="#offcanvasUser">
+                        <i class="bi bi-person-badge"></i>
+                        <div class="d-none d-lg-block">
+                          {{ user.email }}
+                          {% if user.orcid_id%}<br>
+                              <div class="position-relative d-inline-block">
+                                <span class="svg-normal">
+                                    <img class="" style="height:16px" src="{% static 'toxtempass/img/ORCID-iD_icon_reversed_vector.svg' %}" alt="ORCID">
+                                </span>
+                                <span class="svg-focus position-absolute">
+                                    <img class="" style="height:16px" src="{% static 'toxtempass/img/ORCID-iD_icon_BW_vector.svg' %}" alt="ORCID">
+                                </span>
+                              </div>
+                              {{ user.orcid_id }}
+                          {% endif %}
+                        </div>
+                    </span>
+                    {%endif%}
+                </div>
             </div>
-        </div>
-    </header>
-     {% include "user_offcanvas.html"%}
+        </header>
+         {% include "base_extras/onboarding.html"%}
+         {% include "base_extras/user_offcanvas.html"%}
+        
 
-    <div class="container px-4">
-        {% block content %}
-        <!-- Page content goes here -->
-        {% endblock %}
-    </div>
-</body>
+        <div class="container px-4">
+            {% block content %}
+            <!-- Page content goes here -->
+            {% endblock %}
+        </div>
+    </body>
 </html>
