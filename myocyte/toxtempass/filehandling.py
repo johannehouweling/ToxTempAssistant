@@ -1,5 +1,6 @@
 import base64
 import logging
+import shutil
 import tempfile
 from io import BytesIO
 from pathlib import Path
@@ -124,21 +125,20 @@ def get_text_or_imagebytes_from_django_uploaded_file(
 
     {Path(filename.pdf): {'text': 'lorem ipsum'} or {"encodedbytes": "dskhasdhak"}
     """
-    temp_files = [
-        # rename the temporary-file to keep the user provided filename even
-        # for the tempfile
-        str(Path(file.temporary_file_path()).rename(file.name))
-        for file in files
-        if isinstance(file, TemporaryUploadedFile)
-    ]
-    tempmem_files = [
-        convert_to_temporary(file)
-        for file in files
-        if isinstance(file, InMemoryUploadedFile)
-    ]
-    files = temp_files + tempmem_files
-    # md5_dict = calculate_md5_multiplefiles(files)
-    text_dict = get_text_or_bytes_perfile_dict(files)
+    temp_files = []
+    for file in files:
+        if isinstance(file, TemporaryUploadedFile):
+            src_path = Path(file.temporary_file_path())
+            dest_path = src_path.parent / file.name
+            # Copy the temporary file to destination retaining the user-provided filename
+            shutil.copy(src_path, dest_path)
+            temp_files.append(str(dest_path))
+        elif isinstance(file, InMemoryUploadedFile):
+            temp_path_str = convert_to_temporary(file)
+            temp_files.append(temp_path_str)
+
+    # md5_dict = calculate_md5_multiplefiles(temp_files)
+    text_dict = get_text_or_bytes_perfile_dict(temp_files)
     return text_dict
 
 
