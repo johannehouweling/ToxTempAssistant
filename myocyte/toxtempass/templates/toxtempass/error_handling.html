@@ -3,9 +3,28 @@ var response = {}
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.querySelector('form');
 
+    // Inline progress bar elements
+    const progressContainer = document.getElementById('uploadProgressContainer');
+    const progressBar = document.getElementById('uploadProgressBar');
+    const progressFilename = document.getElementById('uploadProgressFilename');
+
+    // Modal progress elements
+    const uploadModalEl = document.getElementById('uploadProgressModal');
+    let uploadModal = null;
+    let modalProgressBar = null;
+    let modalProgressFilename = null;
+
+    // Initialize Bootstrap modal instance if modal element exists
+    if (uploadModalEl && window.bootstrap && window.bootstrap.Modal) {
+        uploadModal = new bootstrap.Modal(uploadModalEl, {backdrop: 'static', keyboard: false});
+        modalProgressBar = uploadModalEl.querySelector('#uploadProgressBarModal');
+        modalProgressFilename = uploadModalEl.querySelector('#uploadProgressFilenameModal');
+    }
+
     form.addEventListener('submit', function(event) {
         event.preventDefault(); // Prevent the form from submitting the default way
         const formData = new FormData(form); // Create FormData object for handling file uploads
+        const filesInForm = formData.getAll('files');
 
         // Clear previous errors
         form.querySelectorAll('.invalid-feedback').forEach(function(error) {
@@ -18,12 +37,77 @@ document.addEventListener('DOMContentLoaded', function() {
         const request = new XMLHttpRequest();
         request.open(form.getAttribute('method'), form.getAttribute('action'));
 
+        // Show modal if files exist and modal available, else use inline
+        if (filesInForm.length > 0) {
+            if (uploadModal) {
+                // reset modal progress bar and filename text
+                modalProgressBar.style.width = '0%';
+                modalProgressBar.setAttribute('aria-valuenow', 0);
+                modalProgressBar.textContent = '0%';
+                modalProgressFilename.textContent = '';
+
+                uploadModal.show();
+            } else if (progressContainer && progressBar) {
+                progressContainer.style.display = 'block';
+                progressBar.style.width = '0%';
+                progressBar.setAttribute('aria-valuenow', 0);
+                progressBar.textContent = '0%';
+                if (progressFilename) {
+                    progressFilename.textContent = '';
+                }
+            }
+        }
+
+        // Upload progress handler
+        request.upload.addEventListener('progress', function(e) {
+            if (e.lengthComputable) {
+                const percentComplete = Math.round((e.loaded / e.total) * 100);
+
+                if (uploadModal) {
+                    modalProgressBar.style.width = percentComplete + '%';
+                    modalProgressBar.setAttribute('aria-valuenow', percentComplete);
+                    modalProgressBar.textContent = percentComplete + '%';
+
+                    // Update filenames list
+                    let fileList = [];
+                    for (const file of filesInForm) {
+                        fileList.push(file.name);
+                    }
+                    if (fileList.length > 0) {
+                        modalProgressFilename.textContent = 'Uploading: ' + fileList.join(', ');
+                    }
+                } else if (progressContainer && progressBar) {
+                    progressBar.style.width = percentComplete + '%';
+                    progressBar.setAttribute('aria-valuenow', percentComplete);
+                    progressBar.textContent = percentComplete + '%';
+
+                    if (progressFilename) {
+                        let fileList = [];
+                        for (const file of filesInForm) {
+                            fileList.push(file.name);
+                        }
+                        if (fileList.length > 0) {
+                            progressFilename.textContent = 'Uploading: ' + fileList.join(', ');
+                        }
+                    }
+                }
+            }
+        });
+
         // Set up callback for success or error
         request.onload = function() {
             if (request.status >= 200 && request.status < 501) {
                 response = JSON.parse(request.responseText);
                 if (response.success) {
                     // Handle success (e.g., redirect, display a success message, etc.)
+                    if (uploadModal) {
+                        modalProgressBar.style.width = '100%';
+                        modalProgressBar.textContent = 'Upload complete';
+                        setTimeout(() => { uploadModal.hide(); }, 500);
+                    } else if (progressContainer && progressBar) {
+                        progressBar.style.width = '100%';
+                        progressBar.textContent = 'Upload complete';
+                    }
                     window.location.href = response.redirect_url;
                 } else {
                     // Handle form errors
@@ -61,14 +145,61 @@ document.addEventListener('DOMContentLoaded', function() {
                         const nonFieldErrorsContainer = document.getElementById('non-field-errors');
                         nonFieldErrorsContainer.innerHTML = `<div class="alert alert-danger">${response.errors.__all__.join('<br>')}</div>`;
                     }
+
+                    // Hide and reset progress bars
+                    if (uploadModal) {
+                        uploadModal.hide();
+                        modalProgressBar.style.width = '0%';
+                        modalProgressBar.setAttribute('aria-valuenow', 0);
+                        modalProgressBar.textContent = '0%';
+                        modalProgressFilename.textContent = '';
+                    } else if (progressContainer && progressBar) {
+                        progressContainer.style.display = 'none';
+                        progressBar.style.width = '0%';
+                        progressBar.setAttribute('aria-valuenow', 0);
+                        progressBar.textContent = '0%';
+                        if (progressFilename) {
+                            progressFilename.textContent = '';
+                        }
+                    }
                 }
             } else {
                 alert('An unexpected error occurred. Please try again.');
+                if (uploadModal) {
+                    uploadModal.hide();
+                    modalProgressBar.style.width = '0%';
+                    modalProgressBar.setAttribute('aria-valuenow', 0);
+                    modalProgressBar.textContent = '0%';
+                    modalProgressFilename.textContent = '';
+                } else if (progressContainer && progressBar) {
+                    progressContainer.style.display = 'none';
+                    progressBar.style.width = '0%';
+                    progressBar.setAttribute('aria-valuenow', 0);
+                    progressBar.textContent = '0%';
+                    if (progressFilename) {
+                        progressFilename.textContent = '';
+                    }
+                }
             }
         };
 
         request.onerror = function() {
             alert('An unexpected error occurred. Please try again.');
+            if (uploadModal) {
+                uploadModal.hide();
+                modalProgressBar.style.width = '0%';
+                modalProgressBar.setAttribute('aria-valuenow', 0);
+                modalProgressBar.textContent = '0%';
+                modalProgressFilename.textContent = '';
+            } else if (progressContainer && progressBar) {
+                progressContainer.style.display = 'none';
+                progressBar.style.width = '0%';
+                progressBar.setAttribute('aria-valuenow', 0);
+                progressBar.textContent = '0%';
+                if (progressFilename) {
+                    progressFilename.textContent = '';
+                }
+            }
         };
 
         // Send the form data

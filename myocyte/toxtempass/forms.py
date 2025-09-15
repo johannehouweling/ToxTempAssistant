@@ -111,10 +111,72 @@ class SignupForm(SignupFormOrcid):
         )
 
 
+from django.utils.safestring import mark_safe
+
+
 class MultipleFileInput(forms.ClearableFileInput):
-    """FileInput for multiple files."""
+    """FileInput for multiple files with upload progress bar and modal."""
 
     allow_multiple_selected = True
+
+    def render(self, name, value, attrs=None, renderer=None):
+        from django.utils.safestring import mark_safe
+
+        # Render the default file input widget
+        original_html = super().render(name, value, attrs, renderer)
+
+        # Inline progress bar and filename display (optional inline display)
+        inline_progress_html = mark_safe(
+            """
+            <div class="progress mt-2" style="height: 20px; display:none;" id="uploadProgressContainer">
+              <div 
+                class="progress-bar progress-bar-striped progress-bar-animated" 
+                role="progressbar" 
+                aria-valuemin="0" 
+                aria-valuemax="100" 
+                aria-valuenow="0" 
+                style="width: 0%;" 
+                id="uploadProgressBar">
+                0%
+              </div>
+            </div>
+            <div id="uploadProgressFilename" class="small mt-1 text-truncate"></div>
+            """
+        )
+
+        # Bootstrap modal for centralized upload progress
+        modal_html = mark_safe(
+            """
+            <div class="modal fade" id="uploadProgressModal" tabindex="-1" aria-labelledby="uploadProgressModalLabel" aria-hidden="true">
+              <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="uploadProgressModalLabel">File Upload Progress</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                    <div class="progress" style="height: 25px;">
+                      <div
+                        class="progress-bar progress-bar-striped progress-bar-animated"
+                        role="progressbar"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        aria-valuenow="0"
+                        style="width: 0%;"
+                        id="uploadProgressBarModal">
+                        0%
+                      </div>
+                    </div>
+                    <div id="uploadProgressFilenameModal" class="small mt-2 text-truncate"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            """
+        )
+
+        # Return combined HTML for the widget: original input + inline progress + modal
+        return original_html + inline_progress_html + modal_html
 
 
 class MultipleFileField(forms.FileField):
