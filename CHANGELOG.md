@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.13.0 (2025-09-15)
+
+### Features
+
+- **ui**: Added favicon
+  ([`33f54d0`](https://github.com/johannehouweling/ToxTempAssistant/commit/33f54d03454e5fd1d9996e76e8f5a17223a566a1))
+
+
 ## v1.12.1 (2025-09-15)
 
 ### Bug Fixes
