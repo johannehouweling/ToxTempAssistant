@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v1.12.1 (2025-09-15)
+
+### Bug Fixes
+
+- **ui**: Margin for toxtempassistant logo match margin of user-menu
+  ([`b551fb2`](https://github.com/johannehouweling/ToxTempAssistant/commit/b551fb208b3e2c005e91a1d94b8f4a572c54bf38))
+
+- **ui**: Padding smaller
+  ([`617e09d`](https://github.com/johannehouweling/ToxTempAssistant/commit/617e09df2c961c20702a3019f0c19195deb39f0b))
+
+
 ## v1.12.0 (2025-09-14)
 
 ### Features
