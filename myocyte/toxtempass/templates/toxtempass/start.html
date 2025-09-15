@@ -192,26 +192,29 @@
                         }
 
                         // If a study is now selected, fetch assays for it
-                        if (studySelect.value) {
-                            fetch(`/filter-assays-by-study/${studySelect.value}/`)
-                                .then(resp => resp.json())
-                                .then(assays => {
-                                    assaySelect.innerHTML = '<option value="" selected>---------</option>';
-                                    assays.forEach(assay => {
-                                        const opt = new Option(assay.title, assay.id);
-                                        assaySelect.appendChild(opt);
-                                    });
-                                    assaySelect.disabled = false;
+            if (studySelect.value) {
+                fetch(`/filter-assays-by-study/${studySelect.value}/`)
+                    .then(resp => resp.json())
+                    .then(assays => {
+                        assaySelect.innerHTML = '<option value="" selected>---------</option>';
+                        assays.forEach(assay => {
+                            const opt = new Option(assay.title, assay.id);
+                            assaySelect.appendChild(opt);
+                        });
+                        assaySelect.disabled = false;
 
-                                    // Re-select an assay if one was already chosen
-                                    if (preselectedAssay) {
-                                        assaySelect.value = preselectedAssay;
-                                    }
-                                })
-                                .catch(err => console.error('Error fetching assays:', err));
-                        } else {
-                            assaySelect.disabled = true;
+                        // Re-select an assay if one was already chosen
+                        if (preselectedAssay) {
+                            assaySelect.value = preselectedAssay;
                         }
+
+                        // Call updateGptAllowed after assay value is set to update upload field
+                        updateGptAllowed();
+                    })
+                    .catch(err => console.error('Error fetching assays:', err));
+            } else {
+                assaySelect.disabled = true;
+            }
                     })
                     .catch(error => console.error('Error fetching studies:', error));
             } else {
