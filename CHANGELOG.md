@@ -2,6 +2,21 @@
 
 <!-- version list -->
 
+## v1.15.0 (2025-09-15)
+
+### Bug Fixes
+
+- **ui**: Allow upload dcument when new created assay
+  ([#55](https://github.com/johannehouweling/ToxTempAssistant/pull/55),
+  [`b2844c1`](https://github.com/johannehouweling/ToxTempAssistant/commit/b2844c124042e23d7cdf52ec5cc7d6d00e5be459))
+
+### Features
+
+- **ui**: ToxTempAssistant headline becomes link to return to main page.
+  ([#55](https://github.com/johannehouweling/ToxTempAssistant/pull/55),
+  [`b2844c1`](https://github.com/johannehouweling/ToxTempAssistant/commit/b2844c124042e23d7cdf52ec5cc7d6d00e5be459))
+
+
 ## v1.14.0 (2025-09-15)
 
 ### Bug Fixes
