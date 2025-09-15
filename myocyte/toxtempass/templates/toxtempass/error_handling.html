@@ -66,28 +66,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (uploadModal) {
                     modalProgressBar.style.width = percentComplete + '%';
                     modalProgressBar.setAttribute('aria-valuenow', percentComplete);
-                    modalProgressBar.textContent = percentComplete + '%';
+                    // Replace percentage text with file count text (e.g. "1/2")
+                    modalProgressBar.textContent = '1/' + filesInForm.length;
 
-                    // Update filenames list
-                    let fileList = [];
-                    for (const file of filesInForm) {
-                        fileList.push(file.name);
-                    }
-                    if (fileList.length > 0) {
-                        modalProgressFilename.textContent = 'Uploading: ' + fileList.join(', ');
-                    }
-                } else if (progressContainer && progressBar) {
-                    progressBar.style.width = percentComplete + '%';
-                    progressBar.setAttribute('aria-valuenow', percentComplete);
-                    progressBar.textContent = percentComplete + '%';
-
-                    if (progressFilename) {
+                    // Keep showing the filenames below the progress bar
+                    if (filesInForm.length > 0) {
                         let fileList = [];
                         for (const file of filesInForm) {
                             fileList.push(file.name);
                         }
                         if (fileList.length > 0) {
-                            progressFilename.textContent = 'Uploading: ' + fileList.join(', ');
+                            modalProgressFilename.textContent = 'Uploading: ' + fileList.join(', ');
+                        }
+                    }
+                } else if (progressContainer && progressBar) {
+                    progressBar.style.width = percentComplete + '%';
+                    progressBar.setAttribute('aria-valuenow', percentComplete);
+                    // Replace percentage text with file count text (e.g. "1/2")
+                    progressBar.textContent = '1/' + filesInForm.length;
+
+                    if (progressFilename) {
+                        if (filesInForm.length > 0) {
+                            let fileList = [];
+                            for (const file of filesInForm) {
+                                fileList.push(file.name);
+                            }
+                            if (fileList.length > 0) {
+                                progressFilename.textContent = 'Uploading: ' + fileList.join(', ');
+                            }
                         }
                     }
                 }
@@ -102,11 +108,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Handle success (e.g., redirect, display a success message, etc.)
                     if (uploadModal) {
                         modalProgressBar.style.width = '100%';
-                        modalProgressBar.textContent = 'Upload complete';
+                        // Replace completion text with file count text
+                        modalProgressBar.textContent = '1/' + filesInForm.length + ' complete';
                         setTimeout(() => { uploadModal.hide(); }, 500);
                     } else if (progressContainer && progressBar) {
                         progressBar.style.width = '100%';
-                        progressBar.textContent = 'Upload complete';
+                        // Replace completion text with file count text
+                        progressBar.textContent = '1/' + filesInForm.length + ' complete';
+                    }
+                    if (filesInForm.length > 0) {
+                        if (uploadModal) {
+                            modalProgressFilename.textContent =
+                                'Uploaded: ' + filesInForm.map(f => f.name).join(', ');
+                        } else if (progressFilename) {
+                            progressFilename.textContent =
+                                'Uploaded: ' + filesInForm.map(f => f.name).join(', ');
+                        }
                     }
                     window.location.href = response.redirect_url;
                 } else {
