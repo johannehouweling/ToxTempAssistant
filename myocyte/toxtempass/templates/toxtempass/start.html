@@ -45,40 +45,43 @@
         // Deactivate the upload menu if gpt is not allowed anymore because answers exist already.
         var assay_select = document.getElementById('id_assay')
         
-        assay_select.addEventListener('change', function(event){
+        function updateGptAllowed() {
             fetch(`/assay/gpt-allowed/${assay_select.value}`, {
-                method: 'POST', // Specify the request method
+                method: 'POST',
                 headers: {
-                    'X-CSRFToken': csrftoken, // Add CSRF token to headers (security measure by django)
-                    'Content-Type': 'application/json', // Indicate that we are sending JSON data
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json',
                 },
-                body: "" // Convert data to JSON string
+                body: ""
             })
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok ' + response.statusText);
                 }
-                return response.json(); // Parse JSON response
+                return response.json();
             })
             .then(data => {
-                console.log('Success:', data); // Handle success
-                if (data.gpt_allowed){
-                    document.getElementById('id_files').disabled = false
-                    document.getElementById('id_files').value = '' 
-                    document.getElementById('startButtonText').textContent = 'Create draft'
-
-                }
-                else{
-                    document.getElementById('id_files').disabled = true
-                    document.getElementById('id_files').value = ''
-                    document.getElementById('startButtonText').textContent = 'Edit draft'
-
+                if (
+                    (data.gpt_allowed || document.getElementById('id_overwrite').checked) &&
+                    document.getElementById('id_study').value &&
+                    document.getElementById('id_investigation').value
+                ) {
+                    document.getElementById('id_files').disabled = false;
+                    document.getElementById('id_files').value = '';
+                    document.getElementById('startButtonText').textContent = 'Create draft';
+                } else {
+                    document.getElementById('id_files').disabled = true;
+                    document.getElementById('id_files').value = '';
+                    document.getElementById('startButtonText').textContent = 'Edit draft';
                 }
             })
             .catch((error) => {
-                console.error('Error:', error); // Handle errors
+                console.error('Error:', error);
             });
-        })
+        }
+
+        assay_select.addEventListener('change', updateGptAllowed);
+        document.getElementById('id_overwrite').addEventListener('change', updateGptAllowed);
           
             // THIS IS NOT IDEAL AND MAY FAIL DEPENDING ON NETWORK AND RESORUCE TIMEING (integrate in ajax submission call better)
             // check is response of form submission (defined in error_handling.html) is not succesful: then we need to rest the button           
@@ -137,20 +140,29 @@
                 });
             });
         }
+
+        function initializeUploadSelect(){
+            var uploadSelectID = 'id_files'
+            document.getElementById(uploadSelectID).disabled=true;
+        }
     
         // Use pageshow event to handle both initial load and back button navigation
         window.addEventListener('pageshow', function(event) {
             if (event.persisted || performance.getEntriesByType("navigation")[0].type === "back_forward") {
                 // The page is coming from cache (back/forward navigation)
                 initializeButtons();
+                initializeUploadSelect();
             } else {
                 // Normal page load
                 initializeButtons();
+                initializeUploadSelect();
             }
         });
     
         // Alternatively, you can call initializeButtons on DOMContentLoaded for initial load
         document.addEventListener('DOMContentLoaded', initializeButtons);
+        document.addEventListener('DOMContentLoaded', initializeUploadSelect);
+
     </script>   
     <script>
         // Filter Investigation and Study so that the hierachy is reflected in the menu
@@ -205,6 +217,8 @@
             } else {
                 studySelect.disabled = true;
                 assaySelect.disabled = true;
+                document.getElementById('id_files').disabled = true
+
             }
 
             // When Investigation is selected, fetch and populate related studies
@@ -229,6 +243,8 @@
                 } else {
                     studySelect.disabled = true;
                     assaySelect.disabled = true;
+                    document.getElementById('id_files').disabled = true
+
                 }
             });
 
