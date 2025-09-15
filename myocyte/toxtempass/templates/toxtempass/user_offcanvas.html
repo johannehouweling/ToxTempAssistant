@@ -78,28 +78,48 @@
 
 {% include "terms_of_service_modal.html" %}
 
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        document.querySelectorAll("[data-bs-toggle='modal']").forEach((btn) => {
-            btn.addEventListener("click", function () {
-                let offcanvasEl = document.querySelector(".offcanvas.show");
-                let targetModal = document.querySelector(btn.getAttribute("data-bs-target"));
-    
-                if (offcanvasEl) {
-                    let offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
-                    offcanvas.hide();
-    
-                    setTimeout(() => {
-                        let modal = new bootstrap.Modal(targetModal);
-                        modal.show();
-                    }, 300); // Delay ensures offcanvas fully closes
-    
-                    targetModal.addEventListener("hidden.bs.modal", function () {
-                        let offcanvas = new bootstrap.Offcanvas(offcanvasEl);
-                        offcanvas.show();
-                    }, { once: true });
-                }
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll("[data-bs-toggle='modal']").forEach((btn) => {
+                btn.addEventListener("click", function () {
+                    let offcanvasEl = document.querySelector(".offcanvas.show");
+                    let targetModal = document.querySelector(btn.getAttribute("data-bs-target"));
+        
+                    if (offcanvasEl) {
+                        let offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
+                        offcanvas.hide();
+        
+                        setTimeout(() => {
+                            let modal = new bootstrap.Modal(targetModal);
+                            modal.show();
+                        }, 300); // Delay ensures offcanvas fully closes
+        
+                        targetModal.addEventListener("hidden.bs.modal", function () {
+                            // Wait until modal backdrop is removed before showing offcanvas
+                            const checkBackdrop = () => {
+                                const backdrop = document.querySelector('.modal-backdrop');
+                                if (!backdrop) {
+                                    let offcanvas = new bootstrap.Offcanvas(offcanvasEl);
+                                    offcanvas.show();
+                                } else {
+                                    setTimeout(checkBackdrop, 50);
+                                }
+                            };
+                            checkBackdrop();
+                        }, { once: true });
+                    }
+                });
             });
+
+            // Also remove any lingering backdrops when any modal is fully hidden
+            document.querySelectorAll('.modal').forEach(modalEl => {
+                modalEl.addEventListener('hidden.bs.modal', () => {
+                    const lingeringBackdrop = document.querySelector('.modal-backdrop');
+                    if (lingeringBackdrop) {
+                        lingeringBackdrop.parentNode.removeChild(lingeringBackdrop);
+                    }
+                });
+            });
+
         });
-    });
-</script>
+    </script>
