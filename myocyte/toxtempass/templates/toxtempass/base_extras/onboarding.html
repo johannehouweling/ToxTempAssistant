@@ -1,0 +1,192 @@
+ <script>
+  (function () {
+    var toast_tour = false;
+
+    function toggleOverlay(state = null) {
+      let overlay = document.getElementById('onboarding-overlay');
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'onboarding-overlay';
+        document.body.appendChild(overlay);
+      }
+      if (state === null) {
+        overlay.style.display = (overlay.style.display === 'none' || overlay.style.display === '') ? 'block' : 'none';
+      } else if (state === 'show') {
+        overlay.style.display = 'block';
+      } else if (state === 'hide' || state === 'hidden') {
+        overlay.style.display = 'none';
+      }
+    }
+
+    function showOnboardingToasts(messages, selectors) {
+      if (toast_tour) return;
+      toast_tour = true;
+
+      const spareClass = 'spared-element';
+
+      // Ensure container exists
+      let container = document.getElementById('onboarding-toasts');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'onboarding-toasts';
+        Object.assign(container.style, {
+          position: 'fixed',
+          top: '0', left: '0',
+          width: '100%', height: '100%',
+          pointerEvents: 'none',
+          zIndex: '3000',
+        });
+        document.body.appendChild(container);
+      }
+      container.innerHTML = '';
+
+      // Build steps only for selectors that actually exist
+      const steps = [];
+      selectors.forEach((sel, i) => {
+        const target = document.querySelector(sel);
+        if (!target) {
+          console.log('Onboarding: ' + sel + ' does not exist. Skipping.');
+          return;
+        }
+
+        // Create toast
+        const toastEl = document.createElement('div');
+        toastEl.classList.add('toast', 'my-3');
+        Object.assign(toastEl.style, {
+          position: 'absolute',
+          zIndex: '6000',
+          pointerEvents: 'auto'
+        });
+        toastEl.setAttribute('role', 'alert');
+        toastEl.setAttribute('aria-live', 'assertive');
+        toastEl.setAttribute('aria-atomic', 'true');
+
+        // Position
+        const rect = target.getBoundingClientRect();
+        toastEl.style.left = Math.min(Math.max(rect.left + rect.width / 2, 350), window.innerWidth - 350) + 'px';
+        if (rect.bottom < window.innerHeight / 2) {
+          toastEl.style.top = rect.bottom + 'px';
+          toastEl.style.transform = 'translate(-50%, -6vh)';
+        } else {
+          toastEl.style.top = rect.top + 'px';
+          toastEl.style.transform = 'translate(-50%, -150%)';
+        }
+
+        // Content
+        toastEl.innerHTML = `
+          <div class="toast-header">
+            <strong class="me-auto">Onboarding (${steps.length + 1}/${messages.length})</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+          <div class="toast-body">${messages[i]}</div>
+          <div class="toast-footer d-flex justify-content-end pe-2 pb-2">
+            <button type="button" class="btn btn-primary" aria-label="Next">Next</button>
+          </div>
+        `;
+
+        container.appendChild(toastEl);
+        const toastInstance = new bootstrap.Toast(toastEl, { animation: true, autohide: false });
+        steps.push({ toastInstance, toastEl, target });
+      });
+
+      if (steps.length === 0) {
+        console.warn('Onboarding: No valid steps.');
+        toast_tour = false;
+        return;
+      }
+
+      // Hide "Next" on last step
+      steps[steps.length - 1].toastEl.querySelector('.btn.btn-primary')?.remove();
+
+      let currentStep = 0;
+
+      function showStep(i) {
+        steps.forEach(s => {
+          s.target.classList.remove(spareClass);
+          s.toastInstance.hide();
+        });
+        const step = steps[i];
+        step.target.classList.add(spareClass);
+        step.toastInstance.show();
+        container.style.zIndex = '7000';
+        step.toastEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+
+      // Wire "Next"
+      steps.forEach((step, idx) => {
+        const nextBtn = step.toastEl.querySelector('.btn.btn-primary');
+        if (nextBtn) {
+          nextBtn.addEventListener('click', () => {
+            if (idx + 1 < steps.length) {
+              currentStep = idx + 1;
+              showStep(currentStep);
+            }
+          });
+        }
+        step.toastEl.addEventListener('hidden.bs.toast', () => {
+          step.target.classList.remove(spareClass);
+          const anyVisible = steps.some(s => s.toastEl.classList.contains('show'));
+          if (!anyVisible) {
+            toggleOverlay('hide');
+            toast_tour = false;
+          }
+        });
+      });
+
+      toggleOverlay('show');
+      showStep(0);
+    }
+
+    
+
+    window.startOnboarding = function () {
+      const config = window.ToxTempConfig || {};
+      const onboardingHelp = config._user_onboarding_help || {};
+      const urlName = document.body.getAttribute('data-url-name');
+      if (!urlName || !onboardingHelp[urlName]) {
+        console.log('No onboarding steps for url:', urlName);
+        return;
+      }
+      const steps = onboardingHelp[urlName];
+      const selectors = steps.map(pair => pair[0]);
+      const messages = steps.map(pair => pair[1]);
+      showOnboardingToasts(messages, selectors);
+    };
+
+    // Attach handler
+    function attachHelpBtnHandler() {
+      const btn = document.getElementById('startOnboardingBtn');
+      if (btn) {
+        btn.addEventListener('click', () => {
+          // Check if user offcanvas is open
+          const offcanvasEl = document.getElementById('offcanvasUser');
+          if (offcanvasEl && offcanvasEl.classList.contains('show')) {
+            const offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
+            if (offcanvas) {
+              offcanvas.hide();
+            }
+          }
+          window.startOnboarding();
+        });
+      } else {
+        setTimeout(attachHelpBtnHandler, 100);
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', attachHelpBtnHandler);
+    } else {
+      attachHelpBtnHandler();
+    }
+  })();
+  </script>
+<style>
+/* Additional CSS for spared elements on overlay */
+.spared-element {
+  position: relative !important;
+  // Raise z-index higher to help ensure highlight is below toasts
+  z-index: 5800 !important;
+  box-shadow: 0 0 15px 3px #007bff !important;
+  border-radius: 4px;
+  transition: box-shadow 0.3s ease-in-out;
+}
+</style>

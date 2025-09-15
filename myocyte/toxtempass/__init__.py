@@ -130,6 +130,13 @@ class Config:
     )
     _validation_bert_score_model = "microsoft/deberta-xlarge-mnli"
     _validation_cos_similarity_threshold = 0.7
+    user_onboarding_help = {
+        "start": [
+            ["#id_investigation", "Help text for start page element 1."],
+            ["#id_study", "Help text for start page element 2."],
+        ],
+        # Add other URL names and their help elements as needed
+    }
 
 
 config = Config()
