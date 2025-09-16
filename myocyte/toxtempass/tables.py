@@ -73,34 +73,34 @@ class AssayTable(tables.Table):
         <div class="btn-group" role="group">
             {% if record.status == LLMStatus.SCHEDULED.value %}
                 <button class="btn btn-sm btn-outline-secondary" disabled style="pointer-events: visible;">
-                    <span class="d-inline-block" data-bs-toggle="tooltip" data-bs-container="body" data-bs-placement="top" title="Refresh the page to check for updates. Usually it doesn't take longer than 5-10 minutes.">
-                        <i class="bi bi-hourglass"></i>
+                    <span class="d-inline-block d-flex" data-bs-toggle="tooltip" data-bs-container="body" data-bs-placement="top" title="Refresh the page to check for updates. Usually it doesn't take longer than 5-10 minutes.">
+                        <i class="bi bi-hourglass"></i><span class=" ms-1 d-none d-lg-inline-block">Scheduled</span>
                     </span>
                 </button>
             {% elif record.status == LLMStatus.BUSY.value %}
                 <button class="btn btn-sm btn-outline-secondary" disabled style="pointer-events: visible;">
-                    <span class="d-inline-block" data-bs-toggle="tooltip" data-bs-container="body" data-bs-placement="top" title="Refresh the page to check for updates. Usually it doesn't take longer than 5-10 minutes.">
-                        <i class="bi bi-hourglass-split"></i>
+                    <span class="d-inline-block d-flex" data-bs-toggle="tooltip" data-bs-container="body" data-bs-placement="top" title="Refresh the page to check for updates. Usually it doesn't take longer than 5-10 minutes.">
+                        <i class="bi bi-hourglass-split"></i><span class=" ms-1 d-none d-lg-inline-block">Busy</span>
                     </span>
                 </button>
             {% elif record.status == LLMStatus.ERROR.value %}
                 <a class="btn btn-sm btn-outline-danger" href="{% url 'answer_assay_questions' record.id %}">
-                    <span class="d-inline-block" data-bs-toggle="tooltip" data-bs-container="body" data-bs-placement="top" title="LLM did not succeed. This can be temporary error with the LLM, or an issue with your documents, or too many documents at once.">
-                        <i class="bi bi-bug"></i>
+                    <span class="d-inline-block d-flex" data-bs-toggle="tooltip" data-bs-container="body" data-bs-placement="top" title="LLM did not succeed. This can be temporary error with the LLM, or an issue with your documents, or too many documents at once.">
+                        <i class="bi bi-bug"></i><span class=" ms-1 d-none d-lg-inline-block">Error</span>
                     </span>
                 </a>
             {% elif record.status == LLMStatus.DONE.value %}
-                <a class="btn btn-sm btn-outline-primary" href="{% url 'answer_assay_questions' record.id %}">
-                    <i class="bi bi-eye"></i>
+                <a class="btn btn-sm d-flex btn-outline-primary" href="{% url 'answer_assay_questions' record.id %}">
+                    <i class="bi bi-eye"></i><span class=" ms-1 d-none d-lg-inline-block">View</span>
                 </a>
             {% else %}
-                <a class="btn btn-sm btn-outline-primary" href="{% url 'answer_assay_questions' record.id %}">
-                    <i class="bi bi-eye"></i>
+                <a class="btn btn-sm d-flex btn-outline-primary" href="{% url 'answer_assay_questions' record.id %}">
+                    <i class="bi bi-eye"></i><span class=" ms-1 d-none d-lg-inline-block">View</span>
                 </a>
             {% endif %}
             <div class="btn-group">
                 <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle {% if record.status == LLMStatus.Error.value or record.status == LLMStatus.BUSY.value or record.status == LLMStatus.SCHEDULED.value %} disabled {% endif %}" data-bs-toggle="dropdown" aria-expanded="false">
-                  <i class="bi bi-file-earmark-arrow-down"></i>
+                  <i class="bi bi-file-earmark-arrow-down"></i> <span class=" ms-1 d-none d-lg-inline-block">Export</span>
                 </button>
                 <ul class="dropdown-menu">
                   {% with id=record.id %}
@@ -113,14 +113,15 @@ class AssayTable(tables.Table):
                   {% endwith %}
                 </ul>
               </div>
-            <a class="btn btn-sm btn-outline-danger" href="{% url 'delete_assay' record.id %}?from=overview" onclick="return confirm('Are you sure you want to delete this assay and any associated toxtemp answers? This cannot be undone.');">
-                <i class="bi bi-x-lg"></i>
+            <a class="btn btn-sm d-flex btn-outline-danger" href="{% url 'delete_assay' record.id %}?from=overview" onclick="return confirm('Are you sure you want to delete this assay and any associated toxtemp answers? This cannot be undone.');">
+                <i class="bi bi-x-lg"></i><span class=" ms-1 d-none d-lg-inline-block">Delete</span>
             </a>
         </div>
         """,
         extra_context={"LLMStatus": LLMStatus},
-        verbose_name="Action(s)",
+        verbose_name="Actions",
         orderable=False,
+        attrs={"th": {"class": "no-link-header"}, "td": {"class": "align-middle"}},
     )
 
     def render_new(self, record: Assay) -> SafeText:
