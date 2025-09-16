@@ -6,13 +6,13 @@
 {% block title %}Your Assays &amp; Stats{% endblock %}
 
 {% block content %}
-  <h1>All Assays &amp; Statistics</h1>
+  <h1>Assay Overview</h1>
 
   {# django-tables2 will pass a “table” object into the context #}
   
   {% render_table table %}
 
-  <a class="btn btn-primary" href="{% url 'add_new' %}">New</a>
+  <a class="btn btn-primary" id="id_btn_new" href="{% url 'add_new' %}">New</a>
   {% block extra_js %}
     <script>
       document.addEventListener("DOMContentLoaded", function(){
@@ -21,6 +21,7 @@
       })
     </script>
     {% include "answer_extras/feedback_export.html" %}
+    {% include "overview_extras/show_onboarding_onfirst_visit.html" %}
 
   {% endblock %}
 

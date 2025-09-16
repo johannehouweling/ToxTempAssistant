@@ -40,6 +40,7 @@
         <a class="btn btn-outline-danger" href="{% url 'start' %}">Back</a>
 
     </form>
+
     <script>
         const csrftoken = "{{ csrf_token }}"; // This line uses Django's template tag
         // Deactivate the upload menu if gpt is not allowed anymore because answers exist already.

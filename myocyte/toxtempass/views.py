@@ -686,6 +686,20 @@ class AssayListView(SingleTableView):
             question_set__isnull=False,
         ).order_by("-submission_date")
 
+    def get_context_data(self, **kwargs) -> dict:
+        """Inject context."""
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        show_onboarding = False
+        prefs = user.preferences or {}
+        if not prefs.get("has_seen_onboarding", False):
+            show_onboarding = True
+            prefs["has_seen_onboarding"] = True
+            user.preferences = prefs
+            user.save()
+        context["show_onboarding"] = show_onboarding
+        return context
+
 
 @user_passes_test(is_logged_in, login_url="/login/")
 def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
@@ -714,7 +728,9 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
         return render(
             request,
             "start.html",
-            {"form": form},
+            {
+                "form": form,
+            },
         )
 
     # --------------------------------

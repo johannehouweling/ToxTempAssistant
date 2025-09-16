@@ -135,6 +135,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "toxtempass.context_processors.toxtempass_config",
+                "toxtempass.context_processors.current_url_name",
             ],
         },
     },
