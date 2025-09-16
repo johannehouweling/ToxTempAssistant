@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.19.0 (2025-09-16)
+
+### Features
+
+- **ui**: Login screen with explanation.
+  ([`a3d7040`](https://github.com/johannehouweling/ToxTempAssistant/commit/a3d7040f827d1b95c158f6f5b8763237514a407c))
+
+
 ## v1.18.0 (2025-09-16)
 
 ### Features
