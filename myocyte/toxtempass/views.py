@@ -54,6 +54,7 @@ from toxtempass.forms import (
     StudyForm,
 )
 from toxtempass.llm import get_llm
+from django.utils import timezone
 from toxtempass.models import (
     Answer,
     Assay,
@@ -1062,11 +1063,19 @@ def answer_assay_questions(
     request: HttpRequest, assay_id: int
 ) -> JsonResponse | HttpResponse:
     """Render the form to answer questions for a specific assay."""
+    from toxtempass.models import AssayView
+
     assay = get_object_or_404(Assay, pk=assay_id)
     if not assay.is_accessible_by(request.user, perm_prefix="view"):
         from django.core.exceptions import PermissionDenied
 
         raise PermissionDenied("You do not have permission to access this assay.")
+    # Record that the user has viewed this assay, update or create the AssayView record
+    AssayView.objects.update_or_create(
+        user=request.user,
+        assay=assay,
+        defaults={"last_viewed": timezone.now()},
+    )
     # only the sections belonging to this assay's QuestionSet
     sections = Section.objects.filter(question_set=assay.question_set).prefetch_related(
         "subsections__questions"

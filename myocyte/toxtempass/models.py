@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.validators import validate_email
 from django.db import models
+from django.utils import timezone
 from guardian.shortcuts import assign_perm
 from simple_history.models import HistoricalRecords
 
@@ -300,6 +301,19 @@ class Assay(AccessibleModel):
         Answer row (i.e. it's been seeded/saved).
         """
         return self.answers.exists()
+
+
+# New model to track individual user's assay views
+class AssayView(models.Model):
+    user = models.ForeignKey(Person, on_delete=models.CASCADE, related_name="assay_views")
+    assay = models.ForeignKey(Assay, on_delete=models.CASCADE, related_name="views")
+    last_viewed = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = ("user", "assay")
+
+    def __str__(self):
+        return f"AssayView(user={self.user.email}, assay={self.assay.title}, last_viewed={self.last_viewed})"
 
 
 # Section, Subsection, and Question Models (fixed)
