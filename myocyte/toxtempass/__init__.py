@@ -116,6 +116,10 @@ class Config:
     max_workers_django_q = settings.Q_CLUSTER[
         "workers"
     ]  # 1 worker for django_q, we use threading for parallelism
+    # this is just for security purposes, to add a new type you also need to
+    # define a template for it in export.py
+    allowed_export_types = {"json", "md", "pdf", "html", "docx", "xml"}
+
     _orcid_client_id = os.getenv("ORCID_CLIENT_ID")
     _orcid_client_secret = os.getenv("ORCID_CLIENT_SECRET")
 
