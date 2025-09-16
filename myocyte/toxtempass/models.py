@@ -109,6 +109,11 @@ class Person(AbstractUser):
             "Terms of service</button>"
         ),
     )
+    preferences = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Miscelanous stuff about the user can be stored here",
+    )
 
 
 # Investigation Model
@@ -246,7 +251,6 @@ class Assay(AccessibleModel):
         if Assay.objects.filter(title=self.title).count() == 1:
             return self.title
         return f"{self.title} ({self.submission_date.strftime('%d %b, %Y - %H:%M')})"
-
 
     @property
     def get_n_questions(self) -> float:
