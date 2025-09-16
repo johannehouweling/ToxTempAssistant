@@ -47,7 +47,8 @@ def quote_answer(text: str) -> str:
 
     return "\n".join(out) + "\n\n"
 
-mime_type_str =  "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+mime_type_str = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 mime_type_suffix_dict = {
     "html": {"mime_type": "text/html", "suffix": ".html"},
     "xml": {"mime_type": "application/xml", "suffix": ".xml"},
@@ -86,10 +87,14 @@ def generate_json_from_assay(assay: Assay) -> dict | None:
                 "config": {
                     "model": getattr(Config, "model", None),
                     "model_info_url": getattr(Config, "model_info_url", None),
-                    "reference_toxtempassistant": getattr(Config,"reference_toxtempassistant", None),
+                    "reference_toxtempassistant": getattr(
+                        Config, "reference_toxtempassistant", None
+                    ),
                     "reference_toxtemp": getattr(Config, "reference_toxtemp", None),
                     "website": "toxtempassistant.vhp4safety.nl",
-                    "reference_toxtempassistant": getattr(Config,"reference_toxtempassistant", None),
+                    "reference_toxtempassistant": getattr(
+                        Config, "reference_toxtempassistant", None
+                    ),
                     "version": getattr(Config, "version", None),
                     "github_repo_url": getattr(Config, "github_repo_url", None),
                     "git_hash": getattr(Config, "git_hash", None),
@@ -266,8 +271,7 @@ def export_assay_to_file(
     request: HttpRequest, assay: Assay, export_type: str
 ) -> FileResponse:
     """Export assay to file."""
-    ALLOWED_EXPORT_TYPES = {"json", "md", "pdf", "html", "docx", "xml"}
-    if export_type not in ALLOWED_EXPORT_TYPES:
+    if export_type not in getattr(Config, "allowed_export_types", []):
         return JsonResponse({"error": "Invalid export type"}, status=400)
     file_name = f"toxtemp_{slugify(assay.title)}.{export_type}"
     file_path = Path(settings.MEDIA_ROOT) / "toxtempass" / file_name  # Use pathlib.Path
