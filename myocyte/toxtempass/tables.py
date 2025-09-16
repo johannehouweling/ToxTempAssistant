@@ -74,27 +74,48 @@ class AssayTable(tables.Table):
             {% if record.status == LLMStatus.SCHEDULED.value %}
                 <button class="btn btn-sm btn-outline-secondary" disabled style="pointer-events: visible;">
                     <span class="d-inline-block" data-bs-toggle="tooltip" data-bs-container="body" data-bs-placement="top" title="Refresh the page to check for updates. Usually it doesn't take longer than 5-10 minutes.">
-                        Scheduled
+                        <i class="bi bi-hourglass"></i>
                     </span>
                 </button>
             {% elif record.status == LLMStatus.BUSY.value %}
                 <button class="btn btn-sm btn-outline-secondary" disabled style="pointer-events: visible;">
                     <span class="d-inline-block" data-bs-toggle="tooltip" data-bs-container="body" data-bs-placement="top" title="Refresh the page to check for updates. Usually it doesn't take longer than 5-10 minutes.">
-                        Busy
+                        <i class="bi bi-hourglass-split"></i>
                     </span>
                 </button>
             {% elif record.status == LLMStatus.ERROR.value %}
                 <a class="btn btn-sm btn-outline-danger" href="{% url 'answer_assay_questions' record.id %}">
                     <span class="d-inline-block" data-bs-toggle="tooltip" data-bs-container="body" data-bs-placement="top" title="LLM did not succeed. This can be temporary error with the LLM, or an issue with your documents, or too many documents at once.">
-                        Error
+                        <i class="bi bi-bug"></i>
                     </span>
                 </a>
             {% elif record.status == LLMStatus.DONE.value %}
-                <a class="btn btn-sm btn-outline-primary" href="{% url 'answer_assay_questions' record.id %}">View</a>
+                <a class="btn btn-sm btn-outline-primary" href="{% url 'answer_assay_questions' record.id %}">
+                    <i class="bi bi-eye"></i>
+                </a>
             {% else %}
-                <a class="btn btn-sm btn-outline-primary" href="{% url 'answer_assay_questions' record.id %}">View</a>
+                <a class="btn btn-sm btn-outline-primary" href="{% url 'answer_assay_questions' record.id %}">
+                    <i class="bi bi-eye"></i>
+                </a>
             {% endif %}
-            <a class="btn btn-sm btn-outline-danger" href="{% url 'delete_assay' record.id %}?from=overview" onclick="return confirm('Are you sure you want to delete this assay and any associated toxtemp answers? This cannot be undone.');">Delete</a>
+            <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle {% if record.status == LLMStatus.Error.value or record.status == LLMStatus.BUSY.value or record.status == LLMStatus.SCHEDULED.value %} disabled {% endif %}" data-bs-toggle="dropdown" aria-expanded="false">
+                  <i class="bi bi-file-earmark-arrow-down"></i>
+                </button>
+                <ul class="dropdown-menu">
+                  {% with id=record.id %}
+                  <li><a class="dropdown-item" onclick=feedback_export("{{export_json_url}}",{{id}})>JSON</a></li>
+                  <li><a class="dropdown-item" onclick=feedback_export("{{export_md_url}}",{{id}})>MD</a></li>
+                  <li><a class="dropdown-item" onclick=feedback_export("{{export_pdf_url}}",{{id}})>PDF</a></li>
+                  <li><a class="dropdown-item" onclick=feedback_export("{{export_xml_url}}",{{id}})>XML</a></li>
+                  <li><a class="dropdown-item" onclick=feedback_export("{{export_docx_url}}",{{id}})>DOCX</a></li>
+                  <li><a class="dropdown-item" onclick=feedback_export("{{export_html_url}}",{{id}})>HTML</a></li>
+                  {% endwith %}
+                </ul>
+              </div>
+            <a class="btn btn-sm btn-outline-danger" href="{% url 'delete_assay' record.id %}?from=overview" onclick="return confirm('Are you sure you want to delete this assay and any associated toxtemp answers? This cannot be undone.');">
+                <i class="bi bi-x-lg"></i>
+            </a>
         </div>
         """,
         extra_context={"LLMStatus": LLMStatus},

@@ -20,8 +20,10 @@
         const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
       })
     </script>
+    {% include "answer_extras/feedback_export.html" %}
+
   {% endblock %}
-  
+
   {% block extra_css %}
         <style>
         /* only target links inside headers with .no-link-header */
