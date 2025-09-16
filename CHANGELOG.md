@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.15.1 (2025-09-16)
+
+### Bug Fixes
+
+- **ui**: Guided/help tour button
+  ([`e1d2c51`](https://github.com/johannehouweling/ToxTempAssistant/commit/e1d2c51951745ba95c34615eb9ba61ca8b6a946e))
+
+
 ## v1.15.0 (2025-09-15)
 
 ### Bug Fixes
