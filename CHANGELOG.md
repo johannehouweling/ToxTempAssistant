@@ -2,6 +2,20 @@
 
 <!-- version list -->
 
+## v1.16.0 (2025-09-16)
+
+### Bug Fixes
+
+- **ui**: Rename create button to more generic save (because it also doubles as modify button in the
+  respective context)
+  ([`0196129`](https://github.com/johannehouweling/ToxTempAssistant/commit/01961297cf0dc4b65a646d6a632baf0ade3cfe85))
+
+### Features
+
+- **ui**: Overview buttons responsive with icons and text
+  ([`99ea8a4`](https://github.com/johannehouweling/ToxTempAssistant/commit/99ea8a4133381cbb36c105f7c886e9d93964d77a))
+
+
 ## v1.15.1 (2025-09-16)
 
 ### Bug Fixes
