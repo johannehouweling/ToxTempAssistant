@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.18.0 (2025-09-16)
+
+### Features
+
+- **export**: Add allowed export types to Config for improved validation
+  ([`0a6cfe2`](https://github.com/johannehouweling/ToxTempAssistant/commit/0a6cfe25f378fe36d9d2c4df726e2a840b689bbd))
+
+
 ## v1.17.0 (2025-09-16)
 
 ### Features
