@@ -266,6 +266,9 @@ def export_assay_to_file(
     request: HttpRequest, assay: Assay, export_type: str
 ) -> FileResponse:
     """Export assay to file."""
+    ALLOWED_EXPORT_TYPES = {"json", "md", "pdf", "html", "docx", "xml"}
+    if export_type not in ALLOWED_EXPORT_TYPES:
+        return JsonResponse({"error": "Invalid export type"}, status=400)
     file_name = f"toxtemp_{slugify(assay.title)}.{export_type}"
     file_path = Path(settings.MEDIA_ROOT) / "toxtempass" / file_name  # Use pathlib.Path
     if not file_path.parent.exists():
