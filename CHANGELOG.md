@@ -2,6 +2,23 @@
 
 <!-- version list -->
 
+## v1.17.0 (2025-09-16)
+
+### Features
+
+- **db**: Added preferences field for Person
+  ([#57](https://github.com/johannehouweling/ToxTempAssistant/pull/57),
+  [`cd29891`](https://github.com/johannehouweling/ToxTempAssistant/commit/cd29891fea6aa972a463e0e2509f5366ee8c0043))
+
+- **ui**: Add current URL context processor and update templates for improved navigation and
+  onboarding ([#57](https://github.com/johannehouweling/ToxTempAssistant/pull/57),
+  [`cd29891`](https://github.com/johannehouweling/ToxTempAssistant/commit/cd29891fea6aa972a463e0e2509f5366ee8c0043))
+
+- **ui**: Show onboarding on first login
+  ([#57](https://github.com/johannehouweling/ToxTempAssistant/pull/57),
+  [`cd29891`](https://github.com/johannehouweling/ToxTempAssistant/commit/cd29891fea6aa972a463e0e2509f5366ee8c0043))
+
+
 ## v1.16.0 (2025-09-16)
 
 ### Bug Fixes
