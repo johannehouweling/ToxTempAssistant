@@ -102,14 +102,12 @@ class AssayTable(tables.Table):
                     <span class="ms-1 d-none d-lg-inline">Export</span>
                 </button>
                 <ul class="dropdown-menu">
-                    {% with id=record.id %}
-                    <li><a class="dropdown-item" href="{{ export_json_url }}">JSON</a></li>
-                    <li><a class="dropdown-item" href="{{ export_md_url }}">MD</a></li>
-                    <li><a class="dropdown-item" href="{{ export_pdf_url }}">PDF</a></li>
-                    <li><a class="dropdown-item" href="{{ export_xml_url }}">XML</a></li>
-                    <li><a class="dropdown-item" href="{{ export_docx_url }}">DOCX</a></li>
-                    <li><a class="dropdown-item" href="{{ export_html_url }}">HTML</a></li>
-                    {% endwith %}
+                    <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='json' %}">JSON</a></li>
+                    <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='md' %}">MD</a></li>
+                    <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='pdf' %}">PDF</a></li>
+                    <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='xml' %}">XML</a></li>
+                    <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='docx' %}">DOCX</a></li>
+                    <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='html' %}">HTML</a></li>
                 </ul>
             </div>
             <a class="btn btn-sm btn-outline-danger" href="{% url 'delete_assay' record.id %}?from=overview" onclick="return confirm('Are you sure you want to delete this assay and associated data? This action cannot be undone.')">
