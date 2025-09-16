@@ -12,7 +12,7 @@
   
   {% render_table table %}
 
-  <a class="btn btn-primary" href="{% url 'add_new' %}">New</a>
+  <a class="btn btn-primary" id="id_btn_new" href="{% url 'add_new' %}">New</a>
   {% block extra_js %}
     <script>
       document.addEventListener("DOMContentLoaded", function(){
