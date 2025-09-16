@@ -222,7 +222,7 @@
 
     window.startOnboarding = function () {
       const config = window.ToxTempConfig || {};
-      const onboardingHelp = config._user_onboarding_help || {};
+      const onboardingHelp = config.user_onboarding_help || {};
       const urlName = document.body.getAttribute('data-url-name');
       if (!urlName || !onboardingHelp[urlName]) {
         console.log('No onboarding steps for url:', urlName);

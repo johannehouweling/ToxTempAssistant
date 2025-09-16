@@ -15,7 +15,7 @@
     {{ config.user_onboarding_help|json_script:"userOnboardingHelp" }}
     <script>
       window.ToxTempConfig = window.ToxTempConfig || {};
-      window.ToxTempConfig._user_onboarding_help = JSON.parse(document.getElementById('userOnboardingHelp').textContent);
+      window.ToxTempConfig.user_onboarding_help = JSON.parse(document.getElementById('userOnboardingHelp').textContent);
     </script>
 </head>
 <script>
@@ -37,7 +37,7 @@
       transition: opacity 0.15s ease-in-out;
       display: inline-block; /* or block as needed for your layout */
     }
-  
+
     /* Initially, the normal icon is visible, the focus icon is hidden */
     .svg-normal {
       opacity: 1;
