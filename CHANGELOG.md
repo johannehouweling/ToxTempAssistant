@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.19.2 (2025-09-16)
+
+### Bug Fixes
+
+- **ui**: Export buttons on overview work now as expected
+  ([`574370f`](https://github.com/johannehouweling/ToxTempAssistant/commit/574370fe4ad3894e114f32d5500513bbadd44685))
+
+
 ## v1.19.1 (2025-09-16)
 
 
