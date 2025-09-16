@@ -5,30 +5,79 @@
 {% block content %}
 
 <div class="container">
-    <div class="row justify-content-center">
-      <div class="col-lg-4 card mt-3">
-        <h2 class="pt-2">Login</h2>
-        <form method="post" action="{{action}}" novalidate>
-          <div id="non-field-errors"></div>
-          {% csrf_token %}
-          {# Render the form using django_bootstrap5 #}
-          {% bootstrap_form form %}
-          <div class="d-flex">
-            <button type="submit" class="btn btn-primary">Login</button>
-            <a class="btn ms-auto btn-outline-secondary" role="button" href="{% url 'signup' %}">Sign-up</a>
+  <div class="row justify-content-center">
+    <div class = "col-md-4">
+      <div class="card mt-3">
+        <div class="card-body">
+          <div class="card-title">
+          <h5 class="">Login</h5>
           </div>
-        </form>
-        <hr>
-        <p class="text-center">Or login using your ORCID account:</p>
-        <div class="d-grid gap-2 pb-3">
-          <a class="btn d-flex align-items-center justify-content-center btn-outline-secondary" href="{% url 'orcid_login' %}">
-            <img class="h-75 pe-2" src="{% static 'toxtempass/img/ORCID-iD_icon_vector.svg' %}" alt="ORCID" >
-            Login with ORCID
-          </a>
+          <form method="post" action="{{action}}" novalidate>
+            <div id="non-field-errors"></div>
+            {% csrf_token %}
+            {# Render the form using django_bootstrap5 #}
+            {% bootstrap_form form %}
+            <div class="d-flex">
+              <button type="submit" class="btn btn-primary">Login</button>
+              <a class="btn ms-auto btn-outline-secondary" role="button" href="{% url 'signup' %}">Sign-up</a>
+            </div>
+          </form>
+      
+          <hr>
+          <p class="text-center">Or login using your ORCID account:</p>
+          <div class="d-grid gap-2">
+            <a class="btn d-flex align-items-center justify-content-center btn-outline-secondary" href="{% url 'orcid_login' %}">
+              <img class="h-75 pe-2" src="{% static 'toxtempass/img/ORCID-iD_icon_vector.svg' %}" alt="ORCID" >
+              Login with ORCID
+            </a>
+          </div>
         </div>
       </div>
     </div>
+    <div class="col-md-4">
+      <div class=" card mt-3">
+        <div class="card-img-top overflow-hidden" style="aspect-ratio: 21/9;">
+          <img
+            src="{% static 'toxtempass/img/splashscreen.png'%}"
+            alt="Splashscreen for ToxTempAssistant"
+            class="w-100 h-100 d-block"
+            style="object-fit: cover; object-position: top;">
+        </div>
+        <div class="card-body">
+          <h5 class="card-title">About ToxTempAssistant</h5>
+          <p class="card-text">
+            ToxTempAssistant is a platform designed to help researchers and scientists create, manage,
+            and document cell-based toxicological test methods (assays) through comprehensive questionnaires.
+          </p>
+          <p class="card-text">
+            Using AI-assisted question answering and document uploads, users can generate accurate and
+            trustworthy assay descriptions tailored to their scientific investigations.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card mt-3 mb-3">
+        <div class="card-body">
+          <h5 class="card-title">Features</h5>
+        </div>
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item">
+            Seamless user login via email or ORCID, enabling secure access and
+            integration with research profiles.
+          </li>
+          <li class="list-group-item">
+            Export data in multiple formats, supporting reporting, sharing, and
+            reproducibility in toxicological research.
+          </li>
+          <li class="list-group-item">
+            Start by logging in or signing up to begin managing your assays.
+          </li>
+        </ul>
+      </div>
+    </div>
   </div>
+</div>
 {% include "error_handling.html" %}
 
 {% endblock %}
