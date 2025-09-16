@@ -224,8 +224,35 @@
       const config = window.ToxTempConfig || {};
       const onboardingHelp = config.user_onboarding_help || {};
       const urlName = document.body.getAttribute('data-url-name');
-      if (!urlName || !onboardingHelp[urlName]) {
-        console.log('No onboarding steps for url:', urlName);
+      if (!urlName || !onboardingHelp[urlName] || onboardingHelp[urlName].length === 0) {
+        // Show message to user that no help items registered for this page
+        const existingMessage = document.getElementById('onboarding-no-help-message');
+        if (!existingMessage) {
+          const msgDiv = document.createElement('div');
+          msgDiv.id = 'onboarding-no-help-message';
+          Object.assign(msgDiv.style, {
+            position: 'fixed',
+            top: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            padding: '15px 25px',
+            backgroundColor: '#f8d7da',
+            color: '#842029',
+            border: '1px solid #f5c2c7',
+            borderRadius: '4px',
+            zIndex: '7000',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            maxWidth: '90%',
+          });
+          msgDiv.textContent = 'We are sorry, but for this page no help-items have been registered yet.';
+          document.body.appendChild(msgDiv);
+          // Automatically remove message after 5 seconds
+          setTimeout(() => {
+            msgDiv.remove();
+          }, 5000);
+        }
         return;
       }
       const steps = onboardingHelp[urlName];
