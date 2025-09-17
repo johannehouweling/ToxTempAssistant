@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.20.0 (2025-09-17)
+
+### Features
+
+- **email**: Add email configuration and send_email_task for sending emails (gmail for now)
+  ([`adc7be8`](https://github.com/johannehouweling/ToxTempAssistant/commit/adc7be8c213dc2e93bef48b36da5bd1cfa71a527))
+
+
 ## v1.19.2 (2025-09-16)
 
 ### Bug Fixes
