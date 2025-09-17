@@ -14,7 +14,6 @@ import os
 import sys
 from pathlib import Path
 
-from django.core.exceptions import ImproperlyConfigured
 from django.core.management.utils import get_random_secret_key
 from dotenv import load_dotenv
 
@@ -269,6 +268,18 @@ USE_I18N = True
 
 USE_TZ = True
 
+# Email
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv("GMAIL_ADDRESS", "")  # your@gmail.com
+EMAIL_HOST_PASSWORD = os.getenv("GMAIL_APP_PASSWORD", "")  # 16-char app password
+DEFAULT_FROM_EMAIL = f"ToxTempAssistant <{os.environ['GMAIL_ADDRESS']}>"
+if not EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+    _LOG.error("Email not configured!")
+
+EMAIL_SUBJECT_PREFIX = "[ToxTempAssistant ERROR] "
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
