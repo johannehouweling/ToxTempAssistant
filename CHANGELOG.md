@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.21.0 (2025-09-22)
+
+### Features
+
+- **login**: Update description of ToxTempAssistant to clarify functionality and benefits
+  ([`bbeca8d`](https://github.com/johannehouweling/ToxTempAssistant/commit/bbeca8d938c626cc605f54e664738f6f01f47f0e))
+
+
 ## v1.20.0 (2025-09-17)
 
 ### Features
