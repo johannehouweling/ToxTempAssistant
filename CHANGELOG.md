@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v1.21.2 (2025-09-25)
+
+### Bug Fixes
+
+- **ui**: Add zenodo doi link to config
+  ([`3825ef3`](https://github.com/johannehouweling/ToxTempAssistant/commit/3825ef36467c33d32638402e9b6f90623f9de9d2))
+
+- **ui**: Change link and svg to zenodo archive which points to newest version also on offcanvas
+  ([`13e2fbf`](https://github.com/johannehouweling/ToxTempAssistant/commit/13e2fbf9fa4c4d48ccb5e851200e1c35a92803d8))
+
+
 ## v1.21.1 (2025-09-25)
 
 ### Bug Fixes
