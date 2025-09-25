@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.21.1 (2025-09-25)
+
+### Bug Fixes
+
+- **config**: Changed zenodo link to doi which refers always to the newest version
+  ([`ab6a13c`](https://github.com/johannehouweling/ToxTempAssistant/commit/ab6a13cecad3a710cd32030122db197056334fbf))
+
+
 ## v1.21.0 (2025-09-22)
 
 ### Features
