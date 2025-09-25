@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.21.3 (2025-09-25)
+
+### Bug Fixes
+
+- **ui**: Zenodo auto resolve link to most recent version
+  ([`c538224`](https://github.com/johannehouweling/ToxTempAssistant/commit/c538224c1f8e7100ebedd73306faca54aee6836f))
+
+
 ## v1.21.2 (2025-09-25)
 
 ### Bug Fixes
