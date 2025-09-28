@@ -109,3 +109,9 @@ class DocumentDictFactory(factory.Factory):
             text_dict[entry["filename"]] = {"encodedbytes": entry["encodedbytes"]}
 
         return text_dict
+
+
+class AdminFactory(PersonFactory):
+    """Factory for admin users (superuser + staff)."""
+    is_superuser = True
+    is_staff = True

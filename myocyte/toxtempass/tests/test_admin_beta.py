@@ -1,21 +1,18 @@
 from django.test import TestCase
 from django.urls import reverse
-from toxtempass.models import Person
+
 from toxtempass import utilities
+from toxtempass.tests.fixtures.factories import AdminFactory, PersonFactory
 
 
 class AdminBetaTests(TestCase):
     def setUp(self):
-        # Create a normal person who requested beta
-        self.requester = Person.objects.create_user(
-            username="requester", email="req@example.com", password="pw"
-        )
+        # Create a normal person who requested beta using the factory
+        self.requester = PersonFactory.create()
         utilities.set_beta_requested(self.requester, comment="please admit me")
 
-        # Create an admin user
-        self.admin = Person.objects.create_user(
-            username="admin", email="admin@example.com", password="pw", is_superuser=True
-        )
+        # Create an admin user via factory
+        self.admin = AdminFactory.create()
 
     def test_admin_can_view_beta_requests(self):
         # Force login as admin
@@ -23,7 +20,7 @@ class AdminBetaTests(TestCase):
         resp = self.client.get(reverse("admin_beta_user_list"))
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "Beta signup requests")
-        self.assertContains(resp, "req@example.com")
+        self.assertContains(resp, self.requester.email)
 
     def test_admin_can_toggle_admit(self):
         self.client.force_login(self.admin)
