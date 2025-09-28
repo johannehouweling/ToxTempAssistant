@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="card">
+    <div class="card-body">
+      <h3 class="card-title">Beta access granted</h3>
+      <p class="card-text">
+        {{ person.get_full_name }} has been admitted to the beta program. They will receive an email notification shortly.
+      </p>
+      <p>
+      <a href="{{ toggle_beta_users_url }}" style="display:inline-block;padding:10px 14px;background:#0d6efd;color:#fff;text-decoration:none;border-radius:4px;">
+        Manage beta users
+      </a>
+    </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

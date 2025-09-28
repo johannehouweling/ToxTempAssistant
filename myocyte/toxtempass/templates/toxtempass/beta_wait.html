@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+            <h3 class="card-title">Beta access pending</h3>
+            <p class="card-text">
+                Thank you for your interest in the beta. Your request has been recorded and is awaiting approval by the site maintainer.
+            </p>
+            <p class="card-text">
+                While your request is pending you will not be able to access the main application pages. You will receive an email once your account has been admitted.
+            </p>
+            <p class="card-text">
+                If you previously had access to the beta, your access may have temporariy been revoked to manage token budget, if you have any questions, please contact <a href="mailto:{{ config.maintainer_email }}">{{ config.maintainer_email }}</a>.
+            </div>
+        </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

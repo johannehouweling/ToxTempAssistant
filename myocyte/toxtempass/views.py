@@ -17,7 +17,6 @@ from django.db import transaction
 from django.db.models import QuerySet
 from django.http import (
     FileResponse,
-    Http404,
     HttpRequest,
     HttpResponse,
     HttpResponseRedirect,
@@ -25,6 +24,7 @@ from django.http import (
 from django.http.response import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
 from django.views import View
@@ -34,10 +34,10 @@ from guardian.shortcuts import get_objects_for_user
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from openai import RateLimitError
-from tqdm.auto import tqdm
 
 from myocyte import settings
 from toxtempass import config
+from toxtempass import utilities as beta_util
 from toxtempass.export import export_assay_to_file
 from toxtempass.filehandling import (
     get_text_or_imagebytes_from_django_uploaded_file,
@@ -54,7 +54,6 @@ from toxtempass.forms import (
     StudyForm,
 )
 from toxtempass.llm import get_llm
-from django.utils import timezone
 from toxtempass.models import (
     Answer,
     Assay,
@@ -69,6 +68,7 @@ from toxtempass.models import (
     Subsection,
 )
 from toxtempass.tables import AssayTable
+from toxtempass.tasks import queue_email
 
 logger = logging.getLogger("views")
 
@@ -157,6 +157,18 @@ def signup(request: HttpRequest) -> HttpResponse | JsonResponse:
             user = form.save(commit=False)
             user.save()
             login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+            # Mark the user as having requested beta and enqueue notification to mntnr.
+            try:
+                # Local import to avoid top-level import cycles during project startup
+                from toxtempass import utilities as beta_util  # type: ignore
+
+                async_task("toxtempass.tasks.send_beta_signup_notification", user.id)
+                beta_util.set_beta_requested(user)
+            except Exception:
+                logger.exception(
+                    "Failed to record/queue beta signup notification for user %s",
+                    getattr(user, "id", None),
+                )
             return JsonResponse(
                 dict(
                     success=True,
@@ -176,6 +188,133 @@ def signup(request: HttpRequest) -> HttpResponse | JsonResponse:
         form = SignupForm()
 
     return render(request, "signup.html", {"form": form})
+
+
+def approve_beta(request: HttpRequest, token: str) -> HttpResponse:
+    """One-click approval endpoint reached from the emailed link.
+
+    Verifies the signed token and, on success, admits the associated Person to
+    the beta program. Sends an approval email to the person and returns a
+    confirmation page. On failure returns an appropriate HTTP error.
+    """
+    from toxtempass import utilities as beta_util  # local import to avoid cycles
+
+    payload = beta_util.verify_beta_token(token)
+    if not payload or "person_id" not in payload:
+        return HttpResponse("Invalid or expired approval token.", status=400)
+
+    person_id = payload["person_id"]
+    try:
+        person = Person.objects.get(pk=person_id)
+    except Person.DoesNotExist:
+        return HttpResponse("Person not found for provided token.", status=404)
+
+    try:
+        beta_util.set_beta_admitted(person, True, comment="Approved via email link")
+    except Exception:
+        logger.exception("Failed to set beta admitted flag for person %s", person_id)
+        return HttpResponse("Failed to admit user; contact maintainer.", status=500)
+
+    # Send approval email to the user (best-effort; do not fail the request if email fails)
+    try:
+        recipient = getattr(person, "email", None)
+        if recipient:
+            queue_email(
+                to=[recipient],
+                subject="[ToxTempAssistant] Beta access approved",
+                template_text="toxtempass/email/beta_approved_email.txt",
+                template_html="toxtempass/email/beta_approved_email.html",
+                context={
+                    "person": person,
+                    "login_url": request.build_absolute_uri(reverse("login")),
+                },
+                group="emails",
+            )
+    except Exception:
+        logger.exception("Failed to queue approval email for person %s", person_id)
+
+    return render(
+        request,
+        "toxtempass/email/beta_approved.html",
+        {
+            "person": person,
+            "toggle_beta_users_url": request.build_absolute_uri(
+                reverse("admin_beta_user_list")
+            ),
+        },
+    )
+
+
+def beta_wait(request: HttpRequest) -> HttpResponse:
+    """Page shown to users who have requested beta access but are not yet admitted."""
+    return render(request, "toxtempass/beta_wait.html")
+
+
+# --- Admin beta management -----------------------------------------------
+@method_decorator(user_passes_test(is_admin, login_url="/login/"), name="dispatch")
+class AdminBetaUserListView(SingleTableView):
+    """Admin-only SingleTableView listing persons who requested beta access.
+
+    Uses a table class defined in toxtempass.tables.BetaUserTable.
+    """
+
+    model = Person
+    template_name = "toxtempass/admin/beta_user_list.html"
+
+    def get_table_class(self) -> type:
+        """Return the table class used for displaying beta users."""
+        # local import to avoid circular imports at module import time
+        from toxtempass.tables import BetaUserTable
+
+        return BetaUserTable
+
+    def get_table_data(self) -> list[Person]:
+        """Return an iterable of Person objects who requested beta access."""
+        qs = Person.objects.all()
+        # Filter in Python level to be resilient against JSONField DB differences
+        return [p for p in qs if (p.preferences or {}).get("beta_signup")]
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Add extra context variables for the template."""
+        ctx = super().get_context_data(**kwargs)
+        return ctx
+
+
+@user_passes_test(is_admin, login_url="/login/")
+def toggle_beta_admitted(request: HttpRequest) -> HttpResponse:
+    """Toggle admit/revoke beta status for a Person.
+
+    Expects POST with:
+      - person_id: int
+      - admit: "1" or "0" (or "true"/"false")
+
+    Returns JSON: {"success": True, "admitted": bool} or {"success": False, "error": "..."}
+    """
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "POST required"}, status=405)
+
+    person_id = request.POST.get("person_id")
+    admit_raw = request.POST.get("admit", "0")
+    if not person_id:
+        return JsonResponse({"success": False, "error": "person_id required"}, status=400)
+
+    try:
+        person = Person.objects.get(pk=int(person_id))
+    except (Person.DoesNotExist, ValueError):
+        return JsonResponse({"success": False, "error": "Person not found"}, status=404)
+
+    admit = admit_raw.lower() in ("1", "true", "yes", "on")
+    try:
+        beta_util.set_beta_admitted(
+            person, admitted=admit, comment=f"Set by admin {request.user.get_full_name()}"
+        )
+    except Exception as exc:
+        logger.exception("Error toggling beta admitted for person %s: %s", person_id, exc)
+        return JsonResponse(
+            {"success": False, "error": "Failed to update person"}, status=500
+        )
+
+    return JsonResponse({"success": True, "admitted": admit, "person_id": person.id})
 
 
 # Redirects the user to ORCID’s OAuth authorization endpoint.
@@ -289,47 +428,58 @@ def orcid_signup(request: HttpRequest) -> HttpResponse | JsonResponse:
             )
         )
 
-    if request.method == "POST":
-        form = SignupFormOrcid(request.POST)
-        if form.is_valid():
-            # Create the user but ensure the ORCID id is set from the session.
-            user = form.save(commit=False)
-            user.orcid_id = orcid_id
-            user.save()
-            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
-            # Optionally, clear the ORCID data from the session.
-            request.session.pop("orcid_id", None)
-            request.session.pop("orcid_token_data", None)
-            return JsonResponse(
-                dict(
-                    success=True,
-                    errors=form.errors,
-                    redirect_url=reverse("start"),
+        if request.method == "POST":
+            form = SignupFormOrcid(request.POST)
+            if form.is_valid():
+                # Create the user but ensure the ORCID id is set from the session.
+                user = form.save(commit=False)
+                user.orcid_id = orcid_id
+                user.save()
+                login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+                # Record beta request and enqueue notification to maintainer.
+                try:
+                    from toxtempass import utilities as beta_util  # type: ignore
+
+                    async_task("toxtempass.tasks.send_beta_signup_notification", user.id)
+                    beta_util.set_beta_requested(user)
+                except Exception:
+                    logger.exception(
+                        "Failed to record/queue beta signup notification for ORCID user %s",
+                        getattr(user, "id", None),
+                    )
+                # Optionally, clear the ORCID data from the session.
+                request.session.pop("orcid_id", None)
+                request.session.pop("orcid_token_data", None)
+                return JsonResponse(
+                    dict(
+                        success=True,
+                        errors=form.errors,
+                        redirect_url=reverse("start"),
+                    )
                 )
-            )
+            else:
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "errors": form.errors,
+                    }
+                )
         else:
-            return JsonResponse(
-                {
-                    "success": False,
-                    "errors": form.errors,
+            # Prefill the form with the ORCID id.
+            names = request.session.get("orcid_token_data", {}).get("name").split(" ")
+            if len(names) == 2:
+                first_name, last_name = names
+            elif len(names) < 2:
+                first_name, last_name = names[0], ""
+            elif len(names) > 2:
+                first_name, last_name = names[0], " ".join(names[1:])
+            form = SignupFormOrcid(
+                initial={
+                    "orcid_id": orcid_id,
+                    "first_name": first_name,
+                    "last_name": last_name,
                 }
             )
-    else:
-        # Prefill the form with the ORCID id.
-        names = request.session.get("orcid_token_data", {}).get("name").split(" ")
-        if len(names) == 2:
-            first_name, last_name = names
-        elif len(names) < 2:
-            first_name, last_name = names[0], ""
-        elif len(names) > 2:
-            first_name, last_name = names[0], " ".join(names[1:])
-        form = SignupFormOrcid(
-            initial={
-                "orcid_id": orcid_id,
-                "first_name": first_name,
-                "last_name": last_name,
-            }
-        )
 
     return render(request, "signup.html", {"form": form})
 
@@ -671,6 +821,16 @@ class AssayListView(SingleTableView):
     table_class = AssayTable
     template_name = "toxtempass/overview.html"
     paginate_by = 10
+
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        """
+        Gate users who have requested beta access but are not yet admitted.
+        Redirect them to the beta waiting page.
+        """
+        prefs = getattr(request.user, "preferences", {}) or {}
+        if prefs.get("beta_signup") and not prefs.get("beta_admitted"):
+            return redirect(reverse("beta_wait"))
+        return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self) -> QuerySet[Assay]:
         """Return a queryset of Assays accessible by the user, filtered to only those with a question_set."""

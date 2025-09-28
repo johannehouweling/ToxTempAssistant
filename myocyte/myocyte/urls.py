@@ -39,6 +39,12 @@ urlpatterns += [
     path("login/signup/", views.signup, name="signup"),
     path("orcid/callback/", views.orcid_callback, name="orcid_callback"),
     path("orcid/signup/", views.orcid_signup, name="orcid_signup"),
+    # Beta flows
+    path("beta/approve/<str:token>/", views.approve_beta, name="approve_beta"),
+    path("beta/wait/", views.beta_wait, name="beta_wait"),
+    # Admin beta management
+    path("beta/users/", views.AdminBetaUserListView.as_view(), name="admin_beta_user_list"),
+    path("beta/toggle-beta/", views.toggle_beta_admitted, name="toggle_beta_admitted"),
     # Investigation URLs
     path(
         "investigation/create/",
