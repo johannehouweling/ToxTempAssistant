@@ -110,6 +110,7 @@ def queue_email(
     return str(task_id)
 
 
+
 # --- Beta signup notification -------------------------------------------------
 
 
@@ -177,3 +178,4 @@ def send_beta_signup_notification(person_id: int) -> str:
     )
     _LOG.info("Queued beta signup notification for person %s to %s (task %s)", person_id, recipient_email, task_id)
     return task_id
+

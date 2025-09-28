@@ -2,6 +2,49 @@
 
 <!-- version list -->
 
+## v1.21.3 (2025-09-25)
+
+### Bug Fixes
+
+- **ui**: Zenodo auto resolve link to most recent version
+  ([`c538224`](https://github.com/johannehouweling/ToxTempAssistant/commit/c538224c1f8e7100ebedd73306faca54aee6836f))
+
+
+## v1.21.2 (2025-09-25)
+
+### Bug Fixes
+
+- **ui**: Add zenodo doi link to config
+  ([`3825ef3`](https://github.com/johannehouweling/ToxTempAssistant/commit/3825ef36467c33d32638402e9b6f90623f9de9d2))
+
+- **ui**: Change link and svg to zenodo archive which points to newest version also on offcanvas
+  ([`13e2fbf`](https://github.com/johannehouweling/ToxTempAssistant/commit/13e2fbf9fa4c4d48ccb5e851200e1c35a92803d8))
+
+
+## v1.21.1 (2025-09-25)
+
+### Bug Fixes
+
+- **config**: Changed zenodo link to doi which refers always to the newest version
+  ([`ab6a13c`](https://github.com/johannehouweling/ToxTempAssistant/commit/ab6a13cecad3a710cd32030122db197056334fbf))
+
+
+## v1.21.0 (2025-09-22)
+
+### Features
+
+- **login**: Update description of ToxTempAssistant to clarify functionality and benefits
+  ([`bbeca8d`](https://github.com/johannehouweling/ToxTempAssistant/commit/bbeca8d938c626cc605f54e664738f6f01f47f0e))
+
+
+## v1.20.0 (2025-09-17)
+
+### Features
+
+- **email**: Add email configuration and send_email_task for sending emails (gmail for now)
+  ([`adc7be8`](https://github.com/johannehouweling/ToxTempAssistant/commit/adc7be8c213dc2e93bef48b36da5bd1cfa71a527))
+
+
 ## v1.19.2 (2025-09-16)
 
 ### Bug Fixes
