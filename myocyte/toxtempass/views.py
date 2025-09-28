@@ -88,6 +88,16 @@ def is_logged_in(user: Person | None) -> bool:
     """Check if user is logged in as a Person instance."""
     return isinstance(user, Person)
 
+def is_beta_admitted(user: Person | None) -> bool:
+    """Check if user is admitted to beta.
+
+    If the user is not logged in, or not admitted, return False.
+    """
+    if not isinstance(user, Person):
+        return False
+    prefs = getattr(user, "preferences", {}) or {}
+    return prefs.get("beta_admitted", False)
+
 
 def logout_view(request: HttpRequest) -> HttpResponseRedirect:
     """Log out the current user and redirect to the login page."""
@@ -159,9 +169,6 @@ def signup(request: HttpRequest) -> HttpResponse | JsonResponse:
             login(request, user, backend="django.contrib.auth.backends.ModelBackend")
             # Mark the user as having requested beta and enqueue notification to mntnr.
             try:
-                # Local import to avoid top-level import cycles during project startup
-                from toxtempass import utilities as beta_util  # type: ignore
-
                 async_task("toxtempass.tasks.send_beta_signup_notification", user.id)
                 beta_util.set_beta_requested(user)
             except Exception:
@@ -215,11 +222,13 @@ def approve_beta(request: HttpRequest, token: str) -> HttpResponse:
         logger.exception("Failed to set beta admitted flag for person %s", person_id)
         return HttpResponse("Failed to admit user; contact maintainer.", status=500)
 
-    # Send approval email to the user (best-effort; do not fail the request if email fails)
+    # Send approval email to the user (best-effort; do not fail the request if email fails).
+    # Use django-q async_task directly to ensure the job is scheduled consistently.
     try:
         recipient = getattr(person, "email", None)
         if recipient:
-            queue_email(
+            task_id = async_task(
+                "toxtempass.tasks.send_email_task",
                 to=[recipient],
                 subject="[ToxTempAssistant] Beta access approved",
                 template_text="toxtempass/email/beta_approved_email.txt",
@@ -230,6 +239,7 @@ def approve_beta(request: HttpRequest, token: str) -> HttpResponse:
                 },
                 group="emails",
             )
+            logger.info("Queued approval email task %s for person %s", task_id, person_id)
     except Exception:
         logger.exception("Failed to queue approval email for person %s", person_id)
 
@@ -823,8 +833,8 @@ class AssayListView(SingleTableView):
     paginate_by = 10
 
     def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
-        """
-        Gate users who have requested beta access but are not yet admitted.
+        """Gate users who have requested beta access but are not yet admitted.
+        
         Redirect them to the beta waiting page.
         """
         prefs = getattr(request.user, "preferences", {}) or {}
@@ -863,6 +873,7 @@ class AssayListView(SingleTableView):
 
 
 @user_passes_test(is_logged_in, login_url="/login/")
+@user_passes_test(is_beta_admitted, login_url="/beta_wait/")
 def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
     """View to handle the starting form for new Assays."""
     # -------------------------------
