@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load django_tables2 %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2>Beta signup requests</h2>
+  <p class="alert alert-danger">Users are not getting automatic notfications on change. Consider informing manually.</p>
+  
+
+  {% render_table table %}
+</div>
+
+<script>
+  // Helper to read CSRF token from cookie (Django default)
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // Event delegation on the table to handle buttons rendered by django-tables2
+    document.body.addEventListener('click', async (ev) => {
+      const btn = ev.target.closest('.toggle-admit-btn');
+      if (!btn) return;
+      ev.preventDefault();
+
+      const personId = btn.getAttribute('data-person-id');
+      const admit = btn.getAttribute('data-admit'); // "1" or "0"
+
+      btn.disabled = true;
+      const originalText = btn.textContent;
+      btn.textContent = 'Saving...';
+
+      try {
+        const csrftoken = getCookie('csrftoken');
+        const body = new URLSearchParams({ person_id: personId, admit: admit });
+
+        const resp = await fetch("{% url 'toggle_beta_admitted' %}", {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': csrftoken,
+            'Accept': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+          },
+          body: body.toString(),
+        });
+
+        if (!resp.ok) {
+          const txt = await resp.text();
+          throw new Error(`Server error: ${resp.status} ${txt}`);
+        }
+
+        const data = await resp.json();
+        if (!data.success) {
+          throw new Error(data.error || 'Unknown error');
+        }
+
+        // Update UI: find admitted cell in the same row and update button state
+        const cell = btn.closest('td');
+        const row = btn.closest('tr');
+        // Attempt to find the "Admitted" cell — this depends on column order but should exist
+        const admittedCell = row.querySelector('td:nth-child(4)') || null;
+        const nowAdmitted = admit === '1';
+
+        if (admittedCell) {
+          admittedCell.textContent = nowAdmitted ? 'Yes' : 'No';
+        }
+
+        btn.setAttribute('data-admit', nowAdmitted ? '0' : '1');
+        btn.classList.toggle('btn-success', !nowAdmitted);
+        btn.classList.toggle('btn-danger', nowAdmitted);
+        btn.textContent = nowAdmitted ? 'Revoke' : 'Admit';
+      } catch (err) {
+        console.error('Failed to toggle beta admit:', err);
+        alert('Failed to update user. See console for details.');
+        btn.textContent = originalText;
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+</script>
+{% endblock %}

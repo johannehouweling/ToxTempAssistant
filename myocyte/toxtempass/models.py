@@ -116,6 +116,15 @@ class Person(AbstractUser):
         help_text="Miscelanous stuff about the user can be stored here",
     )
 
+    @property
+    def num_assays(self) -> int:
+        """Return the number of assays owned by this user."""
+        return sum(
+            study.assays.count()
+            for investigation in self.investigations.all()
+            for study in investigation.studies.all()
+        )
+
 
 # Investigation Model
 class Investigation(AccessibleModel):

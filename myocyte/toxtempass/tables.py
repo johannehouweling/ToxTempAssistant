@@ -5,7 +5,9 @@ from django.utils.safestring import SafeText
 
 from django.urls import reverse
 
-from toxtempass.models import Answer, Assay, LLMStatus, AssayView
+from toxtempass.models import Answer, Assay, LLMStatus, AssayView, Person
+from django.utils.dateparse import parse_datetime
+from django.contrib.humanize.templatetags.humanize import naturaltime
 
 
 class AssayTable(tables.Table):
@@ -186,3 +188,52 @@ class AssayTable(tables.Table):
         }
         # If you want default ordering, add for example:
         # order_by = "study__investigation__title"
+
+
+class BetaUserTable(tables.Table):
+    name = tables.Column(accessor="get_full_name", verbose_name="Name", linkify=False)
+    email = tables.Column(accessor="email", verbose_name="Email", linkify=False)
+    requested_at = tables.Column(verbose_name="Requested at", orderable=False, empty_values=())
+    admitted = tables.Column(verbose_name="Admitted", orderable=False, empty_values=())
+    num_assays = tables.Column(
+        accessor="num_assays", verbose_name="# Assays", orderable=False
+    )
+    comment = tables.Column(
+        accessor="preferences.beta_comment", verbose_name="Comment", orderable=False, empty_values=()
+    )
+    action = tables.TemplateColumn(
+        template_code="""
+        <button class="btn btn-sm toggle-admit-btn {% if record.preferences and record.preferences.beta_admitted %}btn-danger{% else %}btn-success{% endif %}"
+                data-person-id="{{ record.id }}"
+                data-admit="{% if record.preferences and record.preferences.beta_admitted %}0{% else %}1{% endif %}">
+            {% if record.preferences and record.preferences.beta_admitted %}Revoke{% else %}Admit{% endif %}
+        </button>
+        """,
+        verbose_name="Action",
+        orderable=False,
+        attrs={"td": {"class": "align-middle"}, "th": {"class": "no-link-header"}},
+    )
+
+    def render_requested_at(self, value, record: Person) -> SafeText:  # noqa: ANN001
+        prefs = record.preferences or {}
+        ts = prefs.get("beta_requested_at")
+        if not ts:
+            return "-"
+        # Try to parse ISO datetime stored in preferences; fall back to raw string.
+        dt = parse_datetime(ts)
+        if dt:
+            try:
+                return naturaltime(dt)
+            except Exception:
+                return str(ts)
+        return str(ts)
+
+    def render_admitted(self, value, record: Person) -> SafeText:  # noqa: ANN001
+        prefs = record.preferences or {}
+        return "Yes" if prefs.get("beta_admitted") else "No"
+
+    class Meta:
+        model = Person
+        fields = ("name", "email", "requested_at",  "num_assays", "comment","admitted",  "action")
+        template_name = "django_tables2/bootstrap5.html"
+        attrs = {"class": "table table-striped table-hover", "wrapper_class": "table-responsive"}

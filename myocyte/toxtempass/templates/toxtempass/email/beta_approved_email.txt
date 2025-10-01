@@ -1,0 +1,11 @@
+Hello {{ person.get_full_name }},
+
+Good news — your account has been admitted to the ToxTempAssistant beta program.
+
+You can sign in here:
+  - {{login_url}} 
+
+If you have any questions, reply to the site maintainer.
+
+Regards,
+The ToxTempAssistant team
