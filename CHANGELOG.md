@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.22.0 (2025-10-01)
+
+### Bug Fixes
+
+- **tests**: Introduce AdminFactory and refactor beta tests to use factories
+  ([`ba75d05`](https://github.com/johannehouweling/ToxTempAssistant/commit/ba75d05299f6439f1eb57844ed428f490b289094))
+
+
 ## v1.21.3 (2025-09-25)
 
 ### Bug Fixes
