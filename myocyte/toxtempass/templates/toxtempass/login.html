@@ -4,6 +4,19 @@
 {% load django_bootstrap5 %}
 {% block content %}
 
+<style>
+  .carousel-item img {
+    filter: grayscale(100%);
+    opacity: 0.6;
+    transition: filter 0.3s ease, opacity 0.3s ease;
+  }
+  
+  .carousel-item a:hover img {
+    filter: grayscale(0%);
+    opacity: 1;
+  }
+</style>
+
 <div class="container">
   <div class="row justify-content-center">
     <div class = "col-md-4">
@@ -20,7 +33,7 @@
             <div class="d-flex">
               <button type="submit" class="btn btn-primary">Login</button>
               <a class="btn ms-auto btn-outline-secondary position-relative" role="button" href="{% url 'signup' %}">Sign-up
-                <div class="position-absolute top-0 end-0 translate-middle badge rounded-pill bg-warning text-dark">beta
+                <div class="position-absolute top-0 start-50 translate-middle badge rounded-pill bg-warning text-dark">beta
                 </div>
               </a>
             </div>
@@ -63,21 +76,55 @@
     <div class="col-md-4">
       <div class="card mt-3 mb-3">
         <div class="card-body">
-          <h5 class="card-title">Features</h5>
+          <h5 class="card-title">Supported by</h5>
+          <div id="carouselExampleAutoplaying" class="carousel slide mt-3" data-bs-ride="carousel" data-bs-interval="3000">
+            <div class="carousel-inner">
+              <div class="carousel-item active">
+                <div class="d-flex justify-content-center align-items-center" style="height: 150px;">
+                  <a href="https://www.sciencrew.com/c/6586?title=VHP4Safety" target="_blank" rel="noopener noreferrer" aria-label="Visit Virtual Human Platform for Safety (VHP4Safety) website">
+                    <img src="{% static 'toxtempass/img/VHP_logo_long.svg' %}" class="d-block" alt="Virtual Human Platform" style="width: 200px; max-width: 100%;">
+                  </a>
+                </div>
+              </div>
+              <div class="carousel-item">
+                <div class="d-flex justify-content-center align-items-center" style="height: 150px;">
+                  <a href="https://www.rivm.nl/" target="_blank" rel="noopener noreferrer" aria-label="Visit RIVM (National Institute for Public Health and the Environment) website">
+                    <img src="{% static 'toxtempass/img/VWS_RIVM_Logo_online_pos_en.svg' %}" class="d-block" alt="RIVM" style="width: 200px; max-width: 100%;">
+                  </a>
+                </div>
+              </div>
+              <div class="carousel-item">
+                <div class="d-flex justify-content-center align-items-center" style="height: 150px;">
+                  <a href="https://www.maastrichtuniversity.nl/" target="_blank" rel="noopener noreferrer" aria-label="Visit Maastricht University website">
+                    <img src="{% static 'toxtempass/img/UM_logo.png' %}" class="d-block" alt="University of Maastricht" style="width: 200px; max-width: 100%;">
+                  </a>
+                </div>
+              </div>
+              <div class="carousel-item">
+                <div class="d-flex justify-content-center align-items-center" style="height: 150px;">
+                  <a href="https://ontox-project.eu/" target="_blank" rel="noopener noreferrer" aria-label="Visit ONTOX project website">
+                    <img src="{% static 'toxtempass/img/ONTOX_logo.png' %}" class="d-block" alt="ONTOX" style="width: 200px; max-width: 100%;">
+                  </a>
+                </div>
+              </div>
+              {% comment %} <div class="carousel-item">
+                <div class="d-flex justify-content-center align-items-center" style="height: 150px;">
+                  <a href="https://www.nwo.nl/" target="_blank" rel="noopener noreferrer" aria-label="Visit NWO (Netherlands Organisation for Scientific Research) website">
+                    <img src="{% static 'toxtempass/img/NWO_logo.png' %}" class="d-block" alt="NWO" style="width: 200px; max-width: 100%;">
+                  </a>
+                </div>
+              </div> {% endcomment %}
+            </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleAutoplaying" data-bs-slide="prev">
+              <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+              <span class="visually-hidden">Previous</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleAutoplaying" data-bs-slide="next">
+              <span class="carousel-control-next-icon" aria-hidden="true"></span>
+              <span class="visually-hidden">Next</span>
+            </button>
+          </div>
         </div>
-        <ul class="list-group list-group-flush">
-          <li class="list-group-item">
-            Seamless user login via email or ORCID, enabling secure access and
-            integration with research profiles.
-          </li>
-          <li class="list-group-item">
-            Export data in multiple formats, supporting reporting, sharing, and
-            reproducibility in toxicological research.
-          </li>
-          <li class="list-group-item">
-            Start by logging in or signing up to begin managing your assays.
-          </li>
-        </ul>
       </div>
     </div>
   </div>
