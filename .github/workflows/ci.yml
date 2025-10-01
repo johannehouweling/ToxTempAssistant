@@ -45,9 +45,9 @@ jobs:
             -e TESTING=true \
             djangoapp \
             sh -c "pytest -v \
-              --junitxml=/home/myocte/test-results/results.xml \
+              --junitxml=/home/myocyte/test-results/results.xml \
               --cov=toxtempass \
-              --cov-report=xml:/home/myocte/test-results/coverage.xml"
+              --cov-report=xml:/home/myocyte/test-results/coverage.xml"
           code=$?
 
           # 3) tear down all containers & networks
