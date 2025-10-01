@@ -2,6 +2,28 @@
 
 <!-- version list -->
 
+## v1.23.0 (2025-10-01)
+
+### Bug Fixes
+
+- **ci**: Typo
+  ([`ea41d91`](https://github.com/johannehouweling/ToxTempAssistant/commit/ea41d9160fc226793a22d678fec37e3848224411))
+
+- **login**: Adjust badge position for sign-up button in login form
+  ([`326d2f9`](https://github.com/johannehouweling/ToxTempAssistant/commit/326d2f94db7faab36212e5e2a35a95ddf8560c42))
+
+### Features
+
+- **login**: Replace static logos with a carousel for supported institutions
+  ([`9789be4`](https://github.com/johannehouweling/ToxTempAssistant/commit/9789be4deb84294863f7970527ca1646ec3d3b71))
+
+- **login**: Update supported by section with institutional logos and remove feature list
+  ([`b68de9f`](https://github.com/johannehouweling/ToxTempAssistant/commit/b68de9fa68306dd138364ab7b3040ad9ee82d6dc))
+
+- **ui**: Added parnter logos
+  ([`4997516`](https://github.com/johannehouweling/ToxTempAssistant/commit/49975165619b428d1bbf0716baaa81b792f64a50))
+
+
 ## v1.22.0 (2025-10-01)
 
 ### Bug Fixes
