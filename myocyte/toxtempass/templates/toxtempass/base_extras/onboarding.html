@@ -1,6 +1,73 @@
- <script>
+  <script>
   (function () {
     var toast_tour = false;
+
+    // ===== TOUR STATE MANAGEMENT =====
+    const TOUR_PAGES = ['start', 'add_new', 'create_assay'];
+    const RETURN_SELECTOR_FOR_ADD_NEW = '#id_files'; // Selector to return to on add_new after create_assay
+    
+    function getTourState() {
+      const state = localStorage.getItem('tourState');
+      return state ? JSON.parse(state) : {
+        tourActive: false,
+        tourStarted: false,
+        currentPageIndex: 0,
+        currentStepIndex: 0,
+        firstVisitComplete: false
+      };
+    }
+    
+    function saveTourState(state) {
+      localStorage.setItem('tourState', JSON.stringify(state));
+    }
+    
+    function startTour() {
+      const state = {
+        tourActive: true,
+        tourStarted: true,
+        currentPageIndex: 0,
+        currentStepIndex: 0,
+        firstVisitComplete: false
+      };
+      saveTourState(state);
+    }
+    
+    function completeTour() {
+      const state = getTourState();
+      state.tourActive = false;
+      state.firstVisitComplete = true;
+      saveTourState(state);
+    }
+    
+    function dismissTour() {
+      const state = getTourState();
+      state.tourActive = false;
+      saveTourState(state);
+    }
+    
+    function updateTourProgress(pageIndex, stepIndex) {
+      const state = getTourState();
+      state.currentPageIndex = pageIndex;
+      state.currentStepIndex = stepIndex;
+      saveTourState(state);
+    }
+    
+    function shouldAutoStartTour() {
+      const state = getTourState();
+      const urlName = document.body.getAttribute('data-url-name');
+      // Auto-start only if: on overview page, never started tour before, and first visit not complete
+      return urlName === 'start' && !state.tourStarted && !state.firstVisitComplete;
+    }
+    
+    function shouldContinueTour() {
+      const state = getTourState();
+      return state.tourActive;
+    }
+    
+    function getCurrentPageIndex() {
+      const urlName = document.body.getAttribute('data-url-name');
+      return TOUR_PAGES.indexOf(urlName);
+    }
 
     function toggleOverlay(state = null) {
       let overlay = document.getElementById('onboarding-overlay');
@@ -18,11 +85,12 @@
       }
     }
 
-    function showOnboardingToasts(messages, selectors) {
+    function showOnboardingToasts(messages, selectors, startFromStep = 0, startFromSelector = null) {
       if (toast_tour) return;
       toast_tour = true;
 
       const spareClass = 'spared-element';
+      const currentPageIdx = getCurrentPageIndex();
 
       // Ensure container exists
       let container = document.getElementById('onboarding-toasts');
@@ -167,7 +235,7 @@
 
         container.appendChild(toastEl);
         const toastInstance = new bootstrap.Toast(toastEl, { animation: true, autohide: false });
-        steps.push({ toastInstance, toastEl, target });
+        steps.push({ toastInstance, toastEl, target, selector: sel });
       });
 
       if (steps.length === 0) {
@@ -175,11 +243,33 @@
         toast_tour = false;
         return;
       }
+      
+      // If startFromSelector is provided, find the corresponding step index
+      let actualStartStep = startFromStep;
+      if (startFromSelector) {
+        const foundIndex = steps.findIndex(s => s.selector === startFromSelector);
+        if (foundIndex !== -1) {
+          actualStartStep = foundIndex;
+        }
+      }
 
-      // Hide "Next" on last step
-      steps[steps.length - 1].toastEl.querySelector('.btn.btn-primary')?.remove();
+      // Determine button text for last step based on current page
+      const lastStepBtn = steps[steps.length - 1].toastEl.querySelector('.btn.btn-primary');
+      if (lastStepBtn) {
+        const urlName = document.body.getAttribute('data-url-name');
+        if (urlName === 'create_assay') {
+          // Create assay returns to add_new
+          lastStepBtn.textContent = 'Return to Form';
+        } else if (urlName === 'add_new') {
+          // add_new is the last page in tour
+          lastStepBtn.textContent = 'Finish Tour';
+        } else {
+          // Other pages continue to next
+          lastStepBtn.textContent = 'Continue to Next Page';
+        }
+      }
 
-      let currentStep = 0;
+      let currentStep = actualStartStep;
 
       function showStep(i) {
         steps.forEach(s => {
@@ -193,17 +283,51 @@
         step.toastEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
 
-      // Wire "Next"
+      // Wire "Next" and handle page navigation
       steps.forEach((step, idx) => {
         const nextBtn = step.toastEl.querySelector('.btn.btn-primary');
         if (nextBtn) {
           nextBtn.addEventListener('click', () => {
             if (idx + 1 < steps.length) {
+              // Move to next step on same page
               currentStep = idx + 1;
+              updateTourProgress(currentPageIdx, currentStep);
               showStep(currentStep);
+            } else {
+              // Last step on this page - determine navigation
+              const urlName = document.body.getAttribute('data-url-name');
+              
+              if (urlName === 'create_assay') {
+                // Return to add_new at specific selector
+                const addNewPageIdx = TOUR_PAGES.indexOf('add_new');
+                updateTourProgress(addNewPageIdx, 0); // Will be adjusted by selector
+                // Store the target selector in sessionStorage for next page
+                sessionStorage.setItem('tourReturnSelector', RETURN_SELECTOR_FOR_ADD_NEW);
+                window.location.href = '/add/';
+              } else if (urlName === 'add_new') {
+                // This is the final page - complete tour
+                completeTour();
+                step.toastInstance.hide();
+                toggleOverlay('hide');
+                toast_tour = false;
+              } else if (urlName === 'start') {
+                // Navigate from start to add_new
+                const nextPageIdx = currentPageIdx + 1;
+                updateTourProgress(nextPageIdx, 0);
+                window.location.href = '/add/';
+              }
             }
           });
         }
+        
+        // Handle close button (dismiss tour)
+        const closeBtn = step.toastEl.querySelector('.btn-close');
+        if (closeBtn) {
+          closeBtn.addEventListener('click', () => {
+            dismissTour();
+          });
+        }
+        
         step.toastEl.addEventListener('hidden.bs.toast', () => {
           step.target.classList.remove(spareClass);
           const anyVisible = steps.some(s => s.toastEl.classList.contains('show'));
@@ -215,15 +339,16 @@
       });
 
       toggleOverlay('show');
-      showStep(0);
+      showStep(currentStep);
     }
 
     
 
-    window.startOnboarding = function () {
+    window.startOnboarding = function (isManualStart = false) {
       const config = window.ToxTempConfig || {};
       const onboardingHelp = config.user_onboarding_help || {};
       const urlName = document.body.getAttribute('data-url-name');
+      
       if (!urlName || !onboardingHelp[urlName] || onboardingHelp[urlName].length === 0) {
         // Show message to user that no help items registered for this page
         const existingMessage = document.getElementById('onboarding-no-help-message');
@@ -255,13 +380,35 @@
         }
         return;
       }
+      
+      // If manually started, initialize tour from beginning
+      if (isManualStart) {
+        startTour();
+      }
+      
+      // Get the current tour state to determine starting step
+      const tourState = getTourState();
+      const currentPageIdx = getCurrentPageIndex();
+      let startStep = 0;
+      let startSelector = null;
+      
+      // Check if we're returning from another page with a specific selector
+      const returnSelector = sessionStorage.getItem('tourReturnSelector');
+      if (returnSelector) {
+        startSelector = returnSelector;
+        sessionStorage.removeItem('tourReturnSelector');
+      } else if (tourState.tourActive && currentPageIdx === tourState.currentPageIndex) {
+        // If tour is active and we're on the expected page, resume from saved step
+        startStep = tourState.currentStepIndex;
+      }
+      
       const steps = onboardingHelp[urlName];
       const selectors = steps.map(pair => pair[0]);
       const messages = steps.map(pair => pair[1]);
-      showOnboardingToasts(messages, selectors);
+      showOnboardingToasts(messages, selectors, startStep, startSelector);
     };
 
-    // Attach handler
+    // Attach handler for manual start button
     function attachHelpBtnHandler() {
       const btn = document.getElementById('startOnboardingBtn');
       if (btn) {
@@ -274,16 +421,37 @@
               offcanvas.hide();
             }
           }
-          window.startOnboarding();
+          window.startOnboarding(true); // true = manual start
         });
       } else {
         setTimeout(attachHelpBtnHandler, 100);
       }
     }
+    
+    // Auto-start or continue tour on page load
+    function checkTourOnLoad() {
+      if (shouldAutoStartTour()) {
+        // First time user on overview page - start tour
+        setTimeout(() => {
+          startTour();
+          window.startOnboarding(false);
+        }, 500);
+      } else if (shouldContinueTour()) {
+        // Tour is active - continue from where we left off
+        setTimeout(() => {
+          window.startOnboarding(false);
+        }, 500);
+      }
+    }
+    
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', attachHelpBtnHandler);
+      document.addEventListener('DOMContentLoaded', () => {
+        attachHelpBtnHandler();
+        checkTourOnLoad();
+      });
     } else {
       attachHelpBtnHandler();
+      checkTourOnLoad();
     }
   })();
   </script>

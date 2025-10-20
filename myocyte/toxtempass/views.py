@@ -865,15 +865,8 @@ class AssayListView(SingleTableView):
     def get_context_data(self, **kwargs) -> dict:
         """Inject context."""
         context = super().get_context_data(**kwargs)
-        user = self.request.user
-        show_onboarding = False
-        prefs = user.preferences or {}
-        if not prefs.get("has_seen_onboarding", False):
-            show_onboarding = True
-            prefs["has_seen_onboarding"] = True
-            user.preferences = prefs
-            user.save()
-        context["show_onboarding"] = show_onboarding
+        # Tour management is now handled by JavaScript localStorage
+        # No backend flags needed
         return context
 
 
@@ -902,12 +895,23 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
         # <select> fields stay pre-selected
         form = StartingForm(initial=initial, user=request.user)
 
+        # Check if user has seen the add_new tour before
+        user = request.user
+        show_add_new_tour = False
+        prefs = getattr(user, "preferences", {}) or {}
+        if not prefs.get("has_seen_add_new_tour", False):
+            show_add_new_tour = True
+            prefs["has_seen_add_new_tour"] = True
+            user.preferences = prefs
+            user.save()
+
         return render(
             request,
             "start.html",
             {
                 "form": form,
                 "action": reverse("add_new"),
+                "show_add_new_tour": show_add_new_tour,
             },
         )
 
@@ -1172,9 +1176,9 @@ def create_or_update_assay(
             assay_id = saved_assay.id
 
             # Redirect back to
-            # /start/?investigation=<inv_id>&study=<st_id>&assay=<assay_id>
+            # /start/?investigation=<inv_id>&study=<st_id>&assay=<assay_id>&continue_tour=1
             redirect_url = reverse("add_new")
-            redirect_url += f"?investigation={inv_id}&study={st_id}&assay={assay_id}"
+            redirect_url += f"?investigation={inv_id}&study={st_id}&assay={assay_id}&continue_tour=1"
 
             return JsonResponse(
                 {
