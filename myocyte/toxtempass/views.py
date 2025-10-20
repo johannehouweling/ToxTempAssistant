@@ -88,13 +88,18 @@ def is_logged_in(user: Person | None) -> bool:
     """Check if user is logged in as a Person instance."""
     return isinstance(user, Person)
 
+
 def is_beta_admitted(user: Person | None) -> bool:
     """Check if user is admitted to beta.
 
     If the user is not logged in, or not admitted, return False.
+    Admins (superusers) always bypass this check.
     """
     if not isinstance(user, Person):
         return False
+    # Allow superusers to bypass beta admission
+    if user.is_superuser:
+        return True
     prefs = getattr(user, "preferences", {}) or {}
     return prefs.get("beta_admitted", False)
 
@@ -834,7 +839,7 @@ class AssayListView(SingleTableView):
 
     def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         """Gate users who have requested beta access but are not yet admitted.
-        
+
         Redirect them to the beta waiting page.
         """
         prefs = getattr(request.user, "preferences", {}) or {}
@@ -873,7 +878,7 @@ class AssayListView(SingleTableView):
 
 
 @user_passes_test(is_logged_in, login_url="/login/")
-@user_passes_test(is_beta_admitted, login_url="/beta_wait/")
+@user_passes_test(is_beta_admitted, login_url="/beta/wait/")
 def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
     """View to handle the starting form for new Assays."""
     # -------------------------------
@@ -902,6 +907,7 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
             "start.html",
             {
                 "form": form,
+                "action": reverse("add_new"),
             },
         )
 
