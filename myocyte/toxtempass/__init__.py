@@ -143,7 +143,6 @@ class Config:
             ["#id_study", "Select or create a Study within your Investigation."],
             ["#id_assay", "Select or create an Assay - this is what your ToxTemp will describe."],
             ["#id_assay_btn0", "Click here"],
-            ["#id_description", "Provide a detailed description of your Assay (test method). Include key details like cell type, endpoints measured, and purpose. The AI uses this to scope its analysis of your documents."],
             ["#id_files", "Upload relevant documents here to provide context for the LLM."],
             ["#id_overwrite", "Check this box to regenerate the ToxTemp for this Assay. Warning: This will replace any existing answers with new LLM-generated content."],
             ["#startButton", "Ready to go! Click here to start generating your ToxTemp. The LLM will extract relevant information from your documents to prefill the template."],
@@ -151,7 +150,7 @@ class Config:
         "create_assay": [
             ["#id_study", "Select which Study this Assay belongs to."],
             ["#id_title", "Give your Assay a clear, descriptive title."],
-            ["#id_description", "Important: Provide a detailed description of your Assay (test method). Include key details like cell type, endpoints measured, and purpose. The AI uses this to scope its analysis of your documents."],
+            ["#id_description", "Important. Provide an assay description covering three key elements: (1) test purpose (e.g., cytotoxicity assessment), (2) test system (e.g., human neural stem cells differentiated into a neuron-astrocyte co-culture in a 2D monolayer), and (3) measured endpoint (e.g., cell viability assessed by formazan conversion using a luminescence assay). The LLM uses this structured description to understand the scope of the assay and help more accurately extract relevant information from your documents."],
             ["button[type='submit']", "Click to save your Assay and return to the main form."],
         ],
         ""
