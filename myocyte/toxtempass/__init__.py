@@ -150,6 +150,7 @@ class Config:
                 "In the top right you find a user menu, where you can logout, or access some information like this help tour.",
             ],
             ["#id_btn_new", "Click here to create a new ToxTemp."],
+            ["td a.btn-primary:first-of-type", "Or click this View button to review and edit an existing assay's answers. The tour will continue on the answer page."],
         ],
         "add_new": [
             ["#id_question_set", "Choose which version of the ToxTemp template to use."],

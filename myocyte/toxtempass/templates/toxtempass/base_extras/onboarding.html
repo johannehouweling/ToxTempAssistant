@@ -1,17 +1,36 @@
-  <script>
+<script>
   (function () {
     var toast_tour = false;
 
-    // ===== TOUR STATE MANAGEMENT =====
-    const TOUR_PAGES = ['start', 'add_new', 'create_assay'];
-    const RETURN_SELECTOR_FOR_ADD_NEW = '#id_files'; // Selector to return to on add_new after create_assay
+    // ===== TOUR SEQUENCE CONFIGURATION =====
+    // Tour sequence defines the exact order of page visits with step filtering
+    const TOUR_SEQUENCE = [
+      { page: 'start', visit: 1, stepIndices: [0, 1, 2] },              // Steps 1-3: headline, user menu, create btn
+      { page: 'add_new', visit: 1, stepIndices: [0, 1, 2, 3, 4] },      // Steps 4-8: question_set through create assay btn
+      { page: 'create_assay', visit: 1, stepIndices: [0, 1, 2, 3] },    // Steps 9-12: study, title, description, submit
+      { page: 'add_new', visit: 2, stepIndices: [5, 6, 7] },            // Steps 13-15: files, overwrite, startButton
+      { page: 'start', visit: 2, stepIndices: [3] },                    // Step 16: View button only
+      { page: 'answer_assay_questions', visit: 1, stepIndices: [0, 1, 2, 3, 4, 5, 6, 7, 8] }  // Steps 17-25: all 9 steps
+    ];
     
+    // Calculate total steps across entire tour
+    const TOTAL_TOUR_STEPS = TOUR_SEQUENCE.reduce((sum, seq) => sum + seq.stepIndices.length, 0);
+    
+    // Navigation URLs for each page
+    const PAGE_URLS = {
+      'start': '/',
+      'add_new': '/add/',
+      'create_assay': '/assay/create/'
+      // Note: answer_assay_questions not included - user navigates there manually via View button
+    };
+    
+    // ===== TOUR STATE MANAGEMENT =====
     function getTourState() {
       const state = localStorage.getItem('tourState');
       return state ? JSON.parse(state) : {
         tourActive: false,
         tourStarted: false,
-        currentPageIndex: 0,
+        currentSequenceIndex: 0,
         currentStepIndex: 0,
         firstVisitComplete: false
       };
@@ -25,7 +44,7 @@
       const state = {
         tourActive: true,
         tourStarted: true,
-        currentPageIndex: 0,
+        currentSequenceIndex: 0,
         currentStepIndex: 0,
         firstVisitComplete: false
       };
@@ -45,9 +64,9 @@
       saveTourState(state);
     }
     
-    function updateTourProgress(pageIndex, stepIndex) {
+    function updateTourProgress(sequenceIndex, stepIndex) {
       const state = getTourState();
-      state.currentPageIndex = pageIndex;
+      state.currentSequenceIndex = sequenceIndex;
       state.currentStepIndex = stepIndex;
       saveTourState(state);
     }
@@ -55,7 +74,7 @@
     function shouldAutoStartTour() {
       const state = getTourState();
       const urlName = document.body.getAttribute('data-url-name');
-      // Auto-start only if: on overview page, never started tour before, and first visit not complete
+      // Auto-start only if: on start page, never started tour before, and first visit not complete
       return urlName === 'start' && !state.tourStarted && !state.firstVisitComplete;
     }
     
@@ -64,9 +83,38 @@
       return state.tourActive;
     }
     
-    function getCurrentPageIndex() {
+    // Get current sequence index based on current page and tour state
+    function getCurrentSequenceIndex() {
       const urlName = document.body.getAttribute('data-url-name');
-      return TOUR_PAGES.indexOf(urlName);
+      const state = getTourState();
+      
+      if (!state.tourActive) {
+        return -1;
+      }
+      
+      // If we're on the expected page for current sequence, return that
+      const currentSeq = TOUR_SEQUENCE[state.currentSequenceIndex];
+      if (currentSeq && currentSeq.page === urlName) {
+        return state.currentSequenceIndex;
+      }
+      
+      // Otherwise, find first matching sequence for this page
+      return TOUR_SEQUENCE.findIndex(seq => seq.page === urlName);
+    }
+    
+    // Calculate global step number (1-based) for display
+    function getGlobalStepNumber(sequenceIndex, stepIndexWithinSequence) {
+      let globalStep = 0;
+      
+      // Add all steps from previous sequences
+      for (let i = 0; i < sequenceIndex; i++) {
+        globalStep += TOUR_SEQUENCE[i].stepIndices.length;
+      }
+      
+      // Add current step within this sequence (convert 0-based to 1-based)
+      globalStep += stepIndexWithinSequence + 1;
+      
+      return globalStep;
     }
 
     function toggleOverlay(state = null) {
@@ -85,12 +133,23 @@
       }
     }
 
-    function showOnboardingToasts(messages, selectors, startFromStep = 0, startFromSelector = null) {
+    function showOnboardingToasts(allSelectors, allMessages, sequenceIndex, startStepIndex = 0) {
       if (toast_tour) return;
       toast_tour = true;
 
       const spareClass = 'spared-element';
-      const currentPageIdx = getCurrentPageIndex();
+      const sequence = TOUR_SEQUENCE[sequenceIndex];
+      
+      if (!sequence) {
+        console.warn('Onboarding: Invalid sequence index');
+        toast_tour = false;
+        return;
+      }
+
+      // Filter to only the steps for this visit
+      const filteredIndices = sequence.stepIndices;
+      const selectors = filteredIndices.map(i => allSelectors[i]);
+      const messages = filteredIndices.map(i => allMessages[i]);
 
       // Ensure container exists
       let container = document.getElementById('onboarding-toasts');
@@ -117,6 +176,8 @@
           return;
         }
 
+        const globalStep = getGlobalStepNumber(sequenceIndex, i);
+
         // Create toast
         const toastEl = document.createElement('div');
         toastEl.classList.add('toast', 'my-3');
@@ -129,102 +190,18 @@
         toastEl.setAttribute('aria-live', 'assertive');
         toastEl.setAttribute('aria-atomic', 'true');
 
-        // Position with improved placement logic
-        const rect = target.getBoundingClientRect();
-        const toastWidth = 300; // approximate width of the toast element in px
-        const toastHeight = 100; // approximate height of the toast element in px
-        let margin = 10; // margin from viewport edges and element in px
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
+        // Fixed position at bottom center
+        toastEl.style.position = 'fixed';
+        toastEl.style.bottom = '20px';
+        toastEl.style.left = '50%';
+        toastEl.style.transform = 'translateX(-50%)';
+        toastEl.style.maxWidth = '600px';
+        toastEl.style.width = '90%';
 
-        // Adjust margin for very small viewports so toast is closer to element
-        if (viewportWidth < 400) {
-          margin = 5;
-        }
-
-        // Candidate positions: below, above, right, left
-        const positions = [];
-
-        // Below: horizontally centered with element, below bottom edge
-        let belowLeft = rect.left + rect.width / 2 - toastWidth / 2;
-        if (belowLeft < margin) belowLeft = margin;
-        if (belowLeft + toastWidth + margin > viewportWidth) belowLeft = viewportWidth - toastWidth - margin;
-        positions.push({
-          top: rect.bottom + margin,
-          left: belowLeft,
-          transform: 'translate(0, 0)'
-        });
-
-        // Above: horizontally centered with element, above top edge
-        let aboveLeft = rect.left + rect.width / 2 - toastWidth / 2;
-        if (aboveLeft < margin) aboveLeft = margin;
-        if (aboveLeft + toastWidth + margin > viewportWidth) aboveLeft = viewportWidth - toastWidth - margin;
-        positions.push({
-          top: rect.top - toastHeight - margin,
-          left: aboveLeft,
-          transform: 'translate(0, 0)'
-        });
-
-        // Right: vertically centered with element, right of right edge
-        let rightTop = rect.top + rect.height / 2 - toastHeight / 2;
-        if (rightTop < margin) rightTop = margin;
-        if (rightTop + toastHeight + margin > viewportHeight) rightTop = viewportHeight - toastHeight - margin;
-        positions.push({
-          top: rightTop,
-          left: rect.right + margin,
-          transform: 'translate(0, 0)'
-        });
-
-        // Left: vertically centered with element, left of left edge
-        let leftTop = rect.top + rect.height / 2 - toastHeight / 2;
-        if (leftTop < margin) leftTop = margin;
-        if (leftTop + toastHeight + margin > viewportHeight) leftTop = viewportHeight - toastHeight - margin;
-        positions.push({
-          top: leftTop,
-          left: rect.left - toastWidth - margin,
-          transform: 'translate(0, 0)'
-        });
-
-        // Function to check if position fits inside viewport
-        function fitsInsideViewport(pos) {
-          return (
-            pos.left >= margin &&
-            pos.top >= margin &&
-            pos.left + toastWidth + margin <= viewportWidth &&
-            pos.top + toastHeight + margin <= viewportHeight
-          );
-        }
-
-        // Choose first position that fits inside viewport
-        let chosenPos = positions.find(p => fitsInsideViewport(p));
-
-        // Fallback: if none fit, place toast centered at bottom with margin
-        if (!chosenPos) {
-          chosenPos = {
-            top: viewportHeight - toastHeight - margin,
-            left: (viewportWidth - toastWidth) / 2,
-            transform: 'translate(0, 0)'
-          };
-        }
-
-        // Ensure bottom does not go off canvas
-        if (chosenPos.top + toastHeight + margin > viewportHeight) {
-          chosenPos.top = viewportHeight - toastHeight - margin;
-          if (chosenPos.top < margin) {
-            chosenPos.top = margin; // prevent going too high off screen
-          }
-        }
-
-        // Apply chosen position
-        toastEl.style.top = chosenPos.top + 'px';
-        toastEl.style.left = chosenPos.left + 'px';
-        toastEl.style.width = toastWidth + 'px'; // fix toast width for consistency
-        toastEl.style.transform = chosenPos.transform;
-
-        // Content
+        // Content with global step counter
         toastEl.innerHTML = `
           <div class="toast-header">
-            <strong class="me-auto">Guided Tour (${steps.length + 1}/${messages.length})</strong>
+            <strong class="me-auto">Guided Tour (${globalStep}/${TOTAL_TOUR_STEPS})</strong>
             <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
           </div>
           <div class="toast-body">${messages[i]}</div>
@@ -240,53 +217,58 @@
       });
 
       if (steps.length === 0) {
-        console.warn('Onboarding: No valid steps.');
+        console.warn('Onboarding: No valid steps for this sequence.');
         toast_tour = false;
         return;
       }
-      
-      // If startFromSelector is provided, find the corresponding step index
-      let actualStartStep = startFromStep;
-      if (startFromSelector) {
-        const foundIndex = steps.findIndex(s => s.selector === startFromSelector);
-        if (foundIndex !== -1) {
-          actualStartStep = foundIndex;
-        }
-      }
 
-      // Determine button text for last step based on current page
+      // Determine button text for last step based on position in sequence
       const lastStepBtn = steps[steps.length - 1].toastEl.querySelector('.btn.btn-primary');
       if (lastStepBtn) {
-        const urlName = document.body.getAttribute('data-url-name');
-        if (urlName === 'create_assay') {
+        if (sequenceIndex === TOUR_SEQUENCE.length - 1) {
+          // Last sequence - finish tour
+          lastStepBtn.textContent = 'Finish Tour';
+        } else if (sequence.page === 'create_assay') {
           // Create assay returns to add_new
           lastStepBtn.textContent = 'Return to Form';
-        } else if (urlName === 'add_new') {
-          // add_new is the last page in tour
-          lastStepBtn.textContent = 'Finish Tour';
+        } else if (sequence.page === 'start' && sequence.visit === 2) {
+          // Start visit 2 - user will manually click View button
+          lastStepBtn.textContent = 'Continue to Next Page';
         } else {
-          // Other pages continue to next
+          // Other transitions
           lastStepBtn.textContent = 'Continue to Next Page';
         }
       }
 
-      let currentStep = actualStartStep;
+      let currentStep = startStepIndex;
 
       function showStep(i) {
         steps.forEach(s => {
           s.target.classList.remove(spareClass);
+          s.target.classList.remove('spared-element-white');
           s.toastInstance.hide();
         });
         const step = steps[i];
-        step.target.classList.add(spareClass);
+        
+        // Use white highlight for header elements, blue for rest
+        const isHeaderElement = step.selector === '#id_headline' || step.selector === '#id_user_menu';
+        if (isHeaderElement) {
+          step.target.classList.add('spared-element-white');
+        } else {
+          step.target.classList.add(spareClass);
+        }
+        
         step.toastInstance.show();
         container.style.zIndex = '7000';
-        step.toastEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Scroll the highlighted element into view
+        step.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
         
         // Update Previous button visibility
         const prevBtn = step.toastEl.querySelector('.btn-previous');
         if (prevBtn) {
-          if (i === 0) {
+          if (i === 0 && sequenceIndex === 0) {
+            // First step of entire tour - no previous
             prevBtn.style.display = 'none';
           } else {
             prevBtn.style.display = 'block';
@@ -301,9 +283,15 @@
         if (prevBtn) {
           prevBtn.addEventListener('click', () => {
             if (idx > 0) {
+              // Previous step within same page
               currentStep = idx - 1;
-              updateTourProgress(currentPageIdx, currentStep);
+              updateTourProgress(sequenceIndex, currentStep);
               showStep(currentStep);
+            } else if (sequenceIndex > 0) {
+              // Go back to previous sequence
+              const prevSequence = TOUR_SEQUENCE[sequenceIndex - 1];
+              updateTourProgress(sequenceIndex - 1, prevSequence.stepIndices.length - 1);
+              window.location.href = PAGE_URLS[prevSequence.page];
             }
           });
         }
@@ -315,31 +303,11 @@
             if (idx + 1 < steps.length) {
               // Move to next step on same page
               currentStep = idx + 1;
-              updateTourProgress(currentPageIdx, currentStep);
+              updateTourProgress(sequenceIndex, currentStep);
               showStep(currentStep);
             } else {
-              // Last step on this page - determine navigation
-              const urlName = document.body.getAttribute('data-url-name');
-              
-              if (urlName === 'create_assay') {
-                // Return to add_new at specific selector
-                const addNewPageIdx = TOUR_PAGES.indexOf('add_new');
-                updateTourProgress(addNewPageIdx, 0); // Will be adjusted by selector
-                // Store the target selector in sessionStorage for next page
-                sessionStorage.setItem('tourReturnSelector', RETURN_SELECTOR_FOR_ADD_NEW);
-                window.location.href = '/add/';
-              } else if (urlName === 'add_new') {
-                // This is the final page - complete tour
-                completeTour();
-                step.toastInstance.hide();
-                toggleOverlay('hide');
-                toast_tour = false;
-              } else if (urlName === 'start') {
-                // Navigate from start to add_new
-                const nextPageIdx = currentPageIdx + 1;
-                updateTourProgress(nextPageIdx, 0);
-                window.location.href = '/add/';
-              }
+              // Last step of this sequence - navigate to next
+              handleSequenceTransition(sequenceIndex, step);
             }
           });
         }
@@ -349,11 +317,14 @@
         if (closeBtn) {
           closeBtn.addEventListener('click', () => {
             dismissTour();
+            toggleOverlay('hide');
+            toast_tour = false;
           });
         }
         
         step.toastEl.addEventListener('hidden.bs.toast', () => {
           step.target.classList.remove(spareClass);
+          step.target.classList.remove('spared-element-white');
           const anyVisible = steps.some(s => s.toastEl.classList.contains('show'));
           if (!anyVisible) {
             toggleOverlay('hide');
@@ -365,8 +336,42 @@
       toggleOverlay('show');
       showStep(currentStep);
     }
-
     
+    // Handle transition from one sequence to the next
+    function handleSequenceTransition(currentSequenceIndex, step) {
+      const nextSequenceIndex = currentSequenceIndex + 1;
+      
+      if (nextSequenceIndex >= TOUR_SEQUENCE.length) {
+        // Tour complete
+        completeTour();
+        step.toastInstance.hide();
+        toggleOverlay('hide');
+        toast_tour = false;
+        return;
+      }
+      
+      const currentSeq = TOUR_SEQUENCE[currentSequenceIndex];
+      const nextSeq = TOUR_SEQUENCE[nextSequenceIndex];
+      
+      // Special handling for start page visit 2
+      if (currentSeq.page === 'start' && currentSeq.visit === 2) {
+        // Hide toast and overlay, but keep tour active
+        // User must manually click View button to continue
+        updateTourProgress(nextSequenceIndex, 0);
+        step.toastInstance.hide();
+        toggleOverlay('hide');
+        toast_tour = false;
+        return;
+      }
+      
+      // Update state for next sequence
+      updateTourProgress(nextSequenceIndex, 0);
+      
+      // Navigate to next page
+      if (nextSeq.page !== currentSeq.page) {
+        window.location.href = PAGE_URLS[nextSeq.page];
+      }
+    }
 
     window.startOnboarding = function (isManualStart = false) {
       const config = window.ToxTempConfig || {};
@@ -410,26 +415,33 @@
         startTour();
       }
       
-      // Get the current tour state to determine starting step
+      // Get the current tour state and determine where to start
       const tourState = getTourState();
-      const currentPageIdx = getCurrentPageIndex();
+      let sequenceIndex = 0;
       let startStep = 0;
-      let startSelector = null;
       
-      // Check if we're returning from another page with a specific selector
-      const returnSelector = sessionStorage.getItem('tourReturnSelector');
-      if (returnSelector) {
-        startSelector = returnSelector;
-        sessionStorage.removeItem('tourReturnSelector');
-      } else if (tourState.tourActive && currentPageIdx === tourState.currentPageIndex) {
-        // If tour is active and we're on the expected page, resume from saved step
-        startStep = tourState.currentStepIndex;
+      if (tourState.tourActive) {
+        // Tour is active - determine current sequence
+        const currentSeq = TOUR_SEQUENCE[tourState.currentSequenceIndex];
+        
+        if (currentSeq && currentSeq.page === urlName) {
+          // We're on the expected page for current sequence
+          sequenceIndex = tourState.currentSequenceIndex;
+          startStep = tourState.currentStepIndex;
+        } else {
+          // Find matching sequence for current page
+          sequenceIndex = TOUR_SEQUENCE.findIndex(seq => seq.page === urlName);
+          if (sequenceIndex === -1) {
+            sequenceIndex = 0;
+          }
+          startStep = 0;
+        }
       }
       
       const steps = onboardingHelp[urlName];
       const selectors = steps.map(pair => pair[0]);
       const messages = steps.map(pair => pair[1]);
-      showOnboardingToasts(messages, selectors, startStep, startSelector);
+      showOnboardingToasts(selectors, messages, sequenceIndex, startStep);
     };
 
     // Attach handler for manual start button
@@ -455,7 +467,7 @@
     // Auto-start or continue tour on page load
     function checkTourOnLoad() {
       if (shouldAutoStartTour()) {
-        // First time user on overview page - start tour
+        // First time user on start page - start tour
         setTimeout(() => {
           startTour();
           window.startOnboarding(false);
@@ -483,9 +495,18 @@
 /* Additional CSS for spared elements on overlay */
 .spared-element {
   position: relative !important;
-  // Raise z-index higher to help ensure highlight is below toasts
   z-index: 5800 !important;
   box-shadow: 0 0 15px 3px #007bff !important;
+  border-radius: 4px;
+  transition: box-shadow 0.3s ease-in-out;
+}
+
+/* White highlight variant for elements on blue backgrounds */
+.spared-element-white {
+  position: relative !important;
+  z-index: 5800 !important;
+  padding: 8px !important;
+  box-shadow: 0 0 30px 10px #ffffff !important;
   border-radius: 4px;
   transition: box-shadow 0.3s ease-in-out;
 }

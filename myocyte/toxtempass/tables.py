@@ -38,7 +38,7 @@ class AssayTable(tables.Table):
         linkify=False,
         attrs={
             "th": {"class": "no-link-header d-none d-lg-table-cell"},
-            "td": {"class": "align-middle d-none d-lg-table-cell"},
+            "td": {"class": "align-middle d-none d-lg-table-cell text-break"},
         },
     )
 
@@ -49,7 +49,7 @@ class AssayTable(tables.Table):
         linkify=False,
         attrs={
             "th": {"class": "no-link-header d-none d-lg-table-cell"},
-            "td": {"class": "align-middle d-none d-lg-table-cell"},
+            "td": {"class": "align-middle d-none d-lg-table-cell text-break"},
         },
     )
 
@@ -58,7 +58,7 @@ class AssayTable(tables.Table):
         verbose_name="Assay",
         orderable=True,
         linkify=False,
-        attrs={"th": {"class": "no-link-header"}, "td": {"class": "align-middle"}},
+        attrs={"th": {"class": "no-link-header"}, "td": {"class": "align-middle text-break"}},
     )
 
     progress = tables.Column(
