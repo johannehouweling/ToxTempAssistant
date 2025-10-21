@@ -198,10 +198,12 @@
         toastEl.style.maxWidth = '600px';
         toastEl.style.width = '90%';
 
-        // Content with global step counter
+        // Content with global step counter (Bootstrap small text for step indicator)
         toastEl.innerHTML = `
           <div class="toast-header">
-            <strong class="me-auto">Guided Tour (${globalStep}/${TOTAL_TOUR_STEPS})</strong>
+            <i class="bi bi-info-circle me-2"></i>
+            <strong class="me-auto">Guided Tour</strong>
+            <small class="text-body-secondary">(${globalStep}/${TOTAL_TOUR_STEPS})</small>
             <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
           </div>
           <div class="toast-body">${messages[i]}</div>
