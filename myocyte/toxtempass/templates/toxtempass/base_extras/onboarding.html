@@ -228,7 +228,8 @@
             <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
           </div>
           <div class="toast-body">${messages[i]}</div>
-          <div class="toast-footer d-flex justify-content-end pe-2 pb-2">
+          <div class="toast-footer d-flex justify-content-between pe-2 pb-2 px-2">
+            <button type="button" class="btn btn-outline-secondary btn-previous" aria-label="Previous">Previous</button>
             <button type="button" class="btn btn-primary" aria-label="Next">Next</button>
           </div>
         `;
@@ -281,10 +282,33 @@
         step.toastInstance.show();
         container.style.zIndex = '7000';
         step.toastEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Update Previous button visibility
+        const prevBtn = step.toastEl.querySelector('.btn-previous');
+        if (prevBtn) {
+          if (i === 0) {
+            prevBtn.style.display = 'none';
+          } else {
+            prevBtn.style.display = 'block';
+          }
+        }
       }
 
-      // Wire "Next" and handle page navigation
+      // Wire "Previous" and "Next" buttons
       steps.forEach((step, idx) => {
+        // Previous button handler
+        const prevBtn = step.toastEl.querySelector('.btn-previous');
+        if (prevBtn) {
+          prevBtn.addEventListener('click', () => {
+            if (idx > 0) {
+              currentStep = idx - 1;
+              updateTourProgress(currentPageIdx, currentStep);
+              showStep(currentStep);
+            }
+          });
+        }
+        
+        // Next button handler
         const nextBtn = step.toastEl.querySelector('.btn.btn-primary');
         if (nextBtn) {
           nextBtn.addEventListener('click', () => {
