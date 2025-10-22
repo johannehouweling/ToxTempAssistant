@@ -221,7 +221,7 @@
       const spansRight = qSet.has("top-right") && qSet.has("bottom-right");
 
       const cannotFitRight = rect.right + tw + m > vw;
-      const cannotFitLeft = vw - rect.left - tw - m < 0;
+      const cannotFitLeft = rect.left - tw - m < 0;
 
       const topOverflow =
         (qSet.has("top-left") && cannotFitRight) ||
