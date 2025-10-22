@@ -48,7 +48,7 @@
 #         # follow the redirect after successful delete
 #         response = client.post(url, follow=True)
 #         # should eventually land on your start view
-#         assert response.redirect_chain[-1][0] == reverse("start")
+#         assert response.redirect_chain[-1][0] == reverse("overview")
 #         # and the object should be gone
 #         assert not Investigation.objects.filter(pk=investigation.pk).exists()
 

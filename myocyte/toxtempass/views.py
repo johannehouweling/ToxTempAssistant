@@ -88,13 +88,18 @@ def is_logged_in(user: Person | None) -> bool:
     """Check if user is logged in as a Person instance."""
     return isinstance(user, Person)
 
+
 def is_beta_admitted(user: Person | None) -> bool:
     """Check if user is admitted to beta.
 
     If the user is not logged in, or not admitted, return False.
+    Admins (superusers) always bypass this check.
     """
     if not isinstance(user, Person):
         return False
+    # Allow superusers to bypass beta admission
+    if user.is_superuser:
+        return True
     prefs = getattr(user, "preferences", {}) or {}
     return prefs.get("beta_admitted", False)
 
@@ -111,7 +116,7 @@ class LoginView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
         """Render the login page with the login form if user is not authenticated."""
         if request.user.is_authenticated:
-            return redirect(reverse("start"))
+            return redirect(reverse("overview"))
         form = LoginForm()
         return render(request, "login.html", {"form": form})
 
@@ -142,7 +147,7 @@ class LoginView(View):
                     {
                         "success": True,
                         "errors": form.errors,
-                        "redirect_url": reverse("start"),
+                        "redirect_url": reverse("overview"),
                     }
                 )
             else:
@@ -158,7 +163,7 @@ def signup(request: HttpRequest) -> HttpResponse | JsonResponse:
     If the user is not logged in, they can sign up.
     """
     if request.user.is_authenticated:
-        return redirect(reverse("start"))
+        return redirect(reverse("overview"))
 
     if request.method == "POST":
         form = SignupForm(request.POST)
@@ -180,7 +185,7 @@ def signup(request: HttpRequest) -> HttpResponse | JsonResponse:
                 dict(
                     success=True,
                     errors=form.errors,
-                    redirect_url=reverse("start"),
+                    redirect_url=reverse("overview"),
                 )
             )
         else:
@@ -409,7 +414,7 @@ def orcid_callback(request: HttpRequest) -> HttpResponse | JsonResponse:
         person.save()
 
         # Optionally, you can add a message to confirm successful linking.
-        return redirect("start")  # Or wherever you wish to redirect the user.
+        return redirect("overview")  # Or wherever you wish to redirect the user.
 
     # If the user is not authenticated, handle the login/signup flow.
     try:
@@ -418,7 +423,7 @@ def orcid_callback(request: HttpRequest) -> HttpResponse | JsonResponse:
         login(
             request, user_profile, backend="django.contrib.auth.backends.ModelBackend"
         )  # Assuming Person has a related user object.
-        return redirect("start")
+        return redirect("overview")
     except Person.DoesNotExist:
         # Save the ORCID id and token data in the session for use in the signup process.
         request.session["orcid_id"] = orcid_id
@@ -438,58 +443,58 @@ def orcid_signup(request: HttpRequest) -> HttpResponse | JsonResponse:
             )
         )
 
-        if request.method == "POST":
-            form = SignupFormOrcid(request.POST)
-            if form.is_valid():
-                # Create the user but ensure the ORCID id is set from the session.
-                user = form.save(commit=False)
-                user.orcid_id = orcid_id
-                user.save()
-                login(request, user, backend="django.contrib.auth.backends.ModelBackend")
-                # Record beta request and enqueue notification to maintainer.
-                try:
-                    from toxtempass import utilities as beta_util  # type: ignore
+    if request.method == "POST":
+        form = SignupFormOrcid(request.POST)
+        if form.is_valid():
+            # Create the user but ensure the ORCID id is set from the session.
+            user = form.save(commit=False)
+            user.orcid_id = orcid_id
+            user.save()
+            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+            # Record beta request and enqueue notification to maintainer.
+            try:
+                from toxtempass import utilities as beta_util  # type: ignore
 
-                    async_task("toxtempass.tasks.send_beta_signup_notification", user.id)
-                    beta_util.set_beta_requested(user)
-                except Exception:
-                    logger.exception(
-                        "Failed to record/queue beta signup notification for ORCID user %s",
-                        getattr(user, "id", None),
-                    )
-                # Optionally, clear the ORCID data from the session.
-                request.session.pop("orcid_id", None)
-                request.session.pop("orcid_token_data", None)
-                return JsonResponse(
-                    dict(
-                        success=True,
-                        errors=form.errors,
-                        redirect_url=reverse("start"),
-                    )
+                async_task("toxtempass.tasks.send_beta_signup_notification", user.id)
+                beta_util.set_beta_requested(user)
+            except Exception:
+                logger.exception(
+                    "Failed to record/queue beta signup notification for ORCID user %s",
+                    getattr(user, "id", None),
                 )
-            else:
-                return JsonResponse(
-                    {
-                        "success": False,
-                        "errors": form.errors,
-                    }
+            # Optionally, clear the ORCID data from the session.
+            request.session.pop("orcid_id", None)
+            request.session.pop("orcid_token_data", None)
+            return JsonResponse(
+                dict(
+                    success=True,
+                    errors=form.errors,
+                    redirect_url=reverse("overview"),
                 )
+            )
         else:
-            # Prefill the form with the ORCID id.
-            names = request.session.get("orcid_token_data", {}).get("name").split(" ")
-            if len(names) == 2:
-                first_name, last_name = names
-            elif len(names) < 2:
-                first_name, last_name = names[0], ""
-            elif len(names) > 2:
-                first_name, last_name = names[0], " ".join(names[1:])
-            form = SignupFormOrcid(
-                initial={
-                    "orcid_id": orcid_id,
-                    "first_name": first_name,
-                    "last_name": last_name,
+            return JsonResponse(
+                {
+                    "success": False,
+                    "errors": form.errors,
                 }
             )
+    else:
+        # Prefill the form with the ORCID id.
+        names = request.session.get("orcid_token_data", {}).get("name").split(" ")
+        if len(names) == 2:
+            first_name, last_name = names
+        elif len(names) < 2:
+            first_name, last_name = names[0], ""
+        elif len(names) > 2:
+            first_name, last_name = names[0], " ".join(names[1:])
+        form = SignupFormOrcid(
+            initial={
+                "orcid_id": orcid_id,
+                "first_name": first_name,
+                "last_name": last_name,
+            }
+        )
 
     return render(request, "signup.html", {"form": form})
 
@@ -613,6 +618,35 @@ def add_status_context(
             "status_context",
             prev_context + ("\n" if prev_context else "") + new_entry,
         )
+
+
+def user_has_seen_tour_page(page: str, user: Person) -> bool:
+    """Register onboarding in user preferences per page.
+
+    Returns:
+        bool: False, if onboarding has not been seen already (first time)
+        bool: True, if onboarding has been shown already
+
+    """
+    # Check if user has seen the add_new tour before
+    prefs = getattr(user, "preferences", {}) or {}
+
+    # Ensure the 'has_seen_tour' entry is a dict so we can safely call .get on it.
+    seen = prefs.get("has_seen_tour")
+    if not isinstance(seen, dict):
+        seen = {}
+        prefs["has_seen_tour"] = seen
+
+    # Determine whether this page has been seen and mark it as seen if not.
+    has_seen_tour = bool(seen.get(page, False))
+    if not has_seen_tour:
+        seen[page] = True
+
+    # if we have visited all tours we no longer have to autostart
+    user.preferences = prefs
+    user.save()
+    print(has_seen_tour)
+    return has_seen_tour
 
 
 llm = get_llm()
@@ -834,7 +868,7 @@ class AssayListView(SingleTableView):
 
     def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         """Gate users who have requested beta access but are not yet admitted.
-        
+
         Redirect them to the beta waiting page.
         """
         prefs = getattr(request.user, "preferences", {}) or {}
@@ -843,7 +877,10 @@ class AssayListView(SingleTableView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self) -> QuerySet[Assay]:
-        """Return a queryset of Assays accessible by the user, filtered to only those with a question_set."""
+        """Return a queryset of Assays accessible by the user.
+
+        Filtered to only those with a question_set.
+        """
         user = self.request.user
         accessible_investigations = get_objects_for_user(
             user,
@@ -860,22 +897,16 @@ class AssayListView(SingleTableView):
     def get_context_data(self, **kwargs) -> dict:
         """Inject context."""
         context = super().get_context_data(**kwargs)
-        user = self.request.user
-        show_onboarding = False
-        prefs = user.preferences or {}
-        if not prefs.get("has_seen_onboarding", False):
-            show_onboarding = True
-            prefs["has_seen_onboarding"] = True
-            user.preferences = prefs
-            user.save()
-        context["show_onboarding"] = show_onboarding
+        context["show_tour"] = not user_has_seen_tour_page("overview", self.request.user)
+        # Tour management is now handled by JavaScript localStorage
+        # No backend flags needed
         return context
 
 
 @user_passes_test(is_logged_in, login_url="/login/")
-@user_passes_test(is_beta_admitted, login_url="/beta_wait/")
+@user_passes_test(is_beta_admitted, login_url="/beta/wait/")
 def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
-    """View to handle the starting form for new Assays."""
+    """View to handle the starting form for new ToxTemp."""
     # -------------------------------
     # GET: render the StartingForm, possibly using ?investigation=?, ?study=?, ?assay=?
     # -------------------------------
@@ -897,12 +928,13 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
         # <select> fields stay pre-selected
         form = StartingForm(initial=initial, user=request.user)
 
+        # Check if user has seen the add_new tour before
+        show_tour = not user_has_seen_tour_page("add_new", request.user)
+
         return render(
             request,
-            "start.html",
-            {
-                "form": form,
-            },
+            "new.html",
+            {"form": form, "action": reverse("add_new"), "show_tour": show_tour},
         )
 
     # --------------------------------
@@ -956,7 +988,7 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                 {
                     "success": True,
                     "errors": form.errors,
-                    "redirect_url": reverse("start"),
+                    "redirect_url": reverse("overview"),
                 }
             )
 
@@ -1166,9 +1198,11 @@ def create_or_update_assay(
             assay_id = saved_assay.id
 
             # Redirect back to
-            # /start/?investigation=<inv_id>&study=<st_id>&assay=<assay_id>
+            # /start/?investigation=<inv_id>&study=<st_id>&assay=<assay_id>&continue_tour=1
             redirect_url = reverse("add_new")
-            redirect_url += f"?investigation={inv_id}&study={st_id}&assay={assay_id}"
+            redirect_url += (
+                f"?investigation={inv_id}&study={st_id}&assay={assay_id}&continue_tour=1"
+            )
 
             return JsonResponse(
                 {
@@ -1207,6 +1241,7 @@ def create_or_update_assay(
                 "form": form,
                 "title": pk and "Modify Assay" or "Create Assay",
                 "back_url": mark_safe(back_url),  # noqa: S308
+                "show_tour": not user_has_seen_tour_page("create_assay", request.user),
             },
         )
 
@@ -1224,7 +1259,7 @@ def delete_assay(request: HttpRequest, pk: int) -> JsonResponse | HttpResponseRe
             raise PermissionDenied("You do not have permission to delete this assay.")
         assay.delete()
         if source_page == "overview":
-            return redirect("start")
+            return redirect("overview")
         return redirect("add_new")
     return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
 
@@ -1277,8 +1312,11 @@ def answer_assay_questions(
             "form": form,
             "assay": assay,
             "sections": sections,
+            "show_tour": not user_has_seen_tour_page(
+                "answer_assay_questions", request.user
+            ),
             # config is injected via the template context processor
-            "back_url": reverse("start"),
+            "back_url": reverse("overview"),
             "export_json_url": reverse(
                 "export_assay", kwargs=dict(assay_id=assay.id, export_type="json")
             ),

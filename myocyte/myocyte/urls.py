@@ -43,7 +43,9 @@ urlpatterns += [
     path("beta/approve/<str:token>/", views.approve_beta, name="approve_beta"),
     path("beta/wait/", views.beta_wait, name="beta_wait"),
     # Admin beta management
-    path("beta/users/", views.AdminBetaUserListView.as_view(), name="admin_beta_user_list"),
+    path(
+        "beta/users/", views.AdminBetaUserListView.as_view(), name="admin_beta_user_list"
+    ),
     path("beta/toggle-beta/", views.toggle_beta_admitted, name="toggle_beta_admitted"),
     # Investigation URLs
     path(
@@ -52,12 +54,12 @@ urlpatterns += [
         name="create_investigation",
     ),
     path(
-        "investigation/update/<int:pk>/",  # hard-coded in start.html
+        "investigation/update/<int:pk>/",  # hard-coded in new.html
         views.create_or_update_investigation,
         name="update_investigation",
     ),
     path(
-        "investigation/delete/<int:pk>/",  # hard-coded in start.html
+        "investigation/delete/<int:pk>/",  # hard-coded in new.html
         views.delete_investigation,
         name="delete_investigation",
     ),
@@ -65,12 +67,12 @@ urlpatterns += [
     path("study/create/", views.create_or_update_study, name="create_study"),
     path(
         "study/update/<int:pk>/", views.create_or_update_study, name="update_study"
-    ),  # hard-coded in start.html
+    ),  # hard-coded in new.html
     path(
         "study/delete/<int:pk>/", views.delete_study, name="delete_study"
-    ),  # hard-coded in start.html
+    ),  # hard-coded in new.html
     # Assay URLs
-    path("", views.AssayListView.as_view(), name="start"),
+    path("", views.AssayListView.as_view(), name="overview"),
     path("assay/create/", views.create_or_update_assay, name="create_assay"),
     path(
         "assay/gpt-allowed/<int:pk>",
@@ -79,10 +81,10 @@ urlpatterns += [
     ),
     path(
         "assay/update/<int:pk>/", views.create_or_update_assay, name="update_assay"
-    ),  # hard-coded in start.html
+    ),  # hard-coded in new.html
     path(
         "assay/delete/<int:pk>/", views.delete_assay, name="delete_assay"
-    ),  # hard-coded in start.html
+    ),  # hard-coded in new.html
     path(
         "assay/<int:assay_id>/answer/",
         views.answer_assay_questions,
@@ -118,7 +120,7 @@ urlpatterns += [
     ),
 ]
 
-# Filter Investigation and Study for the first menu on start.html
+# Filter Investigation and Study for the first menu on new.html
 # (so we only show hierachical options and not all)
 
 urlpatterns += [

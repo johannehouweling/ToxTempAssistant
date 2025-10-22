@@ -107,7 +107,9 @@ class Config:
     license_url = "https://www.gnu.org/licenses/agpl-3.0.html"
     version = os.getenv("GIT_TAG", "") + "-beta"
     reference_toxtempassistant_zenodo_code = "https://doi.org/10.5281/zenodo.15607642"
-    reference_toxtempassistant_zenodo_code_svg = "https://zenodo.org/badge/DOI/10.5281/zenodo.15607642.svg"
+    reference_toxtempassistant_zenodo_code_svg = (
+        "https://zenodo.org/badge/DOI/10.5281/zenodo.15607642.svg"
+    )
     reference_toxtempassistant_zenodo_publication = ""
     github_repo_url = "https://github.com/johannehouweling/ToxTempAssistant"
     git_hash = os.getenv("GIT_HASH", "")
@@ -137,24 +139,92 @@ class Config:
     _validation_bert_score_model = "microsoft/deberta-xlarge-mnli"
     _validation_cos_similarity_threshold = 0.7
     user_onboarding_help = {
-        "add_new": [
-            ["#id_investigation", "Help text for start page element 1."],
-            ["#id_study", "Help text for start page element 2."],
-        ],
-        # Add other URL names and their help elements as needed
-        "start": [
+        # URL name : list of [element selector, help text]
+        "overview": [
             [
                 "#id_headline",
                 "You can always click on the app title to return to the main page.",
             ],
             [
                 "#id_user_menu",
-                (
-                    "In the top right you find a user menu, where you can"
-                    " logout, or access some information like this help tour."
-                ),
+                "In the top right you find a user menu, where you can logout, or access some information like this help tour.",
             ],
-            ["#id_btn_new", "Click here to create a new ToxTemp."],
+            [
+                "td .btn-group a.btn-outline-primary:first-of-type",
+                "Click here to view a ToxTemp",
+            ],
+            ["#id_btn_new", "Whenver you are ready, click here to create a new ToxTemp."],
+        ],
+        "add_new": [
+            ["#id_question_set", "Choose which version of the ToxTemp template to use."],
+            [
+                "#id_investigation",
+                "Use this dropdown to select an Investigation. The buttons next to it allow you to edit or delete.",
+            ],
+            ["#id_study", "Select or create a Study within your Investigation."],
+            [
+                "#id_assay",
+                "Select or create an Assay - this is what your ToxTemp will describe.",
+            ],
+            ["#id_assay_btn0", "Click here to create a new assay."],
+            [
+                "#id_files",
+                "Upload relevant documents here to provide context for the LLM.",
+            ],
+            [
+                "#id_overwrite",
+                "Check this box to regenerate the ToxTemp for this Assay. Warning: This will replace any existing answers with new LLM-generated content.",
+            ],
+            [
+                "#startButton",
+                "Ready to go! Click here to start generating your ToxTemp. The LLM will extract relevant information from your documents to prefill the template.",
+            ],
+        ],
+        "create_assay": [
+            ["#id_study", "Select which Study this Assay belongs to."],
+            ["#id_title", "Give your Assay a clear, descriptive title."],
+            [
+                "#id_description",
+                "Important. Provide an assay description covering three key elements: (1) test purpose (e.g., cytotoxicity assessment), (2) test system (e.g., human neural stem cells differentiated into a neuron-astrocyte co-culture in a 2D monolayer), and (3) measured endpoint (e.g., cell viability assessed by formazan conversion using a luminescence assay). The LLM uses this structured description to understand the scope of the assay and help more accurately extract relevant information from your documents.",
+            ],
+            [
+                "button[type='submit']",
+                "Click to save your Assay and return to the main form.",
+            ],
+        ],
+        "answer_assay_questions": [
+            [
+                "#question-content label:first-of-type",
+                "Each subsection contains questions. This is the question text that the LLM has attempted to answer.",
+            ],
+            [
+                "#question-content textarea:first-of-type",
+                "This field shows the LLM-generated answer. If no relevant information was found, it will say 'Answer not found in documents.'. You can edit this answer as needed.",
+            ],
+            [
+                "button[data-bs-target='#versionHistoryModal']",
+                "Click here to view the answer history for this question, including earlier LLM-generated responses.",
+            ],
+            [
+                "#question-content input[type='checkbox']:first-of-type",
+                "Check this box to mark questions for an LLM update. You can select one or multiple questions, then use 'Options' → 'Update selected questions'.",
+            ],
+            [
+                "#question-content .form-check-input[role='switch']:first-of-type",
+                "Toggle 'Accepted' when satisfied with an answer. This tracks your progress through the ToxTemp.",
+            ],
+            [
+                "#progress",
+                "This progress bar shows how many answers you have accepted out of the total number of questions.",
+            ],
+            [
+                "#button[type='submit']",
+                "Changes are not automatically saved. Click 'Save' to preserve your edits.",
+            ],
+            [
+                ".btn-group:last-of-type .dropdown-toggle",
+                "Once you are finished, use 'Export' to download your completed or draft ToxTemp in various formats. You will be asked to provide brief feedback before export.",
+            ],
         ],
     }
 

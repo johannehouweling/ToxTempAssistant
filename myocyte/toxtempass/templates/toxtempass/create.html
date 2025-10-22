@@ -14,4 +14,28 @@
     {% bootstrap_button button_type="link" content="Back" href=back_url button_class="btn-outline-danger" %}
 </form>
 {% include "error_handling.html" %}
+
+<script>
+// Auto-start tour on create_assay page
+document.addEventListener('DOMContentLoaded', function() {
+    const urlName = document.body.getAttribute('data-url-name');
+    const config = window.ToxTempConfig || {};
+    const onboardingHelp = config.user_onboarding_help || {};
+    
+    // Auto-start tour if this page has tour steps defined
+    if (urlName && onboardingHelp[urlName] && onboardingHelp[urlName].length > 0) {
+        if (typeof window.startOnboarding === "function") {
+            setTimeout(() => window.startOnboarding(), 300); // Small delay to ensure page is fully loaded
+        }
+    }
+});
+
+// Set flag to continue tour on next page when form is submitted
+document.querySelector('form').addEventListener('submit', function(e) {
+    const urlName = document.body.getAttribute('data-url-name');
+    if (urlName === 'create_assay' || urlName === 'update_assay') {
+        localStorage.setItem('continueTourTo', 'add_new');
+    }
+});
+</script>
 {%endblock%}

@@ -64,7 +64,7 @@
         <header class="sticky-md-top">
             <div class="card bg-white border-0">
                 <div class="card m-3 border-0 d-flex align-items-center flex-row bg-primary" style="height:100px;"> <!--background-color:var(--bs-indigo);-->           
-                    <h2 class="m-3 text-white fs-2 fs-md-1" id="id_headline"><a href="{%url 'start'%}" class="text-decoration-none text-white"><i class="bi bi-clipboard-heart me-2"></i><b>ToxTemp</b>Assistant</a></h2>
+                    <h2 class="m-3 text-white fs-2 fs-md-1" id="id_headline"><a href="{%url 'overview'%}" class="text-decoration-none text-white"><i class="bi bi-clipboard-heart me-2"></i><b>ToxTemp</b>Assistant</a></h2>
                     <span class="badge d-none d-md-block bg-warning text-dark" data-bs-toggle="tooltip" data-bs-custom-class="header-tooltip" title="This app is still in beta. Features may change."><a class="text-decoration-none text-dark" href="https://github.com/johannehouweling/ToxTempAssistant/releases">{{config.version}}</a></span>
                     {% if user.is_authenticated %} 
                     <span class="btn orcid-icon-container btn-outline-light ms-auto fs-6 me-3" id="id_user_menu" tabindex="0" role="button" data-bs-toggle="offcanvas" href="#offcanvasUser">
@@ -92,7 +92,7 @@
          {% include "base_extras/user_offcanvas.html"%}
         
 
-        <div class="container px-4">
+        <div class="container px-4 py-5">
             {% block content %}
             <!-- Page content goes here -->
             {% endblock %}
