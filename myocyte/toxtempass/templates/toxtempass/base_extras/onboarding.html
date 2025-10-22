@@ -3,7 +3,7 @@
     let toast_tour = false;
 
     // ======= DEBUG =======
-    const DEBUG = true;
+    const DEBUG = false;
     const AUTO_NUDGE = true; // set to false if you only want logging, no adjustment
     const NUDGE_PX = 8;
 
@@ -664,7 +664,6 @@
       document.addEventListener("DOMContentLoaded", attachHelpBtnHandler);
       const showTour= {{show_tour|yesno:"true,false"}}
       const urlName = document.body.getAttribute("data-url-name");
-      console.log(showTour)
       if (showTour){
         if (urlName=="overview"){
         // Create toast container if it doesn't exist
