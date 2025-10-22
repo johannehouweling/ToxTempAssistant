@@ -2,6 +2,58 @@
 
 <!-- version list -->
 
+## v1.24.0 (2025-10-22)
+
+### Bug Fixes
+
+- **base**: Fixed padding on all pages
+  ([`8d3f289`](https://github.com/johannehouweling/ToxTempAssistant/commit/8d3f2890800aa2269b66342cf682a75caf744bab))
+
+- **beta**: Allow admins to bypass the beta sdmission check
+  ([`15d7874`](https://github.com/johannehouweling/ToxTempAssistant/commit/15d787401fcf899c0ce7bec8e307ef96c8ffa35d))
+
+- **onboardig**: Fixed automated onboarding, changed start.html to overview.html
+  ([`530e81f`](https://github.com/johannehouweling/ToxTempAssistant/commit/530e81f0395f9b3c85dc1f4e0552f2e097cd4a19))
+
+- **onboarding**: Fix placement of the toast
+  ([`3380552`](https://github.com/johannehouweling/ToxTempAssistant/commit/3380552a11da4a0ae099932dfc119744c80ad373))
+
+- **onboarding**: Fixed text
+  ([`7a43983`](https://github.com/johannehouweling/ToxTempAssistant/commit/7a439833dcf7bb2c27c3596370da5a1b0bdc6e14))
+
+- **onboarding**: Posiitioning left toast
+  ([`4c01463`](https://github.com/johannehouweling/ToxTempAssistant/commit/4c01463a4ebedd9243e474f2465aae78a970216f))
+
+- **onboarding**: Refined onboarding texts
+  ([`5e1c0bf`](https://github.com/johannehouweling/ToxTempAssistant/commit/5e1c0bf04cd954ee45ef6a64007621f8e27a1ace))
+
+### Features
+
+- **onboarding**: Add multi-page guided tour with circular navigation
+  ([`50f5178`](https://github.com/johannehouweling/ToxTempAssistant/commit/50f5178285ae59aa1c755dbfc33927c88a94e905))
+
+- **onboarding**: Add previous button
+  ([`0c91b76`](https://github.com/johannehouweling/ToxTempAssistant/commit/0c91b76302fd113b1d26d92174ca0e84668263a4))
+
+- **onboarding**: Added onboarding for the answer page
+  ([`8a6448c`](https://github.com/johannehouweling/ToxTempAssistant/commit/8a6448c2d1b404b543e6fc361f8587ae9dc52f4f))
+
+- **toast**: Improved styling
+  ([`5776472`](https://github.com/johannehouweling/ToxTempAssistant/commit/5776472724121f3c6150e407143de2c65b391d44))
+
+### Refactoring
+
+- **onboarding**: Changed back to dynamic placement of the toast
+  ([`bd15a87`](https://github.com/johannehouweling/ToxTempAssistant/commit/bd15a8773c5dcd0b4b3cf5dabc19dada97921f98))
+
+- **onboarding**: Clean up debug messages
+  ([`c52fbf8`](https://github.com/johannehouweling/ToxTempAssistant/commit/c52fbf84bc997a433b14e2c163fd882017feb92d))
+
+- **onboarding**: Fixed the toast to the center, added global step counter and made tied the
+  individual tours together in one global tour
+  ([`1dbe56e`](https://github.com/johannehouweling/ToxTempAssistant/commit/1dbe56eda14e77478b4d99fc69ea71daa21d6670))
+
+
 ## v1.23.0 (2025-10-01)
 
 ### Bug Fixes
