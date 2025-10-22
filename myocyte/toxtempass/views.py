@@ -443,58 +443,58 @@ def orcid_signup(request: HttpRequest) -> HttpResponse | JsonResponse:
             )
         )
 
-        if request.method == "POST":
-            form = SignupFormOrcid(request.POST)
-            if form.is_valid():
-                # Create the user but ensure the ORCID id is set from the session.
-                user = form.save(commit=False)
-                user.orcid_id = orcid_id
-                user.save()
-                login(request, user, backend="django.contrib.auth.backends.ModelBackend")
-                # Record beta request and enqueue notification to maintainer.
-                try:
-                    from toxtempass import utilities as beta_util  # type: ignore
+    if request.method == "POST":
+        form = SignupFormOrcid(request.POST)
+        if form.is_valid():
+            # Create the user but ensure the ORCID id is set from the session.
+            user = form.save(commit=False)
+            user.orcid_id = orcid_id
+            user.save()
+            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+            # Record beta request and enqueue notification to maintainer.
+            try:
+                from toxtempass import utilities as beta_util  # type: ignore
 
-                    async_task("toxtempass.tasks.send_beta_signup_notification", user.id)
-                    beta_util.set_beta_requested(user)
-                except Exception:
-                    logger.exception(
-                        "Failed to record/queue beta signup notification for ORCID user %s",
-                        getattr(user, "id", None),
-                    )
-                # Optionally, clear the ORCID data from the session.
-                request.session.pop("orcid_id", None)
-                request.session.pop("orcid_token_data", None)
-                return JsonResponse(
-                    dict(
-                        success=True,
-                        errors=form.errors,
-                        redirect_url=reverse("start"),
-                    )
+                async_task("toxtempass.tasks.send_beta_signup_notification", user.id)
+                beta_util.set_beta_requested(user)
+            except Exception:
+                logger.exception(
+                    "Failed to record/queue beta signup notification for ORCID user %s",
+                    getattr(user, "id", None),
                 )
-            else:
-                return JsonResponse(
-                    {
-                        "success": False,
-                        "errors": form.errors,
-                    }
+            # Optionally, clear the ORCID data from the session.
+            request.session.pop("orcid_id", None)
+            request.session.pop("orcid_token_data", None)
+            return JsonResponse(
+                dict(
+                    success=True,
+                    errors=form.errors,
+                    redirect_url=reverse("start"),
                 )
+            )
         else:
-            # Prefill the form with the ORCID id.
-            names = request.session.get("orcid_token_data", {}).get("name").split(" ")
-            if len(names) == 2:
-                first_name, last_name = names
-            elif len(names) < 2:
-                first_name, last_name = names[0], ""
-            elif len(names) > 2:
-                first_name, last_name = names[0], " ".join(names[1:])
-            form = SignupFormOrcid(
-                initial={
-                    "orcid_id": orcid_id,
-                    "first_name": first_name,
-                    "last_name": last_name,
+            return JsonResponse(
+                {
+                    "success": False,
+                    "errors": form.errors,
                 }
             )
+    else:
+        # Prefill the form with the ORCID id.
+        names = request.session.get("orcid_token_data", {}).get("name").split(" ")
+        if len(names) == 2:
+            first_name, last_name = names
+        elif len(names) < 2:
+            first_name, last_name = names[0], ""
+        elif len(names) > 2:
+            first_name, last_name = names[0], " ".join(names[1:])
+        form = SignupFormOrcid(
+            initial={
+                "orcid_id": orcid_id,
+                "first_name": first_name,
+                "last_name": last_name,
+            }
+        )
 
     return render(request, "signup.html", {"form": form})
 
