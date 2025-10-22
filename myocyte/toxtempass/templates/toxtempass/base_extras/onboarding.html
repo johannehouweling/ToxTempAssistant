@@ -1,320 +1,477 @@
- <script>
-  (function () {
-    var toast_tour = false;
+<script>
+(function () {
+  let toast_tour = false;
 
-    function toggleOverlay(state = null) {
-      let overlay = document.getElementById('onboarding-overlay');
-      if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'onboarding-overlay';
-        document.body.appendChild(overlay);
-      }
-      if (state === null) {
-        overlay.style.display = (overlay.style.display === 'none' || overlay.style.display === '') ? 'block' : 'none';
-      } else if (state === 'show') {
-        overlay.style.display = 'block';
-      } else if (state === 'hide' || state === 'hidden') {
-        overlay.style.display = 'none';
-      }
+  // ======= DEBUG =======
+  const DEBUG = true;
+  const AUTO_NUDGE = true;       // set to false if you only want logging, no adjustment
+  const NUDGE_PX = 8;
+
+  function debug(...args) {
+    if (DEBUG) console.log('[Onboarding]', ...args);
+  }
+  function group(label, fn) {
+    if (!DEBUG) return fn();
+    console.groupCollapsed('[Onboarding] ' + label);
+    try { fn(); } finally { console.groupEnd(); }
+  }
+  const num = (x) => Math.round((x ?? 0) * 100) / 100;
+  const rectToJSON = (r) => ({ left: num(r.left), top: num(r.top), right: num(r.right), bottom: num(r.bottom), width: num(r.width), height: num(r.height) });
+  const posToJSON  = (p) => ({ top: num(p.top), left: num(p.left) });
+
+  // ======= Overlay toggle =======
+  function toggleOverlay(state = null) {
+    let overlay = document.getElementById('onboarding-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'onboarding-overlay';
+      document.body.appendChild(overlay);
     }
-
-    function showOnboardingToasts(messages, selectors) {
-      if (toast_tour) return;
-      toast_tour = true;
-
-      const spareClass = 'spared-element';
-
-      // Ensure container exists
-      let container = document.getElementById('onboarding-toasts');
-      if (!container) {
-        container = document.createElement('div');
-        container.id = 'onboarding-toasts';
-        Object.assign(container.style, {
-          position: 'fixed',
-          top: '0', left: '0',
-          width: '100%', height: '100%',
-          pointerEvents: 'none',
-          zIndex: '3000',
-        });
-        document.body.appendChild(container);
-      }
-      container.innerHTML = '';
-
-      // Build steps only for selectors that actually exist
-      const steps = [];
-      selectors.forEach((sel, i) => {
-        const target = document.querySelector(sel);
-        if (!target) {
-          console.log('Onboarding: ' + sel + ' does not exist. Skipping.');
-          return;
-        }
-
-        // Create toast
-        const toastEl = document.createElement('div');
-        toastEl.classList.add('toast', 'my-3');
-        Object.assign(toastEl.style, {
-          position: 'absolute',
-          zIndex: '6000',
-          pointerEvents: 'auto'
-        });
-        toastEl.setAttribute('role', 'alert');
-        toastEl.setAttribute('aria-live', 'assertive');
-        toastEl.setAttribute('aria-atomic', 'true');
-
-        // Position with improved placement logic
-        const rect = target.getBoundingClientRect();
-        const toastWidth = 300; // approximate width of the toast element in px
-        const toastHeight = 100; // approximate height of the toast element in px
-        let margin = 10; // margin from viewport edges and element in px
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-
-        // Adjust margin for very small viewports so toast is closer to element
-        if (viewportWidth < 400) {
-          margin = 5;
-        }
-
-        // Candidate positions: below, above, right, left
-        const positions = [];
-
-        // Below: horizontally centered with element, below bottom edge
-        let belowLeft = rect.left + rect.width / 2 - toastWidth / 2;
-        if (belowLeft < margin) belowLeft = margin;
-        if (belowLeft + toastWidth + margin > viewportWidth) belowLeft = viewportWidth - toastWidth - margin;
-        positions.push({
-          top: rect.bottom + margin,
-          left: belowLeft,
-          transform: 'translate(0, 0)'
-        });
-
-        // Above: horizontally centered with element, above top edge
-        let aboveLeft = rect.left + rect.width / 2 - toastWidth / 2;
-        if (aboveLeft < margin) aboveLeft = margin;
-        if (aboveLeft + toastWidth + margin > viewportWidth) aboveLeft = viewportWidth - toastWidth - margin;
-        positions.push({
-          top: rect.top - toastHeight - margin,
-          left: aboveLeft,
-          transform: 'translate(0, 0)'
-        });
-
-        // Right: vertically centered with element, right of right edge
-        let rightTop = rect.top + rect.height / 2 - toastHeight / 2;
-        if (rightTop < margin) rightTop = margin;
-        if (rightTop + toastHeight + margin > viewportHeight) rightTop = viewportHeight - toastHeight - margin;
-        positions.push({
-          top: rightTop,
-          left: rect.right + margin,
-          transform: 'translate(0, 0)'
-        });
-
-        // Left: vertically centered with element, left of left edge
-        let leftTop = rect.top + rect.height / 2 - toastHeight / 2;
-        if (leftTop < margin) leftTop = margin;
-        if (leftTop + toastHeight + margin > viewportHeight) leftTop = viewportHeight - toastHeight - margin;
-        positions.push({
-          top: leftTop,
-          left: rect.left - toastWidth - margin,
-          transform: 'translate(0, 0)'
-        });
-
-        // Function to check if position fits inside viewport
-        function fitsInsideViewport(pos) {
-          return (
-            pos.left >= margin &&
-            pos.top >= margin &&
-            pos.left + toastWidth + margin <= viewportWidth &&
-            pos.top + toastHeight + margin <= viewportHeight
-          );
-        }
-
-        // Choose first position that fits inside viewport
-        let chosenPos = positions.find(p => fitsInsideViewport(p));
-
-        // Fallback: if none fit, place toast centered at bottom with margin
-        if (!chosenPos) {
-          chosenPos = {
-            top: viewportHeight - toastHeight - (margin * 2),
-            left: (viewportWidth - toastWidth) / 2,
-            transform: 'translate(0, 0)'
-          };
-        }
-
-        // Ensure toast stays fully within viewport bounds
-        // Constrain top position: must be at least margin from top
-        if (chosenPos.top < margin) {
-          chosenPos.top = margin;
-        }
-        
-        // Constrain bottom position: must be at least margin from bottom
-        if (chosenPos.top + toastHeight > viewportHeight - margin) {
-          chosenPos.top = viewportHeight - toastHeight - margin;
-          // If toast is too tall for viewport, position at top with margin
-          if (chosenPos.top < margin) {
-            chosenPos.top = margin;
-          }
-        }
-        
-        // Constrain left position: must be at least margin from left
-        if (chosenPos.left < margin) {
-          chosenPos.left = margin;
-        }
-        
-        // Constrain right position: must be at least margin from right
-        if (chosenPos.left + toastWidth > viewportWidth - margin) {
-          chosenPos.left = viewportWidth - toastWidth - margin;
-          // If toast is too wide for viewport, position at left with margin
-          if (chosenPos.left < margin) {
-            chosenPos.left = margin;
-          }
-        }
-
-        // Apply chosen position
-        toastEl.style.top = chosenPos.top + 'px';
-        toastEl.style.left = chosenPos.left + 'px';
-        toastEl.style.width = toastWidth + 'px'; // fix toast width for consistency
-        toastEl.style.transform = chosenPos.transform;
-
-       // Content
-        toastEl.innerHTML = `
-          <div class="toast-header">
-            <i class="bi bi-info-circle me-2" aria-hidden="true"></i>
-            <strong class="me-auto">Guided Tour</strong>
-            <small class="text-body-secondary">${i + 1}/${messages.length}</small>
-            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-          </div>
-          <div class="toast-body">${messages[i]}</div>
-          <div class="toast-footer d-flex justify-content-end pe-2 pb-2">
-            <button type="button" class="btn btn-primary" aria-label="Next">Next</button>
-          </div>
-        `;
-
-        container.appendChild(toastEl);
-        const toastInstance = new bootstrap.Toast(toastEl, { animation: true, autohide: false });
-        steps.push({ toastInstance, toastEl, target });
-      });
-
-      if (steps.length === 0) {
-        console.warn('Onboarding: No valid steps.');
-        toast_tour = false;
-        return;
-      }
-
-      // Hide "Next" on last step
-      steps[steps.length - 1].toastEl.querySelector('.btn.btn-primary')?.remove();
-
-      let currentStep = 0;
-
-      function showStep(i) {
-        steps.forEach(s => {
-          s.target.classList.remove(spareClass);
-          s.toastInstance.hide();
-        });
-        const step = steps[i];
-        step.target.classList.add(spareClass);
-        step.toastInstance.show();
-        container.style.zIndex = '7000';
-        step.toastEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-
-      // Wire "Next"
-      steps.forEach((step, idx) => {
-        const nextBtn = step.toastEl.querySelector('.btn.btn-primary');
-        if (nextBtn) {
-          nextBtn.addEventListener('click', () => {
-            if (idx + 1 < steps.length) {
-              currentStep = idx + 1;
-              showStep(currentStep);
-            }
-          });
-        }
-        step.toastEl.addEventListener('hidden.bs.toast', () => {
-          step.target.classList.remove(spareClass);
-          const anyVisible = steps.some(s => s.toastEl.classList.contains('show'));
-          if (!anyVisible) {
-            toggleOverlay('hide');
-            toast_tour = false;
-          }
-        });
-      });
-
-      toggleOverlay('show');
-      showStep(0);
-    }
-
-    
-
-    window.startOnboarding = function () {
-      const config = window.ToxTempConfig || {};
-      const onboardingHelp = config.user_onboarding_help || {};
-      const urlName = document.body.getAttribute('data-url-name');
-      if (!urlName || !onboardingHelp[urlName] || onboardingHelp[urlName].length === 0) {
-        // Show message to user that no help items registered for this page
-        const existingMessage = document.getElementById('onboarding-no-help-message');
-        if (!existingMessage) {
-          const msgDiv = document.createElement('div');
-          msgDiv.id = 'onboarding-no-help-message';
-          Object.assign(msgDiv.style, {
-            position: 'fixed',
-            top: '20px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            padding: '15px 25px',
-            backgroundColor: '#f8d7da',
-            color: '#842029',
-            border: '1px solid #f5c2c7',
-            borderRadius: '4px',
-            zIndex: '7000',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            textAlign: 'center',
-            maxWidth: '90%',
-          });
-          msgDiv.textContent = 'We are sorry, but for this page no help-items have been registered yet.';
-          document.body.appendChild(msgDiv);
-          // Automatically remove message after 5 seconds
-          setTimeout(() => {
-            msgDiv.remove();
-          }, 5000);
-        }
-        return;
-      }
-      const steps = onboardingHelp[urlName];
-      const selectors = steps.map(pair => pair[0]);
-      const messages = steps.map(pair => pair[1]);
-      showOnboardingToasts(messages, selectors);
-    };
-
-    // Attach handler
-    function attachHelpBtnHandler() {
-      const btn = document.getElementById('startOnboardingBtn');
-      if (btn) {
-        btn.addEventListener('click', () => {
-          // Check if user offcanvas is open
-          const offcanvasEl = document.getElementById('offcanvasUser');
-          if (offcanvasEl && offcanvasEl.classList.contains('show')) {
-            const offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
-            if (offcanvas) {
-              offcanvas.hide();
-            }
-          }
-          window.startOnboarding();
-        });
-      } else {
-        setTimeout(attachHelpBtnHandler, 100);
-      }
-    }
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', attachHelpBtnHandler);
+    if (state === null) {
+      overlay.style.display = (overlay.style.display === 'none' || overlay.style.display === '') ? 'block' : 'none';
     } else {
-      attachHelpBtnHandler();
+      overlay.style.display = (state === 'show') ? 'block' : 'none';
     }
-  })();
-  </script>
+  }
+
+  // ======= Scroll settle =======
+  function waitForScrollToSettle(timeoutMs = 800, stillMs = 120) {
+    return new Promise((resolve) => {
+      const vv = window.visualViewport;
+      let lastT = performance.now();
+      let lastY = vv ? vv.pageTop : window.scrollY;
+      const deadline = lastT + timeoutMs;
+
+      function tick(now) {
+        const y = vv ? vv.pageTop : window.scrollY;
+        if (y === lastY && (now - lastT) >= stillMs) return resolve();
+        if (y !== lastY) { lastY = y; lastT = now; }
+        if (now >= deadline) return resolve();
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    });
+  }
+
+  // ======= Measurement helpers =======
+  function measureViewport() {
+    const vv = window.visualViewport;
+    const vw = window.innerWidth;   // layout viewport
+    const vh = window.innerHeight;
+    const vvh = vv ? vv.height : null;
+    const vvo = vv ? { top: vv.offsetTop, left: vv.offsetLeft, pageTop: vv.pageTop, pageLeft: vv.pageLeft } : null;
+    let margin = vw < 400 ? 5 : 10;
+    if (DEBUG) {
+      group('Viewport', () => {
+        debug('layout vw/vh:', vw, vh);
+        if (vv) debug('visualViewport height:', vvh, 'offset:', vvo);
+      });
+    }
+    return { vw, vh, margin, vvh, vvo };
+  }
+
+
+
+function measureToast(toastEl, vw, vh, margin) {
+  const cs = getComputedStyle(toastEl);
+
+  // Respect BS sizing: BS toasts usually have max-width: 350px; width is 'auto'
+  const maxWidth = (cs.maxWidth && cs.maxWidth !== 'none') ? cs.maxWidth : '350px';
+  const boxSizing = cs.boxSizing;
+
+  const clone = toastEl.cloneNode(true);
+  Object.assign(clone.style, {
+    position: 'fixed',
+    visibility: 'hidden',
+    left: '-9999px',
+    top:  '-9999px',
+    pointerEvents: 'none',
+    display: 'block',
+    transform: 'none',
+    // DO NOT set width; keep it auto like BS
+    maxWidth,                       // keep BS max-width
+    maxHeight: (vh - 2*margin) + 'px',
+    overflowY: 'auto',
+    boxSizing
+  });
+
+  // Remove transition classes only on the clone
+  clone.classList.remove('hide', 'show', 'showing');
+
+  document.body.appendChild(clone);
+  // Flush layout
+  clone.offsetHeight;
+
+  const r = clone.getBoundingClientRect();
+  let tw = Math.ceil(r.width);
+  let th = Math.ceil(r.height);
+
+  if (!tw || !th) {
+    // Rare fallback; still no width set on clone
+    tw = Math.ceil(clone.scrollWidth  || parseFloat(cs.width)  || 320);
+    th = Math.ceil(clone.scrollHeight || parseFloat(cs.height) || 120);
+  }
+
+  if (typeof DEBUG !== 'undefined' && DEBUG) {
+    console.groupCollapsed('[Onboarding] Toast size measure (clone)');
+    console.log('computed maxWidth:', maxWidth, 'boxSizing:', boxSizing);
+    console.log('clone rect:', { w: r.width, h: r.height });
+    console.log('measured:', { tw, th });
+    console.groupEnd();
+  }
+
+  clone.remove();
+  return { width: tw, height: th, maxWidth };
+}
+
+  function determineQuadrants(rect, vw, vh) {
+    const cx = vw / 2, cy = vh / 2;
+    const q = new Set();
+    if (rect.left  < cx) { if (rect.top < cy) q.add('top-left');    if (rect.bottom > cy) q.add('bottom-left'); }
+    if (rect.right > cx) { if (rect.top < cy) q.add('top-right');   if (rect.bottom > cy) q.add('bottom-right'); }
+    return q;
+  }
+
+  // ======= Geometry helpers =======
+  function clampToViewport(top, left, vw, vh, tw, th, m) {
+    const t = Math.max(m, Math.min(top,  vh - th - m));
+    const l = Math.max(m, Math.min(left, vw - tw - m));
+    return { top: t, left: l };
+  }
+
+  function makeRectFromTopLeft(top, left, w, h) {
+    return { top, left, right: left + w, bottom: top + h, width: w, height: h };
+  }
+
+  function wouldOverlap(targetRect, toastTop, toastLeft, tw, th) {
+    const a = targetRect, b = makeRectFromTopLeft(toastTop, toastLeft, tw, th);
+    const overlap = !(b.left >= a.right || b.right <= a.left || b.top >= a.bottom || b.bottom <= a.top);
+    return { overlap, proposedToastRect: b };
+  }
+
+  // ======= Positioning (with meta for logging) =======
+  function calculateQuadrantBasedPosition(qSet, rect, tw, th, vw, vh, m) {
+    const q = Array.from(qSet);
+    const meta = { rule: 'CENTER', flags: {}, beforeClamp: null, afterClamp: null };
+
+    if (q.length >= 3) {
+      const before = { top: (vh - th) / 2, left: (vw - tw) / 2 };
+      const after  = clampToViewport(before.top, before.left, vw, vh, tw, th, m);
+      meta.rule = 'B9/CENTER';
+      meta.beforeClamp = posToJSON(before);
+      meta.afterClamp  = posToJSON(after);
+      return { ...after, meta };
+    }
+
+    const spansTop    = qSet.has('top-left')    && qSet.has('top-right');
+    const spansBottom = qSet.has('bottom-left') && qSet.has('bottom-right');
+    const spansLeft   = qSet.has('top-left')    && qSet.has('bottom-left');
+    const spansRight  = qSet.has('top-right')   && qSet.has('bottom-right');
+
+    const cannotFitRight = (rect.right + tw + m) > vw;
+    const cannotFitLeft  = (vw - rect.left - tw - m) < 0;
+
+    const topOverflow    = (qSet.has('top-left')    && cannotFitRight) || (qSet.has('top-right')    && cannotFitLeft);
+    const bottomOverflow = (qSet.has('bottom-left') && cannotFitRight) || (qSet.has('bottom-right') && cannotFitLeft);
+
+    meta.flags = { spansTop, spansBottom, spansLeft, spansRight, cannotFitLeft, cannotFitRight, topOverflow, bottomOverflow };
+
+    const isTopSpan    = spansTop    || topOverflow;
+    const isBottomSpan = spansBottom || bottomOverflow;
+
+    if (isTopSpan || isBottomSpan) {
+      const leftCenter = (vw - tw) / 2;
+      const belowTop = rect.bottom + m;
+      const aboveTop = rect.top - th - m;
+      const before = { top: isTopSpan ? belowTop : aboveTop, left: leftCenter };
+      const after  = clampToViewport(before.top, before.left, vw, vh, tw, th, m);
+      meta.rule = isTopSpan ? 'B5 (below, centered)' : 'B6 (above, centered)';
+      meta.beforeClamp = posToJSON(before);
+      meta.afterClamp  = posToJSON(after);
+      return { ...after, meta };
+    }
+
+    if (spansLeft || spansRight) {
+      const topMid = (vh - th) / 2;
+      const left = spansLeft ? (rect.right + m) : (rect.left - tw - m);
+      const before = { top: topMid, left };
+      const after  = clampToViewport(before.top, before.left, vw, vh, tw, th, m);
+      meta.rule = spansLeft ? 'B7 (left span → right of target)' : 'B8 (right span → left of target)';
+      meta.beforeClamp = posToJSON(before);
+      meta.afterClamp  = posToJSON(after);
+      return { ...after, meta };
+    }
+
+    const quadrant = q[0];
+    let before;
+    if (quadrant === 'top-left')    { before = { top: rect.bottom + m, left: rect.left }; meta.rule = 'B1 (below, align left)'; }
+    else if (quadrant === 'top-right')   { before = { top: rect.bottom + m, left: Math.max(m, rect.right - tw) }; meta.rule = 'B2 (below, align right)'; }
+    else if (quadrant === 'bottom-left') { before = { top: rect.top - th - m, left: rect.left }; meta.rule = 'B3 (above, align left)'; }
+    else if (quadrant === 'bottom-right'){ before = { top: rect.top - th - m, left: Math.max(m, rect.right - tw) }; meta.rule = 'B4 (above, align right)'; }
+    else {
+      before = { top: (vh - th) / 2, left: (vw - tw) / 2 };
+      meta.rule = 'CENTER (fallback)';
+    }
+
+    const after = clampToViewport(before.top, before.left, vw, vh, tw, th, m);
+    meta.beforeClamp = posToJSON(before);
+    meta.afterClamp  = posToJSON(after);
+    return { ...after, meta };
+  }
+
+  // ======= Main flow =======
+  function showOnboardingToasts(messages, selectors) {
+    if (toast_tour) return;
+    toast_tour = true;
+
+    const spareClass = 'spared-element';
+
+    let container = document.getElementById('onboarding-toasts');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'onboarding-toasts';
+      Object.assign(container.style, {
+        position: 'fixed',
+        top: '0', left: '0',
+        width: '100%',
+        height: '100dvh',
+        pointerEvents: 'none',
+        zIndex: '3000',
+      });
+      document.body.appendChild(container);
+    }
+    container.innerHTML = '';
+
+    const steps = [];
+    selectors.forEach((sel, i) => {
+      const target = document.querySelector(sel);
+      if (!target) {
+        debug('Onboarding: ' + sel + ' does not exist. Skipping.');
+        return;
+      }
+
+      const toastEl = document.createElement('div');
+      toastEl.classList.add('toast');
+      Object.assign(toastEl.style, {
+        position: 'absolute',
+        zIndex: '6000',
+        pointerEvents: 'auto'
+      });
+      toastEl.setAttribute('role', 'alert');
+      toastEl.setAttribute('aria-live', 'assertive');
+      toastEl.setAttribute('aria-atomic', 'true');
+
+      toastEl.innerHTML = `
+        <div class="toast-header">
+          <i class="bi bi-info-circle me-2" aria-hidden="true"></i>
+          <strong class="me-auto">Guided Tour</strong>
+          <small class="text-body-secondary">${i + 1}/${messages.length}</small>
+          <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">${messages[i]}</div>
+        <div class="toast-footer d-flex justify-content-end pe-2 pb-2">
+          <button type="button" class="btn btn-primary" aria-label="Next">Next</button>
+        </div>
+      `;
+
+      container.appendChild(toastEl);
+      const toastInstance = new bootstrap.Toast(toastEl, { animation: true, autohide: false });
+      steps.push({ toastInstance, toastEl, target, idx: i, selector: sel });
+    });
+
+    if (steps.length === 0) {
+      console.warn('Onboarding: No valid steps.');
+      toast_tour = false;
+      return;
+    }
+
+    const finishedBtn = document.createElement('button');
+    finishedBtn.type = 'button';
+    finishedBtn.className = 'btn btn-primary';
+    finishedBtn.setAttribute('aria-label', 'Finish');
+    finishedBtn.textContent = 'Finish';
+    finishedBtn.setAttribute('data-bs-dismiss', 'toast');
+    steps[steps.length - 1].toastEl.querySelector('.btn.btn-primary')?.replaceWith(finishedBtn);
+
+    let currentStep = 0;
+
+    async function showStep(i) {
+      steps.forEach(s => {
+        s.target.classList.remove('spared-element');
+        s.toastInstance.hide();
+      });
+      const step = steps[i];
+      const { toastEl, target, selector } = step;
+
+      target.classList.add('spared-element');
+      target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+      container.style.zIndex = '7000';
+
+      await waitForScrollToSettle();
+
+      const { vw, vh, margin } = measureViewport();
+      const { width: tw, height: th } = measureToast(toastEl);
+
+      const rect = target.getBoundingClientRect();
+      const quads = determineQuadrants(rect, vw, vh);
+      const pos = calculateQuadrantBasedPosition(quads, rect, tw, th, vw, vh, margin);
+
+      // ======= LOG EVERYTHING =======
+      group(`Step ${i + 1} (${selector})`, () => {
+        debug('Target rect:', rectToJSON(rect));
+        debug('Toast size:', { width: tw, height: th });
+        debug('Quadrants:', Array.from(quads).join(', ') || '(none)');
+        debug('Decision:', pos.meta.rule, pos.meta.flags);
+        debug('Before clamp:', pos.meta.beforeClamp, 'After clamp:', pos.meta.afterClamp);
+        debug('Viewport:', { vw, vh, margin, scrollY: window.scrollY, vv: window.visualViewport ? {
+          pageTop: window.visualViewport.pageTop, offsetTop: window.visualViewport.offsetTop, height: window.visualViewport.height
+        } : null });
+      });
+
+      // Optional: check overlap and nudge if needed (log result)
+      let finalTop  = pos.top;
+      let finalLeft = pos.left;
+
+      const overlapInfo = wouldOverlap(rect, finalTop, finalLeft, tw, th);
+      if (overlapInfo.overlap) {
+        group(`Overlap detected @ step ${i + 1}`, () => {
+          debug('Proposed toast rect:', rectToJSON(overlapInfo.proposedToastRect));
+          debug('Target rect:', rectToJSON(rect));
+        });
+
+        if (AUTO_NUDGE) {
+          // Try alternate vertical placement (flip above/below) first
+          const flipTop =
+            (pos.meta.rule.includes('below') || pos.meta.rule === 'B1' || pos.meta.rule === 'B2')
+              ? (rect.top - th - margin)        // go above
+              : (rect.bottom + margin);          // go below
+
+          const flipped = clampToViewport(flipTop, finalLeft, vw, vh, tw, th, margin);
+          const afterFlip = wouldOverlap(rect, flipped.top, flipped.left, tw, th);
+
+          if (!afterFlip.overlap) {
+            finalTop = flipped.top;
+            finalLeft = flipped.left;
+            debug('Auto-nudge: flipped vertical placement to avoid overlap.', posToJSON(flipped));
+          } else {
+            // Fine nudge horizontally
+            const tryLeft  = clampToViewport(finalTop, finalLeft - (rect.width + NUDGE_PX), vw, vh, tw, th, margin);
+            const tryRight = clampToViewport(finalTop, finalLeft + (rect.width + NUDGE_PX), vw, vh, tw, th, margin);
+            const oL = wouldOverlap(rect, tryLeft.top, tryLeft.left, tw, th).overlap;
+            const oR = wouldOverlap(rect, tryRight.top, tryRight.left, tw, th).overlap;
+
+            if (!oL) { finalTop = tryLeft.top; finalLeft = tryLeft.left; debug('Auto-nudge: shifted left to avoid overlap.', posToJSON(tryLeft)); }
+            else if (!oR) { finalTop = tryRight.top; finalLeft = tryRight.left; debug('Auto-nudge: shifted right to avoid overlap.', posToJSON(tryRight)); }
+            else {
+              debug('Auto-nudge: could not resolve overlap; using clamped original.');
+            }
+          }
+        }
+      }
+
+      // Apply position
+      toastEl.style.top  = finalTop + 'px';
+      toastEl.style.left = finalLeft + 'px';
+      toastEl.style.width = tw + 'px';
+      toastEl.style.transform = 'translate(0,0)';
+
+      step.toastInstance.show();
+    }
+
+    // Wire "Next"
+    steps.forEach((step, idx) => {
+      const nextBtn = step.toastEl.querySelector('.btn.btn-primary');
+      if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+          if (idx + 1 < steps.length) {
+            currentStep = idx + 1;
+            showStep(currentStep);
+          }
+        });
+      }
+      step.toastEl.addEventListener('hidden.bs.toast', () => {
+        step.target.classList.remove('spared-element');
+        const anyVisible = steps.some(s => s.toastEl.classList.contains('show'));
+        if (!anyVisible) {
+          toggleOverlay('hide');
+          toast_tour = false;
+        }
+      });
+    });
+
+    toggleOverlay('show');
+    showStep(0);
+  }
+
+  // ======= Public start =======
+  window.startOnboarding = function () {
+    const config = window.ToxTempConfig || {};
+    const onboardingHelp = config.user_onboarding_help || {};
+    const urlName = document.body.getAttribute('data-url-name');
+    if (!urlName || !onboardingHelp[urlName] || onboardingHelp[urlName].length === 0) {
+      const existingMessage = document.getElementById('onboarding-no-help-message');
+      if (!existingMessage) {
+        const msgDiv = document.createElement('div');
+        msgDiv.id = 'onboarding-no-help-message';
+        Object.assign(msgDiv.style, {
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          padding: '15px 25px',
+          backgroundColor: '#f8d7da',
+          color: '#842029',
+          border: '1px solid #f5c2c7',
+          borderRadius: '4px',
+          zIndex: '7000',
+          fontSize: '16px',
+          fontWeight: 'bold',
+          textAlign: 'center',
+          maxWidth: '90%',
+        });
+        msgDiv.textContent = 'We are sorry, but for this page no help-items have been registered yet.';
+        document.body.appendChild(msgDiv);
+        setTimeout(() => { msgDiv.remove(); }, 5000);
+      }
+      return;
+    }
+    const steps = onboardingHelp[urlName];
+    const selectors = steps.map(pair => pair[0]);
+    const messages  = steps.map(pair => pair[1]);
+    showOnboardingToasts(messages, selectors);
+  };
+
+  // ======= Attach handler =======
+  function attachHelpBtnHandler() {
+    const btn = document.getElementById('startOnboardingBtn');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        const offcanvasEl = document.getElementById('offcanvasUser');
+        if (offcanvasEl && offcanvasEl.classList.contains('show')) {
+          const offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
+          if (offcanvas) offcanvas.hide();
+        }
+        window.startOnboarding();
+      });
+    } else {
+      setTimeout(attachHelpBtnHandler, 100);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attachHelpBtnHandler);
+  } else {
+    attachHelpBtnHandler();
+  }
+})();
+</script>
+
+
 <style>
 /* Additional CSS for spared elements on overlay */
 .spared-element {
   position: relative !important;
-  // Raise z-index higher to help ensure highlight is below toasts
+  /* Raise z-index higher to help ensure highlight is below toasts */
   z-index: 5800 !important;
   box-shadow: 0 0 15px 3px #007bff !important;
   border-radius: 4px;

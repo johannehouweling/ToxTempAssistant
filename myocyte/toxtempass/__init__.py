@@ -149,8 +149,11 @@ class Config:
                 "#id_user_menu",
                 "In the top right you find a user menu, where you can logout, or access some information like this help tour.",
             ],
-            ["#id_btn_new", "Click here to create a new ToxTemp."],
-            ["td a.btn-primary:first-of-type", "Or click this View button to review and edit an existing assay's answers. The tour will continue on the answer page."],
+            [
+                "td .btn-group a.btn-outline-primary:first-of-type",
+                "Click here to view a ToxTemp",
+            ],
+            ["#id_btn_new", "Whenver you are ready, click here to create a new ToxTemp."],
         ],
         "add_new": [
             ["#id_question_set", "Choose which version of the ToxTemp template to use."],
@@ -163,7 +166,7 @@ class Config:
                 "#id_assay",
                 "Select or create an Assay - this is what your ToxTemp will describe.",
             ],
-            ["#id_assay_btn0", "Click here"],
+            ["#id_assay_btn0", "Click here to create a new assay."],
             [
                 "#id_files",
                 "Upload relevant documents here to provide context for the LLM.",
@@ -190,16 +193,40 @@ class Config:
             ],
         ],
         "answer_assay_questions": [
-            ["#navbar-questions", "Use thise sidebar to navigate between the ToxTemp sections."],
-            ["#question-content label:first-of-type", "Each subsection contains questions. This is the question text that the LLM has attempted to answer."],
-            ["#question-content textarea:first-of-type", "This field shows the LLM-generated answer. If no relevant information was found, it will say 'Answer not found in documents.'. You can edit this answer as needed."],
-            ["button[data-bs-target='#versionHistoryModal']", "Click here to view the answer history for this question, including earlier LLM-generated responses."],
-            ["#question-content input[type='checkbox']:first-of-type", "Check this box to mark questions for an LLM update. You can select one or multiple questions, then use 'Options' → 'Update selected questions'."],
-            ["#question-content .form-check-input[role='switch']:first-of-type", "Toggle 'Accepted' when satisfied with an answer. This tracks your progress through the ToxTemp."],
-            ["#progress", "This progress bar shows how many answers you have accepted out of the total number of questions."],
-            ["button[type='submit']", "Changes are not automatically saved. Click 'Save' to preserve your edits."],
-            [".btn-group:last-of-type .dropdown-toggle", "Once you are finished, use 'Export' to download your completed or draft ToxTemp in various formats. You will be asked to provide brief feedback before export."],
+            [
+                "#question-content label:first-of-type",
+                "Each subsection contains questions. This is the question text that the LLM has attempted to answer.",
+            ],
+            [
+                "#question-content textarea:first-of-type",
+                "This field shows the LLM-generated answer. If no relevant information was found, it will say 'Answer not found in documents.'. You can edit this answer as needed.",
+            ],
+            [
+                "button[data-bs-target='#versionHistoryModal']",
+                "Click here to view the answer history for this question, including earlier LLM-generated responses.",
+            ],
+            [
+                "#question-content input[type='checkbox']:first-of-type",
+                "Check this box to mark questions for an LLM update. You can select one or multiple questions, then use 'Options' → 'Update selected questions'.",
+            ],
+            [
+                "#question-content .form-check-input[role='switch']:first-of-type",
+                "Toggle 'Accepted' when satisfied with an answer. This tracks your progress through the ToxTemp.",
+            ],
+            [
+                "#progress",
+                "This progress bar shows how many answers you have accepted out of the total number of questions.",
+            ],
+            [
+                "#button[type='submit']",
+                "Changes are not automatically saved. Click 'Save' to preserve your edits.",
+            ],
+            [
+                ".btn-group:last-of-type .dropdown-toggle",
+                "Once you are finished, use 'Export' to download your completed or draft ToxTemp in various formats. You will be asked to provide brief feedback before export.",
+            ],
         ],
     }
+
 
 config = Config()
