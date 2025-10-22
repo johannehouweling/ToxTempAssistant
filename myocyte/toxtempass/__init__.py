@@ -140,7 +140,7 @@ class Config:
     _validation_cos_similarity_threshold = 0.7
     user_onboarding_help = {
         # URL name : list of [element selector, help text]
-        "start": [
+        "overview": [
             [
                 "#id_headline",
                 "You can always click on the app title to return to the main page.",
