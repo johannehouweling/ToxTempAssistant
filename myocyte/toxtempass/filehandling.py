@@ -22,6 +22,13 @@ logger = logging.getLogger("llm")
 
 
 # from toxtempass.utilis import calculate_md5_multiplefiles, combine_dicts
+def stringyfy_text_dict(text_dict: dict[str, dict[str, str]]) -> str:
+    """Convert text dictionary to a single string."""
+    return "\n\n".join(
+        f"--- {Path(fp).name} ---\n{meta['text']}"
+        for fp, meta in text_dict.items()
+        if "text" in meta
+    )
 
 
 def get_text_or_bytes_perfile_dict(

@@ -1,4 +1,5 @@
 import logging
+import mimetypes
 from collections import defaultdict
 from pathlib import Path
 
@@ -7,15 +8,15 @@ from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import PermissionDenied
 from django.core.files.uploadedfile import UploadedFile
 from django.forms import widgets
+from django.utils.safestring import mark_safe
 from guardian.shortcuts import get_objects_for_user
 from langchain_core.messages import SystemMessage
-import mimetypes
-
 
 from toxtempass import config
 from toxtempass.filehandling import (
     get_text_or_imagebytes_from_django_uploaded_file,
     split_doc_dict_by_type,
+    stringyfy_text_dict,
 )
 from toxtempass.llm import (
     ImageMessage,
@@ -111,17 +112,13 @@ class SignupForm(SignupFormOrcid):
         )
 
 
-from django.utils.safestring import mark_safe
-
-
 class MultipleFileInput(forms.ClearableFileInput):
     """FileInput for multiple files with upload progress bar and modal."""
 
     allow_multiple_selected = True
 
     def render(self, name, value, attrs=None, renderer=None):
-        from django.utils.safestring import mark_safe
-
+        """Render the widget with progress bar and modal."""
         # Render the default file input widget
         original_html = super().render(name, value, attrs, renderer)
 
@@ -523,7 +520,7 @@ class AssayAnswerForm(forms.Form):
         - Processes uploaded files.
         - Invokes GPT for earmarked answers synchronously.
         """
-        earmarked_answers = []
+        earmarked_answers = []  # for update
         uploaded_files = self.cleaned_data.get("file_upload", [])
 
         # Extract text from uploaded files.
@@ -583,41 +580,42 @@ class AssayAnswerForm(forms.Form):
 
         # earmarked for renewed answer generation
         if earmarked_answers and (text_dict or img_dict):
-            text_dict = {}
-            img_dict = {}
-
             for answer in earmarked_answers:
                 try:
                     messages = []
                     # Add all image messages
-                    for filename, img_bytes in img_dict.items():
-                        messages.append(
-                            ImageMessage(content=img_bytes, filename=filename)
-                        )
-                    # Add all text messages
-                    if text_dict:
-                        (
-                            messages.append(
-                                SystemMessage(
-                                    content=(
-                                        "Below find the context to answer"
-                                        f" the question:\n CONTEXT:\n{text_dict}"
-                                    )
-                                )
-                            ),
-                        )
+                    # for filename, img_bytes in img_dict.items():
+                    #     messages.append(
+                    #         ImageMessage(content=img_bytes, filename=filename)
+                    #     )
+                    # Add all text messages -> put into stringyfy_text_dict
+                    # if text_dict:
+                    #     (
+                    #         messages.append(
+                    #             SystemMessage(
+                    #                 content=(
+                    #                     "Below find the context to answer"
+                    #                     f" the question:\n CONTEXT:\n{text_dict}"
+                    #                 )
+                    #             )
+                    #         ),
+                    #     )
                     # (Add additional messages as needed based on your requirements.)
                     llm = get_llm()
-                    draft_answer = llm.invoke(messages)
+                    # Attention!! This is a synchronous call and may take time and does not work for images yet
+                    from toxtempass.views import generate_answer
+                    ans_id, draft_answer = generate_answer(
+                        answer, stringyfy_text_dict(text_dict), self.assay, llm
+                    )
                     existing_docs = answer.answer_documents or []
                     new_docs = [
                         Path(key).name
-                        for key in list(text_dict.keys()) + list(img_dict.keys())
+                        for key in list(text_dict.keys())  # + list(img_dict.keys())
                     ]
                     combined_docs = existing_docs + new_docs
                     unique_docs_updated = list(dict.fromkeys(combined_docs))
                     answer.answer_documents = unique_docs_updated
-                    answer.answer_text = draft_answer.content
+                    answer.answer_text = draft_answer
                     answer.accepted = False
                     answer.save()
                     logger.info(

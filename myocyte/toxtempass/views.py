@@ -42,6 +42,7 @@ from toxtempass.export import export_assay_to_file
 from toxtempass.filehandling import (
     get_text_or_imagebytes_from_django_uploaded_file,
     split_doc_dict_by_type,
+    stringyfy_text_dict,
 )
 from toxtempass.forms import (
     AssayAnswerForm,
@@ -645,12 +646,123 @@ def user_has_seen_tour_page(page: str, user: Person) -> bool:
     # if we have visited all tours we no longer have to autostart
     user.preferences = prefs
     user.save()
-    print(has_seen_tour)
     return has_seen_tour
 
 
 llm = get_llm()
 
+def generate_answer(ans: Answer,full_pdf_context:str, assay:Assay, chatopenai:ChatOpenAI) -> tuple[int, str]:
+    """Generate an answer for a single Answer instance."""
+    ## some variables for logging and deadline handling
+            # compute a soft deadline based on Django‑Q timeout (90% of it)
+    q_timeout = settings.Q_CLUSTER.get("timeout", None)
+    if q_timeout:
+        deadline = time.time() + q_timeout * 0.9
+    else:
+        deadline = None
+
+    all_answers = list(
+            assay.answers.select_related("question__subsection__section__question_set")
+        )
+    max_ans_id = max(a.id for a in all_answers) if all_answers else None
+    min_ans_id = min(a.id for a in all_answers) if all_answers else None
+    delta_ans = max_ans_id - min_ans_id if max_ans_id and min_ans_id else 0
+    
+    q = ans.question
+
+    # pick system messages
+    if q.only_additional_llm_instruction and q.additional_llm_instruction:
+        sys_msgs = [SystemMessage(content=q.additional_llm_instruction)]
+    else:
+        # base + question‐specific appended
+        sys_msgs = [
+            SystemMessage(content=config.base_prompt),
+            SystemMessage(content=f"ASSAY NAME: {assay.title}"),
+            SystemMessage(content=f"ASSAY DESCRIPTION: {assay.description}"),
+        ]
+        if q.additional_llm_instruction:
+            sys_msgs.append(
+                SystemMessage(content=q.additional_llm_instruction)
+            )
+
+    # build context string
+    if q.only_subsections_for_context and q.subsections_for_context.exists():
+        # gather answers to *all* questions in those subsections
+        ctx_answers = Answer.objects.filter(
+            assay=assay,
+            question__subsection__in=q.subsections_for_context.all(),
+            answer_text__isnull=False,
+        )
+        context_blocks = [
+            f"--- Q: {ca.question.question_text}\nA: {ca.answer_text}"
+            for ca in ctx_answers
+        ]
+        context_str = "\n\n".join(context_blocks)
+    else:
+        # use full PDF + *optional* subsection‑scoped answers
+        context_str = full_pdf_context
+        if q.subsections_for_context.exists():
+            ctx_answers = Answer.objects.filter(
+                assay=assay,
+                question__subsection__in=q.subsections_for_context.all(),
+                answer_text__isnull=False,
+            )
+            extra = "\n\n".join(
+                f"--- Q: {ca.question.question_text}\nA: {ca.answer_text}"
+                for ca in ctx_answers
+            )
+            context_str += "\n\n" + extra
+
+    # build messages
+    messages = []
+    messages.extend(sys_msgs)
+    if context_str:
+        messages.append(
+            SystemMessage(
+                content="Context for this question:\n" + context_str
+            )
+        )
+    messages.append(HumanMessage(content=q.question_text))
+
+    # retry loop with dynamic waits and soft deadline
+    while True:
+        if deadline is not None and time.time() > deadline:
+            logger.error(
+                f"Timed out retrying answer {ans.id} [{max_ans_id - ans.id}"
+                " of {delta_ans}] after {q_timeout}s total"
+            )
+            raise TimeoutError(
+                f"Answer {ans.id} [{max_ans_id - ans.id} of {delta_ans}]"
+                " timed out"
+            )
+
+        try:
+            resp = chatopenai.invoke(messages)
+            return ans.id, (resp.content or "")
+
+        except RateLimitError as e:
+            # parse “try again in Xs” if present
+            wait = 5.0
+            try:
+                msg = e.response.json().get("error", {}).get("message", "")
+                m = re.search(r"try again in ([\d\.]+)s", msg)
+                if m:
+                    wait = float(m.group(1)) + 0.5
+            except Exception:
+                pass
+
+            logger.warning(
+                f"RateLimit hit for answer {ans.id} [{max_ans_id - ans.id} "
+                f"of {delta_ans}], retrying in {wait:.1f}s"
+            )
+            time.sleep(wait)
+
+        except Exception as exc:
+            logger.exception(
+                f"LLM error for answer {ans.id} [{max_ans_id - ans.id} "
+                "of {delta_ans}]: {exc}"
+            )
+            return ans.id, ""
 
 def process_llm_async(
     assay_id: int,
@@ -674,27 +786,13 @@ def process_llm_async(
         assay.status = LLMStatus.BUSY
         assay.save()
 
-        # compute a soft deadline based on Django‑Q timeout (90% of it)
-        q_timeout = settings.Q_CLUSTER.get("timeout", None)
-        if q_timeout:
-            deadline = time.time() + q_timeout * 0.9
-        else:
-            deadline = None
-
         # Pre‐compute the global PDF context once
-        full_pdf_context = "\n\n".join(
-            f"--- {Path(fp).name} ---\n{meta['text']}"
-            for fp, meta in text_dict.items()
-            if "text" in meta
-        )
+        full_pdf_context = stringyfy_text_dict(text_dict)
 
         # Load all answers, grouped by their question.answering_round
         all_answers = list(
             assay.answers.select_related("question__subsection__section__question_set")
         )
-        max_ans_id = max(a.id for a in all_answers) if all_answers else None
-        min_ans_id = min(a.id for a in all_answers) if all_answers else None
-        delta_ans = max_ans_id - min_ans_id if max_ans_id and min_ans_id else 0
         rounds = sorted({a.question.answering_round for a in all_answers})
         answers_by_round = defaultdict(list)
         for ans in all_answers:
@@ -707,107 +805,9 @@ def process_llm_async(
                 f"Starting answering_round={rnd} with {len(round_answers)} questions"
             )
 
-            def generate_answer(ans: Answer) -> tuple[int, str]:
-                """Generate an answer for a single Answer instance."""
-                q = ans.question
-
-                # pick system messages
-                if q.only_additional_llm_instruction and q.additional_llm_instruction:
-                    sys_msgs = [SystemMessage(content=q.additional_llm_instruction)]
-                else:
-                    # base + question‐specific appended
-                    sys_msgs = [
-                        SystemMessage(content=config.base_prompt),
-                        SystemMessage(content=f"ASSAY NAME: {assay.title}"),
-                        SystemMessage(content=f"ASSAY DESCRIPTION: {assay.description}"),
-                    ]
-                    if q.additional_llm_instruction:
-                        sys_msgs.append(
-                            SystemMessage(content=q.additional_llm_instruction)
-                        )
-
-                # build context string
-                if q.only_subsections_for_context and q.subsections_for_context.exists():
-                    # gather answers to *all* questions in those subsections
-                    ctx_answers = Answer.objects.filter(
-                        assay=assay,
-                        question__subsection__in=q.subsections_for_context.all(),
-                        answer_text__isnull=False,
-                    )
-                    context_blocks = [
-                        f"--- Q: {ca.question.question_text}\nA: {ca.answer_text}"
-                        for ca in ctx_answers
-                    ]
-                    context_str = "\n\n".join(context_blocks)
-                else:
-                    # use full PDF + *optional* subsection‑scoped answers
-                    context_str = full_pdf_context
-                    if q.subsections_for_context.exists():
-                        ctx_answers = Answer.objects.filter(
-                            assay=assay,
-                            question__subsection__in=q.subsections_for_context.all(),
-                            answer_text__isnull=False,
-                        )
-                        extra = "\n\n".join(
-                            f"--- Q: {ca.question.question_text}\nA: {ca.answer_text}"
-                            for ca in ctx_answers
-                        )
-                        context_str += "\n\n" + extra
-
-                # build messages
-                messages = []
-                messages.extend(sys_msgs)
-                if context_str:
-                    messages.append(
-                        SystemMessage(
-                            content="Context for this question:\n" + context_str
-                        )
-                    )
-                messages.append(HumanMessage(content=q.question_text))
-
-                # retry loop with dynamic waits and soft deadline
-                while True:
-                    if deadline is not None and time.time() > deadline:
-                        logger.error(
-                            f"Timed out retrying answer {ans.id} [{max_ans_id - ans.id}"
-                            " of {delta_ans}] after {q_timeout}s total"
-                        )
-                        raise TimeoutError(
-                            f"Answer {ans.id} [{max_ans_id - ans.id} of {delta_ans}]"
-                            " timed out"
-                        )
-
-                    try:
-                        resp = chatopenai.invoke(messages)
-                        return ans.id, (resp.content or "")
-
-                    except RateLimitError as e:
-                        # parse “try again in Xs” if present
-                        wait = 5.0
-                        try:
-                            msg = e.response.json().get("error", {}).get("message", "")
-                            m = re.search(r"try again in ([\d\.]+)s", msg)
-                            if m:
-                                wait = float(m.group(1)) + 0.5
-                        except Exception:
-                            pass
-
-                        logger.warning(
-                            f"RateLimit hit for answer {ans.id} [{max_ans_id - ans.id} "
-                            f"of {delta_ans}], retrying in {wait:.1f}s"
-                        )
-                        time.sleep(wait)
-
-                    except Exception as exc:
-                        logger.exception(
-                            f"LLM error for answer {ans.id} [{max_ans_id - ans.id} "
-                            "of {delta_ans}]: {exc}"
-                        )
-                        return ans.id, ""
-
             # fire off the round in parallel
             with ThreadPoolExecutor(max_workers=config.max_workers_threading) as pool:
-                futures = {pool.submit(generate_answer, a): a for a in round_answers}
+                futures = {pool.submit(generate_answer, a, full_pdf_context,assay,chatopenai): a for a in round_answers}
                 for future in as_completed(futures):
                     try:
                         aid, text = future.result()
