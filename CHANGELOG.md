@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.25.1 (2025-10-23)
+
+### Bug Fixes
+
+- **overview**: Actually accessing the owner of the assay/investigation in the overview for admins.
+  ([`fc8dfc7`](https://github.com/johannehouweling/ToxTempAssistant/commit/fc8dfc7b01fa324231e55d4ff5cfb806d959c55f))
+
+
 ## v1.25.0 (2025-10-23)
 
 ### Features
