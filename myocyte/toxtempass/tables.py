@@ -58,7 +58,21 @@ class AssayTable(tables.Table):
         verbose_name="Assay",
         orderable=True,
         linkify=False,
-        attrs={"th": {"class": "no-link-header"}, "td": {"class": "align-middle text-break"}},
+        attrs={
+            "th": {"class": "no-link-header"},
+            "td": {"class": "align-middle text-break"},
+        },
+    )
+
+    owner = tables.Column(
+        accessor="user.get_full_name",
+        verbose_name="Owner",
+        orderable=True,
+        linkify=False,
+        attrs={
+            "th": {"class": "no-link-header d-none d-lg-table-cell"},
+            "td": {"class": "align-middle d-none d-lg-table-cell"},
+        },
     )
 
     progress = tables.Column(
@@ -169,6 +183,13 @@ class AssayTable(tables.Table):
             pct,
         )
 
+    def before_render(self, request):
+        """Override get_table to conditionally exclude 'confidential' column."""
+        if request.user.is_superuser:
+            self.columns.show("owner")
+        else:
+            self.columns.hide("owner")
+
     class Meta:
         model = Assay
         fields = (
@@ -178,6 +199,7 @@ class AssayTable(tables.Table):
             "investigation",
             "last_changed",
             "progress",
+            "owner",
             "action",
         )
         # Use the Bootstrap5 template so it picks up your existing styling
@@ -186,6 +208,7 @@ class AssayTable(tables.Table):
             "class": "table table-striped table-hover",
             "wrapper_class": "table-responsive",
         }
+
         # If you want default ordering, add for example:
         # order_by = "study__investigation__title"
 
@@ -193,13 +216,18 @@ class AssayTable(tables.Table):
 class BetaUserTable(tables.Table):
     name = tables.Column(accessor="get_full_name", verbose_name="Name", linkify=False)
     email = tables.Column(accessor="email", verbose_name="Email", linkify=False)
-    requested_at = tables.Column(verbose_name="Requested at", orderable=False, empty_values=())
+    requested_at = tables.Column(
+        verbose_name="Requested at", orderable=False, empty_values=()
+    )
     admitted = tables.Column(verbose_name="Admitted", orderable=False, empty_values=())
     num_assays = tables.Column(
         accessor="num_assays", verbose_name="# Assays", orderable=False
     )
     comment = tables.Column(
-        accessor="preferences.beta_comment", verbose_name="Comment", orderable=False, empty_values=()
+        accessor="preferences.beta_comment",
+        verbose_name="Comment",
+        orderable=False,
+        empty_values=(),
     )
     action = tables.TemplateColumn(
         template_code="""
@@ -234,6 +262,17 @@ class BetaUserTable(tables.Table):
 
     class Meta:
         model = Person
-        fields = ("name", "email", "requested_at",  "num_assays", "comment","admitted",  "action")
+        fields = (
+            "name",
+            "email",
+            "requested_at",
+            "num_assays",
+            "comment",
+            "admitted",
+            "action",
+        )
         template_name = "django_tables2/bootstrap5.html"
-        attrs = {"class": "table table-striped table-hover", "wrapper_class": "table-responsive"}
+        attrs = {
+            "class": "table table-striped table-hover",
+            "wrapper_class": "table-responsive",
+        }
