@@ -4,7 +4,7 @@ import logging
 import re
 import time
 from collections import defaultdict
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -40,7 +40,9 @@ from toxtempass import config
 from toxtempass import utilities as beta_util
 from toxtempass.export import export_assay_to_file
 from toxtempass.filehandling import (
+    collect_source_documents,
     get_text_or_imagebytes_from_django_uploaded_file,
+    image_dict_to_messages,
     split_doc_dict_by_type,
     stringyfy_text_dict,
 )
@@ -54,7 +56,7 @@ from toxtempass.forms import (
     StartingForm,
     StudyForm,
 )
-from toxtempass.llm import get_llm
+from toxtempass.llm import ImageMessage, get_llm
 from toxtempass.models import (
     Answer,
     Assay,
@@ -653,7 +655,11 @@ llm = get_llm()
 
 
 def generate_answer(
-    ans: Answer, full_pdf_context: str, assay: Assay, chatopenai: ChatOpenAI
+    ans: Answer,
+    full_pdf_context: str,
+    assay: Assay,
+    chatopenai: ChatOpenAI,
+    image_messages: Sequence[ImageMessage] | None = None,
 ) -> tuple[int, str]:
     """Generate an answer for a single Answer instance."""
     ## some variables for logging and deadline handling
@@ -714,6 +720,8 @@ def generate_answer(
             )
             context_str += "\n\n" + extra
 
+    image_messages = list(image_messages or [])
+
     # build messages
     messages = []
     messages.extend(sys_msgs)
@@ -721,7 +729,34 @@ def generate_answer(
         messages.append(
             SystemMessage(content="Context for this question:\n" + context_str)
         )
-    messages.append(HumanMessage(content=q.question_text))
+    if image_messages:
+        filenames = ", ".join(img.filename for img in image_messages)
+        messages.append(
+            SystemMessage(
+                content=(
+                    "You also have access to the following reference images: "
+                    f"{filenames}. Use them if they help answer the question."
+                )
+            )
+        )
+        human_content = [
+            {
+                "type": "text",
+                "text": q.question_text,
+            }
+        ]
+        for img in image_messages:
+            mime = (img.mime_type or "image/png").lower()
+            data_url = f"data:{mime};base64,{img.content}"
+            human_content.append(
+                {
+                    "type": "image_url",
+                    "image_url": {"url": data_url, "detail": "high"},
+                }
+            )
+        messages.append(HumanMessage(content=human_content))
+    else:
+        messages.append(HumanMessage(content=q.question_text))
 
     # retry loop with dynamic waits and soft deadline
     while True:
@@ -765,7 +800,7 @@ def generate_answer(
 
 def process_llm_async(
     assay_id: int,
-    text_dict: dict[str, dict[str, str]],
+    doc_dict: dict[str, dict[str, str]],
     chatopenai: ChatOpenAI = get_llm(),
 ) -> None:
     """Process llm answer async.
@@ -785,7 +820,14 @@ def process_llm_async(
         assay.status = LLMStatus.BUSY
         assay.save()
 
-        # Pre‐compute the global PDF context once
+        # Collect metadata about the provided documents (for provenance)
+        source_documents = collect_source_documents(doc_dict)
+
+        # Split uploaded documents into text and images
+        text_dict, image_dict = split_doc_dict_by_type(doc_dict, decode=False)
+        image_messages = tuple(image_dict_to_messages(image_dict))
+
+        # Pre-compute the global PDF context once
         full_pdf_context = stringyfy_text_dict(text_dict)
 
         # Load all answers, grouped by their question.answering_round
@@ -808,7 +850,12 @@ def process_llm_async(
             with ThreadPoolExecutor(max_workers=config.max_workers_threading) as pool:
                 futures = {
                     pool.submit(
-                        generate_answer, a, full_pdf_context, assay, chatopenai
+                        generate_answer,
+                        a,
+                        full_pdf_context,
+                        assay,
+                        chatopenai,
+                        image_messages,
                     ): a
                     for a in round_answers
                 }
@@ -839,7 +886,7 @@ def process_llm_async(
                         # save the successful draft
                         Answer.objects.filter(pk=aid).update(
                             answer_text=text,
-                            answer_documents=[Path(fp).name for fp in text_dict.keys()],
+                            answer_documents=source_documents,
                         )
                     except Exception as e:
                         add_status_context(assay, str(e))
@@ -967,17 +1014,15 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                 if form_empty_answers.is_valid():
                     form_empty_answers.save()
 
-                # Split text/images:
-                text_dict, _ = split_doc_dict_by_type(
-                    get_text_or_imagebytes_from_django_uploaded_file(files)
-                )
+                # Collect uploaded context (text + images)
+                doc_dict = get_text_or_imagebytes_from_django_uploaded_file(files)
                 try:
                     # Set assay status to busy and hand it off to the async worker
                     assay.status = LLMStatus.BUSY
                     assay.save()
 
                     # Fire off the asynchronous worker
-                    async_task(process_llm_async, assay.id, text_dict)
+                    async_task(process_llm_async, assay.id, doc_dict)
 
                 except Exception as e:
                     return JsonResponse(

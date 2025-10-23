@@ -1,29 +1,27 @@
+from datetime import datetime
+from decimal import Decimal
 import logging
 import mimetypes
 from collections import defaultdict
-from pathlib import Path
 
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import PermissionDenied
 from django.core.files.uploadedfile import UploadedFile
 from django.forms import widgets
-from django.utils.safestring import mark_safe
+from django.utils.safestring import mark_safe, SafeText
 from guardian.shortcuts import get_objects_for_user
-from langchain_core.messages import SystemMessage
 
 from toxtempass import config
 from toxtempass.filehandling import (
+    collect_source_documents,
     get_text_or_imagebytes_from_django_uploaded_file,
+    image_dict_to_messages,
     split_doc_dict_by_type,
     stringyfy_text_dict,
 )
 from toxtempass.llm import (
-    ImageMessage,
-    allowed_mime_types,
     get_llm,
-    image_accept_files,
-    text_accept_files,
 )
 from toxtempass.models import (
     Answer,
@@ -117,7 +115,13 @@ class MultipleFileInput(forms.ClearableFileInput):
 
     allow_multiple_selected = True
 
-    def render(self, name, value, attrs=None, renderer=None):
+    def render(
+        self,
+        name: str,
+        value: datetime | Decimal | float | str | None,
+        attrs: dict | None = None,
+        renderer: object|None = None,
+    ) -> SafeText:
         """Render the widget with progress bar and modal."""
         # Render the default file input widget
         original_html = super().render(name, value, attrs, renderer)
@@ -396,7 +400,7 @@ class AssayAnswerForm(forms.Form):
             raise PermissionDenied("You do not have access to this assay.")
         super().__init__(*args, **kwargs)
 
-        accepted_files = ",".join(image_accept_files + text_accept_files)
+        accepted_files = ",".join(config.image_accept_files + config.text_accept_files)
         self.fields["file_upload"] = MultipleFileField(
             widget=MultipleFileInput(
                 attrs={
@@ -478,7 +482,7 @@ class AssayAnswerForm(forms.Form):
         if not files:
             return []
 
-        allowed_types = allowed_mime_types
+        allowed_types = config.allowed_mime_types
         max_size_bytes = int(config.max_size_mb * 1024 * 1024)
 
         errors: list[forms.ValidationError] = []
@@ -523,15 +527,17 @@ class AssayAnswerForm(forms.Form):
         earmarked_answers = []  # for update
         uploaded_files = self.cleaned_data.get("file_upload", [])
 
-        # Extract text from uploaded files.
+        # Extract context from uploaded files.
         if uploaded_files:
-            text_dict, img_dict = split_doc_dict_by_type(
-                get_text_or_imagebytes_from_django_uploaded_file(uploaded_files)
-            )
+            doc_dict = get_text_or_imagebytes_from_django_uploaded_file(uploaded_files)
+            text_dict, img_dict = split_doc_dict_by_type(doc_dict, decode=False)
+            image_messages = image_dict_to_messages(img_dict)
             logger.debug(f"Extracted text from {len(uploaded_files)} uploaded files.")
         else:
+            doc_dict = {}
             text_dict = {}
             img_dict = {}
+            image_messages = []
             logger.debug("No files uploaded.")
 
         # Group fields by question ID.
@@ -580,38 +586,21 @@ class AssayAnswerForm(forms.Form):
 
         # earmarked for renewed answer generation
         if earmarked_answers and (text_dict or img_dict):
+            full_text_context = stringyfy_text_dict(text_dict)
             for answer in earmarked_answers:
                 try:
-                    messages = []
-                    # Add all image messages
-                    # for filename, img_bytes in img_dict.items():
-                    #     messages.append(
-                    #         ImageMessage(content=img_bytes, filename=filename)
-                    #     )
-                    # Add all text messages -> put into stringyfy_text_dict
-                    # if text_dict:
-                    #     (
-                    #         messages.append(
-                    #             SystemMessage(
-                    #                 content=(
-                    #                     "Below find the context to answer"
-                    #                     f" the question:\n CONTEXT:\n{text_dict}"
-                    #                 )
-                    #             )
-                    #         ),
-                    #     )
-                    # (Add additional messages as needed based on your requirements.)
                     llm = get_llm()
-                    # Attention!! This is a synchronous call and may take time and does not work for images yet
                     from toxtempass.views import generate_answer
+
                     ans_id, draft_answer = generate_answer(
-                        answer, stringyfy_text_dict(text_dict), self.assay, llm
+                        answer,
+                        full_text_context,
+                        self.assay,
+                        llm,
+                        image_messages=image_messages,
                     )
                     existing_docs = answer.answer_documents or []
-                    new_docs = [
-                        Path(key).name
-                        for key in list(text_dict.keys())  # + list(img_dict.keys())
-                    ]
+                    new_docs = collect_source_documents(doc_dict)
                     combined_docs = existing_docs + new_docs
                     unique_docs_updated = list(dict.fromkeys(combined_docs))
                     answer.answer_documents = unique_docs_updated

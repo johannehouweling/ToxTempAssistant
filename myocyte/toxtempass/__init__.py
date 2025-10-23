@@ -33,6 +33,7 @@ logging.basicConfig(
 
 class Config:
     """Put all parameters below here."""
+
     debug = settings.DEBUG
     # degbug = settings.DEBUG
     ## IMPORTANT ALL PARAMETERS ARE DUMPED INTO THE METADATA OF THE USER EXPORT, UNLESS MARKED WITH _ or __ (underscore or double underscore) ##
@@ -105,6 +106,22 @@ class Config:
             ]
         ]
     )
+    image_accept_files = [".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".webp"]
+    text_accept_files = [".pdf", ".docx", ".txt", ".md", ".html"]
+    allowed_mime_types = [
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/msword",
+        "text/plain",
+        "text/markdown",
+        "text/html",
+        "image/png",
+        "image/jpeg",
+        "image/gif",
+        "image/bmp",
+        "image/tiff",
+        "image/webp",
+    ]
     license_url = "https://www.gnu.org/licenses/agpl-3.0.html"
     version = os.getenv("GIT_TAG", "") + "-beta"
     reference_toxtempassistant_zenodo_code = "https://doi.org/10.5281/zenodo.15607642"
