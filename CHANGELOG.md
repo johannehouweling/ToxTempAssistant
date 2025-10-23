@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.25.0 (2025-10-23)
+
+### Features
+
+- **overview**: Show owner of toxtemp for superusers
+  ([`8a5275b`](https://github.com/johannehouweling/ToxTempAssistant/commit/8a5275b170ad29e8063cf6d6faee2db0e833e720))
+
+
 ## v1.24.0 (2025-10-22)
 
 ### Bug Fixes
