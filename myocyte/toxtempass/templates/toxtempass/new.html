@@ -47,7 +47,8 @@
         // Deactivate the upload menu if gpt is not allowed anymore because answers exist already.
         var assay_select = document.getElementById('id_assay')
         
-        function updateGptAllowed() {
+        function updateGptAllowed() {   
+            if (assay_select.value){ 
             fetch(`/assay/gpt-allowed/${assay_select.value}`, {
                 method: 'POST',
                 headers: {
@@ -80,6 +81,7 @@
             .catch((error) => {
                 console.error('Error:', error);
             });
+        }
         }
 
         assay_select.addEventListener('change', updateGptAllowed);
@@ -145,7 +147,7 @@
 
         function initializeUploadSelect(){
             var uploadSelectID = 'id_files'
-            document.getElementById(uploadSelectID).disabled=true;
+            {% comment %} document.getElementById(uploadSelectID).disabled=true; {% endcomment %}
         }
     
         // Use pageshow event to handle both initial load and back button navigation
@@ -193,7 +195,7 @@
                             studySelect.value = preselectedStudy;
                         }
 
-                        // If a study is now selected, fetch assays for it
+                                           // If a study is now selected, fetch assays for it
             if (studySelect.value) {
                 fetch(`/filter-assays-by-study/${studySelect.value}/`)
                     .then(resp => resp.json())
@@ -222,9 +224,9 @@
             } else {
                 studySelect.disabled = true;
                 assaySelect.disabled = true;
-                document.getElementById('id_files').disabled = true
-
+                updateGptAllowed();
             }
+
 
             // When Investigation is selected, fetch and populate related studies
             investigationSelect.addEventListener('change', function () {

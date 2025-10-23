@@ -1016,7 +1016,9 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                     form_empty_answers.save()
 
                 # Collect uploaded context (text + images)
-                doc_dict = get_text_or_imagebytes_from_django_uploaded_file(files, extract_images=extract_images)
+                doc_dict = get_text_or_imagebytes_from_django_uploaded_file(
+                    files, extract_images=extract_images
+                )
                 try:
                     # Set assay status to busy and hand it off to the async worker
                     assay.status = LLMStatus.BUSY
@@ -1248,11 +1250,8 @@ def create_or_update_assay(
             assay_id = saved_assay.id
 
             # Redirect back to
-            # /start/?investigation=<inv_id>&study=<st_id>&assay=<assay_id>&continue_tour=1
             redirect_url = reverse("add_new")
-            redirect_url += (
-                f"?investigation={inv_id}&study={st_id}&assay={assay_id}&continue_tour=1"
-            )
+            redirect_url += f"?investigation={inv_id}&study={st_id}&assay={assay_id}"
 
             return JsonResponse(
                 {
