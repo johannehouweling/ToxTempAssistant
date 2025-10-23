@@ -311,6 +311,10 @@ class Assay(AccessibleModel):
         """
         return self.answers.exists()
 
+    @property
+    def owner(self) -> Person:
+        """Return the owner of this assay (i.e., the owner of the parent investigation)."""
+        return self.study.investigation.owner
 
 # New model to track individual user's assay views
 class AssayView(models.Model):

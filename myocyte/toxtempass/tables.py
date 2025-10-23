@@ -65,7 +65,7 @@ class AssayTable(tables.Table):
     )
 
     owner = tables.Column(
-        accessor="user.get_full_name",
+        accessor="owner.get_full_name",
         verbose_name="Owner",
         orderable=True,
         linkify=False,
