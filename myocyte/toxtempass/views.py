@@ -868,7 +868,7 @@ class AssayListView(SingleTableView):
     model = Assay
     table_class = AssayTable
     template_name = "toxtempass/overview.html"
-    paginate_by = 5
+    paginate_by = 7
 
     def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         """Gate users who have requested beta access but are not yet admitted.

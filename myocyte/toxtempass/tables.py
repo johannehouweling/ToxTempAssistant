@@ -203,12 +203,11 @@ class AssayTable(tables.Table):
             "action",
         )
         # Use the Bootstrap5 template so it picks up your existing styling
-        template_name = "django_tables2/bootstrap5.html"
+        # template_name = "django_tables2/bootstrap5.html" THis is now a global setting
         attrs = {
             "class": "table table-striped table-hover",
             "wrapper_class": "table-responsive",
         }
-
         # If you want default ordering, add for example:
         # order_by = "study__investigation__title"
 
