@@ -996,6 +996,7 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
 
         if form.is_valid():
             assay = form.cleaned_data["assay"]
+            extract_images = form.cleaned_data.get("extract_images", False)
             qs = form.cleaned_data["question_set"]
             assay.question_set = qs
             assay.save()
@@ -1015,7 +1016,7 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                     form_empty_answers.save()
 
                 # Collect uploaded context (text + images)
-                doc_dict = get_text_or_imagebytes_from_django_uploaded_file(files)
+                doc_dict = get_text_or_imagebytes_from_django_uploaded_file(files, extract_images=extract_images)
                 try:
                     # Set assay status to busy and hand it off to the async worker
                     assay.status = LLMStatus.BUSY

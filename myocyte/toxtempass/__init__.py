@@ -63,7 +63,7 @@ class Config:
 
     RULES
     0.	**Implicit Subject:** In all responses and instructions, the implicit subject will always refer to the assay.
-    1.	**User Context:** Before answering, ensure you acknowledge the assay name and assay description provided by the user under the ASSAY NAME and ASSAY DESCRIPTION tags. This information should inform your responses.
+    1.	**User Context:** Before answering, ensure you acknowledge the assay name and assay description provided by the user under the ASSAY NAME and ASSAY DESCRIPTION tags. This information should scope your responses.
     2.	**Source-bounded answering:** Use only the provided CONTEXT to formulate your responses. For each piece of information included in the answer, explicitly reference the document it was retrieved from. If multiple documents contribute to the response, list all the sources.
     3.	**Format for Citing Sources:** 
         - If an answer is derived from a single document, append the source reference at the end of the statement: _(Source: X)_.
@@ -107,7 +107,16 @@ class Config:
         ]
     )
     image_accept_files = [".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".webp"]
-    text_accept_files = [".pdf", ".docx", ".txt", ".md", ".html"]
+    text_accept_files = [
+        ".pdf",
+        ".docx",
+        ".txt",
+        ".md",
+        ".html",
+        ".json",
+        ".csv",
+        ".xlsx",
+    ]
     allowed_mime_types = [
         "application/pdf",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -121,6 +130,9 @@ class Config:
         "image/bmp",
         "image/tiff",
         "image/webp",
+        "application/json",
+        "text/csv",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     ]
     license_url = "https://www.gnu.org/licenses/agpl-3.0.html"
     version = os.getenv("GIT_TAG", "") + "-beta"
@@ -174,7 +186,7 @@ class Config:
             ["#id_btn_new", "Whenver you are ready, click here to create a new ToxTemp."],
         ],
         "add_new": [
-            ["#id_question_set", "Choose which version of the ToxTemp template to use."],
+            #id_question_set", "Choose which version of the ToxTemp template to use."],
             [
                 "#id_investigation",
                 "Use this dropdown to select an Investigation. The buttons next to it allow you to edit or delete.",

@@ -275,6 +275,16 @@ class StartingForm(forms.Form):
         help_text="Permission to overwrite.",
     )
 
+    extract_images = forms.BooleanField(
+        required=False,
+        initial=False,
+        label="Extract images from uploaded documents",
+        help_text=(
+            "If checked, images found in uploaded documents (PDFs, DOCX) will be "
+            "extracted and used as additional context for generating answers."
+        ),
+    )
+
     def __init__(self, *args, user: Person = None, **kwargs):
         """Expect a 'user' keyword argument to filter the querysets.
 
@@ -358,7 +368,6 @@ class StudyForm(forms.ModelForm):
 
 
 # Form to create an Assay
-
 
 class AssayForm(forms.ModelForm):
     class Meta:

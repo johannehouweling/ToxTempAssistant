@@ -1,4 +1,6 @@
 import base64
+import csv
+import json
 import logging
 import mimetypes
 import shutil
@@ -19,9 +21,15 @@ from langchain_community.document_loaders import (
 )
 from PIL import Image
 from pypdf import PdfReader
+from pypdf._page import PageObject
 
 from toxtempass import config
 from toxtempass.llm import ImageMessage
+
+try:
+    import openpyxl
+except ImportError:  # pragma: no cover - optional dependency
+    openpyxl = None
 
 logger = logging.getLogger("llm")
 
@@ -37,13 +45,11 @@ IMAGE_SUFFIX_FORMATS = {
 }
 
 DEFAULT_IMAGE_MIME = "image/png"
-
-
-# from toxtempass.utilis import calculate_md5_multiplefiles, combine_dicts
+MAX_TABLE_ROWS = 50
 
 
 def _extract_images_from_pdf_page(
-    page, source_path: Path, page_number: int
+    page: PageObject, source_path: Path, page_number: int
 ) -> dict[str, dict[str, str]]:
     """Extract images from a single PDF page into the document dictionary format."""
     images: dict[str, dict[str, str]] = {}
@@ -117,6 +123,79 @@ def _extract_images_from_docx(path: Path) -> dict[str, dict[str, str]]:
     return images
 
 
+def _read_json_file(path: Path) -> str:
+    """Read a JSON file and return a pretty-printed string representation."""
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+        return json.dumps(data, indent=2, sort_keys=True, ensure_ascii=False)
+    except json.JSONDecodeError as exc:
+        logger.warning("Failed to parse JSON %s: %s. Returning raw text.", path, exc)
+        return path.read_text(encoding="utf-8", errors="replace")
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning("Unexpected error reading JSON %s: %s", path, exc)
+        return path.read_text(encoding="utf-8", errors="replace")
+
+
+def _read_csv_file(path: Path, max_rows: int = MAX_TABLE_ROWS) -> str:
+    """Read a CSV file and return a truncated textual representation."""
+    lines: list[str] = []
+    truncated = False
+    try:
+        with path.open("r", encoding="utf-8", newline="", errors="replace") as f:
+            reader = csv.reader(f)
+            for idx, row in enumerate(reader):
+                if idx >= max_rows:
+                    truncated = True
+                    break
+                lines.append(", ".join(row))
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning("Failed to read CSV %s: %s", path, exc)
+        return path.read_text(encoding="utf-8", errors="replace")
+
+    if not lines:
+        lines.append("(empty csv)")
+    if truncated:
+        lines.append(f"... (truncated after {max_rows} rows)")
+    return "\n".join(lines)
+
+
+def _read_xlsx_file(path: Path, max_rows: int = MAX_TABLE_ROWS) -> str:
+    """Read an XLSX workbook and return a textual summary per sheet."""
+    if openpyxl is None:
+        logger.warning("openpyxl not installed; cannot process %s", path)
+        return "Excel parsing unavailable (openpyxl not installed)."
+
+    try:
+        workbook = openpyxl.load_workbook(
+            path, read_only=True, data_only=True, keep_links=False
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning("Failed to open XLSX %s: %s", path, exc)
+        return "Unable to read Excel file."
+
+    sheet_texts: list[str] = []
+    try:
+        for sheet in workbook.worksheets:
+            lines: list[str] = []
+            truncated = False
+            for idx, row in enumerate(sheet.iter_rows(values_only=True)):
+                if idx >= max_rows:
+                    truncated = True
+                    break
+                formatted = ", ".join("" if cell is None else str(cell) for cell in row)
+                lines.append(formatted)
+            if not lines:
+                lines.append("(empty sheet)")
+            if truncated:
+                lines.append(f"... (truncated after {max_rows} rows)")
+            sheet_texts.append(f"Sheet: {sheet.title}\n" + "\n".join(lines))
+    finally:
+        workbook.close()
+
+    return "\n\n".join(sheet_texts) if sheet_texts else "(no sheets found)"
+
+
 def stringyfy_text_dict(text_dict: dict[str, dict[str, str]]) -> str:
     """Convert text dictionary to a single string."""
     return "\n\n".join(
@@ -127,13 +206,14 @@ def stringyfy_text_dict(text_dict: dict[str, dict[str, str]]) -> str:
 
 
 def get_text_or_bytes_perfile_dict(
-    document_filenames: list[str | Path], unlink: bool = True
+    document_filenames: list[str | Path], unlink: bool = True, extract_images: bool = True
 ) -> dict[str, dict[str, str]]:
     """Load content from a list of documents.
 
     Args:
     document_filenames (list of str): List of file paths to the documents.
     unlink (bool): if files shall be deleted afterwards
+    extract_images (bool): whether to extract images from PDFs and DOCX files
 
     Returns:
     dict: A dictionary where keys are filenames and values are the loaded document
@@ -168,8 +248,12 @@ def get_text_or_bytes_perfile_dict(
                             page_text = ""
                         if page_text.strip():
                             paragraphs.append(page_text.strip())
-                        images = _extract_images_from_pdf_page(
-                            page, context_filename, page_number
+                        images = (
+                            _extract_images_from_pdf_page(
+                                page, context_filename, page_number
+                            )
+                            if extract_images
+                            else {}
                         )
                         if images:
                             document_contents.update(images)
@@ -186,9 +270,18 @@ def get_text_or_bytes_perfile_dict(
             elif suffix == ".docx":
                 loader = UnstructuredWordDocumentLoader(str(context_filename))
                 text = loader.load()[0].page_content
-                images = _extract_images_from_docx(context_filename)
+                images = _extract_images_from_docx(context_filename) if extract_images else {}
                 if images:
                     document_contents.update(images)
+
+            elif suffix == ".json":
+                text = _read_json_file(context_filename)
+
+            elif suffix == ".csv":
+                text = _read_csv_file(context_filename)
+
+            elif suffix == ".xlsx":
+                text = _read_xlsx_file(context_filename)
 
             elif suffix in config.image_accept_files:
                 with Image.open(context_filename) as img:
@@ -258,6 +351,7 @@ def convert_to_temporary(file: InMemoryUploadedFile) -> tuple[str, Path]:
 
 def get_text_or_imagebytes_from_django_uploaded_file(
     files: UploadedFile,
+    extract_images: bool = False,
 ) -> dict[str, dict[str, str]]:
     """Get text dictionary from uploaded files.
 
@@ -276,7 +370,7 @@ def get_text_or_imagebytes_from_django_uploaded_file(
             temp_files.append(temp_path_str)
 
     # md5_dict = calculate_md5_multiplefiles(temp_files)
-    text_dict = get_text_or_bytes_perfile_dict(temp_files)
+    text_dict = get_text_or_bytes_perfile_dict(temp_files, extract_images=extract_images)
     return text_dict
 
 
@@ -313,9 +407,7 @@ def split_doc_dict_by_type(
     return text_dict, bytes_dict
 
 
-def image_dict_to_messages(
-    image_dict: dict[str, dict[str, str]]
-) -> list[ImageMessage]:
+def image_dict_to_messages(image_dict: dict[str, dict[str, str]]) -> list[ImageMessage]:
     """Convert an image dictionary to ImageMessage instances."""
     messages: list[ImageMessage] = []
     for path_str, meta in image_dict.items():
