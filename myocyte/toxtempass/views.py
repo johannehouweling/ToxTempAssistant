@@ -651,10 +651,13 @@ def user_has_seen_tour_page(page: str, user: Person) -> bool:
 
 llm = get_llm()
 
-def generate_answer(ans: Answer,full_pdf_context:str, assay:Assay, chatopenai:ChatOpenAI) -> tuple[int, str]:
+
+def generate_answer(
+    ans: Answer, full_pdf_context: str, assay: Assay, chatopenai: ChatOpenAI
+) -> tuple[int, str]:
     """Generate an answer for a single Answer instance."""
     ## some variables for logging and deadline handling
-            # compute a soft deadline based on Django‑Q timeout (90% of it)
+    # compute a soft deadline based on Django‑Q timeout (90% of it)
     q_timeout = settings.Q_CLUSTER.get("timeout", None)
     if q_timeout:
         deadline = time.time() + q_timeout * 0.9
@@ -662,12 +665,12 @@ def generate_answer(ans: Answer,full_pdf_context:str, assay:Assay, chatopenai:Ch
         deadline = None
 
     all_answers = list(
-            assay.answers.select_related("question__subsection__section__question_set")
-        )
+        assay.answers.select_related("question__subsection__section__question_set")
+    )
     max_ans_id = max(a.id for a in all_answers) if all_answers else None
     min_ans_id = min(a.id for a in all_answers) if all_answers else None
     delta_ans = max_ans_id - min_ans_id if max_ans_id and min_ans_id else 0
-    
+
     q = ans.question
 
     # pick system messages
@@ -681,9 +684,7 @@ def generate_answer(ans: Answer,full_pdf_context:str, assay:Assay, chatopenai:Ch
             SystemMessage(content=f"ASSAY DESCRIPTION: {assay.description}"),
         ]
         if q.additional_llm_instruction:
-            sys_msgs.append(
-                SystemMessage(content=q.additional_llm_instruction)
-            )
+            sys_msgs.append(SystemMessage(content=q.additional_llm_instruction))
 
     # build context string
     if q.only_subsections_for_context and q.subsections_for_context.exists():
@@ -718,9 +719,7 @@ def generate_answer(ans: Answer,full_pdf_context:str, assay:Assay, chatopenai:Ch
     messages.extend(sys_msgs)
     if context_str:
         messages.append(
-            SystemMessage(
-                content="Context for this question:\n" + context_str
-            )
+            SystemMessage(content="Context for this question:\n" + context_str)
         )
     messages.append(HumanMessage(content=q.question_text))
 
@@ -732,8 +731,7 @@ def generate_answer(ans: Answer,full_pdf_context:str, assay:Assay, chatopenai:Ch
                 " of {delta_ans}] after {q_timeout}s total"
             )
             raise TimeoutError(
-                f"Answer {ans.id} [{max_ans_id - ans.id} of {delta_ans}]"
-                " timed out"
+                f"Answer {ans.id} [{max_ans_id - ans.id} of {delta_ans}] timed out"
             )
 
         try:
@@ -763,6 +761,7 @@ def generate_answer(ans: Answer,full_pdf_context:str, assay:Assay, chatopenai:Ch
                 "of {delta_ans}]: {exc}"
             )
             return ans.id, ""
+
 
 def process_llm_async(
     assay_id: int,
@@ -807,7 +806,12 @@ def process_llm_async(
 
             # fire off the round in parallel
             with ThreadPoolExecutor(max_workers=config.max_workers_threading) as pool:
-                futures = {pool.submit(generate_answer, a, full_pdf_context,assay,chatopenai): a for a in round_answers}
+                futures = {
+                    pool.submit(
+                        generate_answer, a, full_pdf_context, assay, chatopenai
+                    ): a
+                    for a in round_answers
+                }
                 for future in as_completed(futures):
                     try:
                         aid, text = future.result()
@@ -864,7 +868,7 @@ class AssayListView(SingleTableView):
     model = Assay
     table_class = AssayTable
     template_name = "toxtempass/overview.html"
-    paginate_by = 10
+    paginate_by = 5
 
     def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         """Gate users who have requested beta access but are not yet admitted.

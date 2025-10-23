@@ -33,7 +33,8 @@ logging.basicConfig(
 
 class Config:
     """Put all parameters below here."""
-
+    debug = settings.DEBUG
+    # degbug = settings.DEBUG
     ## IMPORTANT ALL PARAMETERS ARE DUMPED INTO THE METADATA OF THE USER EXPORT, UNLESS MARKED WITH _ or __ (underscore or double underscore) ##
     # See https://openrouter.ai/models for available models.
     model = "gpt-4o-mini" if OPENAI_API_KEY == LLM_API_KEY else "openai/gpt-4o-mini"
