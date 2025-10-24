@@ -14,6 +14,7 @@ from django.core.files.uploadedfile import (
     TemporaryUploadedFile,
     UploadedFile,
 )
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_community.document_loaders import (
     BSHTMLLoader,
     TextLoader,
@@ -24,7 +25,7 @@ from pypdf import PdfReader
 from pypdf._page import PageObject
 
 from toxtempass import config
-from toxtempass.llm import ImageMessage
+from toxtempass.llm import get_llm
 
 try:
     import openpyxl
@@ -46,6 +47,100 @@ IMAGE_SUFFIX_FORMATS = {
 
 DEFAULT_IMAGE_MIME = "image/png"
 MAX_TABLE_ROWS = 50
+
+
+def _truncate_context(text: str | None, limit: int = 1500) -> str | None:
+    if not text:
+        return None
+    cleaned = text.strip()
+    if not cleaned:
+        return None
+    if len(cleaned) > limit:
+        return cleaned[:limit] + "…"
+    return cleaned
+
+
+def _describe_image(
+    encoded_image: str,
+    filename: str,
+    mime_type: str | None,
+    page_context: str | None = None,
+) -> str:
+    """Generate a textual description for an image using the configured LLM."""
+    mime = mime_type or DEFAULT_IMAGE_MIME
+    try:
+        llm = get_llm()
+        system_message = SystemMessage(content=config.image_description_prompt)
+        human_content: list[dict[str, object]] = []
+        context = _truncate_context(page_context)
+        if context:
+            human_content.append({"type": "text", "text": f"PAGE CONTEXT:\n{context}"})
+        human_content.append(
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:{mime};base64,{encoded_image}",
+                    "detail": "high",
+                },
+            }
+        )
+        response = llm.invoke([system_message, HumanMessage(content=human_content)])
+        description = (getattr(response, "content", "") or "").strip()
+        if description:
+            normalized = description.strip()
+            upper = normalized.upper()
+            if upper == "IGNORE_IMAGE":
+                logger.info("Descriptor returned IGNORE_IMAGE for %s; skipping.", filename)
+                return ""
+            if upper.startswith("I'M UNABLE") or upper.startswith("IT SEEMS"):
+                return ""
+            return normalized
+    except Exception as exc:  # pragma: no cover - defensive fallback
+        logger.warning("Image description failed for %s: %s", filename, exc)
+
+    return ""
+
+
+def _format_image_description(
+    description: str,
+    source_document: str,
+    page_number: int | None = None,
+) -> str:
+    doc_name = Path(source_document).name
+    if page_number is not None:
+        prefix = f"Image summary from {doc_name} (page {page_number})"
+    else:
+        prefix = f"Image summary from {doc_name}"
+    return f"{prefix}:\n{description}"
+
+
+def summarize_image_entries(doc_dict: dict[str, dict[str, str]]) -> None:
+    """Convert encoded image entries in-place to textual summaries."""
+    for key in list(doc_dict.keys()):
+        meta = doc_dict[key]
+        if "encodedbytes" not in meta:
+            continue
+
+        description = _describe_image(
+            meta.get("encodedbytes", ""),
+            Path(key).name,
+            meta.get("mime_type"),
+            meta.get("page_context"),
+        )
+        if not description:
+            logger.info("Removing image %s due to empty or ignored description.", key)
+            doc_dict.pop(key)
+            continue
+
+        doc_dict[key] = {
+            "text": _format_image_description(
+                description,
+                meta.get("source_document", key),
+                meta.get("page_number"),
+            ),
+            "source_document": meta.get("source_document", key),
+            "origin": "image_description",
+        }
 
 
 def _extract_images_from_pdf_page(
@@ -92,6 +187,7 @@ def _extract_images_from_pdf_page(
             "mime_type": mime_type or DEFAULT_IMAGE_MIME,
             "source_document": str(source_path),
             "origin": "embedded",
+            "page_number": page_number,
         }
 
     return images
@@ -117,6 +213,7 @@ def _extract_images_from_docx(path: Path) -> dict[str, dict[str, str]]:
                     "mime_type": mime_type,
                     "source_document": str(path),
                     "origin": "embedded",
+                    "page_number": None,
                 }
     except Exception as exc:  # pragma: no cover - defensive
         logger.debug("Failed to extract images from DOCX %s: %s", path, exc)
@@ -216,8 +313,9 @@ def get_text_or_bytes_perfile_dict(
     extract_images (bool): whether to extract images from PDFs and DOCX files
 
     Returns:
-    dict: A dictionary where keys are filenames and values are the loaded document
-    content or encoded bytes for images.
+    dict: A dictionary where keys are filenames (or synthetic identifiers) and values
+    are dictionaries containing extracted text. When ``extract_images`` is True,
+    images are summarized into text entries instead of returning raw bytes.
 
     """
     # coherce paths of type str to Path elements:
@@ -226,8 +324,6 @@ def get_text_or_bytes_perfile_dict(
 
     for context_filename in document_filenames:
         text = None
-        img_bytestring = None
-        mime_type = None
         suffix = context_filename.suffix.lower()
 
         try:
@@ -248,15 +344,16 @@ def get_text_or_bytes_perfile_dict(
                             page_text = ""
                         if page_text.strip():
                             paragraphs.append(page_text.strip())
-                        images = (
-                            _extract_images_from_pdf_page(
-                                page, context_filename, page_number
-                            )
-                            if extract_images
-                            else {}
+
+                        images = _extract_images_from_pdf_page(
+                            page, context_filename, page_number
                         )
                         if images:
+                            page_context = _truncate_context(page_text)
+                            for key in images:
+                                images[key]["page_context"] = page_context
                             document_contents.update(images)
+
                     text = "\n".join(paragraphs)
 
             elif suffix in [".txt", ".md"]:
@@ -270,8 +367,11 @@ def get_text_or_bytes_perfile_dict(
             elif suffix == ".docx":
                 loader = UnstructuredWordDocumentLoader(str(context_filename))
                 text = loader.load()[0].page_content
-                images = _extract_images_from_docx(context_filename) if extract_images else {}
+                images = _extract_images_from_docx(context_filename)
                 if images:
+                    doc_context = _truncate_context(text)
+                    for key in images:
+                        images[key]["page_context"] = doc_context
                     document_contents.update(images)
 
             elif suffix == ".json":
@@ -292,11 +392,21 @@ def get_text_or_bytes_perfile_dict(
                         img = img.convert("RGB")
                     s = BytesIO()
                     img.save(s, format=target_format)
-                    img_bytestring = base64.b64encode(s.getvalue()).decode("utf-8")
+                    encoded = base64.b64encode(s.getvalue()).decode("utf-8")
                 mime_type = (
                     mimetypes.guess_type(context_filename.name)[0]
                     or f"image/{target_format.lower()}"
                 )
+                document_contents[str(context_filename)] = {
+                    "encodedbytes": encoded,
+                    "mime_type": mime_type,
+                    "source_document": str(context_filename),
+                    "origin": "uploaded_image",
+                    "page_number": None,
+                    "page_context": None,
+                }
+                logger.info(f"The image '{context_filename}' was read successfully.")
+                continue
 
             if text:
                 document_contents[str(context_filename)] = {
@@ -305,20 +415,18 @@ def get_text_or_bytes_perfile_dict(
                     "origin": "document",
                 }
                 logger.info(f"The file '{context_filename}' was read successfully.")
-            elif img_bytestring:
-                document_contents[str(context_filename)] = {
-                    "encodedbytes": img_bytestring,
-                    "mime_type": mime_type or DEFAULT_IMAGE_MIME,
-                    "source_document": str(context_filename),
-                    "origin": "uploaded_image",
-                }
-                logger.info(f"The file '{context_filename}' was read successfully.")
 
         except Exception as e:
             logger.error(f"Error reading '{context_filename}': {e}")
-        # Here let's remove the files after reading them.
-        if unlink:
-            context_filename.unlink()
+        finally:
+            if unlink:
+                try:
+                    context_filename.unlink()
+                except FileNotFoundError:
+                    pass
+
+    if extract_images:
+        summarize_image_entries(document_contents)
 
     return document_contents
 
@@ -405,27 +513,6 @@ def split_doc_dict_by_type(
             else:
                 bytes_dict[pathstr] = sub_dict
     return text_dict, bytes_dict
-
-
-def image_dict_to_messages(image_dict: dict[str, dict[str, str]]) -> list[ImageMessage]:
-    """Convert an image dictionary to ImageMessage instances."""
-    messages: list[ImageMessage] = []
-    for path_str, meta in image_dict.items():
-        encoded = meta.get("encodedbytes")
-        if not encoded:
-            continue
-        filename = Path(path_str).name
-        mime = meta.get("mime_type")
-        if not mime:
-            mime, _ = mimetypes.guess_type(filename)
-        messages.append(
-            ImageMessage(
-                content=encoded,
-                filename=filename,
-                mime_type=mime or DEFAULT_IMAGE_MIME,
-            )
-        )
-    return messages
 
 
 def collect_source_documents(doc_dict: dict[str, dict[str, str]]) -> list[str]:

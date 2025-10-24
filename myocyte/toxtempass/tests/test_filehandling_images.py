@@ -1,11 +1,15 @@
 import base64
 from types import SimpleNamespace
+from unittest.mock import patch
 from zipfile import ZipFile
+
+from PIL import Image
 
 from toxtempass.filehandling import (
     _extract_images_from_docx,
     _extract_images_from_pdf_page,
     collect_source_documents,
+    get_text_or_bytes_perfile_dict,
 )
 
 
@@ -75,3 +79,19 @@ def test_collect_source_documents_handles_embedded_and_uploaded(tmp_path):
     result = collect_source_documents(doc_dict)
 
     assert result == ["report.pdf", "figure.png"]
+
+
+def test_image_descriptions_are_added_when_requested(tmp_path):
+    image_path = tmp_path / "figure.png"
+    img = Image.new("RGB", (10, 10), color="red")
+    img.save(image_path)
+
+    with patch("toxtempass.filehandling._describe_image", return_value="Stub description"):
+        doc_dict = get_text_or_bytes_perfile_dict(
+            [image_path], unlink=False, extract_images=True
+        )
+
+    entry = doc_dict[str(image_path)]
+    assert "text" in entry
+    assert "Stub description" in entry["text"]
+    assert entry["origin"] == "image_description"

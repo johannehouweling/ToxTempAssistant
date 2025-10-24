@@ -4,7 +4,7 @@ import logging
 import re
 import time
 from collections import defaultdict
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -42,7 +42,7 @@ from toxtempass.export import export_assay_to_file
 from toxtempass.filehandling import (
     collect_source_documents,
     get_text_or_imagebytes_from_django_uploaded_file,
-    image_dict_to_messages,
+    summarize_image_entries,
     split_doc_dict_by_type,
     stringyfy_text_dict,
 )
@@ -56,7 +56,7 @@ from toxtempass.forms import (
     StartingForm,
     StudyForm,
 )
-from toxtempass.llm import ImageMessage, get_llm
+from toxtempass.llm import get_llm
 from toxtempass.models import (
     Answer,
     Assay,
@@ -659,7 +659,6 @@ def generate_answer(
     full_pdf_context: str,
     assay: Assay,
     chatopenai: ChatOpenAI,
-    image_messages: Sequence[ImageMessage] | None = None,
 ) -> tuple[int, str]:
     """Generate an answer for a single Answer instance."""
     ## some variables for logging and deadline handling
@@ -720,8 +719,6 @@ def generate_answer(
             )
             context_str += "\n\n" + extra
 
-    image_messages = list(image_messages or [])
-
     # build messages
     messages = []
     messages.extend(sys_msgs)
@@ -729,34 +726,7 @@ def generate_answer(
         messages.append(
             SystemMessage(content="Context for this question:\n" + context_str)
         )
-    if image_messages:
-        filenames = ", ".join(img.filename for img in image_messages)
-        messages.append(
-            SystemMessage(
-                content=(
-                    "You also have access to the following reference images: "
-                    f"{filenames}. Use them if they help answer the question."
-                )
-            )
-        )
-        human_content = [
-            {
-                "type": "text",
-                "text": q.question_text,
-            }
-        ]
-        for img in image_messages:
-            mime = (img.mime_type or "image/png").lower()
-            data_url = f"data:{mime};base64,{img.content}"
-            human_content.append(
-                {
-                    "type": "image_url",
-                    "image_url": {"url": data_url, "detail": "high"},
-                }
-            )
-        messages.append(HumanMessage(content=human_content))
-    else:
-        messages.append(HumanMessage(content=q.question_text))
+    messages.append(HumanMessage(content=q.question_text))
 
     # retry loop with dynamic waits and soft deadline
     while True:
@@ -800,8 +770,10 @@ def generate_answer(
 
 def process_llm_async(
     assay_id: int,
-    doc_dict: dict[str, dict[str, str]],
-    chatopenai: ChatOpenAI = get_llm(),
+    doc_dict: dict[str, dict[str, str]] | None = None,
+    extract_images: bool = False,
+    answer_ids: list[int] | None = None,
+    chatopenai: ChatOpenAI | None = None,
 ) -> None:
     """Process llm answer async.
 
@@ -820,20 +792,34 @@ def process_llm_async(
         assay.status = LLMStatus.BUSY
         assay.save()
 
-        # Collect metadata about the provided documents (for provenance)
-        source_documents = collect_source_documents(doc_dict)
+        chatopenai = chatopenai or get_llm()
 
-        # Split uploaded documents into text and images
-        text_dict, image_dict = split_doc_dict_by_type(doc_dict, decode=False)
-        image_messages = tuple(image_dict_to_messages(image_dict))
+        payload = dict(doc_dict or {})
+        if extract_images and payload:
+            summarize_image_entries(payload)
+        else:
+            for key in list(payload.keys()):
+                if "encodedbytes" in payload[key]:
+                    payload.pop(key)
 
-        # Pre-compute the global PDF context once
+        source_documents = collect_source_documents(payload)
+        text_dict, _ = split_doc_dict_by_type(payload, decode=False)
         full_pdf_context = stringyfy_text_dict(text_dict)
 
-        # Load all answers, grouped by their question.answering_round
         all_answers = list(
             assay.answers.select_related("question__subsection__section__question_set")
         )
+        requested_ids = set(answer_ids or [])
+        if requested_ids:
+            all_answers = [a for a in all_answers if a.id in requested_ids]
+            if not all_answers:
+                logger.info(
+                    "No matching answers to regenerate for assay %s; marking DONE.",
+                    assay_id,
+                )
+                assay.status = LLMStatus.DONE
+                assay.save()
+                return
         rounds = sorted({a.question.answering_round for a in all_answers})
         answers_by_round = defaultdict(list)
         for ans in all_answers:
@@ -841,6 +827,10 @@ def process_llm_async(
 
         for rnd in rounds:
             round_answers = answers_by_round[rnd]
+            if requested_ids:
+                round_answers = [a for a in round_answers if a.id in requested_ids]
+                if not round_answers:
+                    continue
 
             logger.info(
                 f"Starting answering_round={rnd} with {len(round_answers)} questions"
@@ -855,7 +845,6 @@ def process_llm_async(
                         full_pdf_context,
                         assay,
                         chatopenai,
-                        image_messages,
                     ): a
                     for a in round_answers
                 }
@@ -864,13 +853,11 @@ def process_llm_async(
                         aid, text = future.result()
                     except TimeoutError as te:
                         logger.error(str(te))
-                        timed_out = True
                         continue
                     except Exception as exc:
                         logger.exception(
                             f"Fatal error for answer {futures[future].id}: {exc}"
                         )
-                        timed_out = True
                         continue
                     try:
                         # check assay existence before saving
@@ -1017,7 +1004,7 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
 
                 # Collect uploaded context (text + images)
                 doc_dict = get_text_or_imagebytes_from_django_uploaded_file(
-                    files, extract_images=extract_images
+                    files, extract_images=False
                 )
                 try:
                     # Set assay status to busy and hand it off to the async worker
@@ -1025,7 +1012,12 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                     assay.save()
 
                     # Fire off the asynchronous worker
-                    async_task(process_llm_async, assay.id, doc_dict)
+                    async_task(
+                        process_llm_async,
+                        assay.id,
+                        doc_dict,
+                        extract_images,
+                    )
 
                 except Exception as e:
                     return JsonResponse(
@@ -1340,14 +1332,19 @@ def answer_assay_questions(
             request.POST, request.FILES, assay=assay, user=request.user
         )
         if form.is_valid():
-            form.save()
+            queued = form.save()
+            if form.errors:
+                return JsonResponse({"success": False, "errors": form.errors})
+            redirect_target = (
+                reverse("overview")
+                if getattr(form, "async_enqueued", False)
+                else reverse("answer_assay_questions", kwargs=dict(assay_id=assay.pk))
+            )
             return JsonResponse(
                 {
                     "success": True,
                     "errors": form.errors,
-                    "redirect_url": reverse(
-                        "answer_assay_questions", kwargs=dict(assay_id=assay.pk)
-                    ),
+                    "redirect_url": redirect_target,
                 }
             )
         else:

@@ -94,6 +94,7 @@ for model, temp in zip(
                 for key, value in input_tier2_dict.items()
                 if document_name in key
             },
+            extract_images=True,
             chatopenai=llm,
         )
         print(f"Success: {assay.status}")

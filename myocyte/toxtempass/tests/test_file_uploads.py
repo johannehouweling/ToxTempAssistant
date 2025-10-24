@@ -11,6 +11,7 @@ from toxtempass.tests.fixtures.factories import (
     AssayFactory,
 )
 from toxtempass.forms import AssayAnswerForm
+from toxtempass.models import QuestionSet, Section, Subsection, Question, Answer
 
 
 class FileUploadTests(TestCase):
@@ -28,30 +29,42 @@ class FileUploadTests(TestCase):
         assert the processing functions are invoked. This avoids test-client
         upload mechanics which can be brittle in tests.
         """
-        from unittest.mock import patch as _patch
-        from django.utils.datastructures import MultiValueDict
+        qs = QuestionSet.objects.create(
+            display_name="test-qs", created_by=self.assay.study.investigation.owner
+        )
+        section = Section.objects.create(question_set=qs, title="Sec")
+        subsection = Subsection.objects.create(section=section, title="Subsec")
+        question = Question.objects.create(subsection=subsection, question_text="Q1?")
+        Answer.objects.get_or_create(assay=self.assay, question=question)
+        self.assay.question_set = qs
+        self.assay.save()
 
-        dummy_text = {"a.txt": {"text": "alpha"}, "b.txt": {"text": "beta"}}
+        dummy_doc = {
+            "a.txt": {"text": "alpha", "source_document": "a.txt", "origin": "document"}
+        }
 
         f1 = SimpleUploadedFile("a.txt", b"alpha", content_type="text/plain")
         f2 = SimpleUploadedFile("b.txt", b"beta", content_type="text/plain")
 
         files = MultiValueDict({"file_upload": [f1, f2]})
 
-        with _patch("toxtempass.forms.get_text_or_imagebytes_from_django_uploaded_file") as mock_get_text, _patch(
-            "toxtempass.forms.split_doc_dict_by_type"
-        ) as mock_split:
-            mock_get_text.return_value = dummy_text
-            mock_split.return_value = (dummy_text, {})
-
-            form = AssayAnswerForm(data={}, files=files, assay=self.assay, user=self.user)
+        with patch(
+            "toxtempass.forms.get_text_or_imagebytes_from_django_uploaded_file",
+            return_value=dummy_doc,
+        ) as mock_get_text, patch("toxtempass.forms.async_task") as mock_async:
+            form = AssayAnswerForm(
+                data={f"earmarked_{question.id}": True},
+                files=files,
+                assay=self.assay,
+                user=self.user,
+            )
             self.assertTrue(form.is_valid(), msg=f"Form errors: {form.errors}")
-            form.save()
+            queued = form.save()
 
-            # Ensure get_text_or_imagebytes_from_django_uploaded_file was called
-            self.assertTrue(mock_get_text.called)
-            called_args = mock_get_text.call_args[0][0]
-            self.assertEqual(len(list(called_args)), 2)
+            mock_get_text.assert_called_once()
+            mock_async.assert_called_once()
+            self.assertTrue(queued)
+            self.assertTrue(getattr(form, "async_enqueued", False))
 
     def test_assayanswerform_clean_accepts_multiple_files(self):
         """

@@ -64,7 +64,12 @@ def test_process_llm_async_stops_when_one_answered():
     fake_llm = FakeChatOpenAI()
 
     # Run the function synchronously (we pass our fake chatopenai)
-    process_llm_async(assay.id, doc_dict=doc_dict, chatopenai=fake_llm)
+    process_llm_async(
+        assay.id,
+        doc_dict=doc_dict,
+        extract_images=False,
+        chatopenai=fake_llm,
+    )
 
     # Refresh from DB
     refreshed = list(Answer.objects.filter(assay=assay).order_by("id"))
