@@ -425,6 +425,12 @@ class AssayAnswerForm(forms.Form):
                 f" Max size: {config.max_size_mb} MB per file."
             ),
         )
+        self.fields["extract_images"] = forms.BooleanField(
+            required=False,
+            initial=False,
+            label="Extract images",
+            help_text="Extract images from uploaded PDFs/DOCX and include them in the LLM context.",
+        )
 
         qs = self.assay.question_set
 
@@ -535,10 +541,13 @@ class AssayAnswerForm(forms.Form):
         """
         earmarked_answers = []  # for update
         uploaded_files = self.cleaned_data.get("file_upload", [])
+        extract_images = self.cleaned_data.get("extract_images", False)
 
         # Extract context from uploaded files.
         if uploaded_files:
-            doc_dict = get_text_or_imagebytes_from_django_uploaded_file(uploaded_files)
+            doc_dict = get_text_or_imagebytes_from_django_uploaded_file(
+                uploaded_files, extract_images=extract_images
+            )
             text_dict, img_dict = split_doc_dict_by_type(doc_dict, decode=False)
             image_messages = image_dict_to_messages(img_dict)
             logger.debug(f"Extracted text from {len(uploaded_files)} uploaded files.")
