@@ -984,6 +984,7 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
         if form.is_valid():
             assay = form.cleaned_data["assay"]
             extract_images = form.cleaned_data.get("extract_images", False)
+            overwrite = form.cleaned_data.get("overwrite", False)
             qs = form.cleaned_data["question_set"]
             assay.question_set = qs
             assay.save()
@@ -994,23 +995,22 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                 raise PermissionDenied("You do not have permission to access this assay.")
 
             files = request.FILES.getlist("files")
-
+            answers_exist = assay.answers.exists()
             # If files were uploaded and there are no existing answers,
             # seed empty answers.
-            if files and not assay.answers.all():
+            if files and not answers_exist:
                 form_empty_answers = AssayAnswerForm({}, assay=assay, user=request.user)
                 if form_empty_answers.is_valid():
                     form_empty_answers.save()
-
-                # Collect uploaded context (text + images)
+            # If files were uploaded and either overwrite is True or no existing
+            if files and (overwrite or not answers_exist):
                 doc_dict = get_text_or_imagebytes_from_django_uploaded_file(
                     files, extract_images=False
                 )
                 try:
                     # Set assay status to busy and hand it off to the async worker
-                    assay.status = LLMStatus.BUSY
+                    assay.status = LLMStatus.SCHEDULED
                     assay.save()
-
                     # Fire off the asynchronous worker
                     async_task(
                         process_llm_async,

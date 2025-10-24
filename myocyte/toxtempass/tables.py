@@ -89,7 +89,7 @@ class AssayTable(tables.Table):
                 <button class="btn btn-sm btn-outline-secondary" disabled>
                     <span class="d-flex" data-bs-toggle="tooltip" title="Processing. Check back soon.">
                         <i class="bi bi-hourglass"></i>
-                        <span class="ms-1 d-none d-lg-inline">Scheduled</span>
+                        <span class="ms-1 d-none d-lg-inline">Sched.</span>
                     </span>
                 </button>
             {% elif record.status == LLMStatus.BUSY.value %}
