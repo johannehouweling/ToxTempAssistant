@@ -195,13 +195,13 @@ class Config:
             ],
             [
                 "#id_user_menu",
-                "In the top right you find a user menu, where you can logout, or access some information like this help tour.",
+                "In the top right you find a user menu. Here you can logout, or access some information like this help tour.",
             ],
             [
                 "td .btn-group a.btn-outline-primary:first-of-type",
                 "Click here to view a ToxTemp",
             ],
-            ["#id_btn_new", "Whenver you are ready, click here to create a new ToxTemp."],
+            ["#id_btn_new", "Whenever you are ready, click here to create a new ToxTemp."],
         ],
         "add_new": [
             #id_question_set", "Choose which version of the ToxTemp template to use."],
@@ -225,7 +225,7 @@ class Config:
             ],
             [
                 "#startButton",
-                "Ready to go! Click here to start generating your ToxTemp. The LLM will extract relevant information from your documents to prefill the template.",
+                "Ready to go! Click here to start generating your draft ToxTemp. The LLM will extract relevant information from your documents to prefill the template.",
             ],
         ],
         "create_assay": [
@@ -233,11 +233,11 @@ class Config:
             ["#id_title", "Give your Assay a clear, descriptive title."],
             [
                 "#id_description",
-                "Important. Provide an assay description covering three key elements: (1) test purpose (e.g., cytotoxicity assessment), (2) test system (e.g., human neural stem cells differentiated into a neuron-astrocyte co-culture in a 2D monolayer), and (3) measured endpoint (e.g., cell viability assessed by formazan conversion using a luminescence assay). The LLM uses this structured description to understand the scope of the assay and help more accurately extract relevant information from your documents.",
+                "Important! The LLM uses this description to understand the scope of the cell-based toxicological test method you want to descibe.",
             ],
             [
                 "button[type='submit']",
-                "Click to save your Assay and return to the main form.",
+                "Click here to create your Assay and return to the main form.",
             ],
         ],
         "answer_assay_questions": [
