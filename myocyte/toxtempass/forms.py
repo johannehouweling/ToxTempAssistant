@@ -1,28 +1,21 @@
 import logging
+import mimetypes
 from collections import defaultdict
-from pathlib import Path
+from datetime import datetime
+from decimal import Decimal
 
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import PermissionDenied
 from django.core.files.uploadedfile import UploadedFile
 from django.forms import widgets
+from django.utils.safestring import SafeText, mark_safe
+from django_q.tasks import async_task
 from guardian.shortcuts import get_objects_for_user
-from langchain_core.messages import SystemMessage
-import mimetypes
-
 
 from toxtempass import config
 from toxtempass.filehandling import (
     get_text_or_imagebytes_from_django_uploaded_file,
-    split_doc_dict_by_type,
-)
-from toxtempass.llm import (
-    ImageMessage,
-    allowed_mime_types,
-    get_llm,
-    image_accept_files,
-    text_accept_files,
 )
 from toxtempass.models import (
     Answer,
@@ -31,6 +24,7 @@ from toxtempass.models import (
     Person,
     Question,
     QuestionSet,
+    LLMStatus,
     Section,
     Study,
 )
@@ -111,17 +105,19 @@ class SignupForm(SignupFormOrcid):
         )
 
 
-from django.utils.safestring import mark_safe
-
-
 class MultipleFileInput(forms.ClearableFileInput):
     """FileInput for multiple files with upload progress bar and modal."""
 
     allow_multiple_selected = True
 
-    def render(self, name, value, attrs=None, renderer=None):
-        from django.utils.safestring import mark_safe
-
+    def render(
+        self,
+        name: str,
+        value: datetime | Decimal | float | str | None,
+        attrs: dict | None = None,
+        renderer: object | None = None,
+    ) -> SafeText:
+        """Render the widget with progress bar and modal."""
         # Render the default file input widget
         original_html = super().render(name, value, attrs, renderer)
 
@@ -274,6 +270,16 @@ class StartingForm(forms.Form):
         help_text="Permission to overwrite.",
     )
 
+    extract_images = forms.BooleanField(
+        required=False,
+        initial=False,
+        label="Extract images from uploaded documents",
+        help_text=(
+            "If checked, images found in uploaded documents (PDFs, DOCX) will be "
+            "extracted and used as additional context for generating answers."
+        ),
+    )
+
     def __init__(self, *args, user: Person = None, **kwargs):
         """Expect a 'user' keyword argument to filter the querysets.
 
@@ -399,7 +405,7 @@ class AssayAnswerForm(forms.Form):
             raise PermissionDenied("You do not have access to this assay.")
         super().__init__(*args, **kwargs)
 
-        accepted_files = ",".join(image_accept_files + text_accept_files)
+        accepted_files = ",".join(config.image_accept_files + config.text_accept_files)
         self.fields["file_upload"] = MultipleFileField(
             widget=MultipleFileInput(
                 attrs={
@@ -414,6 +420,12 @@ class AssayAnswerForm(forms.Form):
                 f"Supported formats: {accepted_files}."
                 f" Max size: {config.max_size_mb} MB per file."
             ),
+        )
+        self.fields["extract_images"] = forms.BooleanField(
+            required=False,
+            initial=False,
+            label="Extract images",
+            help_text="Extract images from uploaded PDFs/DOCX and include them in the LLM context.",
         )
 
         qs = self.assay.question_set
@@ -481,7 +493,7 @@ class AssayAnswerForm(forms.Form):
         if not files:
             return []
 
-        allowed_types = allowed_mime_types
+        allowed_types = config.allowed_mime_types
         max_size_bytes = int(config.max_size_mb * 1024 * 1024)
 
         errors: list[forms.ValidationError] = []
@@ -516,25 +528,32 @@ class AssayAnswerForm(forms.Form):
 
         return cleaned
 
-    def save(self) -> None:
+    def save(self) -> bool:
         """Save the form data.
 
         - Saves answers and their flags.
         - Processes uploaded files.
-        - Invokes GPT for earmarked answers synchronously.
+        - Queues asynchronous refresh for earmarked answers when files are provided.
         """
-        earmarked_answers = []
-        uploaded_files = self.cleaned_data.get("file_upload", [])
-
-        # Extract text from uploaded files.
-        if uploaded_files:
-            text_dict, img_dict = split_doc_dict_by_type(
-                get_text_or_imagebytes_from_django_uploaded_file(uploaded_files)
+        if getattr(self.assay, "demo_lock", False):
+            self.add_error(
+                None,
+                "This assay is locked for demo purposes and cannot be edited.",
             )
-            logger.debug(f"Extracted text from {len(uploaded_files)} uploaded files.")
+            return False
+
+        earmarked_answers = []  # for update
+        uploaded_files = self.cleaned_data.get("file_upload", [])
+        extract_images = self.cleaned_data.get("extract_images", False)
+        self.async_enqueued = False
+
+        if uploaded_files:
+            doc_dict = get_text_or_imagebytes_from_django_uploaded_file(
+                uploaded_files, extract_images=False
+            )
+            logger.debug(f"Received {len(uploaded_files)} uploaded files for processing.")
         else:
-            text_dict = {}
-            img_dict = {}
+            doc_dict = {}
             logger.debug("No files uploaded.")
 
         # Group fields by question ID.
@@ -581,54 +600,50 @@ class AssayAnswerForm(forms.Form):
                 earmarked_answers.append(answer)
                 logger.info(f"Question id {qid} marked for GPT update.")
 
-        # earmarked for renewed answer generation
-        if earmarked_answers and (text_dict or img_dict):
-            text_dict = {}
-            img_dict = {}
+        if uploaded_files and not earmarked_answers:
+            self.add_error(
+                "file_upload",
+                "Select at least one question for GPT update when uploading files.",
+            )
+            return False
 
-            for answer in earmarked_answers:
-                try:
-                    messages = []
-                    # Add all image messages
-                    for filename, img_bytes in img_dict.items():
-                        messages.append(
-                            ImageMessage(content=img_bytes, filename=filename)
-                        )
-                    # Add all text messages
-                    if text_dict:
-                        (
-                            messages.append(
-                                SystemMessage(
-                                    content=(
-                                        "Below find the context to answer"
-                                        f" the question:\n CONTEXT:\n{text_dict}"
-                                    )
-                                )
-                            ),
-                        )
-                    # (Add additional messages as needed based on your requirements.)
-                    llm = get_llm()
-                    draft_answer = llm.invoke(messages)
-                    existing_docs = answer.answer_documents or []
-                    new_docs = [
-                        Path(key).name
-                        for key in list(text_dict.keys()) + list(img_dict.keys())
-                    ]
-                    combined_docs = existing_docs + new_docs
-                    unique_docs_updated = list(dict.fromkeys(combined_docs))
-                    answer.answer_documents = unique_docs_updated
-                    answer.answer_text = draft_answer.content
-                    answer.accepted = False
-                    answer.save()
-                    logger.info(
-                        (
-                            "Successfully updated Answer id"
-                            f" {answer.id} with GPT-generated text."
-                        )
-                    )
-                except Exception as e:
-                    logger.error(f"Error processing Answer id {answer.id}: {e}")
-                    self.add_error(
-                        "file_upload",
-                        f"Error processing answer for question '{answer.question}': {e}",
-                    )
+        if earmarked_answers and not uploaded_files:
+            self.add_error(
+                "file_upload",
+                "Upload at least one context document to update selected questions.",
+            )
+            return False
+
+        if uploaded_files and earmarked_answers:
+            answer_ids = [answer.id for answer in earmarked_answers]
+            try:
+                from toxtempass.views import process_llm_async
+
+                for answer in earmarked_answers:
+                    if answer.accepted:
+                        answer.accepted = False
+                        answer.save(update_fields=["accepted"])
+                self.assay.status = LLMStatus.SCHEDULED
+                async_task(
+                    process_llm_async,
+                    self.assay.id,
+                    doc_dict,
+                    extract_images,
+                    answer_ids,
+                )
+                self.assay.save(update_fields=["status"])
+                self.async_enqueued = True
+                logger.info(
+                    "Queued asynchronous update for answers %s on assay %s.",
+                    answer_ids,
+                    self.assay.id,
+                )
+                return True
+            except Exception as exc:
+                logger.exception(
+                    "Failed to enqueue async update for assay %s", self.assay.id
+                )
+                self.add_error("file_upload", str(exc))
+                return False
+
+        return self.async_enqueued

@@ -106,7 +106,12 @@ for model, temp in zip(
         for q in questions:
             Answer.objects.get_or_create(assay=assay, question=q)
         # 2) Call LLM
-        process_llm_async(assay.id, input_pdf_dict, llm)
+        process_llm_async(
+            assay.id,
+            input_pdf_dict,
+            extract_images=True,
+            chatopenai=llm,
+        )
         print(f"Success: {assay.status}")
         # 4) Retrieve generated answers for this specific assay
         answers = Answer.objects.filter(assay=assay)

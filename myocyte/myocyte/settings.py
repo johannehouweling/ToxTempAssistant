@@ -296,3 +296,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Media location
 MEDIA_ROOT = BASE_DIR / "media"
 MEDIA_URL = "/media/"
+
+
+# Django Tables2 settings
+DJANGO_TABLES2_TEMPLATE = "django_tables2/bootstrap5.html"
+DJANGO_TABLES2_PAGE_RANGE = 3

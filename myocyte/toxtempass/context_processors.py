@@ -10,7 +10,6 @@ def toxtempass_config(request: HttpRequest) -> dict[str, Config]:
     """Include app config."""
     return {"config": config}
 
-
 def current_url_name(request: HttpRequest) -> dict[str, str | None]:
     """Context processor to add the current URL name to the template context."""
     try:

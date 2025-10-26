@@ -53,12 +53,17 @@ def test_process_llm_async_retries_on_ratelimit_and_succeeds():
     a1 = Answer.objects.create(assay=assay, question=q1)
     a2 = Answer.objects.create(assay=assay, question=q2)
 
-    text_dict = {}
+    doc_dict = {}
 
     fake = RateLimitThenSuccessFake()
 
     # Run synchronously with fake; should retry and then write at least one non-empty answer
-    process_llm_async(assay.id, text_dict=text_dict, chatopenai=fake)
+    process_llm_async(
+        assay.id,
+        doc_dict=doc_dict,
+        extract_images=False,
+        chatopenai=fake,
+    )
 
     refreshed = list(Answer.objects.filter(assay=assay).order_by("id"))
     assert any(a.answer_text and a.answer_text.strip() for a in refreshed), "No answers were populated after rate limit recovery"

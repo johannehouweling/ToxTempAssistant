@@ -21,6 +21,11 @@ document.addEventListener('DOMContentLoaded', function() {
         modalProgressFilename = uploadModalEl.querySelector('#uploadProgressFilenameModal');
     }
 
+    const demoLockedModalEl = document.getElementById('demoLockedModal');
+    const demoLockedModal = demoLockedModalEl && window.bootstrap && window.bootstrap.Modal
+        ? new bootstrap.Modal(demoLockedModalEl)
+        : null;
+
     form.addEventListener('submit', function(event) {
         event.preventDefault(); // Prevent the form from submitting the default way
         const formData = new FormData(form); // Create FormData object for handling file uploads
@@ -173,6 +178,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (response.errors.__all__) {
                         const nonFieldErrorsContainer = document.getElementById('non-field-errors');
                         nonFieldErrorsContainer.innerHTML = `<div class="alert alert-danger">${response.errors.__all__.join('<br>')}</div>`;
+                        if (demoLockedModal && response.errors.__all__.some(msg => msg.includes('Demo assays cannot be regenerated'))) {
+                            demoLockedModal.show();
+                        }
                     }
 
                     // Hide and reset progress bars

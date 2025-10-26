@@ -39,9 +39,13 @@ from myocyte import settings
 from toxtempass import config
 from toxtempass import utilities as beta_util
 from toxtempass.export import export_assay_to_file
+from toxtempass.demo import seed_demo_assay_for_user
 from toxtempass.filehandling import (
+    collect_source_documents,
     get_text_or_imagebytes_from_django_uploaded_file,
+    summarize_image_entries,
     split_doc_dict_by_type,
+    stringyfy_text_dict,
 )
 from toxtempass.forms import (
     AssayAnswerForm,
@@ -172,6 +176,10 @@ def signup(request: HttpRequest) -> HttpResponse | JsonResponse:
             user = form.save(commit=False)
             user.save()
             login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+            try:
+                seed_demo_assay_for_user(user)
+            except Exception:
+                logger.exception("Failed to seed demo assay for user %s", user.id)
             # Mark the user as having requested beta and enqueue notification to mntnr.
             try:
                 async_task("toxtempass.tasks.send_beta_signup_notification", user.id)
@@ -645,17 +653,132 @@ def user_has_seen_tour_page(page: str, user: Person) -> bool:
     # if we have visited all tours we no longer have to autostart
     user.preferences = prefs
     user.save()
-    print(has_seen_tour)
     return has_seen_tour
 
 
 llm = get_llm()
 
 
+def generate_answer(
+    ans: Answer,
+    full_pdf_context: str,
+    assay: Assay,
+    chatopenai: ChatOpenAI,
+) -> tuple[int, str]:
+    """Generate an answer for a single Answer instance."""
+    ## some variables for logging and deadline handling
+    # compute a soft deadline based on Django‑Q timeout (90% of it)
+    q_timeout = settings.Q_CLUSTER.get("timeout", None)
+    if q_timeout:
+        deadline = time.time() + q_timeout * 0.9
+    else:
+        deadline = None
+
+    all_answers = list(
+        assay.answers.select_related("question__subsection__section__question_set")
+    )
+    max_ans_id = max(a.id for a in all_answers) if all_answers else None
+    min_ans_id = min(a.id for a in all_answers) if all_answers else None
+    delta_ans = max_ans_id - min_ans_id if max_ans_id and min_ans_id else 0
+
+    q = ans.question
+
+    # pick system messages
+    if q.only_additional_llm_instruction and q.additional_llm_instruction:
+        sys_msgs = [SystemMessage(content=q.additional_llm_instruction)]
+    else:
+        # base + question‐specific appended
+        sys_msgs = [
+            SystemMessage(content=config.base_prompt),
+            SystemMessage(content=f"ASSAY NAME: {assay.title}"),
+            SystemMessage(content=f"ASSAY DESCRIPTION: {assay.description}"),
+        ]
+        if q.additional_llm_instruction:
+            sys_msgs.append(SystemMessage(content=q.additional_llm_instruction))
+
+    # build context string
+    if q.only_subsections_for_context and q.subsections_for_context.exists():
+        # gather answers to *all* questions in those subsections
+        ctx_answers = Answer.objects.filter(
+            assay=assay,
+            question__subsection__in=q.subsections_for_context.all(),
+            answer_text__isnull=False,
+        )
+        context_blocks = [
+            f"--- Q: {ca.question.question_text}\nA: {ca.answer_text}"
+            for ca in ctx_answers
+        ]
+        context_str = "\n\n".join(context_blocks)
+    else:
+        # use full PDF + *optional* subsection‑scoped answers
+        context_str = full_pdf_context
+        if q.subsections_for_context.exists():
+            ctx_answers = Answer.objects.filter(
+                assay=assay,
+                question__subsection__in=q.subsections_for_context.all(),
+                answer_text__isnull=False,
+            )
+            extra = "\n\n".join(
+                f"--- Q: {ca.question.question_text}\nA: {ca.answer_text}"
+                for ca in ctx_answers
+            )
+            context_str += "\n\n" + extra
+
+    # build messages
+    messages = []
+    messages.extend(sys_msgs)
+    if context_str:
+        messages.append(
+            SystemMessage(content="Context for this question:\n" + context_str)
+        )
+    messages.append(HumanMessage(content=q.question_text))
+
+    # retry loop with dynamic waits and soft deadline
+    while True:
+        if deadline is not None and time.time() > deadline:
+            logger.error(
+                f"Timed out retrying answer {ans.id} [{max_ans_id - ans.id}"
+                " of {delta_ans}] after {q_timeout}s total"
+            )
+            raise TimeoutError(
+                f"Answer {ans.id} [{max_ans_id - ans.id} of {delta_ans}] timed out"
+            )
+
+        try:
+            resp = chatopenai.invoke(messages)
+            return ans.id, (resp.content or "")
+
+        except RateLimitError as e:
+            # parse “try again in Xs” if present
+            wait = 5.0
+            try:
+                msg = e.response.json().get("error", {}).get("message", "")
+                m = re.search(r"try again in ([\d\.]+)s", msg)
+                if m:
+                    wait = float(m.group(1)) + 0.5
+            except Exception:
+                pass
+
+            logger.warning(
+                f"RateLimit hit for answer {ans.id} [{max_ans_id - ans.id} "
+                f"of {delta_ans}], retrying in {wait:.1f}s"
+            )
+            time.sleep(wait)
+
+        except Exception as exc:
+            logger.exception(
+                f"LLM error for answer {ans.id} [{max_ans_id - ans.id} "
+                "of {delta_ans}]: {exc}"
+            )
+            return ans.id, ""
+
+
 def process_llm_async(
     assay_id: int,
-    text_dict: dict[str, dict[str, str]],
-    chatopenai: ChatOpenAI = get_llm(),
+    doc_dict: dict[str, dict[str, str]] | None = None,
+    extract_images: bool = False,
+    answer_ids: list[int] | None = None,
+    chatopenai: ChatOpenAI | None = None,
 ) -> None:
     """Process llm answer async.
 
@@ -671,30 +794,41 @@ def process_llm_async(
             logger.info(f"Assay with id {assay_id} does not exist. Exiting task early.")
             return
 
+        if assay.demo_lock:
+            logger.info("Assay %s is demo locked; skipping processing.", assay_id)
+            return
+
         assay.status = LLMStatus.BUSY
         assay.save()
 
-        # compute a soft deadline based on Django‑Q timeout (90% of it)
-        q_timeout = settings.Q_CLUSTER.get("timeout", None)
-        if q_timeout:
-            deadline = time.time() + q_timeout * 0.9
+        chatopenai = chatopenai or get_llm()
+
+        payload = dict(doc_dict or {})
+        if extract_images and payload:
+            summarize_image_entries(payload)
         else:
-            deadline = None
+            for key in list(payload.keys()):
+                if "encodedbytes" in payload[key]:
+                    payload.pop(key)
 
-        # Pre‐compute the global PDF context once
-        full_pdf_context = "\n\n".join(
-            f"--- {Path(fp).name} ---\n{meta['text']}"
-            for fp, meta in text_dict.items()
-            if "text" in meta
-        )
+        source_documents = collect_source_documents(payload)
+        text_dict, _ = split_doc_dict_by_type(payload, decode=False)
+        full_pdf_context = stringyfy_text_dict(text_dict)
 
-        # Load all answers, grouped by their question.answering_round
         all_answers = list(
             assay.answers.select_related("question__subsection__section__question_set")
         )
-        max_ans_id = max(a.id for a in all_answers) if all_answers else None
-        min_ans_id = min(a.id for a in all_answers) if all_answers else None
-        delta_ans = max_ans_id - min_ans_id if max_ans_id and min_ans_id else 0
+        requested_ids = set(answer_ids or [])
+        if requested_ids:
+            all_answers = [a for a in all_answers if a.id in requested_ids]
+            if not all_answers:
+                logger.info(
+                    "No matching answers to regenerate for assay %s; marking DONE.",
+                    assay_id,
+                )
+                assay.status = LLMStatus.DONE
+                assay.save()
+                return
         rounds = sorted({a.question.answering_round for a in all_answers})
         answers_by_round = defaultdict(list)
         for ans in all_answers:
@@ -702,124 +836,37 @@ def process_llm_async(
 
         for rnd in rounds:
             round_answers = answers_by_round[rnd]
+            if requested_ids:
+                round_answers = [a for a in round_answers if a.id in requested_ids]
+                if not round_answers:
+                    continue
 
             logger.info(
                 f"Starting answering_round={rnd} with {len(round_answers)} questions"
             )
 
-            def generate_answer(ans: Answer) -> tuple[int, str]:
-                """Generate an answer for a single Answer instance."""
-                q = ans.question
-
-                # pick system messages
-                if q.only_additional_llm_instruction and q.additional_llm_instruction:
-                    sys_msgs = [SystemMessage(content=q.additional_llm_instruction)]
-                else:
-                    # base + question‐specific appended
-                    sys_msgs = [
-                        SystemMessage(content=config.base_prompt),
-                        SystemMessage(content=f"ASSAY NAME: {assay.title}"),
-                        SystemMessage(content=f"ASSAY DESCRIPTION: {assay.description}"),
-                    ]
-                    if q.additional_llm_instruction:
-                        sys_msgs.append(
-                            SystemMessage(content=q.additional_llm_instruction)
-                        )
-
-                # build context string
-                if q.only_subsections_for_context and q.subsections_for_context.exists():
-                    # gather answers to *all* questions in those subsections
-                    ctx_answers = Answer.objects.filter(
-                        assay=assay,
-                        question__subsection__in=q.subsections_for_context.all(),
-                        answer_text__isnull=False,
-                    )
-                    context_blocks = [
-                        f"--- Q: {ca.question.question_text}\nA: {ca.answer_text}"
-                        for ca in ctx_answers
-                    ]
-                    context_str = "\n\n".join(context_blocks)
-                else:
-                    # use full PDF + *optional* subsection‑scoped answers
-                    context_str = full_pdf_context
-                    if q.subsections_for_context.exists():
-                        ctx_answers = Answer.objects.filter(
-                            assay=assay,
-                            question__subsection__in=q.subsections_for_context.all(),
-                            answer_text__isnull=False,
-                        )
-                        extra = "\n\n".join(
-                            f"--- Q: {ca.question.question_text}\nA: {ca.answer_text}"
-                            for ca in ctx_answers
-                        )
-                        context_str += "\n\n" + extra
-
-                # build messages
-                messages = []
-                messages.extend(sys_msgs)
-                if context_str:
-                    messages.append(
-                        SystemMessage(
-                            content="Context for this question:\n" + context_str
-                        )
-                    )
-                messages.append(HumanMessage(content=q.question_text))
-
-                # retry loop with dynamic waits and soft deadline
-                while True:
-                    if deadline is not None and time.time() > deadline:
-                        logger.error(
-                            f"Timed out retrying answer {ans.id} [{max_ans_id - ans.id}"
-                            " of {delta_ans}] after {q_timeout}s total"
-                        )
-                        raise TimeoutError(
-                            f"Answer {ans.id} [{max_ans_id - ans.id} of {delta_ans}]"
-                            " timed out"
-                        )
-
-                    try:
-                        resp = chatopenai.invoke(messages)
-                        return ans.id, (resp.content or "")
-
-                    except RateLimitError as e:
-                        # parse “try again in Xs” if present
-                        wait = 5.0
-                        try:
-                            msg = e.response.json().get("error", {}).get("message", "")
-                            m = re.search(r"try again in ([\d\.]+)s", msg)
-                            if m:
-                                wait = float(m.group(1)) + 0.5
-                        except Exception:
-                            pass
-
-                        logger.warning(
-                            f"RateLimit hit for answer {ans.id} [{max_ans_id - ans.id} "
-                            f"of {delta_ans}], retrying in {wait:.1f}s"
-                        )
-                        time.sleep(wait)
-
-                    except Exception as exc:
-                        logger.exception(
-                            f"LLM error for answer {ans.id} [{max_ans_id - ans.id} "
-                            "of {delta_ans}]: {exc}"
-                        )
-                        return ans.id, ""
-
             # fire off the round in parallel
             with ThreadPoolExecutor(max_workers=config.max_workers_threading) as pool:
-                futures = {pool.submit(generate_answer, a): a for a in round_answers}
+                futures = {
+                    pool.submit(
+                        generate_answer,
+                        a,
+                        full_pdf_context,
+                        assay,
+                        chatopenai,
+                    ): a
+                    for a in round_answers
+                }
                 for future in as_completed(futures):
                     try:
                         aid, text = future.result()
                     except TimeoutError as te:
                         logger.error(str(te))
-                        timed_out = True
                         continue
                     except Exception as exc:
                         logger.exception(
                             f"Fatal error for answer {futures[future].id}: {exc}"
                         )
-                        timed_out = True
                         continue
                     try:
                         # check assay existence before saving
@@ -835,7 +882,7 @@ def process_llm_async(
                         # save the successful draft
                         Answer.objects.filter(pk=aid).update(
                             answer_text=text,
-                            answer_documents=[Path(fp).name for fp in text_dict.keys()],
+                            answer_documents=source_documents,
                         )
                     except Exception as e:
                         add_status_context(assay, str(e))
@@ -864,7 +911,7 @@ class AssayListView(SingleTableView):
     model = Assay
     table_class = AssayTable
     template_name = "toxtempass/overview.html"
-    paginate_by = 10
+    paginate_by = 7
 
     def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         """Gate users who have requested beta access but are not yet admitted.
@@ -889,10 +936,14 @@ class AssayListView(SingleTableView):
             use_groups=False,
             any_perm=False,
         )
-        return Assay.objects.filter(
+        base_qs = Assay.objects.filter(
             study__investigation__in=accessible_investigations,
             question_set__isnull=False,
-        ).order_by("-submission_date")
+        )
+        real_qs = base_qs.filter(demo_lock=False)
+        if real_qs.exists():
+            return real_qs.order_by("-submission_date")
+        return base_qs.order_by("-submission_date")
 
     def get_context_data(self, **kwargs) -> dict:
         """Inject context."""
@@ -945,6 +996,8 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
 
         if form.is_valid():
             assay = form.cleaned_data["assay"]
+            extract_images = form.cleaned_data.get("extract_images", False)
+            overwrite = form.cleaned_data.get("overwrite", False)
             qs = form.cleaned_data["question_set"]
             assay.question_set = qs
             assay.save()
@@ -954,26 +1007,43 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
 
                 raise PermissionDenied("You do not have permission to access this assay.")
 
-            files = request.FILES.getlist("files")
+            if assay.demo_lock:
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "errors": {
+                            "__all__": [
+                                "Demo assays cannot be regenerated.",
+                            ]
+                        },
+                    },
+                    status=400,
+                )
 
+            files = request.FILES.getlist("files")
+            answers_exist = assay.answers.exists()
             # If files were uploaded and there are no existing answers,
             # seed empty answers.
-            if files and not assay.answers.all():
+            if files and not answers_exist:
                 form_empty_answers = AssayAnswerForm({}, assay=assay, user=request.user)
                 if form_empty_answers.is_valid():
                     form_empty_answers.save()
-
-                # Split text/images:
-                text_dict, _ = split_doc_dict_by_type(
-                    get_text_or_imagebytes_from_django_uploaded_file(files)
+            # If files were uploaded and either overwrite is True or no existing
+            if files and (overwrite or not answers_exist):
+                doc_dict = get_text_or_imagebytes_from_django_uploaded_file(
+                    files, extract_images=False
                 )
                 try:
                     # Set assay status to busy and hand it off to the async worker
-                    assay.status = LLMStatus.BUSY
+                    assay.status = LLMStatus.SCHEDULED
                     assay.save()
-
                     # Fire off the asynchronous worker
-                    async_task(process_llm_async, assay.id, text_dict)
+                    async_task(
+                        process_llm_async,
+                        assay.id,
+                        doc_dict,
+                        extract_images,
+                    )
 
                 except Exception as e:
                     return JsonResponse(
@@ -1198,11 +1268,8 @@ def create_or_update_assay(
             assay_id = saved_assay.id
 
             # Redirect back to
-            # /start/?investigation=<inv_id>&study=<st_id>&assay=<assay_id>&continue_tour=1
             redirect_url = reverse("add_new")
-            redirect_url += (
-                f"?investigation={inv_id}&study={st_id}&assay={assay_id}&continue_tour=1"
-            )
+            redirect_url += f"?investigation={inv_id}&study={st_id}&assay={assay_id}"
 
             return JsonResponse(
                 {
@@ -1257,6 +1324,14 @@ def delete_assay(request: HttpRequest, pk: int) -> JsonResponse | HttpResponseRe
             from django.core.exceptions import PermissionDenied
 
             raise PermissionDenied("You do not have permission to delete this assay.")
+        if assay.demo_lock:
+            return JsonResponse(
+                {
+                    "status": "error",
+                    "message": "Demo assays cannot be deleted.",
+                },
+                status=400,
+            )
         assay.delete()
         if source_page == "overview":
             return redirect("overview")
@@ -1276,6 +1351,18 @@ def answer_assay_questions(
         from django.core.exceptions import PermissionDenied
 
         raise PermissionDenied("You do not have permission to access this assay.")
+    if assay.demo_lock and request.method == "POST":
+        return JsonResponse(
+            {
+                "success": False,
+                "errors": {
+                    "__all__": [
+                        "This assay is locked for demo purposes and cannot be edited.",
+                    ]
+                },
+            },
+            status=400,
+        )
     # Record that the user has viewed this assay, update or create the AssayView record
     AssayView.objects.update_or_create(
         user=request.user,
@@ -1291,14 +1378,19 @@ def answer_assay_questions(
             request.POST, request.FILES, assay=assay, user=request.user
         )
         if form.is_valid():
-            form.save()
+            queued = form.save()
+            if form.errors:
+                return JsonResponse({"success": False, "errors": form.errors})
+            redirect_target = (
+                reverse("overview")
+                if getattr(form, "async_enqueued", False)
+                else reverse("answer_assay_questions", kwargs=dict(assay_id=assay.pk))
+            )
             return JsonResponse(
                 {
                     "success": True,
                     "errors": form.errors,
-                    "redirect_url": reverse(
-                        "answer_assay_questions", kwargs=dict(assay_id=assay.pk)
-                    ),
+                    "redirect_url": redirect_target,
                 }
             )
         else:

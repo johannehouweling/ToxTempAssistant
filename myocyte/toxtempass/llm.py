@@ -59,25 +59,15 @@ def get_llm() -> ChatOpenAI:
     )
 
 
-image_accept_files = [
-    ".png",
-]
-text_accept_files = [".pdf", ".docx", ".txt", ".md", ".html"]
-allowed_mime_types = [
-    "application/pdf",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/msword",
-    "text/plain",
-    "text/markdown",
-    "text/html",
-    "image/png",
-]
+
+
 
 
 class ImageMessage(BaseMessage):
     type: Literal["image"] = Field(default="image")
     content: str  # Base64-encoded image string
     filename: str
+    mime_type: str | None = None
 
     @model_validator(mode="before")
     def validate_fields(cls, values: dict) -> dict:
@@ -92,9 +82,18 @@ class ImageMessage(BaseMessage):
 
     def to_dict(self) -> dict:
         """Convert the message to a dictionary."""
-        return {"type": self.type, "content": self.content, "filename": self.filename}
+        return {
+            "type": self.type,
+            "content": self.content,
+            "filename": self.filename,
+            "mime_type": self.mime_type,
+        }
 
     @classmethod
     def from_dict(cls, data: dict) -> "ImageMessage":
         """Create an instance from a dictionary."""
-        return cls(content=data["content"], filename=data["filename"])
+        return cls(
+            content=data["content"],
+            filename=data["filename"],
+            mime_type=data.get("mime_type"),
+        )

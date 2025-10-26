@@ -245,6 +245,22 @@ class Assay(AccessibleModel):
         choices=LLMStatus.choices,
         default=LLMStatus.NONE,
     )
+    demo_lock = models.BooleanField(
+        default=False,
+        help_text="Prevent edits so this assay can be used as a read-only demo.",
+    )
+    demo_template = models.BooleanField(
+        default=False,
+        help_text="Marks this assay as the master template used to seed demo copies.",
+    )
+    demo_source = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="demo_copies",
+        help_text="Template assay this demo copy originated from.",
+    )
     status_context = models.TextField(blank=True, default="")
     question_set = models.ForeignKey(
         QuestionSet,
