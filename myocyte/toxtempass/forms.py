@@ -535,6 +535,13 @@ class AssayAnswerForm(forms.Form):
         - Processes uploaded files.
         - Queues asynchronous refresh for earmarked answers when files are provided.
         """
+        if getattr(self.assay, "demo_lock", False):
+            self.add_error(
+                None,
+                "This assay is locked for demo purposes and cannot be edited.",
+            )
+            return False
+
         earmarked_answers = []  # for update
         uploaded_files = self.cleaned_data.get("file_upload", [])
         extract_images = self.cleaned_data.get("extract_images", False)

@@ -42,6 +42,24 @@
 
     </form>
 
+    <!-- Demo Lock Modal -->
+    <div class="modal fade" id="demoLockedModal" tabindex="-1" aria-labelledby="demoLockedModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="demoLockedModalLabel">Demo Assay</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    This demo assay is read-only and cannot be regenerated. Create a new assay to explore the workflow with your own documents.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         const csrftoken = "{{ csrf_token }}"; // This line uses Django's template tag
         // Deactivate the upload menu if gpt is not allowed anymore because answers exist already.

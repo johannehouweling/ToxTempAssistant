@@ -936,10 +936,14 @@ class AssayListView(SingleTableView):
             use_groups=False,
             any_perm=False,
         )
-        return Assay.objects.filter(
+        base_qs = Assay.objects.filter(
             study__investigation__in=accessible_investigations,
             question_set__isnull=False,
-        ).order_by("-submission_date")
+        )
+        real_qs = base_qs.filter(demo_lock=False)
+        if real_qs.exists():
+            return real_qs.order_by("-submission_date")
+        return base_qs.order_by("-submission_date")
 
     def get_context_data(self, **kwargs) -> dict:
         """Inject context."""
@@ -1002,6 +1006,19 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                 from django.core.exceptions import PermissionDenied
 
                 raise PermissionDenied("You do not have permission to access this assay.")
+
+            if assay.demo_lock:
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "errors": {
+                            "__all__": [
+                                "Demo assays cannot be regenerated.",
+                            ]
+                        },
+                    },
+                    status=400,
+                )
 
             files = request.FILES.getlist("files")
             answers_exist = assay.answers.exists()

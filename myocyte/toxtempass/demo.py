@@ -54,7 +54,7 @@ def seed_demo_assay_for_user(user) -> Optional[Assay]:
         )
         assay = Assay.objects.create(
             study=study,
-            title=template.title,
+            title=f"{template.title} (Demo)",
             description=template.description,
             question_set=template.question_set,
             status=LLMStatus.DONE,
