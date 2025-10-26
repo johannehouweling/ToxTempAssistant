@@ -39,6 +39,7 @@ from myocyte import settings
 from toxtempass import config
 from toxtempass import utilities as beta_util
 from toxtempass.export import export_assay_to_file
+from toxtempass.demo import seed_demo_assay_for_user
 from toxtempass.filehandling import (
     collect_source_documents,
     get_text_or_imagebytes_from_django_uploaded_file,
@@ -175,6 +176,10 @@ def signup(request: HttpRequest) -> HttpResponse | JsonResponse:
             user = form.save(commit=False)
             user.save()
             login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+            try:
+                seed_demo_assay_for_user(user)
+            except Exception:
+                logger.exception("Failed to seed demo assay for user %s", user.id)
             # Mark the user as having requested beta and enqueue notification to mntnr.
             try:
                 async_task("toxtempass.tasks.send_beta_signup_notification", user.id)
@@ -789,6 +794,10 @@ def process_llm_async(
             logger.info(f"Assay with id {assay_id} does not exist. Exiting task early.")
             return
 
+        if assay.demo_lock:
+            logger.info("Assay %s is demo locked; skipping processing.", assay_id)
+            return
+
         assay.status = LLMStatus.BUSY
         assay.save()
 
@@ -1298,6 +1307,14 @@ def delete_assay(request: HttpRequest, pk: int) -> JsonResponse | HttpResponseRe
             from django.core.exceptions import PermissionDenied
 
             raise PermissionDenied("You do not have permission to delete this assay.")
+        if assay.demo_lock:
+            return JsonResponse(
+                {
+                    "status": "error",
+                    "message": "Demo assays cannot be deleted.",
+                },
+                status=400,
+            )
         assay.delete()
         if source_page == "overview":
             return redirect("overview")
@@ -1317,6 +1334,18 @@ def answer_assay_questions(
         from django.core.exceptions import PermissionDenied
 
         raise PermissionDenied("You do not have permission to access this assay.")
+    if assay.demo_lock and request.method == "POST":
+        return JsonResponse(
+            {
+                "success": False,
+                "errors": {
+                    "__all__": [
+                        "This assay is locked for demo purposes and cannot be edited.",
+                    ]
+                },
+            },
+            status=400,
+        )
     # Record that the user has viewed this assay, update or create the AssayView record
     AssayView.objects.update_or_create(
         user=request.user,
