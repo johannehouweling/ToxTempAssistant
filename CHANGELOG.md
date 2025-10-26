@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v2.0.1 (2025-10-26)
+
+### Bug Fixes
+
+- **login**: Addd references to the intro text
+  ([`8486d1b`](https://github.com/johannehouweling/ToxTempAssistant/commit/8486d1b54f6b712a28ce302a9e2e2e3a7283da9c))
+
+
 ## v2.0.0 (2025-10-26)
 
 ### Bug Fixes
