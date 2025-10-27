@@ -65,8 +65,8 @@ class QuestionAdmin(admin.ModelAdmin):
 
 @admin.register(Answer)
 class AnswerAdmin(admin.ModelAdmin):
-    list_display = ("assay", "question", "answer_text")
-    search_fields = ("assay__name", "question", "answer_text")
+    list_display = ("assay", "question", "preview_text", "accepted")
+    search_fields = ("assay__name", "question", "accepted")
 
 
 @admin.register(Feedback)
