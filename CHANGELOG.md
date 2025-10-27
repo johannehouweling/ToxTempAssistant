@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v2.1.0 (2025-10-27)
+
+### Features
+
+- **goatcounter**: Add GoatCounter to toxtempassistant.vhp4safety.nl
+  ([`fe2a52e`](https://github.com/johannehouweling/ToxTempAssistant/commit/fe2a52e8e18d212bba55b50536bf1e8cb9fffba6))
+
+
 ## v2.0.1 (2025-10-26)
 
 ### Bug Fixes
