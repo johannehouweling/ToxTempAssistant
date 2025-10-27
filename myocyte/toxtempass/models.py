@@ -479,6 +479,13 @@ class Answer(AccessibleModel):
     def get_parent(self) -> Assay:
         """Return the parent Assay object."""
         return self.assay
+    
+    @property
+    def preview_text(self, max_length: int = 75) -> str:
+        """Return a preview of the answer text, truncated to max_length."""
+        if len(self.answer_text) <= max_length:
+            return self.answer_text
+        return self.answer_text[:max_length].rsplit(' ', 1)[0] + '...'
 
 
 # Feedback Model

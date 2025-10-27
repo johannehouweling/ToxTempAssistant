@@ -97,5 +97,9 @@
             <!-- Page content goes here -->
             {% endblock %}
         </div>
+        {% if not config.debug %}
+        <!-- GoatCounter analytics -->
+        <script data-goatcounter="https://toxtempassistant.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+        {% endif %}
     </body>
 </html>
