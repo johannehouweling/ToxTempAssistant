@@ -3,7 +3,7 @@
 import hashlib
 from typing import TypedDict
 
-from myocyte.myocyte.settings import PROJECT_ROOT
+from myocyte.settings import BASE_DIR
 
 
 class ModelConfig(TypedDict):
@@ -48,18 +48,18 @@ class EvaluationConfig:
     - Pre-defined experiments
     """
 
-    eval_root = PROJECT_ROOT / "toxtempass" / "evaluation"
+    eval_root = BASE_DIR / "toxtempass" / "evaluation"
 
     # Tier 1 Paths (Positive Control)
-    ncontrol_input = eval_root / "negative control" / "input_files"
-    ncontrol_output = eval_root / "negative control" / "output"
+    ncontrol_input = eval_root / "negative_control" / "input_files"
+    ncontrol_output = eval_root / "negative_control" / "output"
     ncontrol_output_input_scores = (
-        eval_root / "negative control" / "output" / "input_scores"
+        eval_root / "negative_control" / "output" / "input_scores"
     )
 
     # Tier 2 Paths (Negative Control)
-    pcontrol_input = eval_root / "positive control" / "input_files"
-    pcontrol_output = eval_root / "positive control" / "output"
+    pcontrol_input = eval_root / "positive_control" / "input_files"
+    pcontrol_output = eval_root / "positive_control" / "output"
 
     # Mark sure input files exists:
     for path in [ncontrol_input, pcontrol_input]:

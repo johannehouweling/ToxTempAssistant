@@ -1,12 +1,12 @@
 from django.core.management.base import BaseCommand
 
-from myocyte.toxtempass.evaluation.negative_control.ncontrol import (
+from toxtempass.evaluation.config import config as eval_config
+from toxtempass.evaluation.negative_control.ncontrol import (
     run as run_ncontrol,
 )
-from myocyte.toxtempass.evaluation.positive_control.pcontrol import (
+from toxtempass.evaluation.positive_control.pcontrol import (
     run as run_pcontrol,
 )
-from toxtempass.evaluation.config import config as eval_config
 
 
 class Command(BaseCommand):
@@ -51,7 +51,12 @@ class Command(BaseCommand):
         if options.get("list_experiments"):
             self.stdout.write(self.style.SUCCESS("Available experiments:"))
             for name, desc in eval_config.list_experiments().items():
-                self.stdout.write(f"  {name}: {desc}")
+                self.stdout.write(self.style.HTTP_INFO(f"• {name}: ") + f"{desc}")
+            self.stdout.write(
+                self.style.NOTICE(
+                    "You can define new experiemnts in 'evaluation/config.py'."
+                )
+            )
             return
 
         question_set_label = options.get("question_set_label")

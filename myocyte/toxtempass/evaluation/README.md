@@ -80,10 +80,10 @@ The `EvaluationConfig` class in `config.py` contains:
 #### Path Configuration
 ```python
 # output negative control
-ncontrol_output = eval_root / "negative control" / "output"
+ncontrol_output = eval_root / "negative_control" / "output"
 
 # output positive control
-pcontrol_output = eval_root / "positive control" / "output"
+pcontrol_output = eval_root / "positive_control" / "output"
 ```
 
 #### Model Configuration

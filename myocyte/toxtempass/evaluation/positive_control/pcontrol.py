@@ -104,6 +104,8 @@ def run(
         else:
             output_dir_name = model_name
         output_tier1 = output_base_dir / output_dir_name
+        if not output_tier1.exists():
+            output_tier1.mkdir(parents=True)
         output_summary = list(output_tier1.glob("tier1_summary*.json"))
         if output_summary and not repeat:
             continue
@@ -144,8 +146,6 @@ def run(
             print(f"Success: {assay.status}")
 
             answers = Answer.objects.filter(assay=assay)
-            if not output_tier1.exists():
-                output_tier1.mkdir(parents=True)
             df = generate_comparison_csv(
                 json_file, answers, output_tier1, pdf_file, model=llm, overwrite=False
             )
@@ -213,6 +213,6 @@ def run(
             "records": records,
         }
 
-        with open(output_file, "w", encoding="utf-8") as out_f:
+        with output_file.open("w", encoding="utf-8") as out_f:
             json.dump(summary, out_f, indent=2)
         print(f"Tier 1 results saved to {output_file}")
