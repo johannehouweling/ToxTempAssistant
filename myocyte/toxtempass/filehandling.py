@@ -45,14 +45,11 @@ IMAGE_SUFFIX_FORMATS = {
     ".webp": "WEBP",
 }
 
-# OpenAI Vision API supported image formats
-# Only convert formats NOT in this set
-OPENAI_SUPPORTED_FORMATS = {"png", "jpeg", "jpg", "gif", "webp"}
-
-# Target format for conversion of unsupported formats
+# Target format for all image conversions - WebP is most efficient for base64/tokens
+# This reduces API costs by minimizing the base64 payload size
 TARGET_IMAGE_FORMAT = "WEBP"
 TARGET_IMAGE_MIME = "image/webp"
-TARGET_IMAGE_QUALITY = 90  # WebP quality (0-100), 85 is good balance of quality/size
+TARGET_IMAGE_QUALITY = 85  # WebP quality (0-100), 85 is good balance of quality/size
 
 DEFAULT_IMAGE_MIME = "image/png"
 MAX_TABLE_ROWS = 50
@@ -157,9 +154,9 @@ def summarize_image_entries(doc_dict: dict[str, dict[str, str]]) -> None:
 def _convert_image_to_webp(
     image_bytes: bytes, source_format: str | None = None
 ) -> tuple[bytes, str]:
-    """Convert image bytes to WebP format for OpenAI API compatibility.
+    """Convert image bytes to WebP format for optimal token efficiency.
 
-    Used to convert unsupported formats (JP2, TIFF, BMP, etc.) to WebP.
+    WebP provides the best compression ratio, reducing base64 size and API token usage.
 
     Args:
         image_bytes: Raw image bytes
@@ -185,20 +182,13 @@ def _convert_image_to_webp(
     return output.getvalue(), TARGET_IMAGE_MIME
 
 
-def _is_format_supported(image_format: str | None) -> bool:
-    """Check if an image format is supported by OpenAI Vision API."""
-    if not image_format:
-        return False
-    return image_format.lower() in OPENAI_SUPPORTED_FORMATS
-
-
 def _extract_images_from_pdf_page(
     page: PageObject, source_path: Path, page_number: int
 ) -> dict[str, dict[str, str]]:
     """Extract images from a single PDF page into the document dictionary format.
 
-    Unsupported formats (JP2, TIFF, BMP, etc.) are converted to WebP for
-    OpenAI Vision API compatibility.
+    All images are converted to WebP format for optimal token efficiency when
+    sending to OpenAI's Vision API.
     """
     images: dict[str, dict[str, str]] = {}
     pdf_images = getattr(page, "images", []) or []
@@ -227,24 +217,18 @@ def _extract_images_from_pdf_page(
             or None
         )
 
-        # Determine mime type
-        mime_type = mimetypes.guess_type(image_name)[0]
-        if not mime_type and image_format:
-            mime_type = f"image/{image_format.lower()}"
-
-        # Convert only unsupported formats to WebP
-        if not _is_format_supported(image_format):
-            try:
-                image_bytes, mime_type = _convert_image_to_webp(image_bytes, image_format)
-            except Exception as exc:
-                logger.warning(
-                    "Failed to convert %s image to WebP (%s page %s): %s. Skipping image.",
-                    image_format or "unknown",
-                    source_path,
-                    page_number,
-                    exc,
-                )
-                continue
+        # Always convert to WebP for optimal token efficiency
+        try:
+            image_bytes, mime_type = _convert_image_to_webp(image_bytes, image_format)
+        except Exception as exc:
+            logger.warning(
+                "Failed to convert %s image to WebP (%s page %s): %s. Skipping image.",
+                image_format or "unknown",
+                source_path,
+                page_number,
+                exc,
+            )
+            continue
 
         encoded = base64.b64encode(image_bytes).decode("utf-8")
         key = (
@@ -253,7 +237,7 @@ def _extract_images_from_pdf_page(
         )
         images[key] = {
             "encodedbytes": encoded,
-            "mime_type": mime_type or DEFAULT_IMAGE_MIME,
+            "mime_type": mime_type,
             "source_document": str(source_path),
             "origin": "embedded",
             "page_number": page_number,
@@ -265,7 +249,7 @@ def _extract_images_from_pdf_page(
 def _extract_images_from_docx(path: Path) -> dict[str, dict[str, str]]:
     """Extract embedded images from a DOCX file.
 
-    Unsupported formats are converted to WebP for OpenAI API compatibility.
+    All images are converted to WebP format for optimal token efficiency.
     """
     images: dict[str, dict[str, str]] = {}
     try:
@@ -278,20 +262,17 @@ def _extract_images_from_docx(path: Path) -> dict[str, dict[str, str]]:
                 if not data:
                     continue
 
+                # Convert to WebP for optimal token efficiency
                 original_format = Path(filename).suffix.lstrip(".")
-                mime_type = mimetypes.guess_type(filename)[0] or DEFAULT_IMAGE_MIME
-
-                # Convert only unsupported formats to WebP
-                if not _is_format_supported(original_format):
-                    try:
-                        data, mime_type = _convert_image_to_webp(data, original_format)
-                    except Exception as exc:
-                        logger.warning(
-                            "Failed to convert DOCX image %s to WebP: %s. Skipping.",
-                            filename,
-                            exc,
-                        )
-                        continue
+                try:
+                    data, mime_type = _convert_image_to_webp(data, original_format)
+                except Exception as exc:
+                    logger.warning(
+                        "Failed to convert DOCX image %s to WebP: %s. Skipping.",
+                        filename,
+                        exc,
+                    )
+                    continue
 
                 encoded = base64.b64encode(data).decode("utf-8")
                 key = f"{str(path)}#{filename}"
@@ -471,33 +452,18 @@ def get_text_or_bytes_perfile_dict(
                 text = _read_xlsx_file(context_filename)
 
             elif suffix in config.image_accept_files:
+                # Convert all uploaded images to WebP for optimal token efficiency
                 with open(context_filename, "rb") as img_file:
                     image_bytes = img_file.read()
-
-                file_format = suffix.lstrip(".")
-                mime_type = mimetypes.guess_type(context_filename.name)[0]
-
-                # Convert only unsupported formats to WebP
-                if not _is_format_supported(file_format):
-                    try:
-                        image_bytes, mime_type = _convert_image_to_webp(
-                            image_bytes, file_format
-                        )
-                        logger.info(
-                            f"Converted '{context_filename}' from {file_format} to WebP."
-                        )
-                    except Exception as exc:
-                        logger.warning(
-                            "Failed to convert uploaded image %s to WebP: %s. Skipping.",
-                            context_filename,
-                            exc,
-                        )
-                        continue
-                else:
-                    if not mime_type:
-                        mime_type = f"image/{file_format.lower()}"
-                    logger.info(f"The image '{context_filename}' was read successfully.")
-
+                try:
+                    image_bytes, mime_type = _convert_image_to_webp(image_bytes, suffix)
+                except Exception as exc:
+                    logger.warning(
+                        "Failed to convert uploaded image %s to WebP: %s. Skipping.",
+                        context_filename,
+                        exc,
+                    )
+                    continue
                 encoded = base64.b64encode(image_bytes).decode("utf-8")
                 document_contents[str(context_filename)] = {
                     "encodedbytes": encoded,
@@ -507,6 +473,9 @@ def get_text_or_bytes_perfile_dict(
                     "page_number": None,
                     "page_context": None,
                 }
+                logger.info(
+                    f"The image '{context_filename}' was read and converted to WebP."
+                )
                 continue
 
             if text:
