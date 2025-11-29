@@ -1,10 +1,10 @@
 from django.core.management.base import BaseCommand
 
-from toxtempass.evaluation.negative_control.validation_pipeline_tier2 import (
-    run as run_tier2,
+from myocyte.toxtempass.evaluation.negative_control.ncontrol import (
+    run as run_ncontrol,
 )
-from toxtempass.evaluation.positive_control.validation_pipeline_tier1 import (
-    run as run_tier1,
+from myocyte.toxtempass.evaluation.positive_control.pcontrol import (
+    run as run_pcontrol,
 )
 from toxtempass.evaluation.config import config as eval_config
 
@@ -36,14 +36,14 @@ class Command(BaseCommand):
             help="Re-run even if output already exists for a model.",
         )
         parser.add_argument(
-            "--skip-tier1",
+            "--skip-pcontrol",
             action="store_true",
-            help="Skip Tier1 (positive control) run.",
+            help="Skip positive control run.",
         )
         parser.add_argument(
-            "--skip-tier2",
+            "--skip-ncontrol",
             action="store_true",
-            help="Skip Tier2 (negative control) run.",
+            help="Skip negative control run.",
         )
 
     def handle(self, *args, **options):
@@ -57,8 +57,8 @@ class Command(BaseCommand):
         question_set_label = options.get("question_set_label")
         experiment = options.get("experiment")
         repeat = options.get("repeat", False)
-        skip_tier1 = options.get("skip_tier1", False)
-        skip_tier2 = options.get("skip_tier2", False)
+        skip_pcontrol = options.get("skip_pcontrol", False)
+        skip_ncontrol = options.get("skip_ncontrol", False)
 
         # Validate experiment if provided
         if experiment and experiment not in eval_config.experiments:
@@ -71,27 +71,25 @@ class Command(BaseCommand):
             return
 
         if experiment:
-            self.stdout.write(
-                self.style.SUCCESS(f"Running experiment: {experiment}")
-            )
+            self.stdout.write(self.style.SUCCESS(f"Running experiment: {experiment}"))
             self.stdout.write(
                 f"Description: {eval_config.experiments[experiment]['description']}"
             )
 
-        if not skip_tier1:
-            self.stdout.write(self.style.SUCCESS("Starting Tier1 (positive control)..."))
-            run_tier1(
+        if not skip_pcontrol:
+            self.stdout.write(self.style.SUCCESS("Starting positive control..."))
+            run_pcontrol(
                 question_set_label=question_set_label,
                 repeat=repeat,
                 experiment=experiment,
             )
 
-        if not skip_tier2:
-            self.stdout.write(self.style.SUCCESS("Starting Tier2 (negative control)..."))
-            run_tier2(
+        if not skip_ncontrol:
+            self.stdout.write(self.style.SUCCESS("Starting negative control..."))
+            run_ncontrol(
                 question_set_label=question_set_label,
                 repeat=repeat,
                 experiment=experiment,
             )
-        
+
         self.stdout.write(self.style.SUCCESS("Evaluation complete!"))

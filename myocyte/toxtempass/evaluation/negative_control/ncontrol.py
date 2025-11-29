@@ -52,7 +52,7 @@ def run(
     experiment: str | None = None,
 ) -> None:
     """Run Tier2 pipeline for all configured models.
-    
+
     Args:
         question_set_label: Optional QuestionSet label to use
         repeat: Re-run even if output already exists for a model
@@ -62,12 +62,16 @@ def run(
     """
     llm = None
     # Use config paths with optional overrides
-    input_dir = input_dir or eval_config.tier2_input
-    output_base_dir = output_base_dir or eval_config.tier2_output
-    
+    input_dir = input_dir or eval_config.pcontrol_input
+    output_base_dir = output_base_dir or eval_config.pcontrol_output
+
     # Get model configurations from centralized config
     models = eval_config.get_models(tier=2, experiment=experiment)
-    
+
+    # Get prompt configuration for this experiment
+    prompts = eval_config.get_prompts(experiment)
+    prompt_hash = eval_config.get_prompt_hash(experiment)
+
     for model_config in models:
         model_name = model_config["name"]
         temp = model_config["temperature"]
@@ -79,12 +83,14 @@ def run(
                 model=model_name,
                 default_headers=config.extra_headers,
             )
-            logger.info(f"Using ({model_name}) at {LLM_ENDPOINT} with temperature={temp}.")
+            logger.info(
+                f"Using ({model_name}) at {LLM_ENDPOINT} with temperature={temp}."
+            )
         else:
             logger.error("Required environment variables are missing")
 
         files_tier2 = list(input_dir.glob("*.pdf"))
-        
+
         # Create output directory name that includes temperature for experiments
         if temp is not None:
             output_dir_name = f"{model_name}_temp{temp}"
@@ -151,6 +157,21 @@ def run(
         output_folder = output_file.parent
         if not output_folder.exists():
             output_folder.mkdir(parents=True)
+
+        # Build summary with experiment metadata
+        summary = {
+            "timestamp": timestamp,
+            "experiment": experiment,
+            "model": model_name,
+            "temperature": temp,
+            "prompt_hash": prompt_hash,
+            "prompts": {
+                "base_prompt": prompts["base_prompt"],
+                "image_prompt": prompts["image_prompt"],
+            },
+            "records": records,
+        }
+
         with open(output_file, "w", encoding="utf-8") as out_f:
-            json.dump({"timestamp": timestamp, "records": records}, out_f, indent=2)
+            json.dump(summary, out_f, indent=2)
         print(f"Tier 2 results saved to {output_file}")

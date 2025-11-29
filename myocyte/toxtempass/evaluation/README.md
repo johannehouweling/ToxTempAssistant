@@ -41,10 +41,10 @@ python manage.py run_evals --experiment model_comparison
 
 ```bash
 # Skip Tier 2, only run Tier 1
-python manage.py run_evals --skip-tier2
+python manage.py run_evals --skip-ncontrol
 
 # Skip Tier 1, only run Tier 2
-python manage.py run_evals --skip-tier1
+python manage.py run_evals --skip-pcontrol
 ```
 
 ### Force Re-run
@@ -64,9 +64,9 @@ All configuration is centralized in `evaluation/config.py`.
 evaluation/
 ├── config.py                    # Central configuration
 ├── positive_control/
-│   └── validation_pipeline_tier1.py
+│   └── pcontrol.py
 ├── negative_control/
-│   └── validation_pipeline_tier2.py
+│   └── ncontrol.py
 └── README.md                    # This file
 
 management/commands/
@@ -79,14 +79,11 @@ The `EvaluationConfig` class in `config.py` contains:
 
 #### Path Configuration
 ```python
-# Tier 1 Paths
-tier1_processed_scored = repo_root / "test-results" / "Tier1" / "processed" / "scored"
-tier1_raw = repo_root / "test-results" / "Tier1" / "raw"
-tier1_output = repo_root / "test-results" / "Tier1_results"
+# output negative control
+ncontrol_output = eval_root / "negative control" / "output"
 
-# Tier 2 Paths
-tier2_input = repo_root / "test-results" / "Tier2"
-tier2_output = repo_root / "test-results" / "Tier2_results"
+# output positive control
+pcontrol_output = eval_root / "positive control" / "output"
 ```
 
 #### Model Configuration
@@ -128,6 +125,31 @@ Then run it:
 python manage.py run_evals --experiment my_custom_experiment
 ```
 
+### Experiments with Custom Prompts
+
+You can override the default prompts for specific experiments by adding `base_prompt` and/or `image_prompt` fields:
+
+```python
+experiments = {
+    "prompt_experiment": {
+        "models": [
+            {"name": "gpt-4o-mini", "temperature": 0},
+        ],
+        "description": "Test modified prompt wording",
+        "base_prompt": """
+        You are a scientific assistant...
+        [Your custom base prompt here]
+        """,
+        "image_prompt": "You are an image analyzer...[custom image prompt]"
+    }
+}
+```
+
+- `base_prompt`: Overrides the default question-answering prompt
+- `image_prompt`: Overrides the default image description prompt
+
+If not specified, experiments use the default prompts defined in `EvaluationConfig`.
+
 ## Pre-defined Experiments
 
 ### baseline
@@ -167,6 +189,27 @@ test-results/
     │   └── tier2_summary_YYYYMMDD_HHMM.json
     └── ...
 ```
+
+### Summary File Contents
+
+Each summary JSON file includes experiment metadata for traceability:
+
+```json
+{
+    "timestamp": "20241129_1830",
+    "experiment": "baseline",
+    "model": "gpt-4o-mini",
+    "temperature": 0,
+    "prompt_hash": "4aa6ca3f",
+    "prompts": {
+        "base_prompt": "You are an agent...",
+        "image_prompt": "You are a scientific assistant..."
+    },
+    "records": [...]
+}
+```
+
+The `prompt_hash` allows quick comparison of which prompt version was used across experiments.
 
 ## Advanced Usage
 

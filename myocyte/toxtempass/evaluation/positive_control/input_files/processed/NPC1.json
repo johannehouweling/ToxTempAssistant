@@ -1,0 +1,594 @@
+{
+  "reference": "Krebs et al. ALTEX 36(4), 2019, 685-692",
+  "sections": [
+    {
+      "title": "1. Overview",
+      "subsections": [
+        {
+          "title": "1.1 Descriptive full-text title",
+          "question": "Provide a descriptive title using normal language without technical terms or acronyms.",
+          "answer": "Assessment of human neural progenitor cell proliferation (NPC1)",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by providing a descriptive title, but it includes a technical term 'neural progenitor cell' and an acronym 'NPC1', which the question specifically asked to avoid."
+        },
+        {
+          "title": "1.2 Abstract",
+          "question": "Please describe in no more than 200 words the following: Which toxicological target (organ, tissue, physiological/biochemical function, etc.) is modelled? (8.1) Which test system and readout(s) are used? (4.1; 5.2) Which biological process(es) (e.g. neurite outgrowth, differentiation) and/or toxicological events (e.g. oxidative stress, cell death) are modelled/reflected by your test method? (8.1) To which (human) adverse outcome(s) is your test method related or could be related? (8.1; 9.2; 9.3) Which hazard(s) do(es) your test method (potentially) predict? (8.1; 8.6) Does the test method capture an endpoint of current regulatory studies? (9.5) If the method has undergone some form of validation/evaluation, give its status. (9.4)",
+          "answer": "The human developing central nervous system may be more vulnerable to adverse effects of chemical agents  than the adult brain. At present, due to the knowledge gap concerning hazard identification for human  neurodevelopmental toxicity (DNT), there is an urgent need for testing and subsequent regulation of  chemicals for their potential to interfere with the developing nervous system. Primary human neural progenitor  cells (hNPCs) cultivated as three-dimensional floating spheres are able to represent several key processes  of brain development. In the neural progenitor cell proliferation assay (NPC1), hNPCs are plated in 96 well  plates as 3-dimensional spheres and exposed to test compounds. Thereby the process of NPC proliferation  can be studied. This DNT-specific endpoint is studied in combination with general cell viability and  cytotoxicity. Cortical human NPC proliferation is a critical process during brain development that, if disturbed,  may lead to alterations in brain development and cause cognitive dysfunction. Currently, cortical NPC  proliferation is one of the many processes, which are assessed in the OECD TG426 by neuropathological  evaluation of certain brain regions as well as neurobehavioral tests. According to the readiness criteria as  published by Bal-Price et al. (2018), the neural progenitor cell proliferation assay obtained the readiness  score A.",
+          "subquestions": [
+            {
+              "question": "Which toxicological target (organ, tissue, physiological/biochemical function, etc.) is modelled? (8.1)",
+              "answer": "developing brain",
+              "answer_quality_score": "High",
+              "answer_quality_justification": "The answer clearly identifies the toxicological target as the 'developing brain,' which directly addresses the question about the specific organ or tissue being modeled."
+            },
+            {
+              "question": "Which test system and readout(s) are used? (4.1; 5.2)",
+              "answer": "Test sysytem: primary human neural progenitor cells (hNPCs) from human cortex (Gestation week (GW) 16-19) Readout(s): sphere size, DNA synthesis as chemiluminescence measurement, viability and cytotoxicity as fluorescence intensity",
+              "answer_quality_score": "High",
+              "answer_quality_justification": "The answer clearly specifies the test system as primary human neural progenitor cells from human cortex and lists multiple readouts including sphere size, DNA synthesis, and viability/cytotoxicity, providing a complete and relevant response to the question."
+            },
+            {
+              "question": "Which biological process(es) (e.g. neurite outgrowth, differentiation) and/or toxicological events (e.g. oxidative stress, cell death) are modelled/reflected by your test method? (8.1)",
+              "answer": "fetal NPC proliferation viability, cytotoxicity",
+              "answer_quality_score": "Medium",
+              "answer_quality_justification": "The answer partially addresses the question by mentioning 'fetal NPC proliferation viability' and 'cytotoxicity,' which are relevant biological processes and toxicological events. However, it lacks clarity and completeness as it does not explicitly connect these terms to specific biological processes or toxicological events like neurite outgrowth or oxidative stress."
+            },
+            {
+              "question": "To which (human) adverse outcome(s) is your test method related or could be related? (8.1; 9.2; 9.3)",
+              "answer": "cognitive dysfunction",
+              "answer_quality_score": "Medium",
+              "answer_quality_justification": "The answer identifies a relevant adverse outcome (cognitive dysfunction) but lacks detail and specificity about how the test method is related to this outcome. More information is needed to fully address the question."
+            },
+            {
+              "question": "Which hazard(s) do(es) your test method (potentially) predict? (8.1; 8.6)",
+              "answer": "adverse effect on cell proliferation",
+              "answer_quality_score": "High",
+              "answer_quality_justification": "The answer directly addresses the question by specifying the hazard that the test method potentially predicts, which is the adverse effect on cell proliferation. It is relevant and complete in the context of the question."
+            },
+            {
+              "question": "Does the test method capture an endpoint of current regulatory studies? (9.5)",
+              "answer": "not directly",
+              "answer_quality_score": "Low",
+              "answer_quality_justification": "The answer 'not directly' is vague and does not provide sufficient information to determine whether the test method captures an endpoint of current regulatory studies. It lacks detail and clarity, making it difficult to assess the relevance and completeness of the response."
+            },
+            {
+              "question": "If the method has undergone some form of validation/evaluation, give its status. (9.4)",
+              "answer": "readiness analysis: readiness score A, according to Bal-Price et al. (2018)",
+              "answer_quality_score": "Medium",
+              "answer_quality_justification": "The answer provides some information about the validation status by mentioning a readiness score and a reference, but it lacks clarity and completeness. It does not explicitly state the validation status or provide details on the evaluation process."
+            }
+          ],
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer comprehensively addresses the question by identifying the toxicological target (developing central nervous system), the test system (primary human neural progenitor cells in 3D spheres), and the biological processes (neural progenitor cell proliferation). It also relates the test method to human adverse outcomes (cognitive dysfunction) and potential hazards (interference with brain development). The answer mentions the regulatory endpoint (OECD TG426) and provides the validation status (readiness score A), making it relevant and complete."
+        }
+      ]
+    },
+    {
+      "title": "2. General information",
+      "subsections": [
+        {
+          "title": "2.1 Name of test method",
+          "question": "Provide the original/published name, as well as the potential tradename.",
+          "answer": "Neural progenitor cell proliferation assay (NPC1) by sphere size (NPC1a) by BrdU incorporation (NPC1b)",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides the original/published name of the assay but does not clearly specify a potential tradename. It partially addresses the question but lacks completeness."
+        },
+        {
+          "title": "2.2 Version number and date of deposition",
+          "question": "Provide the original deposition date of first version and date of current version.",
+          "answer": "20230310_v2",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer only provides a single date with a version number, which does not clearly indicate the original deposition date or the date of the current version. It lacks the necessary information to fully address the question."
+        },
+        {
+          "title": "2.3 Summary of introduced changes in comparison to previous version(s)",
+          "question": "This only applies to updated versions. If this is the original version, state 'original version'.",
+          "answer": "changes according to comments",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer does not address the question of whether this is the original version or an updated version. It provides an unrelated statement about changes, which does not clarify the version status."
+        },
+        {
+          "title": "2.4 Assigned data base name",
+          "question": "Normal text names often do not uniquely define the method. Therefore, each method should be assigned a clearly and uniquely defined data base name.",
+          "answer": "NPC1a_DNT_hNPC_prol_72h_20200702v1.2 NPC1b_DNT_hNPC_prol_72h_20200702v1.2 ToxCast invitroDB name: IUF_NPC1b_proliferation_BrdU_72hr IUF_NPC1a_proliferation_Area_72hr",
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer provides specific and unique database names for the methods, addressing the need for clear and unique identification. It includes both internal and ToxCast invitroDB names, ensuring completeness and relevance."
+        },
+        {
+          "title": "2.5 Name and acronym of the test depositor",
+          "question": "Include affiliation.",
+          "answer": "IUF – Leibniz Research Institute for Environmental Medicine",
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer fully addresses the question by providing the affiliation as requested. It is relevant and complete."
+        },
+        {
+          "title": "2.6 Name and email of contact person",
+          "question": "Provide the details of the principal contact person.",
+          "answer": "Ellen Fritsche: ellen.fritsche@iuf-duesseldorf.de",
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer provides the name and email address of the principal contact person, which fully addresses the question by giving complete and relevant contact details."
+        },
+        {
+          "title": "2.7 Name of further persons involved",
+          "question": "For example, the principal investigator (PI) of the lab, the person who conducted the experiments, etc.",
+          "answer": "Stefan Masjosthusmann: stefan.masjosthusmann@iuf-duesseldorf.de Kristina Bartmann kristina.bartmann@iuf-duesseldorf.de Katharina Koch katharina.koch@iuf-duesseldorf.de",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides names and contact information, which partially addresses the question by identifying individuals involved. However, it lacks clarity on their specific roles, such as who is the principal investigator or who conducted the experiments."
+        },
+        {
+          "title": "2.8 Reference to additional files of relevance",
+          "question": "Supply number of supporting files. Describe supporting files (e.g. metadata files, instrument settings, calculation template, raw data file, etc.).",
+          "answer": "",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "No answer provided; treated as missing."
+        }
+      ]
+    },
+    {
+      "title": "3. Description of general features of the test system source",
+      "subsections": [
+        {
+          "title": "3.1 Supply of source cells",
+          "question": "Describe briefly whether the cells are from a commercial supplier, continuously generated by cell culture, or obtained by isolation from human/animal tissue (or other).",
+          "answer": "Commercial supplier, Lonza, Verviers, Belgium",
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer clearly states that the cells are from a commercial supplier, providing the name and location of the supplier, which fully addresses the question."
+        },
+        {
+          "title": "3.2 Overview of cell source component(s)",
+          "question": "Give a brief overview of your biological source system, i.e. the source or starting cells that you use. Which cell type(s) are used or obtained (e.g. monoculture/co-culture, differentiation state, 2D/3D, etc.)? If relevant, give human donor specifications (e.g. sex, age, pool of 10 donors, from healthy tissue, etc.).",
+          "answer": "Primary human neural progenitor cells (hNPCs) are provided as cryopreserved 3D neurospheres from Lonza, Verviers, Belgium. The material originates from the human brain cortex of different gestational ages (GW16- 19). Sex is either specified or determined before the cells are used.",
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer fully addresses the question by specifying the cell type (primary human neural progenitor cells), the form (3D neurospheres), the source (human brain cortex), the gestational age range (GW16-19), and the sex determination. It provides relevant and complete information about the biological source system."
+        },
+        {
+          "title": "3.3 Characterization and definition of source cells",
+          "question": "List quantitative and semi-quantitative features that define your cell source/starting cell population. For test methods that are based on differentiation, describe your initial cells, e.g. iPSC, proliferating SH-SY5Y; the differentiated cells are described in section 4. Define cell identity, e.g. by STR signature (where available), karyotype information, sex (where available and relevant), ATCC number, passage number, source (supplier), sub-line (where relevant), source of primary material, purity of the cells, etc. Describe defining biological features you have measured or that are FIRMLY established (use simple listing, limit to max. 0.5 pages), e.g. the cells express specific marker genes, have specific surface antigens, lack certain markers, have or lack a relevant metabolic or transporting capacity, have a doubling time of x hours, etc. Transgenic cell lines have particular requirements concerning the characterization of the genetic manipulation (type of transgene, type of vector, integration/deletion site(s), stability, etc.). Organoids and microphysiological systems (MPS) may need some special/additional considerations as detailed in Pamies et al. (2018) and Marx et al. (2016), e.g. ratio of cell types used, percent of normal cells in tumor spheroids created from resected tissue; derivation of cells for re-aggregating brain cultures.",
+          "answer": "1x106 hNPCs per vial are obtained from Lonza (#PT-2599) and expanded. Lonza provides the cells with a viability of at least 20%. FACS analysis confirmed that proliferating neurospheres express the cell type- specific CNS neural stem cell and progenitor cell markers nestin, SRY-box 2 (SOX2), and Ki67 (Koch et al., 2022). Moreover, proliferating hNPCs react to growth factor stimuli (epidermal growth factor (EGF) and recombinant human fibroblast growth factor (FGF)) with increased proliferation, while simultaneous pharmacological inhibition of the EGF receptor (EGFR; PD153035) impaired the proliferation increase. Upon transfer of hNPC neurospheres on poly D-lysine/laminin matrix and cultivation in the absence of growth factors (EGF and FGF), the hNPCs differentiate into effector cells expressing markers of neurons (β-III- tubulin(TUBB3), astrocytes (Glial Fibrillary Acidic Protein (GFAP)), radial glia cells (nestin) and oligodendrocytes (O4) (Baumann et al., 2015; Schmuck et al., 2017; Koch et al., 2022).",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides some relevant information about the cell source, including the supplier, cell markers, and response to growth factors. However, it lacks details on cell identity such as STR signature, karyotype information, sex, passage number, and purity. Additionally, it does not address transgenic cell line requirements or special considerations for organoids and MPS, which are part of the question."
+        },
+        {
+          "title": "3.4 Acceptance criteria for source cell population",
+          "question": "Describe the acceptance criteria (AC) for your initial cells (i.e. the quality criteria for your proliferating cell line, tissue for isolation, organism, etc.). Which specifications do you consider to describe the material, which quality control criteria have to be fulfilled (e.g. pathogen-free)? Which functional parameters (e.g. certain biological responses to reference substances) are important? For iPSC maintenance: How do you control pluripotency? How stable are your cells over several passages? Which passage(s) are valid? For primary cells: Show stability and identity of supply; demonstrate stability of function (e.g. xenobiotic metabolism). Quantitative definitions for AC should be given based on this defining information. Exclusion criteria (features to be absent) are also important. As in 3.3., special/additional requirements apply to genetically-modified cells and microphysiological systems.",
+          "answer": "The following acceptability criteria have been tested at the supplier (Lonza) and are prerequisites for the shipment to customers: - tested positive for TUBB3 and GFAP after differentiation - tested free of HIV, HBV and HC - tested negative both in sterility test and for mycoplasma contamination - cell count of 1.2x106 cells/mL - viability of at least 20% - Adherence of <=50% The proliferative capacity of Lonza hNPCs was reported previously (Moors et al., 2009; Baumann et al., 2015; Klose et al., 2021a).",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides some acceptance criteria such as pathogen-free status, cell count, and viability, which partially address the question. However, it lacks details on functional parameters, pluripotency control, stability over passages, and exclusion criteria. It also does not address genetically-modified cells or microphysiological systems, making it incomplete."
+        },
+        {
+          "title": "3.5 Variability and troubleshooting of source cells",
+          "question": "Name known causes of variability of the initial cells/source cells. Indicate critical consumables or batch effects (e.g. relevance of the plate format and supplier, batch effects of fetal calf serum (FCS) or serum replacement, critical additives like type of trypsin, apo-transferrin vs. holo-transferrin, etc.). Indicate critical handling steps and influencing factors (e.g. special care needed in pipetting, steps that need to be performed quickly, cell density, washing procedures, etc.). As in 3.3., special/additional requirements apply to genetically-modified cells and microphysiological systems, e.g. dependence on matrix chemistry and geometry, dependence on microfluidics system, consideration of surface cells vs core cells, etc. Give recommendations to increase/ensure reproducibility and performance.",
+          "answer": "The sphere size at day 0 of cell thawing can be different depending on the donor. In the 3- to 4-week expansion period different donors can show differences in their proliferative capacity (spheres need longer, 3 instead of 4 weeks, to reach the acceptable minimum size of 0.2 – 0.5 µm). After the first mechanical dissociation, there are no observable or measurable inter-individual differences. Critical consumables The proliferation medium does not contain serum or serum replacement. The use of EGF and recombinant human fibroblast growth factor (FGF) is critical for sphere growth. FGF contains 1% bovine serum albumin and is thus prone to batch effects. Critical handling The thawing medium contains DMSO in a concentration that affects cell health which is why thawed cells should quickly be diluted in proliferation medium (30 mL of media for one vial of cells). It is recommended to add FGF to the proliferation medium directly before thawing. At the end of week two of the expansion period (see below), the spheres should be transferred to petri dishes coated with poly-(2-hydroxyethyl methacrylate) (poly-Hema) to prevent cell attachment. Attached cells that are not differentiated can be gently detached using a 1000 µL pipet. To avoid repeated attachment, all cells should be transferred to a new poly-Hema coated petri dish. Medium containing FGF should not be stored longer than 1 week at 4°C. During the first two weeks, the medium should be removed using a 1000 µL pipet to keep the accidental removal of small spheres to a minimum. In addition, removed medium should be kept in a new petri dish under culture conditions until the next feeding day, to transfer accidentally removed spheres back to the culture. The neurospheres should be well distributed in the petri dish to prevent aggregation. This is especially important after mechanical dissociations. It is important to avoid frequent re-opening of the incubators, to ensure constant CO2 and temperature levels. Furthermore, the smallest vibrations can lead to aggregations of neurospheres. The number of passages after thawing influences the proliferation capability of neurospheres. Neurospheres should not be used for the NPC1 assay after passage 6.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides some relevant information about variability in initial cells, critical consumables, and handling steps, such as the importance of EGF and FGF, and handling procedures to prevent cell attachment. However, it lacks comprehensive coverage of all aspects mentioned in the question, such as specific batch effects, detailed handling steps, and recommendations for genetically-modified cells and microphysiological systems. The recommendations for reproducibility and performance are also not fully addressed."
+        },
+        {
+          "title": "3.6 Differentiation towards the final test system",
+          "question": "Describe the principles of the selected differentiation protocol, including a scheme and graphical overview, indicating all phases, media, substrates, manipulation steps (medium change/re-plating, medium additives, etc.). Special/additional requirements apply to microphysiological systems and organoids: e.g. cell printing, self-aggregation/self-organisation process, interaction with the matrix, geometrical characterization (size/shape), etc.",
+          "answer": "Cells are frozen in liquid nitrogen and have to be cultivated in proliferation medium at 37°C and 5% CO2 after thawing. The medium contains Dulbecco’s modified Eagle medium and Hams F12 (2:1) supplemented with 2% B27, 20 ng/mL EGF, 20 ng/mL recombinant human FGF, 100 U/mL penicillin and 100 µg/mL streptomycin. The thawing is performed by repeated addition and removal of proliferation medium to the vial until all cells are transferred to a tissue culture flask containing proliferation medium. The cells are carefully resuspended and distributed to 10 cm petri dishes filled with fresh, prewarmed proliferation medium. The cells are fed by replacing half the medium with new medium every two to three days (Monday, Wednesday, and Friday). At each feeding day, the culture is checked for impurities (e.g. fibers or other debris). Impurities and the removed media are transferred to a new petri dish (waste dish). If spheres are mistakenly sorted out during feeding, they can be rescued and placed back in the original culture dish. After 3-4 weeks, neurospheres reach the acceptable size of 0.2 – 0.5 mm for passaging by mechanical dissociation. Therefore, neurospheres are mechanically dissociated into pieces of 0.15 - 0.25 mm edge length (depending on the desired sphere size after passaging) using a tissue chopper, which then round-off again to uniform sized neurospheres within 1 day in proliferation medium. By using this method, neurospheres are expanded every week. Starting at week 2, poly-Hema coated dishes are used for the cultivation procedure. Figure 1 differentiation towards the final test system. hNPC are thawed by repeated addition and removal of proliferation media. The resuspended cells are distributed to cell culture dishes and cultivated in proliferation media containing EGF and FGF for three to four weeks with 50% media exchange every two to three days. When the spheres reach a size of 0.2- 0.5 mm they are expanded by mechanical passaging every 7 days.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides a detailed description of the cell cultivation process, including media composition, temperature, CO2 conditions, and mechanical passaging. However, it lacks a graphical overview and does not fully address all phases of the differentiation protocol, such as specific manipulation steps or additional requirements for microphysiological systems and organoids. The answer is missing details on cell printing, self-aggregation, interaction with the matrix, and geometrical characterization."
+        },
+        {
+          "title": "3.7 Reference/link to maintenance culture protocol",
+          "question": "Provide the SOP of the general maintenance procedure as a database link. This should also include the following information: How are the cells maintained outside the experiment (basic cell propagation)? How pure is the cell population (average, e.g. 95% of iPSC cells Oct4-positive)? What are the quality control measures and acceptance criteria for each cell batch? Which number(s) passage(s) can be used in the test? Is Good Cell Culture Practice (GCCP) and/or Good In Vitro Method Practice (GIVIMP) followed? How long can same cell batches be used? How are frozen stocks and cell banks prepared? For primary cells: how are they obtained in general and what are they characterized for (and what are inclusion and exclusion criteria).",
+          "answer": "See SOP in DB-ALM format (Appendix I in Masjosthusmann et al., 2020). Detailed protocols are also available as publications (Baumann et al., 2014; Nimtz et al., 2019) or upon request (ellen.fritsche@iuf- duesseldorf.de).",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer does not address the specific details requested in the question. It provides a reference to an SOP in a database format and mentions additional publications, but it lacks direct information on cell maintenance, purity, quality control, passage numbers, adherence to GCCP/GIVIMP, cell batch usage duration, preparation of frozen stocks, and characterization of primary cells."
+        }
+      ]
+    },
+    {
+      "title": "4. Definition of the test system as used in the method",
+      "subsections": [
+        {
+          "title": "4.1 Principles of the culture protocol",
+          "question": "Describe the test system as it is used in the test. If the generation of the test system involves differentiation steps or complex technical manipulation (e.g. formation of microtissues), this is described in 3.6. Give details on the general features/principles of the culture protocol (collagen embedding, 3D structuring, addition of mitotic inhibitors, addition of particular hormones/growth factors, etc.) of the cells that are used for the test. What is the percentage of contaminating cells; in co-cultures what is the percentage of each subpopulation? Are there subpopulations that are generally more sensitive to cytotoxicity than others, and could this influence viability measures? Is it known whether specific chemicals/chemical classes show differential cytotoxicity for the cell sub-populations used?",
+          "answer": "After the cell expansion period, the cells are cultured for up to four weeks in which they are passaged every week as described in 0. Between one to three days after passaging, depending on the size chosen for passaging, spheres at a size of 0.3 mm are used in the assay. For the assessment of neural progenitor cell proliferation, the spheres are plated in poly-Hema coated 96- well U-bottom plates filled with proliferation medium containing growth factors (EGF and FGF). One 0.25 - 0.35 mm big sphere is plated in the middle of each well. Within 3 days NPCs proliferate and grow in size. Cultivation during the test method is performed at 37°C and 5% CO2 at a pH of 7.2-7.6. As a positive control, spheres are cultivated in absence of growth factors (EGF and FGF), which dramatically reduces proliferation.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides some details about the culture protocol, such as the use of growth factors and the conditions for cultivation. However, it lacks information on the percentage of contaminating cells, the percentage of each subpopulation in co-cultures, and the sensitivity of subpopulations to cytotoxicity. It also does not address whether specific chemicals show differential cytotoxicity for the cell sub-populations used."
+        },
+        {
+          "title": "4.2 Acceptance criteria for assessing the test system at its start",
+          "question": "What are the endpoint(s) that you use to control that your culture(s) is/are as expected at the start of toxicity testing (e.g. gene expression, staining, morphology, responses to reference chemicals, etc.)? Describe the acceptance criteria for your test system, i.e. the quality criteria for your cells/tissues/organoids: Which endpoints do you consider to describe the cells or other source material, which parameters are important? Describe the (analytical) methods that you use to evaluate your culture (PCR, ATP measurement) and to measure the acceptance criteria (AC). Which values (e.g. degree of differentiation or cell density) need to be reached/should not be reached? Historical controls: How does your test system perform with regard to the acceptance criteria, e.g. when differentiation is performed 10 times, what is the average and variation of the values for the acceptance criteria parameters)? Indicate actions if the AC are not met. Examples: cell are > 90% viable, or > 98% of cells express marker x (e.g. AP-2), or > 80% of the cells attach, etc.",
+          "answer": "To be used in the test method, neurospheres have to display a perfectly round shape with no disintegrated borders. One neurosphere with 300 µm in diameter contains around 2.6 x 103 cells. Additionally, the basic neurospheres culture is checked for mycoplasma contamination every three months and controlled for fungal and bacterial contamination by visual inspection at each feeding and plating day.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by describing the morphological endpoint (perfectly round shape) and a quantitative measure (neurosphere diameter and cell count) for the culture. However, it lacks detail on other potential endpoints like gene expression or staining, does not specify acceptance criteria values, and omits historical control data and actions if criteria are not met. The methods for evaluating these criteria are also not fully described."
+        },
+        {
+          "title": "4.3 Acceptance criteria for the test system at the end of compound exposure",
+          "question": "Describe the acceptance criteria for your test system, i.e. the quality criteria for your cells/tissues/organoids: Which endpoints do you consider to describe the cells or other source material, which parameters are important? Which values (e.g. degree of differentiation or cell density) need to be reached/should not be reached? Historical controls: How does your test system perform with regard to the acceptance criteria, e.g. when differentiation is performed 10 times, what is the average and variation of the values for the acceptance criteria parameters)? Indicate actions if the AC are not met. Examples: Usual neurite length is 50 ±15 μm; experiments with average neurite length below 25 μm in the negative controls (NC) are discarded. Usual nestin induction is 200 ±40 fold, experiments with inductions below 80-fold for NC are discarded.",
+          "answer": "The proliferative capacity of hNPCs is assessed by cultivating them in either medium supplemented with the human growth factors EGF and FGF basic (as described in 4.1) or deprived of them (positive control). Over the 3 days in culture, hNPCs approximately increase their size on average by 33% (Koch et al., 2022). For this process the following acceptance criteria are defined for the solvent control containing the solvent of the highest test compound concentration (SC; mean of at least three replicates): Proliferation by area (slope of sphere area) Proliferation by BrdU (BrdU raw values): Proliferation by BrdU (BrdU raw values): 1000-3000 pixels/day raw values of treatment conditions must not be lower than the positive control raw values of the SC must be significantly higher than the positive control",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by providing some acceptance criteria related to the proliferative capacity of hNPCs, including specific parameters like proliferation by area and BrdU values. However, it lacks clarity and completeness regarding other endpoints, historical controls, and specific actions if acceptance criteria are not met. The answer does not fully describe the quality criteria for cells/tissues/organoids or provide comprehensive historical control data and actions for unmet criteria."
+        },
+        {
+          "title": "4.4 Variability of the test system and troubleshooting",
+          "question": "Give known causes of variability for final test system state. Indicate critical consumables or batch effects (e.g. plate format and supplier, batch effects of FCS or serum replacement, additives). Indicate critical handling steps, and/or influencing factors identified (e.g. special care needed in pipetting, steps that need to be performed quickly, cell density). Indicate positive and negative controls and their expected values, and accepted deviation within and between the test repeats. Give recommendations to increase/ensure reproducibility and performance.",
+          "answer": "Sources of variation: Selection of spheres: Depending on the researcher and the availability of spheres, the size of selected spheres can differ in a range of 0.25 – 0.35 mm. Primary hNPCs are a complex multicellular system with a self-organized sphere composition. Due to the complex multicellular and self-organizing nature, the test system is subject to some heterogenicity, which is represented as the biological variability of some of the measured endpoints. The variability for the different endpoints is shown in 0 “Test Performance”.",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer does not adequately address the question. It mentions sources of variation related to sphere selection and biological variability but fails to discuss critical consumables, batch effects, handling steps, controls, expected values, deviations, or recommendations for reproducibility and performance."
+        },
+        {
+          "title": "4.5 Metabolic capacity of the test system",
+          "question": "What is known about endogenous metabolic capacity (CYP system (phase I); relevant conjugation reactions (phase II))? What is known about other pathways relevant to xenobiotic metabolism? What specific information is there on transporter activity?",
+          "answer": "Primary hNPC under proliferating and differentiating conditions do not express CYP1A1 and CYP1B1 (Gassmann et al., 2010). Other metabolic pathways are not characterized.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides specific information about the expression of CYP1A1 and CYP1B1 in hNPC under certain conditions, which partially addresses the question about endogenous metabolic capacity. However, it lacks information on phase II reactions, other pathways relevant to xenobiotic metabolism, and transporter activity, making it incomplete."
+        },
+        {
+          "title": "4.6 Omics characterization of the test system",
+          "question": "Are there transcriptomics data or other omics data available that describe the test system (characterization of cells without compounds)? Briefly list and describe such data. Indicate the type of data available (e.g. RNASeq or proteomics data). Refer to data file, data base or publication.",
+          "answer": "Proliferating, three day differentiated, and five day differentiated hNPCs were analyzed for changes in their transcriptomic profile. Several key neurodevelopmental processes (migration, neuronal differentiation, glial differentiation) and genes regulating these processes (Bone morphogenetic protein (BMP), Notch and EGF signaling) were identified and characterized on a functional level (Masjosthusmann et al., 2018). Transcriptomic effects of exposure to 8 flame retardants were analyzed in hNPCs differentiated for five days (Klose et al., 2021)",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides some relevant information about transcriptomic data related to the test system, mentioning specific studies and the types of analyses conducted. However, it lacks clarity and completeness as it does not explicitly state the type of data (e.g., RNASeq) or provide specific references to data files or databases. The focus is more on the findings rather than the availability and type of omics data."
+        },
+        {
+          "title": "4.7 Features of the test system that reflect the in vivo tissue",
+          "question": "Give information on where the test system differs from the mimicked human tissue and which gaps of analogy need to be considered.",
+          "answer": "hNPCs reflect the following in vivo tissue features: NPC1 – fetal NPC proliferation (3D, primary cells) corresponding to in vivo growth during the fetal phase. Proliferating hNPCs progressively increase in sphere size by on average 33% within three days of proliferation in the presence of EGF and FGF. Moreover, they express the cell type-specific CNS neural stem and progenitor cell markers nestin and SOX2 (Koch et al., 2022). EGFR signaling is indispensable for proper brain development in vivo and increasingly expressed over time (Romano and Bucci, 2020). In line with that, exposure of proliferating hNPCs to the EGFR inhibitor PD153035 impaired the proliferative capacity (Koch et al., 2022).",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides detailed information about the features of hNPCs and their relevance to in vivo tissue, but it does not explicitly address where the test system differs from the mimicked human tissue or the specific gaps of analogy that need to be considered. The focus is more on the similarities rather than the differences or gaps."
+        },
+        {
+          "title": "4.8 Commercial and intellectual property rights aspects of cells",
+          "question": "Are there elements of the test system that are protected by patents or any other means?",
+          "answer": "For the source cells, Lonza holds donor consent and legal authorization that provides permission for all research use.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by mentioning legal authorization for research use, but it does not specifically address whether there are patents or other protections on the test system elements."
+        },
+        {
+          "title": "4.9 Reference/link to the culture protocol",
+          "question": "Fill only if section 3 has not been answered. Provide the SOP for the general maintenance procedure as a database link. This should also include the following information: How are the cells maintained outside the experiment (basic cell propagation)? How pure is the cell population (average, e.g. 95% of iPSC cells Oct4-positive)? What are the quality control measures and acceptance criteria for each cell batch? Which number(s) passage(s) can be used in the test? Is Good Cell Culture Practice (GCCP) and/or Good In Vitro Method Practice (GIVIMP) followed? How long can same cell batches be used? How are freezing stocks and cell banks prepared? For primary cells: how are they obtained in general and what are they characterized for (and what are inclusion and exclusion criteria).",
+          "answer": "See SOP in DB-ALM format (Appendix I in Masjosthusmann et al., 2020). Detailed protocols are also available as publications (Baumann et al., 2014; Nimtz et al., 2019) or upon request (ellen.fritsche@iuf- duesseldorf.de).",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer does not address the specific questions asked. It provides references to SOPs and publications but does not include any direct information about cell maintenance, purity, quality control, passage numbers, adherence to GCCP/GIVIMP, cell batch usage duration, or preparation of freezing stocks and cell banks. It lacks the required details and clarity."
+        }
+      ]
+    },
+    {
+      "title": "5. Test method exposure scheme and endpoints",
+      "subsections": [
+        {
+          "title": "5.1 Exposure scheme for toxicity testing",
+          "question": "Provide an exposure scheme (graphically, show timelines, addition of medium supplements and compounds, sampling, etc.), within the context of the overall cell culture scheme (e.g. freshly re-plated cells or confluent cells at start, certain coatings, etc.). Include medium changes, cell re-plating, whether compounds are re-added in cases of medium change, critical medium supplements, etc.",
+          "answer": "Figure 2: Exposure scheme. Neurospheres are plated on poly-Hema coated 96-well U-bottom plates containing proliferation medium and are exposed to increasing compound concentrations over a cultivation time of 72 hours. 0.3 mm big hNPCs are plated as described in 0. Cells are plated according to the plating scheme in Figure 4 in the already prepared test solutions. Exposure starts on the plating day (day 0) and is continued over three days, without chemical renewal, until the experiment is terminated (Figure 2).",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides a basic description of the exposure scheme, including the type of plates used, the medium, and the duration of exposure. However, it lacks specific details such as graphical representation, timelines, medium changes, re-plating, and whether compounds are re-added after medium changes. The reference to other figures suggests additional information might be available, but it is not included in the answer itself."
+        },
+        {
+          "title": "5.2 Endpoint(s) of the test method",
+          "question": "Define the specific endpoint(s) of the test system that you use for toxicity testing (e.g. cytotoxicity, cell migration, etc.). Indicate whether cytotoxicity is the primary endpoint. What are secondary/further endpoints? Also describe here potential reference/normalization endpoints (e.g. cytotoxicity, protein content, housekeeping gene expression) that are used for normalization of the primary endpoint.",
+          "answer": "Figure 3: Endpoint assessment. Neurospheres are plated in 96-well U-bottom plates and exposed to increasing compound concentrations in proliferation medium over a cultivation period of 72 h. Sphere size is determined every day via brightfield images (2-dimensional assessment). The assay is terminated by the assessment of cell viability, cytotoxicity, and proliferation by BrdU. Primary DNT specific endpoints of the test method are: 1 . proliferation by area (NPC1a) 2 . proliferation by BrdU (NPC1b) Secondary endpoints are: 1 . cytotoxicity 72 h 2 . viability 72 h All endpoints are generated from the same experimental run and from each well/sphere in the 96-well plate.",
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer fully addresses the question by clearly defining the primary endpoints (proliferation by area and BrdU) and secondary endpoints (cytotoxicity and viability at 72 hours). It also describes the method of endpoint assessment and indicates that all endpoints are generated from the same experimental run, which implies a consistent approach to normalization. The inclusion of specific details about the experimental setup and endpoint assessment provides a comprehensive response."
+        },
+        {
+          "title": "5.3 Overview of analytical method(s) to assess test endpoint(s)",
+          "question": "Define and describe the principle(s) of the analytical methods used. Provide here a general overview of the method’s key steps (e.g. cells are fixed or not, homogenized sample or not, etc.), sufficient for reviewers/regulators to understand what was done, but not in all detail for direct repetition. If you have two or more endpoints (e.g. viability and neurite outgrowth), do you measure both in the same well, under same conditions in parallel, or independently of each other? For imaging endpoints: Explain in general how quantification algorithm or how semi-quantitative estimates are obtained and how many cells are imaged (roughly).",
+          "answer": "Primary endpoints: 1. Proliferation by area (72h; NPC1a) is assessed as the slope of the increase in sphere size (amount of pixels in the bright-field image, sphere area) over 72 h measured by brightfield microscopy using high content imaging at 0 h, 24 h, 48 h, and 72 h. 2. Proliferation by BrdU (72h; NPC1b) is assessed as BrdU incorporation (as an indirect measure of DNA synthesis) over the last 16 h of compound exposure. It is measured as a luminescence signal (relative luminescence unit) in a multi-plate reader after 72 h. Secondary endpoints: 1 . Cytotoxicity 72 h is assessed as membrane integrity by measuring the amount of LDH leaked from cells with damaged plasma membranes. LDH-dependent reduction of resazurin to resorufin is measured in the supernatant of each well as fluorescence of the reaction product resorufin (relative fluorescence unit) in a multi-plate reader after 72 h of compound exposure. 2 . Viability 72 h is assessed as mitochondrial activity by measuring the amount of resazurin reduced to fluorescent resorufin (relative fluorescence unit) in a multi-plate reader in the last two hours of the 72 h proliferation and compound exposure period.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides a detailed description of the endpoints and the methods used to assess them, including the use of brightfield microscopy and multi-plate readers. However, it lacks a general overview of the method's key steps, such as whether cells are fixed or homogenized, and does not address whether endpoints are measured in the same well or under the same conditions. Additionally, it does not explain the quantification algorithm for imaging endpoints or the number of cells imaged."
+        },
+        {
+          "title": "5.4 Technical details (of e.g. endpoint measurements)",
+          "question": "Provide information on machine settings, analytical standards, data processing and normalization procedures. For imaging endpoints: provide detailed algorithm. This information should also be covered in an SOP, preferably in DB-ALM format (see link in 6.6).",
+          "answer": "All technical details for the test method are available in the SOP in DB-ALM format (Appendix I in Masjosthusmann et al., 2020). Detailed protocols are also available as publications (Baumann et al., 2014; Nimtz et al., 2019) or upon request (ellen.fritsche@iuf-duesseldorf.de).",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer references the availability of technical details in an SOP and publications, which partially addresses the question. However, it lacks specific information on machine settings, analytical standards, data processing, normalization procedures, and detailed algorithms for imaging endpoints. The answer is not fully self-contained and requires external sources for complete information."
+        },
+        {
+          "title": "5.5 Endpoint-specific controls/mechanistic control compounds (MCC)",
+          "question": "MCC are chemicals/manipulations that show biologically plausible changes of the endpoint. List such controls (up to 10), indicate why you consider them as MCC, and describe expected data on such controls. Highlight the compounds to be used for testing day-to-day test performance, i.e. for setting acceptance criteria (AC). If available, indicate MCC that each increase or decrease the activity of the relevant pathway. Do pathway inhibitions or activations correlate with the test method response?",
+          "answer": "All endpoint-specific controls are run for each experiment (plate). 1. Controls for Primary endpoints: hNPC proliferation is diminished by the withdrawal of growth factors (EGF and FGF). Spheres are plated in medium not containing EGF and FGF. This positive control demonstrates the physiological functionality of the growth factor-dependent regulation of hNPC proliferation. Inhibition of the growth factor-dependent proliferation causes a reduction of proliferation to 0% of the solvent control (SC, see 5.7) for proliferation by area (NPC1a) and 0-40% of the SC for proliferation by BrdU (NPC1b). 2. Controls for Secondary endpoints: 0.2 % Triton X-100 is used as a positive control for cell viability and cytotoxicity since it lyses the cell and therefore causes a maximal response for both endpoints. This positive control is run on each experimental plate.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides some examples of MCCs and explains their relevance, such as the use of growth factor withdrawal and Triton X-100. However, it lacks a comprehensive list of up to 10 controls, does not clearly indicate which compounds are used for setting acceptance criteria, and does not address whether pathway inhibitions or activations correlate with the test method response."
+        },
+        {
+          "title": "5.6 Positive controls",
+          "question": "What chemicals/manipulations are used as positive controls? Describe the expected data on such controls (signal and its uncertainty)? How good are in vivo reference data on the positive controls? Are in vivo relevant threshold concentrations known?",
+          "answer": "The NPC1 hNPC proliferation assay correctly identified the following compounds that are known to cause DNT in humans or in vivo (Masjosthusmann et al., 2020; Blum et al., 2023): Cadmium chloride Dexamethasone Hexachlorophene Chlorpromazine hydrochloride Methylazoxymethanol acetate all-trans-Retinoic acid Tributyltin chloride Sodium valproate all-trans-Retinoic acid",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer lists chemicals used as positive controls but does not describe the expected data on these controls, such as signal and its uncertainty. It also does not address the quality of in vivo reference data or whether in vivo relevant threshold concentrations are known."
+        },
+        {
+          "title": "5.7 Negative and unspecific controls",
+          "question": "What chemicals/manipulations are used as negative controls? Describe the expected data on such controls (signal and its uncertainty)? (Such data define the background noise of the test method) What is the rationale for the concentration setting of negative controls? Do you use unspecific controls? If yes, indicate the compounds and the respective rationale for their use and the concentration selection.",
+          "answer": "The solvent control (SC) is used as a negative control that is run on each experimental plate. Each solvent has to be established for its use as a solvent control by comparing the effect of the SC to the effect of medium only. Established solvent controls show the same response as the medium control. The SC is used to assess if the acceptability criteria for NPC1 proliferation are met and for normalization of the compound exposure and the positive control response. Established SCs are: DMSO: 0.3% v/v; 0.2% v/v; 0.1% v/v DPBS: 2% v/v ddH2O: 2% v/v MeOH: 0.1% v/v Other negative control compounds that were identified as negative in this assay and are known to not affect neurodevelopmental endpoints in vivo include (Masjosthusmann et al., 2020): Acetaminophen Amoxicillin Aspirin Buspirone Chlorpheniramine maleate D-Glucitol Diethylene glycol D-Mannitol Doxylamine succinate Famotidine Ibuprofen Metformin Metoprolol Penicillin VK Saccharin Sodium benzoate Warfarin",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides a list of chemicals used as negative controls and their concentrations, which partially addresses the question. However, it lacks a detailed explanation of the expected data on these controls, such as signal and its uncertainty, and the rationale for concentration settings. Additionally, it does not clearly address the use of unspecific controls or provide a rationale for their use and concentration selection."
+        },
+        {
+          "title": "5.8 Features relevant for cytotoxicity testing",
+          "question": "Does the test system have a particular apoptosis sensitivity or resistance? Is cytotoxicity hard to capture for minor cellular subpopulations? In multicellular systems, which cell population is the most sensitive? Are specific markers known for each cell population? Are there issues with distinguishing slowed proliferation from cell death? For repeated/prolonged dosing: Is early death and compensatory growth considered? For very short-term endpoints (e.g. electrophysiology measured 30 min after toxicant exposure): Is a delayed measure of cytotoxicity provided?",
+          "answer": "Cytotoxicity and cell viability are assessed for each sphere plated in the assay.",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer does not address the specific questions asked about apoptosis sensitivity, cytotoxicity in minor subpopulations, sensitivity of cell populations, specific markers, distinguishing proliferation from cell death, early death and compensatory growth, or delayed measures of cytotoxicity. It only mentions a general assessment of cytotoxicity and cell viability, which is insufficient for the detailed questions posed."
+        },
+        {
+          "title": "5.9 Acceptance criteria for the test method",
+          "question": "Which rule do you apply to test whether a test run is within the normal performance frame? How do you document this decision? Indicate actions if the AC are not met.",
+          "answer": "General acceptance criteria: 1. At least three replicate values (technical replicates) need to be present for each condition (concentration) to be accepted for the data analysis. 2. At least five conditions and the solvent control need to be present for the experiment to be accepted in the data analysis for concentration response modeling",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by providing general acceptance criteria for data analysis, which implies a rule for normal performance. However, it lacks clarity on how the decision is documented and does not specify actions if the acceptance criteria are not met."
+        },
+        {
+          "title": "5.10 Throughput estimate",
+          "question": "Indicate 'real data points per month' (not per week/per quarter, etc.): count three working weeks per month. Each concentration is a data point. Necessary controls that are required for calibration and for acceptability criteria are NOT counted as data points. All technical replicates of one condition are counted as one single data point (see notes for explanation) Indicate possibility/extent of repeated measures (over time) from same dish. Explain your estimate.",
+          "answer": "The methods described here are set up in a 96-well plate format with automated image acquisition, analysis, and data evaluation. Pipetting steps such as compound dilutions, as well as the viability and cytotoxicity assays can be automated using a liquid handling system. In the fully automated set up, 10 plates with 8 conditions (Figure 4) and 4 replicates per condition can be run in one week by two laboratory technicians. This results in the generation of 400 data points for each endpoint within one week (excluding all controls). The throughput is therefore estimated as medium.",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer does not address the specific question about 'real data points per month' or the possibility/extent of repeated measures from the same dish. It provides information about the setup and throughput per week, but does not translate this into a monthly count or discuss repeated measures over time."
+        }
+      ]
+    },
+    {
+      "title": "6. Handling details of the test method",
+      "subsections": [
+        {
+          "title": "6.1 Preparation/addition of test compounds",
+          "question": "Give an overview of the range of volumes, particular lab ware/instruments for dispensing, temperature/lighting considerations, particular media/buffers for dilution, decision rules for the solvent, tests of solubility as stocks and in culture medium, etc. How are compound stocks prepared (fold concentration, verification, storage, etc.)? How are dilutions prepared? What solvent is used? Is filtering used to obtain sterility? How does the final addition to the test system take place? Give details of addition of test compounds to test systems (e.g. in which compartment of compartmentalized cultures, in which volume, before after or during medium change, etc.).",
+          "answer": "The method is set up for 8 test conditions including 7 compound concentrations and one SC, including 2 different compounds on one 96-well plate. The test conditions are prepared in a serial dilution from the stock solution (Figure 4). Stock solutions are prepared by diluting the compound in the solvent (e.g. DMSO) in a concentration that allows the preparation of the highest test concentration without exceeding the highest acceptable solvent concentration (see 0). For DMSO the highest acceptable solvent concentration is 0.3% which means that the stock concentration needs to be at least 1000x higher than the highest test concentration. Stock solutions in non-sterile solvents (e.g. water or PBS) have to be sterile filtrated using a sterile syringe filter (diameter = 0.2 µm). Adsorption to the filter needs to be considered. Stock solutions are aliquoted and stored at -20°C. A stock solution is not thawed more than three times. For the preparation of the test condition, the stock solution is diluted to the highest test concentration (default 1:1000) in proliferation medium. All following dilutions are prepared by serial dilution of the highest concentration in proliferation medium with solvent (in the concentration of the highest test concentration). The default serial dilution is 1:3 which covers a concentration range from e.g. 20 µM to 27 nM (729-fold). Depending on the desired concentration range, the dilution can be adjusted to 1:2, 1:5, 1:10, or other. The SC is prepared by adding the solvent to proliferation medium in the same concentration as the highest test concentration. 100 µL of the compound dilutions and the SC are added to each well of a 96 well plate (Figure 4). Alternatively, the serial dilution can be prepared directly in the 96 well plates. One hNPC sphere is added to each well after the medium equilibrated for 15 to 30 min at 37°C and 5% CO2. To subtract the background fluorescence of the phenol red-containing medium, 4 wells with medium only (Background, without cells, Figure 4) are prepared for the viability and cytotoxicity assays. Figure 4 Plating Scheme. The type of solvent control depends on the solvent of the compound that was tested. 7 compound concentrations (for each compound) are plated in a serial dilution from lowest (left) to highest (right) concentration. The positive control for cell proliferation is proliferation medium without EGF and FGF. BrdU background is used for the proliferation assay by BrdU (spheres in SC medium). Background and lysis control are used for cell viability and cytotoxicity assays. 2 different compounds can be investigated on one plate (blue and purple).",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides a detailed description of the preparation of compound stocks, including concentration, solvent use, and storage conditions. It also describes the preparation of dilutions and the addition of test compounds to the test system. However, it lacks specific details on the range of volumes, particular lab ware/instruments for dispensing, temperature/lighting considerations, and decision rules for the solvent. Additionally, it does not address tests of solubility as stocks and in culture medium comprehensively."
+        },
+        {
+          "title": "6.2 Day-to-day documentation of test execution",
+          "question": "How are day-to-day procedures documented (type of ‘lab book’ organisation, templates)? Define lab-specific procedures used for each practical experiment on how to calculate test compound concentrations (and to document this). How are plate maps defined and reported? Detailed information should also be covered in an SOP, preferably in DB-ALM format (see link in 6.6).",
+          "answer": "Documentation for each experiment including meta data and the experimental data that is collected in the Automated Experimental Evaluation or AXES sheet. Meta data such as plating date, experimenter, NPC individual, NPC passage, compound, compound concentrations and a plate map are reported in these sheets. Depending on the endpoint, the experimental data is collected during or at the end of the experiment. Each raw data point (including all outliers) is collected in the AXES sheet. All deviations from the standard procedure are documented in a comment section of the AXES sheet.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by describing the documentation process using the AXES sheet, including metadata and experimental data. However, it lacks specific details on lab-specific procedures for calculating test compound concentrations and how plate maps are defined and reported. Additionally, there is no mention of an SOP or the DB-ALM format, which were specifically requested in the question."
+        },
+        {
+          "title": "6.3 Practical phase of test compound exposure",
+          "question": "How is the time plan of pipetting established, followed, and documented? How is adherence to plate maps during pipetting documented? What are the routine procedures to document intermediate steps with potential errors, mistakes and uncertainties? How are errors documented (e.g. pipetting twice in one well)? How are the plate wells used sequentially – following which pattern? Detailed information should also be included in an SOP, preferably in DB-ALM format (see link in 6.6).",
+          "answer": "The practical phase of the test compound exposure follows the description in the SOP in DB-ALM format (Appendix I in Masjosthusmann et al., 2020) or upon request (ellen.fritsche@iuf-duesseldorf.de). Deviation(s) from the SOP are documented in the comment section of the AXES sheet. Errors (e.g. pipetting in wrong well or wrong volume pipetted) are also documented in the comment section of the AXES sheets. Data points of the affected well are marked in the AXES sheet and excluded from the analysis.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by mentioning the use of an SOP in DB-ALM format and documenting deviations and errors in the AXES sheet. However, it lacks details on the time plan of pipetting, adherence to plate maps, routine procedures for documenting intermediate steps, and the pattern for using plate wells sequentially. The answer is incomplete and lacks clarity on several aspects of the question."
+        },
+        {
+          "title": "6.4 Concentration settings",
+          "question": "How is the concentration range of test compounds defined (e.g. only single concentrations, always 1:10 serial dilutions or variable dilution factors, ten different concentrations, etc.)? Is there a rule for defining starting dilutions? For functional endpoints that may not provide full concentration-response, how is the test concentration defined? E.g. EC10 of viability data are usually tested for gene expression endpoints. Detailed information should also be included in an SOP, preferably in DB-ALM format (see link in 6.6).",
+          "answer": "Starting concentrations and concentration ranges are defined based on the following factors: - toxicological relevance of the compound (i.e. internal human exposures, effects at lowest concentrations) - solubility of the compound - highest useable solvent concentration These factors are determined based on available information (databases/literature) or experimentally (e.g. solubility test).",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by mentioning factors that influence the definition of starting concentrations and concentration ranges, such as toxicological relevance, solubility, and solvent concentration. However, it lacks specific details on the concentration range (e.g., single concentrations, serial dilutions) and does not address how test concentrations are defined for functional endpoints that may not provide full concentration-response. Additionally, there is no mention of an SOP or DB-ALM format."
+        },
+        {
+          "title": "6.5 Uncertainties and troubleshooting",
+          "question": "What types of compounds are problematic, e.g. interference with analytical endpoint, low solubility, precipitation of medium components, etc.? What experimental variables are hard to control (e.g. because they are fluorescent)? What are critical handling steps during the execution of the assay? Robustness issues, e.g. known variations of test performance due to operator training, season, use of certain consumable or unknown causes, etc. Describe known pitfalls (or potential operator mistakes).",
+          "answer": "Problematic compounds: - Volatile compounds - High lipophilicity (high KOW) - Low solubility in established solvents - Fluorescent compounds (possible interference with viability and cytotoxicity assays) Critical handling steps: - If different plate types are used, the test system and method need to be re-established. - Outer wells have to be filled with H2O because of edge effects. - Automating the pipetting steps using a liquid handling system for coating, preparation of the plates, viability and cytotoxicity assays reduces the variability and the user bias. Sources of variation: - Pipetting steps: Each pipetting step is a source of variation. Especially in the viability and cytotoxicity assays where the volume pipetted determines the final readout.",
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer comprehensively addresses the question by identifying problematic compounds, critical handling steps, and sources of variation. It mentions specific issues like interference from fluorescent compounds, low solubility, and the need for automation to reduce variability. The response also highlights potential pitfalls such as edge effects and the importance of consistent pipetting, making it relevant and complete."
+        },
+        {
+          "title": "6.6 Detailed protocol (SOP)",
+          "question": "Ideally the SOP follows the DB-ALM or a comparable format: https://ecvam-dbalm.jrc.ec.europa.eu/home/contribute Refer to additional file(s) (containing information covered in sections 3 and 4), containing all details and explanations. Has the SOP been deposited in an accessible data base? Has the SOP been reviewed externally and if yes, how?",
+          "answer": "See SOP in DB-ALM format (Appendix I in Masjosthusmann et al., 2020) or upon request (ellen.fritsche@iuf-duesseldorf.de).",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by indicating that the SOP is available in DB-ALM format and can be requested, but it does not specify if it has been deposited in an accessible database or if it has been externally reviewed."
+        },
+        {
+          "title": "6.7 Special instrumentation",
+          "question": "Does the method require specialized instrumentation that is not found in standard laboratories? Is there a need for custom-made instrumentation or material? Is there a need for equipment that is not commercially available (anymore)?",
+          "answer": "- Incubator for cell culture, e.g. CB170 (Binder) - Tissue chopper, e.g. McIlwain tissue chopper (Campden Instruments) - Multi-plate reader for fluorescence and luminescence measurements, e.g. Infinite M200 Pro reader (Tecan) - Bright-field microscope, e.g. High Content Analysis (HCA) platform Cellomics ArrayScan(Thermo Fisher) - Liquid handling system (necessary to achieve the throughput described above), e.g. MICROLAB STAR® M; Hamilton - Hair dryer, e.g. PHD5767 (Bosch)",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer lists several pieces of equipment, some of which may be specialized, but it does not clearly address whether these are not found in standard laboratories, require custom-made instrumentation, or are not commercially available. The inclusion of a common item like a hair dryer suggests a lack of focus on specialized needs."
+        },
+        {
+          "title": "6.8 Possible variations",
+          "question": "Describe possible variations, modifications and extensions of the test method: a) other endpoints, b) other analytical methods for same endpoint, c) other exposure schemes (e.g. repeated exposure, prolonged exposure, etc.), d) experimental variations (e.g. use of a specific medium, presence of an inhibitor or substrate that affects test outcome, etc.)",
+          "answer": "There are no established variations of the assay.",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer does not address the question as it only states that there are no established variations, without exploring potential variations, modifications, or extensions of the test method as requested."
+        },
+        {
+          "title": "6.9 Cross-reference to related test methods",
+          "question": "Indicate the names (and database names) of related tests and give a short description (including a brief comment on differences to the present method). If the test method has been used for high throughput transcriptomics or deep sequencing as alternative endpoint, this should be indicated.",
+          "answer": "The hNP1 assay (CCTE_Mundy_HCI_hNP1_Pro assay) uses proliferating neural stemcells derived from a neuroepithelial cell lineage of WA09 human embryonic stem cells. The assay measures cell proliferation using BrdU labeling in combination with a immunocytochemical staining and high content imaging. In contrast to the NPC1 assay cells are plated as a 2D monolayer instead of the free-floating 3D spheroids used in the NPC1 assay.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides the name and database name of a related test (hNP1 assay and CCTE_Mundy_HCI_hNP1_Pro assay) and describes the method used. It also compares it to another method (NPC1 assay) by highlighting a key difference. However, it does not mention if the test method has been used for high throughput transcriptomics or deep sequencing as an alternative endpoint, which is part of the question."
+        }
+      ]
+    },
+    {
+      "title": "7. Data management",
+      "subsections": [
+        {
+          "title": "7.1 Raw data format",
+          "question": "What is the data format? Raw data: give general explanation. Upload an exemplary file of raw data (e.g. Excel file as exported out of plate reader). Provide an example of processed data at a level suitable for general display and comparison of conditions and across experiments and methods. If the file format is not proprietary or binary, include a template. This will help other users to provide their data in a similar way to the general data infrastructure. Example as used in EU-ToxRisk: Excel sheet with columns specifying line number, assay name, date of experiment, identifier for reference to partner lab book, compound, concentration (in: -log[M]), line number of corresponding control, number of replicates, endpoints, data of endpoint(s), etc.",
+          "answer": "The raw data format is different depending on the endpoints. For all endpoints assessed in a multi-plate reader (viability, cytotoxicity, BrdU incorporation) the raw data formats are excel files containing values (one for each endpoint, timepoint and well) measured as relative fluorescence/luminescence units. These values are transferred from the original excel file into the AXES sheet. The original excel output file is saved for traceability of the data. The sphere size is automatically measured in the Cellomics scan software (Version 6.6.0; Thermo Scientific) and copied into the AXES sheet. Original brightfield images are archived for 10 years.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides a general explanation of the raw data format and mentions the use of Excel files and specific software for data collection. However, it lacks an exemplary file or template, and does not provide a detailed example of processed data suitable for display and comparison, as requested in the question."
+        },
+        {
+          "title": "7.2 Outliers",
+          "question": "How are outliers defined and handled? How are they documented? Provide the general frequency of outliers.",
+          "answer": "Mathematical procedures to define outliers are not applied. Data points from wells where technical problems are known or obvious are excluded from the analysis. Possible technical problems: - pipetting errors - spillover from lysis - problems in fixation of singularized cells All wells with technical problems are marked in the AXES sheet.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by explaining that outliers are identified based on technical problems rather than mathematical procedures. It lists potential technical issues and mentions that affected wells are documented in the AXES sheet. However, it lacks clarity on how frequently outliers occur and does not provide a comprehensive definition or handling procedure for outliers."
+        },
+        {
+          "title": "7.3 Raw data processing to summary data",
+          "question": "How are raw data processed to obtain summary data (e.g. EC50, BMC15, ratios, PoD, etc.) in your lab? Describe all processing steps from background correction (e.g. measurement of medium control) to normalization steps (e.g. if you relate treated samples to untreated controls).",
+          "answer": "If not otherwise stated, all data processing steps are performed in an R based evaluation tool that was designed for data processing, curve fitting and point of departure evaluation of in vitro concentration response toxicity data. Data processing describes all processing steps of raw data that are necessary to obtain the final response values including the normalization, curve fitting and benchmark concentration calculation. Processing (or pre-processing) steps depend on the endpoint and are described below: Proliferation by BrdU: subtraction of mean BrdU background from each raw response value. 𝐵𝑎𝑐𝑘𝑔𝑟𝑜𝑢𝑛𝑑 𝑐𝑜𝑟𝑟𝑒𝑐𝑡𝑒𝑑 𝑟𝑒𝑠𝑝𝑜𝑛𝑠𝑒 [𝑅𝐿𝑈] = 𝑟𝑎𝑤 𝑟𝑒𝑠𝑝𝑜𝑛𝑠𝑒 [𝑅𝐿𝑈] − 𝐵𝑎𝑐𝑘𝑔𝑟𝑜𝑢𝑛𝑑 𝐵𝑟𝑑𝑈 [𝑅𝐿𝑈] Proliferation by area: slope of the sphere size over 3 days of proliferation (d0, d1, d2, d3). The calculated slope is used as raw data input for the data base (DB) and is thus not calculated in the R based evaluation tool. Viability: subtraction of mean background from each response value. 𝐵𝑎𝑐𝑘𝑔𝑟𝑜𝑢𝑛𝑑 𝑐𝑜𝑟𝑟𝑒𝑐𝑡𝑒𝑑 𝑟𝑒𝑠𝑝𝑜𝑛𝑠𝑒 [𝑅𝐹𝑈] = 𝑟𝑎𝑤 𝑟𝑒𝑠𝑝𝑜𝑛𝑠𝑒 [𝑅𝐹𝑈] − 𝐵𝑎𝑐𝑘𝑔𝑟𝑜𝑢𝑛𝑑 [𝑅𝐹𝑈] Cytotoxicity: no pre-processing",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides some details on data processing steps, including background correction and specific methods for different endpoints. However, it lacks comprehensive information on normalization steps and how summary data like EC50 or PoD are specifically derived. The description is not fully clear or complete for all processing steps."
+        },
+        {
+          "title": "7.4 Curve fitting",
+          "question": "How are data normally handled to obtain the overall test result (e.g. concentration response fitting using model X, determination of EC50 by method Y, use of EC50 as final data)? How do you model your concentration response curve (e.g. LL.4 parameter fit) and which software do you use (e.g. GraphPad Prism, R, etc.)? Do you usually calculate an uncertainty measure of your summary data (e.g. a 95% confidence interval for the BMC or a BMCL), and with which software? Can you give uncertainty for non-cytotoxicity or no-effect? How do you handle non-monotonic curve shapes or other curve features that are hard to describe with the usual mathematical fit model?",
+          "answer": "The data is normalized to the SC and re-normalized to the starting point of the curve. For the normalization to the SC the median of each replicate data point is normalized to the median of the SC in the respective experiment. For the cytotoxicity assays the following normalization is used instead of the normalization to the SC. Here again each response value is normalized using the median of the lysis control and the median of the solvent control. lysis control − response normalized response = lysis control − solvent control The R package drc is used to calculate the optimal fit for each experiment. For calculations of curve fits and BMCs, the data from independent experiments is pooled (median of all replicate values for one concentration). Several non-linear models are run with the concentration response data of each endpoint and the Akaike´s information criteria is used to determine the best fit. For re-normalization of the data, the response value of the curves starting point is determined and used to re-normalize all response values. Therefore, each mean response value is divided by the starting point of the curve and multiplied with 100. For the re-normalized response values the curve fitting is repeated to produce the final concentration response curve. For deriving a reference point (RP) or point of departure (Pod) the Benchmark Concentration (BMC) approach as recommended by the EFSA Scientific Committee (Hardy et al., 2017) is applied. The BMC approach makes use of all data points that define the fitted concentration response curve. Thereby, the BMC is defined as the concentration that is associated with a specific change in response, the Benchmark Response (BMR). The BMR is a value of effect size and should be defined as an effect size that is higher than the general variability of the measured endpoint. The BMR is therefore determined based on the variability of the respective endpoint. BMR for NPC1: proliferation by area BMR30 proliferation by BrdU BMR30 cytotoxicity 72 h BMR10 viability 72 h BMR30 Based on the BMR and the concentration response curve, the evaluation tool calculates the BMC, as well as upper and lower confidence limits (BMCU and BMCL respectively) based on the predict function in the R package drc. The predict function calculates the prediction bands around the concentration response curve based on the deviation between independent experiments and gives an estimation of the area that is expected to enclose 95% of future data points. The BMCL is thereby defined as the intersection of the lower band and the BMR while the BMCU is defined as the intersection of the upper band and the BMR. The confidence intervals are used to access the uncertainty of the BMC. If the BMCU is 1.5 times above the test range, the original BMCU is replaced by 1.5x the highest tested concentration.",
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer comprehensively addresses the question by detailing the data handling process, including normalization and re-normalization methods, the use of the R package 'drc' for curve fitting, and the calculation of BMCs with confidence intervals. It also explains how non-linear models are selected using Akaike's information criteria and how uncertainty is measured. The response covers the modeling of concentration response curves, the software used, and the handling of non-monotonic curves, providing a complete and relevant explanation."
+        },
+        {
+          "title": "7.5 Internal data storage",
+          "question": "How and how long are raw and other related data stored? What backup procedures are used (how frequently)? How are data versions identified?",
+          "answer": "All raw data is stored on a server with a daily server back up for at least 10 years.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by specifying the storage location, backup frequency, and duration of storage. However, it lacks details on how data versions are identified and does not mention any specific backup procedures beyond the frequency."
+        },
+        {
+          "title": "7.6 Metadata",
+          "question": "How are metadata documented and stored (lab book, Excel files, left in machine, etc.)? How are they linked to raw data? What metadata are stored/should be stored?",
+          "answer": "All metadata is collected in the AXES sheet (see 0) together with all raw data. The metadata gives information on: The experiment: • start and end date of the experiment • experimenter The cell source: • human individual • cells thawing date • passage of cells • date of cell passaging The compound: • compound identity • stock concentration • all dilution steps • solvent and solvent concentration The controls: • control identity • preparation of controls",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides a detailed list of the types of metadata that are documented, which partially addresses the question. However, it lacks clarity on how the metadata are stored and linked to raw data, as it only mentions that metadata is collected in the AXES sheet without explaining the storage method or linkage process. The answer could be more complete by specifying the storage format and how metadata is associated with raw data."
+        },
+        {
+          "title": "7.7 Metadata file format",
+          "question": "Give example of the metadata file (if available). If metadata or data format (see 7.1) are pre-defined in the project, state here 'as pre-defined in project xxx' (e.g. EU-ToxRisk).",
+          "answer": "All metadata is collected in an Excel format.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by specifying the format of the metadata file (Excel), but it lacks clarity and completeness as it does not provide an example or mention if the format is pre-defined in a specific project."
+        }
+      ]
+    },
+    {
+      "title": "8. Prediction model and toxicological application",
+      "subsections": [
+        {
+          "title": "8.1 Scientific principle, test purpose and relevance",
+          "question": "What is the scientific rationale to link test method data to a relevant in vivo adverse outcome? Which toxicological target (organ, tissue, physiological/biochemical function, etc.) is modelled? Which biological process(es) (e.g. neurite outgrowth, differentiation) are modelled/reflected by your test method? Which toxicological events (e.g. oxidative stress, cell death) are modelled/reflected by your test method? To which (human) adverse outcome(s) is your test method related? Which hazard(s) do(es) your test method (potentially) predict?",
+          "answer": "Primary hNPCs are isolated from the fetal brain cortices and can be used to measure proliferation, a process of brain growth during the fetal phase of prenatal development. The test system therefore measures adverse events in the young (fetal) developing brain. Different types of NPC exist in the developing brain. Besides ventricular zone NPC, radial glia cells serve as cortical progenitor cells responsible for cortical expansion and folding. As whole cortices were used for cell preparation, this is not a specific NPC type but rather a mix of NPCs found in fetal human cortex during development. The toxicological events that are modeled concern events that influence proliferation of NPCs found in human cortex during the fetal phase",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by explaining the scientific rationale and the biological processes modeled (proliferation in fetal brain development). However, it lacks clarity and completeness regarding the specific toxicological targets, the full range of toxicological events modeled, the specific human adverse outcomes related, and the hazards potentially predicted by the test method."
+        },
+        {
+          "title": "8.2 Prediction model",
+          "question": "Provide the statistics of your benchmark response (threshold and variance): (i) For dichotomized data, provide your prediction model. When do you consider the result as toxic or not toxic? (ii) For pseudo-dichotomized outcomes (two classes with borderline class in between): define borderline range. (iii) For multi-class or continuous outcomes: provide definitions and rationale. What is the rationale for your threshold? This can be on a mathematical (e.g. 3-fold standard deviation) or a biological basis (e.g. below 80% viability). Is there a toxicological rationale for the threshold settings and definitions of your prediction model? What are the limitations of your prediction model? What is a ‘hit’ if the test is used in screening mode (= hit definition, if different from above)?",
+          "answer": "Two prediction models (PM) are applied for the NPC1 assay. One PM for a downregulation (PM downregulation) and one PM for an upregulation (PM upregulation) in cell proliferation. PM downregulation The PM uses hit definition based on comparison of the confidence intervals (CI) for the BMC of the DNT- specific endpoint (BMCs) and the unspecific endpoint (cytotoxicity/viability; BMCus). Thereby the following four hit classifications apply: “no hit” “specific hit”: “borderline hit”: “unspecific hit” The compound is not defined as a hit. The compound is defined as hit and the CI’s do not overlap, meaning that the upper confidence limit of the specific endpoint (BMCUs) is lower than the lower confidence limit of the unspecific endpoint (BMCLus). The compound is defined as hit and the CI of the specific endpoint overlaps by less than, or equal to 10% with the CI of the unspecific endpoint. The compound is defined as hit and the CI of the specific endpoint overlaps by more than 10% with the CI of the unspecific endpoint. The compound is classified as a hit, if the concentration response curve generates a BMC and if the CI is within the test range. In case the CI spans above the test range, the compound is only classified as a hit, if the highest test concentration is significantly different from the lowest test concentration. The adjusted significance (p<0.05) is thereby determined using a Tukey HSD test. The decision process for the prediction model is described in the flow chart in Figure 5. Figure 5: Decision tree for the PM for down regulation applied for the test method NPC1. Overview of the decisions leading to the classification of a compound in one of four categories: “no hit”, “specific hit”, “borderline hit” and “unspecific hit”. Specific consideration for the prediction model: In case no confidence limits are available for the unspecific endpoint because the BMR is not reached, the BMCLus is assumed to be the highest tested concentration. If the CI of the specific endpoint additional spans above the test range for a compound identified as “hit” based on statistical significance, expert judgement is applied to define if the “hit” is specific or unspecific. Therefore, all datapoints of the unspecific and specific endpoint of the highest test concentration are compared. If these data points do not overlap, the compound is classified as “specific hit” otherwise as “unspecific hit”. In general, BMCs based on the same BMR are compared (e.g. BMC30us vs BMC30s). In case the BMC30us is not available for an endpoint that allows the generation of a BMC10us, the BMC10us is used instead. If the classification of this comparison is “unspecific hit”, the compound will be flagged as “check manually“ as the BMC10us is lower than the BMC30us leading to a higher probability of a false classification. To avoid such false classifications, expert judgment is needed. Compounds can also be flagged as “check manually”, if the classification, based on the viability is different from the classification based on the cytotoxicity and if the confidence interval is very wide (BMCU/BMCL > 25), which means a high uncertainty for the BMC estimation. In both cases expert judgment is needed to decide on the classification. The expert judgement is an individual decision process that accounts for effect size, curve progression, statistical significance and overall standard deviation. If the concentration response curves do not give enough information for decision by expert judgement, additional testing or testing in a different concentration range should be performed. PM upregulation In contrast to the PM for downregulation, the PM for upregulation is based on a hit definition without the comparison of confidence intervals (CI) between the specific and unspecific endpoint. The reason is, that specific and unspecific endpoints do not have the same relationship during an induction, compared to a reduction in the endpoint. A loss in general cell health will likely result in an effect on cell proliferation, while an induction in cell health (measured as mitochondrial activity) does not necessarily increase cell proliferation. The following three hit classifications apply: “no hit” The compound is not defined as hit. “specific hit”: The compound is defined as hit and the effect is no artifact due to loss in cell health. The compound is defined as hit in only the unspecific endpoints. “unspecific hit” The compound is classified as hit, if the concentration response curve generates a BMC and if the CI is within the test range. In case the CI spans above the test range, the compound is only classified as hit, if the highest test concentration is significantly different from the lowest test concentration. The adjusted significance (p<0.05) is thereby determined using a Tukey HSD test. The decision process for the prediction model is described in the flow chart in Figure 6. Figure 6: Decision tree for the PM for upregulation applied for the test method NPC1. Overview of the decisions leading to the classification of a compound in one of three categories: “no hit”, “specific hit”, and “unspecific hit”. In case a compound is classified as hit together with a reduction in an unspecific endpoint, it needs to be clarified if the induction is a specific effect or an artifact, due to a loss in cell viability or an increase in cytotoxicity. Therefore, expert judgement is applied, which accounts for effect size, curve progression, statistical significance, overall standard deviation but also morphological changes of the spheres. Expert judgement is additionally applied, if the confidence interval is very wide (BMCU/BMCL > 25) which means a high uncertainty for the BMC estimation.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides a detailed description of the prediction models for both downregulation and upregulation, including hit classifications and decision processes. However, it lacks specific statistical details such as threshold values, variance, and the rationale for these thresholds. The explanation is complex and may not be fully clear without additional context or figures referenced in the text. The limitations of the prediction model are mentioned but not elaborated upon, and the toxicological rationale is not explicitly addressed."
+        },
+        {
+          "title": "8.3 Prediction model setup",
+          "question": "How was the prediction model set up (using which test set of chemicals to train the model; using probing with what kind of classifiers/statistical approaches)? Has the prediction model been tested (what was the test set of chemicals)? List chemicals or give n, if n > 50. Is the process documented (publication)? Does the prediction model (PM) apply to changes to both sides of controls (up/down)? If the PM is one-sided (e.g. toxicants leading to a decrease vs. control), how are data in the opposite direction handled and interpreted? If the PM is two-sided, do different rules, characteristics and interpretations apply to the two sides (e.g. is a decrease in viability or an increase in viability both interpreted as an effect/toxicity; are thresholds and performance characteristics to both sides the same?).",
+          "answer": "The prediction model is set up as a statistical model which uses the 95 % confidence intervals (assessed based on the prediction bands around the concentration response curve) to determine the uncertainty of a hit definition. In the case of high uncertainty in the confidence interval, (e.g. because the CI spans above the tested concentration range) the model additionally considers the statistical significance between the highest and the lowest test concentrations. Next to the hit definition, the uncertainty given by the 95 % CI is also considered in the specificity analyses (see 8.2 for a more detailed description). The model has been tested on a set of 17 DNT negative- and 9 DNT positive compounds (see 5.6 and 5.7). All negative compounds were correctly classified as “no hit” and 3 positive compounds were correctly classified as “specific hit” for DNT.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides some information about the prediction model setup, including the use of 95% confidence intervals and statistical significance for hit definition. It mentions the test set of chemicals (17 DNT negative and 9 DNT positive compounds) and provides some results. However, it lacks details on the classifiers/statistical approaches used, documentation/publication references, and how the model handles changes to both sides of controls or interprets data in the opposite direction. The answer is partially complete but lacks clarity and comprehensiveness in addressing all aspects of the question."
+        },
+        {
+          "title": "8.4 Test performance",
+          "question": "Indicate here basic performance parameters or, if possible, preliminary estimates (label as such): Baseline variation (noise) within assays AND between assays. What is the signal/noise ratio (signal = standard positive control)? Is the z-factor determined? Give the specificity of the test method. How is it determined? Give the sensitivity of the test method. How is it determined? Give measures of the uncertainty of your test method. How are they determined? What is the detection limit (required change of endpoint to become measurable)? If available, give limit of detection (LOD) and limit of quantification (LOQ). What are inter-operator variations? Are there data of ‘historical controls’ over a longer time period?",
+          "answer": "The following parameters were assessed to quantify the assay variability: Intra-experimental variation (SC) is the mean coefficient of variation (CV) ± SD of the CV of all replicates of the solvent control from one experiment across all (n>350) experiments. Inter-experimental variation (raw) is the variability as CV between the raw SC across all independent experiments (n>360) before normalization. Inter-experimental variation (low conc.) is the variability as CV across all independent experiments (n>390) after normalization based on the response of the lowest test concentration. It is assumed that the lowest test concentration does not affect any of the endpoints measured. Inter-experimental variation (positive controls) is the variability of the positive control across all independent experiments (n>360) after normalization. For further detail, see Fig. 7. Positive control: proliferation media without growth factors (EGF, FGF) Table 1 summarizes the assay performance in terms of variability of each endpoint in the assay. This variability spans different individuals where cells were derived from. Table 1: Assay variability quantified as CV. Inter-experimental variation (positive controls) is only given for specific endpoints. Sensitivity and specificity of the NPC1 assay are determined based on a set of 9 predicted human DNT positive compounds and 17 predicted human DNT negative compounds (Masjosthusmann et al., 2020; Blum et al., 2023). Based on this compound set the following performance parameters are obtained for the NPC1 assay. Specificity: 100 % Sensitivity: 33% Here, it is important to mention, that it is not expected that the NPC1 assay identifies all DNT positive compounds as not all of those compounds act via an effect on cell proliferation on the developing brain. For most compounds the exact MoA for their neurodevelopmental adversity is not precisely known, yet other mechanisms like neuron/glia differentiation, neurite outgrowth, synaptogenesis and neuronal network formation are amongst the known DNT MoAs. It is therefore recommended that this assay is run as one part of an in vitro DNT battery. Figure 7: Inter-experimental variability of endpoints specific positive controls normalized to the solvent control in %. Proliferation medium without growth factors (w/o GF) serves as a positive control for NPC1a (proliferation by area) and NPC1b (proliferation by BrdU). In red, the mean ± standard deviation (SD) is depicted. NPC1a: 0.14% ± 1.1%; NPC1b: 18.5% ± 10.3%.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides detailed information on assay variability, specificity, and sensitivity, but lacks clarity and completeness in addressing all aspects of the question. It does not mention the signal/noise ratio, z-factor, measures of uncertainty, detection limit, LOD, LOQ, or inter-operator variations. Historical control data is also not discussed."
+        },
+        {
+          "title": "8.5 In vitro – in vivo extrapolation (IVIVE)",
+          "question": "Describe parameters important for the determination of free compound concentrations in the medium. Indicate the lipid and protein content of the medium and the cells. Indicate the volume of the cells. Indicate volume (medium volume) and surface area of culture dish. Is there information/literature on IVIVE strategies/data in the test? Has the test been used earlier for IVIVE? Are there special considerations that are relevant for IVIVE (e.g. potential for compound accumulation due to frequent medium changes and compound re-addition, glycoprotein (MDR1) expression, capacity for xenobiotic metabolism of test system)?",
+          "answer": "Parameters for in vitro – in vivo extrapolation are not yet determined.",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer does not address the question. It fails to describe any parameters important for determining free compound concentrations, does not mention lipid and protein content, cell volume, medium volume, or surface area of the culture dish. It also does not provide information on IVIVE strategies, previous use, or special considerations relevant for IVIVE."
+        },
+        {
+          "title": "8.6 Applicability of test method",
+          "question": "Which compounds is the test likely to pick up correctly, where is it likely to fail? How does the test method react to mixtures and UVCBs? Are there areas (according to industry sector, compound chemistry, physical-chemical properties) that need to be excluded from testing, or that are particularly suitable? Which compound class cannot be detected (e.g. neurotransmitters for which the receptors are not expressed, endocrine disruptors in absence of respective pathway)? Are any compounds known to interfere with the test system (e.g. fluorescent or colored chemicals)?",
+          "answer": "Toxicological applicability domain The following compound classes have been tested successfully: - Industrial chemicals - pesticides and biocides - cosmetics ingredients - pharmaceuticals Compounds need to be soluble in a solvent at a solubility where the solvent does not produce effects by itself in the test system (see 0 for established solvents). Compounds that are volatile or have a high lipophilicity have not been tested and might need more sophisticated exposure methods such as ‘passive dosing’. Biological applicability domain Neural progenitor cell proliferation is based on primary hNPC obtained from the fetal human cortex. As mentioned in 0 “Scientific principle” the method represents NPC proliferation during the fetal period. Next to the endpoints represented by this test method, there are several other necessary neurodevelopmental endpoints which need to be studied using other test methods. Neurodevelopmental processes not represented by this test method: Neural Crest Cell (NCC) Migration NPC apoptosis Neuronal migration Oligodendrocyte migration Radial glia migration Neuronal differentiation Oligodendrocyte differentiation Neuronal morphology Synaptogenesis Neuronal network formation Neural Rosette Formation hiPSC-derived NPC proliferation hiPSC-NPC neuronal differentiation Neuronal subtype differentiation Astrocyte Differentiation and Maturation Astrocyte Reactivity Microglia reactivity Myelination For a complete assessment of developmental neurotoxicity, the test method needs to be part of a test battery. The information on signaling pathways modulating the neurodevelopmental endpoints of the test method is summarized in Table 2. This describes the so far tested biological application domain of the assay. Table 2: Signaling pathways studied in the test method. EGF(R): epidermal growth factor (receptor); CREB: cAMP-response element; COX-2: cyclooxygenase-2; PDGFR: platelet-derived growth factor; mTOR: mammalian target of rapamycin; RAR: retinoic acid receptor; GR: glucocorticoid receptor; PKC: protein kinase C; Bis-I: Bisindolylmaleimide I.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides some relevant information about the types of compounds that have been successfully tested and those that may require special consideration, such as volatile or highly lipophilic compounds. It also mentions the need for compounds to be soluble in certain solvents. However, it lacks specific details on how the test method reacts to mixtures and UVCBs, and does not clearly identify any compounds known to interfere with the test system. Additionally, while it lists several neurodevelopmental processes not represented by the test method, it does not directly address which compound classes cannot be detected or any specific areas that need to be excluded from testing."
+        },
+        {
+          "title": "8.7 Incorporation in test battery",
+          "question": "Does the test fit into a test battery? If yes, into which test battery and are there any restrictions? Indicate potential strengths and weaknesses of the system in a test battery (e.g. method is a good confirmation assay, good for creating alerts, mechanistic follow-up, screening, etc.). Compare performance to similar tests. Which gaps in a known or potential battery does the test method fill? Should the test preferentially be used in the first tier or later tiers, are complementary assays required or is it a stand-alone method?",
+          "answer": "To assess the hazard for developmental neurotoxicity it is recommended that this assay is used as one assay in a battery of assays (see 0 “Applicability of test methods”) For the assessment of chemical action on the endpoints represented by this test method, the test method can be used as stand-alone test method. The test method is currently used in the set-up of a DNT test battery.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by indicating that the test is part of a developmental neurotoxicity (DNT) test battery and can be used as a stand-alone method. However, it lacks details on potential strengths and weaknesses, comparison to similar tests, gaps it fills in the battery, and whether it should be used in the first or later tiers. The answer is incomplete and lacks clarity on several aspects of the question."
+        }
+      ]
+    },
+    {
+      "title": "9. Publication/validation status",
+      "subsections": [
+        {
+          "title": "9.1 Availability of key publications",
+          "question": "Refer to published literature on the test AND indicate in detail deviations from published descriptions (e.g. plastic plate supplier, cell number, endpoint measurement, timing, etc.). Provide the most relevant publications that describe/give a comprehensive overview of (a) your test system and/or (b) your test method. Describe what aspects are covered therein. Give a prioritized (according to importance) list of further publications on the test method or its application. Give short comments on which type(s) of information can be obtained from these publications (e.g. contains test chemical lists, contains more positive/negative controls, contains validation against other tests, contains incorporation in test battery, demonstrates use by other lab, etc.).",
+          "answer": "Key Publications concerning the test method are: Blum et al., 2023 Koch et al., 2022 Klose et al., 2021 Masjosthusmann et al., 2020 Nimtz et al., 2019 Masjosthusmann et al., 2018 Baumann et al., 2016a Baumann et al., 2016b Baumann et al., 2014 Fritsche et al., 2011 Moors et al., 2009",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer provides a list of publications but lacks detailed information on deviations from published descriptions, relevance, and coverage of the test system or method. It also does not prioritize the publications or comment on the types of information they provide, which are key components of the question."
+        },
+        {
+          "title": "9.2 (Potential) linkage to AOPs",
+          "question": "Indicate whether the test method has been or could be linked to an AOP (or several AOPs) and in which form (e.g. test of KE activation). Can the test method cover an AOP MIE/KE? Reference relevant AOP and if in AOP-wiki, refer to status.",
+          "answer": "No AOP linkage.",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer does not address the question as it only states 'No AOP linkage' without providing any details or references to AOPs, MIE/KE, or the AOP-wiki status, which are required to fully address the question."
+        },
+        {
+          "title": "9.3 Steps towards mechanistic validation",
+          "question": "Indicate/summarize information on mechanistic validation, e.g. by omics approaches or by use of endpoint specific controls (MCC; section 5.5). Has it been explored in how far the system reflects human biology, signaling, tissue organization relevant to the form of toxicity to be assessed (e.g. nigrostriatal neurons should contain dopamine, liver tests relevant to cholestasis may need to contain bile canalicular structures, etc.)?",
+          "answer": "See: 0 Characterization and definition of source cells 0 Omics characterization of the test system 4.7 Features of the test system that reflect the in vivo tissue 0 Applicability of test method",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer does not provide any specific information or summary regarding mechanistic validation. It only references sections without detailing how the system reflects human biology or relevant tissue organization. The response lacks clarity and completeness in addressing the question."
+        },
+        {
+          "title": "9.4 Pre-validation or validation",
+          "question": "Indicate/summarize activities for test qualification, pre-validation or validation. Indicate e.g. ring trials, full (pre-)validations. Give an overview of compounds or libraries that have been tested.",
+          "answer": "To date, 123 unique compounds (as defined by unique DTXSIDs) have been tested successfully in this assay. No formal OECD 34 validation study has been done (eg., ring trials with a standard set of known positive and negative controls).",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides some information about the number of compounds tested and mentions the absence of a formal OECD 34 validation study. However, it lacks details on any test qualification or pre-validation activities and does not provide an overview of the compounds or libraries tested beyond the number of unique compounds."
+        },
+        {
+          "title": "9.5 Linkage to (e.g. OECD) guidelines/regulatory use",
+          "question": "Indicate whether the test method is linked to an OECD Test Guideline (how, and which) or other regulatory guidance (e.g. EMA).",
+          "answer": "Test is not linked to regulatory guidelines.",
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer directly addresses the question by clearly stating that the test is not linked to any regulatory guidelines, which is a complete and relevant response."
+        }
+      ]
+    },
+    {
+      "title": "10. Test method transferability",
+      "subsections": [
+        {
+          "title": "10.1 Operator training",
+          "question": "What experience is required? How are new operators trained in your laboratory? How much training/experience is required for smooth assay performance?",
+          "answer": "For operators with a basic training in cell culture practices a four-week training period for handling of the test system and training in the assay is recommended. The operators should have basic understanding in image analysis and data evaluation with respect to concentration response fitting.",
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer fully addresses the question by specifying the required experience (basic training in cell culture practices), the duration of training (four weeks), and the necessary skills (understanding in image analysis and data evaluation). It provides a clear and complete response regarding the training and experience needed for smooth assay performance."
+        },
+        {
+          "title": "10.2 Transfer",
+          "question": "Has the test system been transferred to other labs? Has the test method been used by various operators (over a long time period)? Has the test method been transferred to other labs? Is there data on inter-laboratory variability? What are procedures and how was the performance (experience) of the transfer?",
+          "answer": "The test method has been used by multiple operators over a period of 18 months. However, inter operator variability has not been determined.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by confirming that the test method has been used by multiple operators over 18 months. However, it lacks information on whether the test system has been transferred to other labs, data on inter-laboratory variability, and details on procedures and performance of the transfer."
+        }
+      ]
+    },
+    {
+      "title": "11. Safety, ethics and specific requirements",
+      "subsections": [
+        {
+          "title": "11.1 Specific hazards; issues of waste disposal",
+          "question": "Are there special legal requirements for running the test in your lab; are there special hazards associated with the test that may affect operators, bystanders, others (e.g. through waste).",
+          "answer": "No specific requirements.",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer does not address the question adequately. It lacks detail on both legal requirements and potential hazards, providing only a vague response."
+        },
+        {
+          "title": "11.2 Safety data sheet (SDS)",
+          "question": "Are the SDSs for all hazardous reagents used in the test method available? Are the SDSs for all hazardous test compounds stored? Describe where and how the SDSs are stored internally. How is safe handling ensured? Is the exposure scenario for the hazardous reagents used in the test method available?",
+          "answer": "Reference to MSDS is given in the SOP in DB-ALM format (Appendix I in Masjosthusmann et al., 2020) or upon request (ellen.fritsche@iuf-duesseldorf.de).",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer does not address the question adequately. It only mentions the reference to MSDS in a specific format and provides a contact for requests, but it does not confirm the availability of SDSs for all hazardous reagents, describe where and how they are stored, explain how safe handling is ensured, or mention the exposure scenario for hazardous reagents."
+        },
+        {
+          "title": "11.3 Specific facilities/licenses",
+          "question": "Are special permits (e.g. genetic work, stem cells, radioactivity, etc.) required? Are special facilities required? Is special ethical approval necessary (indicate approval document).",
+          "answer": "No specific facilities are required. No specific ethical approval is required.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by stating that no specific facilities or ethical approval are required. However, it does not address whether special permits are needed, leaving the response incomplete."
+        },
+        {
+          "title": "11.4 Commercial aspects/intellectual property of material/procedures",
+          "question": "List elements of the test method (e.g. consumables, chemicals, analytical methods, equipment) that are protected by patents or any other means. Indicate the type of protection and where the element (or license for it) may be obtained.",
+          "answer": "There are no commercial aspects or intellectual properties to be considered.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by stating that there are no commercial aspects or intellectual properties to consider. However, it lacks clarity and completeness as it does not explicitly list elements of the test method or indicate the type of protection and where elements or licenses may be obtained, even if the answer is 'none'."
+        }
+      ]
+    }
+  ]
+}

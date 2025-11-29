@@ -1,0 +1,594 @@
+{
+  "reference": "Krebs et al. ALTEX 36(4), 2019, 685-692",
+  "sections": [
+    {
+      "title": "1. Overview",
+      "subsections": [
+        {
+          "title": "1.1 Descriptive full-text title",
+          "question": "Provide a descriptive title using normal language without technical terms or acronyms.",
+          "answer": "Assay to test impairment of migration of human neural crest cells (cMINC; UKN2) – V2.0",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by providing a descriptive title, but it includes technical terms and an acronym (cMINC; UKN2), which the question specifically asked to avoid."
+        },
+        {
+          "title": "1.2 Abstract",
+          "question": "Please describe in no more than 200 words the following: Which toxicological target (organ, tissue, physiological/biochemical function, etc.) is modelled? (8.1) Which test system and readout(s) are used? (4.1; 5.2) Which biological process(es) (e.g. neurite outgrowth, differentiation) and/or toxicological events (e.g. oxidative stress, cell death) are modelled/reflected by your test method? (8.1) To which (human) adverse outcome(s) is your test method related or could be related? (8.1; 9.2; 9.3) Which hazard(s) do(es) your test method (potentially) predict? (8.1; 8.6) Does the test method capture an endpoint of current regulatory studies? (9.5) If the method has undergone some form of validation/evaluation, give its status. (9.4)",
+          "answer": "This in vitro test method uses human neural crest cells (NCCs) generated from induced pluripotent stem cells (iPSC). It assesses disturbances of NCC migration during fetal development. The number of migrated NCCs, as well as cell viability are measured simultaneously using high content imaging. Thereby the processes of cell migration and cell death are measured in cells exposed to potential toxicants for 24 h. The data of this method are meant to predict developmental disorders and malformations e.g., neural tube defects or craniofacial malformations caused by compound exposure during fetal development. The method has a well- established prediction model, but it has not undergone formal validation and it has not been part of a ring trial. It has been used in the screening of several medium-sized compound libraries. According to the readiness criteria as published by Bal-Price et al. (2018) the neural crest cell migration assay obtained the readiness score A- .",
+          "subquestions": [
+            {
+              "question": "Which toxicological target (organ, tissue, physiological/biochemical function, etc.) is modelled? (8.1)",
+              "answer": "",
+              "answer_quality_score": "Low",
+              "answer_quality_justification": "No answer provided; treated as missing."
+            },
+            {
+              "question": "Which test system and readout(s) are used? (4.1; 5.2)",
+              "answer": "",
+              "answer_quality_score": "Low",
+              "answer_quality_justification": "No answer provided; treated as missing."
+            },
+            {
+              "question": "Which biological process(es) (e.g. neurite outgrowth, differentiation) and/or toxicological events (e.g. oxidative stress, cell death) are modelled/reflected by your test method? (8.1)",
+              "answer": "",
+              "answer_quality_score": "Low",
+              "answer_quality_justification": "No answer provided; treated as missing."
+            },
+            {
+              "question": "To which (human) adverse outcome(s) is your test method related or could be related? (8.1; 9.2; 9.3)",
+              "answer": "",
+              "answer_quality_score": "Low",
+              "answer_quality_justification": "No answer provided; treated as missing."
+            },
+            {
+              "question": "Which hazard(s) do(es) your test method (potentially) predict? (8.1; 8.6)",
+              "answer": "",
+              "answer_quality_score": "Low",
+              "answer_quality_justification": "No answer provided; treated as missing."
+            },
+            {
+              "question": "Does the test method capture an endpoint of current regulatory studies? (9.5)",
+              "answer": "",
+              "answer_quality_score": "Low",
+              "answer_quality_justification": "No answer provided; treated as missing."
+            },
+            {
+              "question": "If the method has undergone some form of validation/evaluation, give its status. (9.4)",
+              "answer": "",
+              "answer_quality_score": "Low",
+              "answer_quality_justification": "No answer provided; treated as missing."
+            }
+          ],
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer fully addresses the question by specifying the toxicological target (neural crest cells), the test system (iPSC-derived NCCs), and the readouts (NCC migration and cell viability). It describes the biological processes (cell migration and cell death) and the related human adverse outcomes (developmental disorders and malformations). The potential hazards predicted (developmental disorders) and the endpoint relevance to regulatory studies are mentioned. The validation status is also provided, including the readiness score. Overall, the response is relevant and complete."
+        }
+      ]
+    },
+    {
+      "title": "2. General information",
+      "subsections": [
+        {
+          "title": "2.1 Name of test method",
+          "question": "Provide the original/published name, as well as the potential tradename.",
+          "answer": "Circular migration inhibition of NCC (cMINC) assay, UKN2",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides the original/published name of the assay but does not clearly specify which is the tradename. It partially addresses the question but lacks clarity and completeness."
+        },
+        {
+          "title": "2.2 Version number and date of deposition",
+          "question": "Provide the original deposition date of first version and date of current version.",
+          "answer": "This is Version 2.0 of the protocol “Assay to test impairment of migration of human neural crest cells (cMINC; UKN2) – V2.0). It was assembled and deposited in March 2023. A previous version was assembled in 2019 in the context of the EU-ToxRisk project (see publication Krebs et al., 2020)",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides the deposition date of the current version (March 2023) and mentions a previous version from 2019, but it does not specify the exact original deposition date of the first version. The information is partially complete but lacks full clarity on the original deposition date."
+        },
+        {
+          "title": "2.3 Summary of introduced changes in comparison to previous version(s)",
+          "question": "This only applies to updated versions. If this is the original version, state 'original version'.",
+          "answer": "Changes compared to V1 refer mainly to the generation of the test system and the cell line used. Test procedures and parameters remain unchanged.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by mentioning changes compared to V1, implying it is not the original version. However, it lacks clarity and completeness as it does not explicitly state whether this is an updated version or the original version."
+        },
+        {
+          "title": "2.4 Assigned data base name",
+          "question": "Normal text names often do not uniquely define the method. Therefore, each method should be assigned a clearly and uniquely defined data base name.",
+          "answer": "UKN2a_DART_NC_cMIGR_24h_02",
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer provides a clearly and uniquely defined database name, which fully addresses the question's requirement for a unique identifier for the method."
+        },
+        {
+          "title": "2.5 Name and acronym of the test depositor",
+          "question": "Include affiliation.",
+          "answer": "University of Konstanz (UKN), Germany",
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer fully addresses the question by providing the required affiliation, including the name of the institution and the country."
+        },
+        {
+          "title": "2.6 Name and email of contact person",
+          "question": "Provide the details of the principal contact person.",
+          "answer": "Prof. Dr. Marcel Leist marcel.leist@uni-konstanz.de Tel: +49-7531885037",
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer provides complete and relevant details for the principal contact person, including name, email, and telephone number, fully addressing the question."
+        },
+        {
+          "title": "2.7 Name of further persons involved",
+          "question": "For example, the principal investigator (PI) of the lab, the person who conducted the experiments, etc.",
+          "answer": "Xenia Dolde (PhD student, experimenter) xenia.dolde@uni-konstanz.de Jonathan Blum (PhD student) jonathan.blum@uni-konstanz.de Heidrun Leisner (experimenter) heidrun.leisner@uni-konstanz.de",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides names and roles of individuals involved in the experiments, which partially addresses the question. However, it lacks clarity on who the principal investigator (PI) is, which is a key part of the question."
+        },
+        {
+          "title": "2.8 Reference to additional files of relevance",
+          "question": "Supply number of supporting files. Describe supporting files (e.g. metadata files, instrument settings, calculation template, raw data file, etc.).",
+          "answer": "- An important reference is the DB-ALM Protocol n° 195. The original iPSC are in the meantime cultured feeder-free (see 3.2) - Raw data file - Data processing file",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by mentioning a raw data file and a data processing file, but it lacks clarity and completeness. It does not specify the number of supporting files or provide a detailed description of each file type, such as metadata files or instrument settings."
+        }
+      ]
+    },
+    {
+      "title": "3. Description of general features of the test system source",
+      "subsections": [
+        {
+          "title": "3.1 Supply of source cells",
+          "question": "Describe briefly whether the cells are from a commercial supplier, continuously generated by cell culture, or obtained by isolation from human/animal tissue (or other).",
+          "answer": "The human induced pluripotent stem cell (hiPSC) line IMR90_clone_#4 has been bought from WiCell, Wisconsin in 2012 and a masterstock has been frozen. From the masterstock several working stocks have been prepared. The working stocks are regularly thawed and can be continously maintained due to self- renewal and pluripotency capabilities of the cells. The cells are maintained up to 10 passages before a new vial of the working stock is thawed.",
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer fully addresses the question by specifying that the cells were initially obtained from a commercial supplier (WiCell) and are continuously generated by cell culture. It provides details on the process of maintaining the cells, including the creation of master and working stocks, and the self-renewal and pluripotency capabilities that allow for continuous culture. This response is relevant and complete."
+        },
+        {
+          "title": "3.2 Overview of cell source component(s)",
+          "question": "Give a brief overview of your biological source system, i.e. the source or starting cells that you use. Which cell type(s) are used or obtained (e.g. monoculture/co-culture, differentiation state, 2D/3D, etc.)? If relevant, give human donor specifications (e.g. sex, age, pool of 10 donors, from healthy tissue, etc.).",
+          "answer": "Undifferentiated hiPSC cells (IMR90, WiCell) are maintained as monoculture on Laminin-521 coating in essential 8 (E8) medium. The cells grow in colonies, and are split weakly. The cells show self-renewal and pluripotency characteristics (regular testing). The cells can be differentiated into several different cell types.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides information about the cell type (undifferentiated hiPSC cells), culture conditions (monoculture on Laminin-521 in E8 medium), and characteristics (self-renewal and pluripotency). However, it lacks details on the differentiation state (beyond pluripotency), dimensionality (2D/3D), and human donor specifications such as sex, age, or health status, which are relevant to fully address the question."
+        },
+        {
+          "title": "3.3 Characterization and definition of source cells",
+          "question": "List quantitative and semi-quantitative features that define your cell source/starting cell population. For test methods that are based on differentiation, describe your initial cells, e.g. iPSC, proliferating SH-SY5Y; the differentiated cells are described in section 4. Define cell identity, e.g. by STR signature (where available), karyotype information, sex (where available and relevant), ATCC number, passage number, source (supplier), sub-line (where relevant), source of primary material, purity of the cells, etc. Describe defining biological features you have measured or that are FIRMLY established (use simple listing, limit to max. 0.5 pages), e.g. the cells express specific marker genes, have specific surface antigens, lack certain markers, have or lack a relevant metabolic or transporting capacity, have a doubling time of x hours, etc. Transgenic cell lines have particular requirements concerning the characterization of the genetic manipulation (type of transgene, type of vector, integration/deletion site(s), stability, etc.). Organoids and microphysiological systems (MPS) may need some special/additional considerations as detailed in Pamies et al. (2018) and Marx et al. (2016), e.g. ratio of cell types used, percent of normal cells in tumor spheroids created from resected tissue; derivation of cells for re-aggregating brain cultures.",
+          "answer": "• ATCC number: CCL-186 • Origin: Homo sapiens, human • Tissue: lung • Cell type: fibroblast • Gender: female • Morphology: fibroblast • Culture properties: adherent • Disease: no disease was diagnosed • Age: 16 weeks gestation • Ethnicity: Caucasian • Expression: Cells express the pluripotency markers Oct4, nanog and Tra-1-60 Table 1. Short tandem repeat (STR) signature of cell line confirms 100% loci homology",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides some relevant quantitative and semi-quantitative features of the cell source, such as ATCC number, origin, tissue, cell type, gender, morphology, culture properties, disease status, age, ethnicity, and expression of specific markers. However, it lacks information on other aspects like karyotype information, passage number, source of primary material, purity of the cells, and details on transgenic cell lines or organoids if applicable. The answer is partially complete but could be more comprehensive."
+        },
+        {
+          "title": "3.4 Acceptance criteria for source cell population",
+          "question": "Describe the acceptance criteria (AC) for your initial cells (i.e. the quality criteria for your proliferating cell line, tissue for isolation, organism, etc.). Which specifications do you consider to describe the material, which quality control criteria have to be fulfilled (e.g. pathogen-free)? Which functional parameters (e.g. certain biological responses to reference substances) are important? For iPSC maintenance: How do you control pluripotency? How stable are your cells over several passages? Which passage(s) are valid? For primary cells: Show stability and identity of supply; demonstrate stability of function (e.g. xenobiotic metabolism). Quantitative definitions for AC should be given based on this defining information. Exclusion criteria (features to be absent) are also important. As in 3.3., special/additional requirements apply to genetically-modified cells and microphysiological systems.",
+          "answer": "The cells have to be pathogen-free (regular testing for mycoplasma). The iPSC maintenance is regularly checked for expression of pluripotency markers (Oct4, Nanog, Tra-1-60) by immunocytochemistry. Figure 12: Immunostaining of relevant pluripotency markers in maintenance culture",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by mentioning pathogen-free criteria and checking for pluripotency markers in iPSC maintenance. However, it lacks details on other aspects such as specifications for the material, functional parameters, stability over passages, valid passages, and exclusion criteria. It also does not address primary cells or genetically-modified cells and microphysiological systems."
+        },
+        {
+          "title": "3.5 Variability and troubleshooting of source cells",
+          "question": "Name known causes of variability of the initial cells/source cells. Indicate critical consumables or batch effects (e.g. relevance of the plate format and supplier, batch effects of fetal calf serum (FCS) or serum replacement, critical additives like type of trypsin, apo-transferrin vs. holo-transferrin, etc.). Indicate critical handling steps and influencing factors (e.g. special care needed in pipetting, steps that need to be performed quickly, cell density, washing procedures, etc.). As in 3.3., special/additional requirements apply to genetically-modified cells and microphysiological systems, e.g. dependence on matrix chemistry and geometry, dependence on microfluidics system, consideration of surface cells vs core cells, etc. Give recommendations to increase/ensure reproducibility and performance.",
+          "answer": "- hiPSC can be maintained up to 10 passages, high passage number might influence performance of cells - Too little or too high cell density leads to detachment of cells or spontaneous differentiation - If cells start to differentiate, cells should be discarded immediately - Cells have to be maintained as colonies and not as single cells. Therefore splitting should be performed as fast as possible - Batch effects of critical additives (e.g. holo-transferrin for iron supply of cells or TGF-β which maintains cell pluripotency) can lead to differentiation of cells at low passage number.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by mentioning some causes of variability such as passage number, cell density, and batch effects of critical additives. However, it lacks detail on critical consumables, handling steps, and specific recommendations for genetically-modified cells and microphysiological systems. The response could be more comprehensive and specific to fully address the question."
+        },
+        {
+          "title": "3.6 Differentiation towards the final test system",
+          "question": "Describe the principles of the selected differentiation protocol, including a scheme and graphical overview, indicating all phases, media, substrates, manipulation steps (medium change/re-plating, medium additives, etc.). Special/additional requirements apply to microphysiological systems and organoids: e.g. cell printing, self-aggregation/self-organisation process, interaction with the matrix, geometrical characterization (size/shape), etc.",
+          "answer": "Figure 2: Differentiation scheme from hiPSCs to neural crest cells NCCs were differentiated from hiPSCs following the modified protocol of Mica et al. (2013) (https://doi.org/10.1016/j.celrep.2013.03.025). Therefore, IMR90 iPSCs were plated on Matrigel coated 6- well plates at a density of 100’000 cells/cm2 in E8 medium containing 10 μM ROCK (Rho-associated protein kinase)-inhibitor Y-27632. After one day cells reached a confluency of 80-100% and differentiation was initiated (day 0’) by a medium change to KSR medium (Knock out DMEM (Dulbecco's Modified Eagle Medium), 15% knock out serum replacement, 1% GlutaMax, 1% MEM NEAA (minimum essential medium - non-essential amino acids) solution, 50 µM 2-mercaptoethanol) supplemented with 20 ng/ml Noggin and 10 µM SB431542. From day 2 on cells were treated with 3 µM CHIR99021. Noggin and SB431542 were withdrawn at day 3 and 4, respectively. Beginning at day 4, the KSR medium was gradually replaced with N2-S medium (DMEM/F12 (Dulbecco's Modified Eagle Medium/Ham's F-12), 1.55 mg/ml glucose, 1% GlutaMax, 0.1 mg/ml apotransferin, 25 µg/ml insulin, 20 nM progesterone, 100 μM putrescine, 30 nM selenium) in 25% increments. Cells were collected at day 11, resuspended in N2-S medium supplemented with 20 ng/ml EGF (epidermal growth factor) and 20 ng/ml FGF2 (fibroblast growth factor 2) and seeded as droplets (10 µl) on poly-L-ornithine (PLO)/Laminin/Fibronectin coated 10 cm dishes. Cells were expanded by weekly splitting. From now on seeding as droplets was not necessary and medium was changed every second day. After 35-39 days, cells were cryopreserved at a concentration of 4*106 cells/ml in 90% N2-S medium and 10% dimethyl sulfoxide (DMSO) (Merck Millipore) until further use.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides a detailed description of the differentiation protocol, including media, substrates, and manipulation steps. However, it lacks a graphical overview and does not address special/additional requirements for microphysiological systems and organoids, such as cell printing or interaction with the matrix. The absence of a scheme or graphical representation limits the completeness of the response."
+        },
+        {
+          "title": "3.7 Reference/link to maintenance culture protocol",
+          "question": "Provide the SOP of the general maintenance procedure as a database link. This should also include the following information: How are the cells maintained outside the experiment (basic cell propagation)? How pure is the cell population (average, e.g. 95% of iPSC cells Oct4-positive)? What are the quality control measures and acceptance criteria for each cell batch? Which number(s) passage(s) can be used in the test? Is Good Cell Culture Practice (GCCP) and/or Good In Vitro Method Practice (GIVIMP) followed? How long can same cell batches be used? How are frozen stocks and cell banks prepared? For primary cells: how are they obtained in general and what are they characterized for (and what are inclusion and exclusion criteria).",
+          "answer": "DB-ALM Protocol n° 195",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer only provides a reference to a protocol number without addressing any of the specific details requested in the question. It lacks information on cell maintenance, purity, quality control, passage numbers, compliance with practices, cell batch usage duration, preparation of frozen stocks, and characterization of primary cells."
+        }
+      ]
+    },
+    {
+      "title": "4. Definition of the test system as used in the method",
+      "subsections": [
+        {
+          "title": "4.1 Principles of the culture protocol",
+          "question": "Describe the test system as it is used in the test. If the generation of the test system involves differentiation steps or complex technical manipulation (e.g. formation of microtissues), this is described in 3.6. Give details on the general features/principles of the culture protocol (collagen embedding, 3D structuring, addition of mitotic inhibitors, addition of particular hormones/growth factors, etc.) of the cells that are used for the test. What is the percentage of contaminating cells; in co-cultures what is the percentage of each subpopulation? Are there subpopulations that are generally more sensitive to cytotoxicity than others, and could this influence viability measures? Is it known whether specific chemicals/chemical classes show differential cytotoxicity for the cell sub-populations used?",
+          "answer": "A highly homogeneous pre-differentiated population of neural crest cells is added to coated wells. In the middle of the well is a silicone stopper that prevents cells from settling in a circular area in the middle of the well. The cells are kept viable and alive by the presence of EGF and FGF in the medium, and they become adherent overnight. When the stopper is removed, the cells form a dense monolayer in the culture dish, with a sharply demarcated circular area in the middle that is free of cells. Due to their natural spontaneous migration behaviour, the cells move into the cell-free area. The cells are still in a proliferative state. Proliferation at the edge of the cell free area contributes to a small extent to “apparent migration behaviour”. This has been characterized and quantified in detail (Nyffeler et al. 2016). It is accounted for by counting cells in a narrower circle than the original circular area.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides a detailed description of the test system, including the culture protocol and cell behavior. However, it lacks information on the percentage of contaminating cells, the percentage of each subpopulation in co-cultures, and whether specific chemicals show differential cytotoxicity for the cell sub-populations used. These omissions prevent a 'High' score."
+        },
+        {
+          "title": "4.2 Acceptance criteria for assessing the test system at its start",
+          "question": "What are the endpoint(s) that you use to control that your culture(s) is/are as expected at the start of toxicity testing (e.g. gene expression, staining, morphology, responses to reference chemicals, etc.)? Describe the acceptance criteria for your test system, i.e. the quality criteria for your cells/tissues/organoids: Which endpoints do you consider to describe the cells or other source material, which parameters are important? Describe the (analytical) methods that you use to evaluate your culture (PCR, ATP measurement) and to measure the acceptance criteria (AC). Which values (e.g. degree of differentiation or cell density) need to be reached/should not be reached? Historical controls: How does your test system perform with regard to the acceptance criteria, e.g. when differentiation is performed 10 times, what is the average and variation of the values for the acceptance criteria parameters)? Indicate actions if the AC are not met. Examples: cell are > 90% viable, or > 98% of cells express marker x (e.g. AP-2), or > 80% of the cells attach, etc.",
+          "answer": "Figure 3: Characterization of the cellular system. (A) Differentiation schema of NCCs from human induced pluripotent stem cells. (B) Expression of the NCC markers HNK-1 and p75 was monitored by FACS analysis. (C) After thawing the cells were immunofluorescently labelled for the typical NCC markers p75, HNK1 and AP2. Scale bar: 50 µm. (D) Typical mesenchymal like cell morphology of NCCs. Cells were double-stained for nestin and f-actin. Scale bar: 10 µm. The derived NCCs are ≥ 90% positive for the NCC marker human natural killer-1 (HNK1) and the nerve low affinity nerve growth factor receptor p75. Additionally, the cells express the stem cell microfilament protein nestin and AP2. On the other hand, none of the cells show expression of the astrocyte marker GFAP, the central nervous system precursor cell marker Pax6 and the neuronal marker βIII tubulin. Furthermore, the functional capability of the cells is checked by performing the cMINC assay with endpoint specific controls. The cells have to be pathogen-free to be used in further experiments (regular testing for mycoplasma after thawing). After thawing the viability should be > 90%.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides some relevant information about the characterization of the cellular system, including markers and morphology, and mentions viability criteria. However, it lacks detailed acceptance criteria, specific analytical methods, and historical control data. It also does not specify actions if acceptance criteria are not met."
+        },
+        {
+          "title": "4.3 Acceptance criteria for the test system at the end of compound exposure",
+          "question": "Describe the acceptance criteria for your test system, i.e. the quality criteria for your cells/tissues/organoids: Which endpoints do you consider to describe the cells or other source material, which parameters are important? Which values (e.g. degree of differentiation or cell density) need to be reached/should not be reached? Historical controls: How does your test system perform with regard to the acceptance criteria, e.g. when differentiation is performed 10 times, what is the average and variation of the values for the acceptance criteria parameters)? Indicate actions if the AC are not met. Examples: Usual neurite length is 50 ±15 μm; experiments with average neurite length below 25 μm in the negative controls (NC) are discarded. Usual nestin induction is 200 ±40 fold, experiments with inductions below 80-fold for NC are discarded.",
+          "answer": "After compound treatment, the negative controls should fulfil the following: - cells should be migrated into the cell free area - cell viability should be > 90%",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer does not adequately address the question. It provides minimal information about acceptance criteria, focusing only on cell migration and viability, without discussing endpoints, parameters, historical controls, or actions if criteria are not met. It lacks detail and completeness required to fully address the question."
+        },
+        {
+          "title": "4.4 Variability of the test system and troubleshooting",
+          "question": "Give known causes of variability for final test system state. Indicate critical consumables or batch effects (e.g. plate format and supplier, batch effects of FCS or serum replacement, additives). Indicate critical handling steps, and/or influencing factors identified (e.g. special care needed in pipetting, steps that need to be performed quickly, cell density). Indicate positive and negative controls and their expected values, and accepted deviation within and between the test repeats. Give recommendations to increase/ensure reproducibility and performance.",
+          "answer": "Causes of variability: - High passage number of iPSC maintenance might influence NCC differentiation - Too little cell density at the start of differentiation can cause problems (confluency should be 80- 100%) - For the freeze and thaw processes a fast handling is important to avoid cells to stay at 10% DMSO for too long. This can decrease number of viable cells after thawing.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by mentioning some causes of variability such as high passage number, cell density, and handling during freeze and thaw processes. However, it lacks details on critical consumables, batch effects, specific handling steps, controls, expected values, and recommendations for reproducibility and performance."
+        },
+        {
+          "title": "4.5 Metabolic capacity of the test system",
+          "question": "What is known about endogenous metabolic capacity (CYP system (phase I); relevant conjugation reactions (phase II))? What is known about other pathways relevant to xenobiotic metabolism? What specific information is there on transporter activity?",
+          "answer": "No specific information available.",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer does not address the question as it provides no information about the endogenous metabolic capacity, relevant pathways, or transporter activity. It simply states that no specific information is available, which does not contribute to answering the question."
+        },
+        {
+          "title": "4.6 Omics characterization of the test system",
+          "question": "Are there transcriptomics data or other omics data available that describe the test system (characterization of cells without compounds)? Briefly list and describe such data. Indicate the type of data available (e.g. RNASeq or proteomics data). Refer to data file, data base or publication.",
+          "answer": "Transcriptomics data (unpublished) will become available from the originator lab (Leist) upon request.",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer does not provide a list or description of the available omics data, nor does it specify the type of data (e.g., RNASeq or proteomics). It only mentions that transcriptomics data will be available upon request, which does not address the question adequately."
+        },
+        {
+          "title": "4.7 Features of the test system that reflect the in vivo tissue",
+          "question": "Give information on where the test system differs from the mimicked human tissue and which gaps of analogy need to be considered.",
+          "answer": "- The cells are able to migrate mostly as single cells; they show some evidence of collective migration - Cells show invasive behaviour in a 3D environment (e.g. transwell assay)",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer does not address the question about differences between the test system and mimicked human tissue or the gaps of analogy. It only describes cell behavior without comparing it to human tissue."
+        },
+        {
+          "title": "4.8 Commercial and intellectual property rights aspects of cells",
+          "question": "Are there elements of the test system that are protected by patents or any other means?",
+          "answer": "The cells are not protected by patents or any other licences.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer addresses the question regarding patent protection for the cells but does not mention other elements of the test system that might be protected by patents or other means. It lacks completeness."
+        },
+        {
+          "title": "4.9 Reference/link to the culture protocol",
+          "question": "Fill only if section 3 has not been answered. Provide the SOP for the general maintenance procedure as a database link. This should also include the following information: How are the cells maintained outside the experiment (basic cell propagation)? How pure is the cell population (average, e.g. 95% of iPSC cells Oct4-positive)? What are the quality control measures and acceptance criteria for each cell batch? Which number(s) passage(s) can be used in the test? Is Good Cell Culture Practice (GCCP) and/or Good In Vitro Method Practice (GIVIMP) followed? How long can same cell batches be used? How are freezing stocks and cell banks prepared? For primary cells: how are they obtained in general and what are they characterized for (and what are inclusion and exclusion criteria).",
+          "answer": "Brief description is in section 3 of this file. Detailed maintenance is described in the DB-ALM SOP n° 195 available at: http://cidportal.jrc.ec.europa.eu/ftp/jrc-opendata/EURL-ECVAM/datasets/DBALM/VER2- 0/online/DBALM_docs/195_P_cMINC.pdf A lab-internal handling protocol is also available upon request to the Leist-lab.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides a link to a detailed SOP and mentions an internal protocol, which partially addresses the question. However, it lacks specific information on cell maintenance, purity, quality control, passage numbers, GCCP/GIVIMP compliance, cell batch usage duration, freezing stocks preparation, and primary cell characterization. The answer is incomplete and lacks clarity on several required details."
+        }
+      ]
+    },
+    {
+      "title": "5. Test method exposure scheme and endpoints",
+      "subsections": [
+        {
+          "title": "5.1 Exposure scheme for toxicity testing",
+          "question": "Provide an exposure scheme (graphically, show timelines, addition of medium supplements and compounds, sampling, etc.), within the context of the overall cell culture scheme (e.g. freshly re-plated cells or confluent cells at start, certain coatings, etc.). Include medium changes, cell re-plating, whether compounds are re-added in cases of medium change, critical medium supplements, etc.",
+          "answer": "Figure 4: Exposure scheme and assay procedure. Day -1: The wells are coated with PLO/laminin/fibronectin. Then, silicone stoppers are placed into the wells of a 96-well plate. Cells are seeded around the stoppers and allowed to attach. Day 0: The silicone stoppers are removed and the medium is replaced with pre-warmed, fresh N2-S medium containing the cytokines EGF and FGF. Cells are allowed to migrate into the cell free area. Day 1: 25 µl of the 5x concentrated toxicants are added to the wells. The cells plus toxicants are incubated for 24 h. Day 2: Cells are stained with calcein-AM and Hoechst (H-33342) for 30 min before imaging with a high content imaging microscope. Quantification of migration and viability is done by high content imaging analysis.",
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer provides a detailed and clear exposure scheme, including timelines, medium changes, and the addition of supplements and compounds. It specifies the initial cell culture conditions, the use of coatings, and the procedure for medium changes and compound addition. The description of the assay procedure and sampling is comprehensive and relevant to the question."
+        },
+        {
+          "title": "5.2 Endpoint(s) of the test method",
+          "question": "Define the specific endpoint(s) of the test system that you use for toxicity testing (e.g. cytotoxicity, cell migration, etc.). Indicate whether cytotoxicity is the primary endpoint. What are secondary/further endpoints? Also describe here potential reference/normalization endpoints (e.g. cytotoxicity, protein content, housekeeping gene expression) that are used for normalization of the primary endpoint.",
+          "answer": "Specific Endpoint: Migration inhibition Reference endpoint: Cell viability Note: Migration induction is also possible to assess, but complex in its toxicological interpretation. Therefore only unidirectional migration is assessed as an endpoint if the method is used in a standardized testing procedure in the prediction model.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by identifying migration inhibition as a specific endpoint and cell viability as a reference endpoint. However, it lacks clarity and completeness as it does not explicitly state whether cytotoxicity is the primary endpoint, nor does it mention any secondary endpoints or further reference/normalization endpoints beyond cell viability."
+        },
+        {
+          "title": "5.3 Overview of analytical method(s) to assess test endpoint(s)",
+          "question": "Define and describe the principle(s) of the analytical methods used. Provide here a general overview of the method’s key steps (e.g. cells are fixed or not, homogenized sample or not, etc.), sufficient for reviewers/regulators to understand what was done, but not in all detail for direct repetition. If you have two or more endpoints (e.g. viability and neurite outgrowth), do you measure both in the same well, under same conditions in parallel, or independently of each other? For imaging endpoints: Explain in general how quantification algorithm or how semi-quantitative estimates are obtained and how many cells are imaged (roughly).",
+          "answer": "Migration inhibition: NCCs are plated around silicone stoppers in a culture dish and are allowed to migrate into the cell free area upon removal of the stopper. The number of migrated cells into the cell free zone is quantified 24 h after toxicant treatment. Migration inhibition of NCCs after treatment with toxicants is measured relative to control conditions (solvent control cells). For the quantification the cells are stained with calcein-AM and H-33342 for 30 min at 37 °C. The center of the well (migration zone) is imaged in four tiles with a 5x objective. Afterwards the four images are stitched together to obtain one image. For migration quantification, a software tool has been developed (http://invitrotox.uni-konstanz.de/). With the help of this software the previously cell-free area can be estimated and the number of H-33342 and calcein double-positive cells in the region of interest (ROI) can be counted. The diameter of the ROI was chosen so that 150 to 300 cells were in the ROI in untreated conditions. An Excel table containing the number of viable cells in the ROI of all wells of the plate is generated by the software. Cell viability: Cell viability is measured after 48 h outside the migration zone in the same well. The cells are stained with calcein-AM and H-33342 and four fields outside the migration zone are imaged with a 10x objective. Viability is defined as the number of H-33342 and calcein double-positive cells, viable cells are determined by an automated algorithm. An excel file is generated with the number of viable cells in each well. Migration and Viability are normalized to untreated controls.",
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer provides a comprehensive overview of the analytical methods used, including the key steps involved in the migration inhibition and cell viability assays. It describes the plating and imaging process, the staining procedure, and the software used for quantification. The explanation includes how endpoints are measured, both in the same well and under different conditions, and details the imaging and quantification process. This level of detail is sufficient for reviewers to understand the methodology without being able to directly replicate it, which aligns well with the requirements of the question."
+        },
+        {
+          "title": "5.4 Technical details (of e.g. endpoint measurements)",
+          "question": "Provide information on machine settings, analytical standards, data processing and normalization procedures. For imaging endpoints: provide detailed algorithm. This information should also be covered in an SOP, preferably in DB-ALM format (see link in 6.6).",
+          "answer": "Quantification of migration An automated microplate reading microscope (Array-ScanII HCS Reader, Cellomics, PA) equipped with a Hamamatsu ORCA-ER camera (resolution 1024 x 1024; run at 2 x 2 binning) was used for image acquisition. Four fields per well were imaged. Images were recorded in 2 channels using a 5x objective and excitation/emission wavelengths of 365 ± 50/535 ± 45 to detect H-33342 in channel 1 and 474 ± 40/535 ± 45 to detect calcein in channel 2. Pictures were exported from the microscope and for migration quantification, a software tool has been developed (http://invitrotox.uni-konstanz.de/). With the help of this software the previously cell-free area can be estimated and the number of H-33342 and calcein double-positive cells in the region of interest (ROI) can be counted. The diameter of the ROI was chosen so that 150 to 300 cells were in the ROI in untreated conditions. An Excel table containing the number of viable cells in the ROI of all wells of the plate is generated by the software. Quantification of individual viable cells by imaging For a quantitative assessment of viable cells, the same wells that were used to assess migration were analyzed using another image analysis algorithm of the ArrayScan VTI 700 Series software (v. 7.6.2.4) as described earlier in Stiegler et al. (2011) (doi: 10.1093/toxsci/kfr034) and Krug et al. (2013) (doi: 10.1007/s00204-013-1072-y). Nuclei were identified in channel 1 as objects according to their size, area, shape, and intensity. Nuclei of apoptotic cells with increased fluorescence were excluded. Viable nuclei were defined as H-33342 and calcein double-positive cells. An Excel table containing the number of viable cells is generated.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides detailed information on machine settings, imaging endpoints, and some data processing procedures, including the use of specific software and algorithms for image analysis. However, it lacks information on analytical standards, data normalization procedures, and does not mention an SOP or the DB-ALM format as requested. The response is partially complete but lacks clarity and completeness in addressing all aspects of the question."
+        },
+        {
+          "title": "5.5 Endpoint-specific controls/mechanistic control compounds (MCC)",
+          "question": "MCC are chemicals/manipulations that show biologically plausible changes of the endpoint. List such controls (up to 10), indicate why you consider them as MCC, and describe expected data on such controls. Highlight the compounds to be used for testing day-to-day test performance, i.e. for setting acceptance criteria (AC). If available, indicate MCC that each increase or decrease the activity of the relevant pathway. Do pathway inhibitions or activations correlate with the test method response?",
+          "answer": "Example 1: Cell migration requires dynamic variability of the cytoskeleton, e.g. actin reorganisation. Cytochalasin D is a known inhibitor of actin polymerisation and therefore inhibits cell migration at non-cytotoxic concentrations. Example 2: Migration depends on the dynamic instability of microtubules in the leading edge of a migrating cell. Taxol inhibits breakdown of microtubules and leads to migration inhibition at non-cytotoxic concentrations.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides examples of chemicals (Cytochalasin D and Taxol) that affect cell migration, explaining their mechanisms of action. However, it does not list up to 10 controls, lacks a description of expected data, does not highlight compounds for setting acceptance criteria, and does not address whether pathway inhibitions or activations correlate with the test method response."
+        },
+        {
+          "title": "5.6 Positive controls",
+          "question": "What chemicals/manipulations are used as positive controls? Describe the expected data on such controls (signal and its uncertainty)? How good are in vivo reference data on the positive controls? Are in vivo relevant threshold concentrations known?",
+          "answer": "Positive control: Cytochalasin D (200 nM), LiCl (10 mM), taxol (10 nM)",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer lists chemicals used as positive controls but does not describe the expected data on these controls, such as signal and its uncertainty. It also does not address the quality of in vivo reference data or whether in vivo relevant threshold concentrations are known."
+        },
+        {
+          "title": "5.7 Negative and unspecific controls",
+          "question": "What chemicals/manipulations are used as negative controls? Describe the expected data on such controls (signal and its uncertainty)? (Such data define the background noise of the test method) What is the rationale for the concentration setting of negative controls? Do you use unspecific controls? If yes, indicate the compounds and the respective rationale for their use and the concentration selection.",
+          "answer": "Negative control: solvent (0.1% DMSO final concentration), paracetamol, ASS",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer lists some chemicals used as negative controls but does not describe the expected data on these controls, the rationale for concentration settings, or whether unspecific controls are used. It lacks completeness and clarity in addressing the question."
+        },
+        {
+          "title": "5.8 Features relevant for cytotoxicity testing",
+          "question": "Does the test system have a particular apoptosis sensitivity or resistance? Is cytotoxicity hard to capture for minor cellular subpopulations? In multicellular systems, which cell population is the most sensitive? Are specific markers known for each cell population? Are there issues with distinguishing slowed proliferation from cell death? For repeated/prolonged dosing: Is early death and compensatory growth considered? For very short-term endpoints (e.g. electrophysiology measured 30 min after toxicant exposure): Is a delayed measure of cytotoxicity provided?",
+          "answer": "Cells still proliferate after thawing and proliferation can interfere with the migration result. About 30% of the cells undergo mitosis during the assay.",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer does not address the specific questions about apoptosis sensitivity, cytotoxicity in minor subpopulations, sensitivity of cell populations, specific markers, distinguishing proliferation from cell death, early death and compensatory growth, or delayed measures of cytotoxicity. It only mentions cell proliferation and mitosis, which are not directly relevant to the questions asked."
+        },
+        {
+          "title": "5.9 Acceptance criteria for the test method",
+          "question": "Which rule do you apply to test whether a test run is within the normal performance frame? How do you document this decision? Indicate actions if the AC are not met.",
+          "answer": "A test is discarded if the positive control did not inhibit migration, e.g. if the cell number in the migration zone is ≥ 75% of control. If the negative control decreases migration ≥ 10%, the test is discarded.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by specifying rules for discarding a test based on control performance. However, it lacks clarity on how the decision is documented and does not explicitly indicate actions if acceptance criteria (AC) are not met beyond discarding the test."
+        },
+        {
+          "title": "5.10 Throughput estimate",
+          "question": "Indicate 'real data points per month' (not per week/per quarter, etc.): count three working weeks per month. Each concentration is a data point. Necessary controls that are required for calibration and for acceptability criteria are NOT counted as data points. All technical replicates of one condition are counted as one single data point (see notes for explanation) Indicate possibility/extent of repeated measures (over time) from same dish. Explain your estimate.",
+          "answer": "Data point = one biological replicate (→ usually 4 technical replicates); each concentration/condition of a compound counts as a data point. 768 data points per month 2 compounds per plate, 6 different concentrations of each compound per plate (see figure 6) → 12 data points (1 plate) 16 plates can be done per week → correlates to 32 compounds → 192 data points per week 4 weeks per month → 768 data points per month. Figure 6: A typical 96-well plate layout of the cMINC",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides a detailed calculation of data points per month, including the number of compounds, concentrations, and plates per week. However, it does not address the possibility or extent of repeated measures from the same dish, which is part of the question. This omission affects the completeness of the response."
+        }
+      ]
+    },
+    {
+      "title": "6. Handling details of the test method",
+      "subsections": [
+        {
+          "title": "6.1 Preparation/addition of test compounds",
+          "question": "Give an overview of the range of volumes, particular lab ware/instruments for dispensing, temperature/lighting considerations, particular media/buffers for dilution, decision rules for the solvent, tests of solubility as stocks and in culture medium, etc. How are compound stocks prepared (fold concentration, verification, storage, etc.)? How are dilutions prepared? What solvent is used? Is filtering used to obtain sterility? How does the final addition to the test system take place? Give details of addition of test compounds to test systems (e.g. in which compartment of compartmentalized cultures, in which volume, before after or during medium change, etc.).",
+          "answer": "- Compounds are stored according to the manufacturer’s instructions (e.g., 4°C, room temperature, -20°C). - Preferable solvent is DMSO. The used DMSO is stored in a lightproof, air-tight bottle at room temperature. - Final DMSO concentration on the cells is 0.1% - After dissolving the compounds which are delivered in a solid/powder form, all compound solutions are aliquoted into volumes sufficient for one experiment (i.e., one biological replicate). In this way repeated freezing and thawing and therefore damaging the compound’s stability and efficiency can be avoided. - For conducting an experiment, a compound aliquot is thawed and diluted with ‘DMEM/F12 Advanced’ without supplements in a separate deepwell-plate. - All compound dilutions in the master plate contain 0.5 % DMSO, so that a final concentration of 0.1 % DMSO is reached on the cells. The highest compound concentration is diluted with medium 1:200 without DMSO as 0.5 % is already reached with the DMSO the compound is solved in, the serial dilution is done with N2-S medium supplemented with 20 ng/ml EGF and FGF and 0.5 % DMSO. - 25 µl of the 5x concentrated compound dilutions are added to the cells using a multichannel pipette.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides some relevant details about solvent choice, storage conditions, and dilution preparation, but lacks comprehensive information on the range of volumes, specific lab ware/instruments, temperature/lighting considerations, and tests of solubility. It also does not fully address the decision rules for the solvent, filtering for sterility, or detailed procedures for adding test compounds to test systems."
+        },
+        {
+          "title": "6.2 Day-to-day documentation of test execution",
+          "question": "How are day-to-day procedures documented (type of ‘lab book’ organisation, templates)? Define lab-specific procedures used for each practical experiment on how to calculate test compound concentrations (and to document this). How are plate maps defined and reported? Detailed information should also be covered in an SOP, preferably in DB-ALM format (see link in 6.6).",
+          "answer": "Plate maps are defined prior to the experiment and documented in the lab book and files (Excel files) are stored on the work group server. Concentrations and compound dilutions are calculated prior to the experiment. Experimental procedures are noted manually in a paper lab book.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by mentioning the documentation of plate maps and the calculation of concentrations and dilutions. However, it lacks details on lab-specific procedures, the type of lab book organization, and does not mention the use of templates or SOPs in DB-ALM format. The response is incomplete and lacks clarity on several aspects of the question."
+        },
+        {
+          "title": "6.3 Practical phase of test compound exposure",
+          "question": "How is the time plan of pipetting established, followed, and documented? How is adherence to plate maps during pipetting documented? What are the routine procedures to document intermediate steps with potential errors, mistakes and uncertainties? How are errors documented (e.g. pipetting twice in one well)? How are the plate wells used sequentially – following which pattern? Detailed information should also be included in an SOP, preferably in DB-ALM format (see link in 6.6).",
+          "answer": "The experimenter plans the experiment according to Cellomics microscope availability (has to be booked in advance). Pipetting errors are marked directly on the plate maps and are documented in the lab book. The paper lab book is taken to cell culture rooms and errors are documented in there right away. The technical replicates were pipetted from left to right. The highest concentration is located at the top row.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by mentioning the documentation of pipetting errors on plate maps and in a lab book, and describes the pattern of pipetting (left to right, highest concentration at the top row). However, it lacks details on the time plan of pipetting, routine procedures for documenting intermediate steps, and does not mention adherence to an SOP or the DB-ALM format. The response is incomplete and lacks clarity on several aspects of the question."
+        },
+        {
+          "title": "6.4 Concentration settings",
+          "question": "How is the concentration range of test compounds defined (e.g. only single concentrations, always 1:10 serial dilutions or variable dilution factors, ten different concentrations, etc.)? Is there a rule for defining starting dilutions? For functional endpoints that may not provide full concentration-response, how is the test concentration defined? E.g. EC10 of viability data are usually tested for gene expression endpoints. Detailed information should also be included in an SOP, preferably in DB-ALM format (see link in 6.6).",
+          "answer": "2 compounds per plate with 6 concentrations. As default a serial dilution 1:3 is used, i.e., a concentration range from e.g. 100 µM → 0.4 µM. Serial dilutions of compounds are prepared in a separate deepwell-plate, from which 25 µl are transferred to the according plates with attached cells using a multichannel-multistepper pipette. N2-S medium supplemented with 20 ng/ml EGF and FGF is used for dilution. Dilution steps can be adapted to be more narrow (e.g., 1:1.5)",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides information on the concentration range and dilution method (1:3 serial dilution), but it lacks details on rules for defining starting dilutions and how test concentrations are defined for functional endpoints that may not provide full concentration-response. It also does not mention any SOP or DB-ALM format documentation."
+        },
+        {
+          "title": "6.5 Uncertainties and troubleshooting",
+          "question": "What types of compounds are problematic, e.g. interference with analytical endpoint, low solubility, precipitation of medium components, etc.? What experimental variables are hard to control (e.g. because they are fluorescent)? What are critical handling steps during the execution of the assay? Robustness issues, e.g. known variations of test performance due to operator training, season, use of certain consumable or unknown causes, etc. Describe known pitfalls (or potential operator mistakes).",
+          "answer": "• Compound solubility in stock and during dilution is too low (stock solved in 100% DMSO, final concentration of the solvent on the cells is 0.1% DMSO) • Some compounds show autofluorescence and interfere with the detection of calcein-AM or H- 33342. • To prevent negative edge effects, only the inner 60 wells of a 96-well plate are used and the edge wells were filled with PBS. • Focusing failure of Array Scan VTI HCS Reader (Cellomics, PA) can be a problem that produces outliers; as well as imaging only one channel. • Highly trained/automated handling with multichannel and multistepper pipette is necessary to achieve little variance. • Different cell batches vary in the cell number due to freezing conditions and the differing proliferation rates of the lots. The variation between the plates of one experiment is lower than 5% and the variation between different experiments is lower than 20%. The results were always normalized to untreated controls. • Operators can get trained within 2-4 weeks. Cell seeding and medium change should be performed as fast as possible to keep cells as short as possible at room temperature. The more practice an operator has, the faster the critical steps can be performed. • Substances are added when pipette tips are touching the wall of the wells right above the medium surface. When the substance solution is pipetted too high above the medium surface, the droplet may just stick to the wall of the well without flowing down into the medium.",
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer comprehensively addresses the question by identifying problematic compounds (e.g., low solubility, autofluorescence), experimental variables (e.g., focusing failure), critical handling steps (e.g., pipetting technique, cell seeding), and robustness issues (e.g., operator training, cell batch variability). It also describes known pitfalls and potential operator mistakes, providing a complete and relevant response."
+        },
+        {
+          "title": "6.6 Detailed protocol (SOP)",
+          "question": "Ideally the SOP follows the DB-ALM or a comparable format: https://ecvam-dbalm.jrc.ec.europa.eu/home/contribute Refer to additional file(s) (containing information covered in sections 3 and 4), containing all details and explanations. Has the SOP been deposited in an accessible data base? Has the SOP been reviewed externally and if yes, how?",
+          "answer": "Protocol no 195 in DB-ALM data base http://cidportal.jrc.ec.europa.eu/ftp/jrc-opendata/EURL-ECVAM/datasets/DBALM/VER2- 0/online/DBALM_docs/195_P_cMINC.pdf Updated SOP can be made available by laboratory upon request: marcel.leist@uni-konstanz.de",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides a link to the protocol in the DB-ALM database, indicating that the SOP is deposited in an accessible database. However, it does not address whether the SOP has been reviewed externally, which is part of the question. The answer is partially complete but lacks information on external review."
+        },
+        {
+          "title": "6.7 Special instrumentation",
+          "question": "Does the method require specialized instrumentation that is not found in standard laboratories? Is there a need for custom-made instrumentation or material? Is there a need for equipment that is not commercially available (anymore)?",
+          "answer": "- The method requires a Cellomics Array Scan VTI HCS high content reader that may not be present in the standard lab. (Alternative automated microscopes and software tools to perform migration assays exist and the method might be transferred in the future) - Silicone stoppers (Platypus Technologies, Madison, WI, US).",
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer fully addresses the question by specifying the need for a specialized instrument (Cellomics Array Scan VTI HCS high content reader) that may not be found in standard laboratories. It also mentions the requirement for specific materials (Silicone stoppers from Platypus Technologies), indicating potential custom or non-standard needs. The answer is relevant and complete."
+        },
+        {
+          "title": "6.8 Possible variations",
+          "question": "Describe possible variations, modifications and extensions of the test method: a) other endpoints, b) other analytical methods for same endpoint, c) other exposure schemes (e.g. repeated exposure, prolonged exposure, etc.), d) experimental variations (e.g. use of a specific medium, presence of an inhibitor or substrate that affects test outcome, etc.)",
+          "answer": "a) further additional endpoints: - EdU (5-Ethynyl-2′-deoxyuridine) staining can be performed within the assay to measure proliferation b) other analytical endpoints: cell viability by: - fluorimetric measurement of resazurin conversion - measurement of extracellular LDH (lactate dehydrogenase) - measurement of luminescence indicating ATP (adenosine triphosphate) content c) other exposure: - The exposure time for toxicants can be increased up to 48 h. But longer exposure time increases the effect of toxicants on viability and cell proliferation. d) experimental variation: - AraC (cytosine arabinoside) addition to prevent proliferation effects on migration result. About 30% of the cells divide during the 24 h of the assay period. Therefore a cell proliferation inhibiting compound would reduce the cell number by 25% in the migration zone and therefore results in 80% viability and 75% migration measurement. But a reduction of migration by > 25% is unlikely to be explained by effects on proliferation (Nyffeler J. et al., 2016). - other cells may be used (derived from different iPSC)",
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer comprehensively addresses the question by providing detailed information on possible variations, modifications, and extensions of the test method. It covers additional endpoints, alternative analytical methods, different exposure schemes, and experimental variations. Each point is relevant and provides specific examples, making the response complete and well-aligned with the question."
+        },
+        {
+          "title": "6.9 Cross-reference to related test methods",
+          "question": "Indicate the names (and database names) of related tests and give a short description (including a brief comment on differences to the present method). If the test method has been used for high throughput transcriptomics or deep sequencing as alternative endpoint, this should be indicated.",
+          "answer": "The scratch assay is another method to analyse cell migration. In comparison to the cMINC assay the throughput of the scratch assay is low (Zimmer B. et al., 2012).",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by mentioning the scratch assay as a related test and providing a brief comparison to the cMINC assay. However, it lacks the names of databases, a short description of the scratch assay, and any mention of high throughput transcriptomics or deep sequencing as alternative endpoints."
+        }
+      ]
+    },
+    {
+      "title": "7. Data management",
+      "subsections": [
+        {
+          "title": "7.1 Raw data format",
+          "question": "What is the data format? Raw data: give general explanation. Upload an exemplary file of raw data (e.g. Excel file as exported out of plate reader). Provide an example of processed data at a level suitable for general display and comparison of conditions and across experiments and methods. If the file format is not proprietary or binary, include a template. This will help other users to provide their data in a similar way to the general data infrastructure. Example as used in EU-ToxRisk: Excel sheet with columns specifying line number, assay name, date of experiment, identifier for reference to partner lab book, compound, concentration (in: -log[M]), line number of corresponding control, number of replicates, endpoints, data of endpoint(s), etc.",
+          "answer": "Raw data is extracted by copy-paste in Excel files (example file available upon request). Data from all technical replicates are collected in one file.",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer provides minimal information about the data format and does not include an exemplary file or a detailed description of the raw or processed data format. It lacks clarity and completeness, failing to address the question's requirements for examples and templates."
+        },
+        {
+          "title": "7.2 Outliers",
+          "question": "How are outliers defined and handled? How are they documented? Provide the general frequency of outliers.",
+          "answer": "1. Mathematical procedures to define outliers have not been defined. Data points that are far off (i.e. more than the known endpoint variability which would be 25% for migration) are discarded. 2. Biological outliers do practically not exist, most far data points are the result of technical problems (focus not found, only one channel imaged, etc.) 3. All raw data (incl. outliers) are stored. Technical outliers make up 1-0.1%.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by explaining that outliers are discarded if they exceed known endpoint variability and that technical issues are the main cause of outliers. However, it lacks clarity on the specific mathematical procedures for defining outliers and does not provide a detailed documentation process. The frequency of outliers is mentioned but not in a clear context."
+        },
+        {
+          "title": "7.3 Raw data processing to summary data",
+          "question": "How are raw data processed to obtain summary data (e.g. EC50, BMC15, ratios, PoD, etc.) in your lab? Describe all processing steps from background correction (e.g. measurement of medium control) to normalization steps (e.g. if you relate treated samples to untreated controls).",
+          "answer": "- Array Scan VTI HCS Reader (Cellomics, PA) takes images (optionally bitmap or tiff-format; 512 x 512 pixels, 8bit or 16bit) - For migration quantification images from the Array Scan VTI HCS Reader are exported in 8-bit tiff format and loaded to the “Ringassay” software (http://invitrotox.uni-konstanz.de/) for calculating the number of migrated cells. - Images are locally analyzed using the Array Scan software, algorithm quantifies cell count (viable cells) - data are copy-pasted into an Excel sheet, further analysis is done with Excel + GraphPad Prism",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer provides a description of the equipment and software used for image processing and data analysis but does not detail the specific steps involved in processing raw data to obtain summary data. It lacks information on background correction, normalization, or how summary metrics like EC50 or PoD are calculated, which are crucial to fully addressing the question."
+        },
+        {
+          "title": "7.4 Curve fitting",
+          "question": "How are data normally handled to obtain the overall test result (e.g. concentration response fitting using model X, determination of EC50 by method Y, use of EC50 as final data)? How do you model your concentration response curve (e.g. LL.4 parameter fit) and which software do you use (e.g. GraphPad Prism, R, etc.)? Do you usually calculate an uncertainty measure of your summary data (e.g. a 95% confidence interval for the BMC or a BMCL), and with which software? Can you give uncertainty for non-cytotoxicity or no-effect? How do you handle non-monotonic curve shapes or other curve features that are hard to describe with the usual mathematical fit model?",
+          "answer": "The data are analyzed with Excel and represented with GraphPad Prism. For the concentration curve, a nonlinear regression fit is calculated. The fitting method is least squares. If a non-linear curve fit is not possible, a linear curve fit is performed. The curve deriving from the fit is a 4- parameter log function. To calculate the EC25 value, this log-function is solved for y=25% of the total scale, not for 25% of the min-max scale (see example below). Treated concentrations are analyzed for deviation from control. Sometimes it is analyzed whether the deviation of neurite growth is different from the deviation of viability via comparison of the means ± deviation using two-way ANOVA + Tukey-Kramer post hoc testing. Significance levels of data points compared to solvent control are determined via one-way ANOVA followed with non-parametric Dunnett’s post test. BMC values with their upper and lower confidence intervals (BMCU and BMCL) are calculated via the publically available online software: http://invitrotox.uni-konstanz.de/BMCeasy/ Figure 7: Exemplification of curve fit and relative effect responses",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides some relevant information about data handling, such as the use of Excel and GraphPad Prism for analysis, and mentions the use of nonlinear regression and least squares fitting. It also describes the calculation of EC25 and the use of ANOVA for statistical analysis. However, it lacks clarity and completeness in addressing all aspects of the question, such as how non-monotonic curves are handled, and does not fully explain the software used for uncertainty measures or how uncertainty is calculated for non-cytotoxicity or no-effect scenarios."
+        },
+        {
+          "title": "7.5 Internal data storage",
+          "question": "How and how long are raw and other related data stored? What backup procedures are used (how frequently)? How are data versions identified?",
+          "answer": "The data are firstly stored on the microscope computer and then exported to other servers (lab group server and university server), which are back-upped regularly.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by mentioning the storage locations and that backups are performed regularly. However, it lacks details on the duration of data storage, the frequency of backups, and how data versions are identified."
+        },
+        {
+          "title": "7.6 Metadata",
+          "question": "How are metadata documented and stored (lab book, Excel files, left in machine, etc.)? How are they linked to raw data? What metadata are stored/should be stored?",
+          "answer": "The metadata are documented, stored and exported as text document (log)-files to the according scheme: (local PC)_descriptor(date and time)_XXX.log: The following metadata are stored: • cellinsight-pc_160429130003_AutomationControllerIni • cellinsight-pc_160429130003_kineticprotocol • cellinsight-pc_160429130003_protocol • cellinsight-pc_160429130003_scan • cellinsight-pc_160429130003_ScanIni • cellinsight-pc_160429130003_spooling • cellinsight-pc_160429130003.spooled",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides information on how metadata are documented and stored, specifying that they are exported as text log files with a specific naming scheme. It also lists the types of metadata stored. However, it does not clearly explain how these metadata are linked to raw data, which is a key part of the question."
+        },
+        {
+          "title": "7.7 Metadata file format",
+          "question": "Give example of the metadata file (if available). If metadata or data format (see 7.1) are pre-defined in the project, state here 'as pre-defined in project xxx' (e.g. EU-ToxRisk).",
+          "answer": "Metadata files are available.",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer does not provide an example of the metadata file or specify if the metadata format is pre-defined in a project. It lacks the necessary detail to address the question."
+        }
+      ]
+    },
+    {
+      "title": "8. Prediction model and toxicological application",
+      "subsections": [
+        {
+          "title": "8.1 Scientific principle, test purpose and relevance",
+          "question": "What is the scientific rationale to link test method data to a relevant in vivo adverse outcome? Which toxicological target (organ, tissue, physiological/biochemical function, etc.) is modelled? Which biological process(es) (e.g. neurite outgrowth, differentiation) are modelled/reflected by your test method? Which toxicological events (e.g. oxidative stress, cell death) are modelled/reflected by your test method? To which (human) adverse outcome(s) is your test method related? Which hazard(s) do(es) your test method (potentially) predict?",
+          "answer": "Migration of NCCs is an essential process during fetal development. Impaired NCC migration triggered genetically or by toxicants can lead to malformations and disorders e.g. Hirschsprung’s disease or Treacher- Collins syndrome. The cMINC assay models the effects of NCC migration under toxicant exposure. The test captures endpoints like spina bifida or cleft palate also measured during developmental toxicity regulatory studies.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by identifying the biological process (NCC migration) and some adverse outcomes (Hirschsprung’s disease, Treacher-Collins syndrome, spina bifida, cleft palate). However, it lacks clarity and completeness in linking the test method data to specific in vivo adverse outcomes, specifying the toxicological target, and detailing the toxicological events modeled. The potential hazards predicted by the test method are not explicitly mentioned."
+        },
+        {
+          "title": "8.2 Prediction model",
+          "question": "Provide the statistics of your benchmark response (threshold and variance): (i) For dichotomized data, provide your prediction model. When do you consider the result as toxic or not toxic? (ii) For pseudo-dichotomized outcomes (two classes with borderline class in between): define borderline range. (iii) For multi-class or continuous outcomes: provide definitions and rationale. What is the rationale for your threshold? This can be on a mathematical (e.g. 3-fold standard deviation) or a biological basis (e.g. below 80% viability). Is there a toxicological rationale for the threshold settings and definitions of your prediction model? What are the limitations of your prediction model? What is a ‘hit’ if the test is used in screening mode (= hit definition, if different from above)?",
+          "answer": "Three different models are used: 1. prediction model for screening: hit = inhibition of NCC migration while viability is not changed: Migration ≤ 80% of DMSO control Viability ≥ 90% of DMSO control 2. prediction model for compound hazard evalaution: hit confirmation testing: EC10 Viability (V) / EC 25 Migration (M) ≥ 1.3 → specific migration inhibitor of NCCs 3. prediction model for borderline compounds: A ratio of BMC10 Viability (V) / BMCL25 Migration (M) ≥ 1.3 is considered a borderline hit. In some scenarios the viability does not reach the BMC10 Viability (V) necessary for the ratio calculations. In this case the highest tested concentration (HTC) was used. Schematic representation of the complete prediction model is shown in Fig. 8 below. Figure 8: UKN2 Prediction model classification tree A full overview with a schematic representation of the UKN4 prediction model can also be found in supplementary figure 3 of Blum et al., 2022.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides some details about the prediction models used for different scenarios, including thresholds for screening and hazard evaluation. However, it lacks clarity and completeness in addressing the full scope of the question. It does not clearly define the borderline range for pseudo-dichotomized outcomes or provide a detailed rationale for the thresholds used. Additionally, the limitations of the prediction model and the toxicological rationale for the threshold settings are not explicitly discussed."
+        },
+        {
+          "title": "8.3 Prediction model setup",
+          "question": "How was the prediction model set up (using which test set of chemicals to train the model; using probing with what kind of classifiers/statistical approaches)? Has the prediction model been tested (what was the test set of chemicals)? List chemicals or give n, if n > 50. Is the process documented (publication)? Does the prediction model (PM) apply to changes to both sides of controls (up/down)? If the PM is one-sided (e.g. toxicants leading to a decrease vs. control), how are data in the opposite direction handled and interpreted? If the PM is two-sided, do different rules, characteristics and interpretations apply to the two sides (e.g. is a decrease in viability or an increase in viability both interpreted as an effect/toxicity; are thresholds and performance characteristics to both sides the same?).",
+          "answer": "a) The prediction model was established using the following compounds (Nyffeler et al. 2016): - acrylamide - arsenic trioxide (As2O3) - cadmium chloride (CdCl2) - lithium chloride (LiCl) - PCB180 - retinoic acid ➔ Positive controls - cytochalsin D - taxol - colchicine ➔ Endpoint-specific controls - silver nitrate (AgNO3) - cytarabine (AraC) - aphidicolin - L-homocysteine - MG-132 - staurosporine - triton X-100 ➔ Unspecific toxicants b) The prediction model has been applied to screen the 80 compound library of NTP (Nyffeler et al., 2017). The prediction model including the borderline classification has been applied to screen a 120 compound library (Blum et al., 2022; Masjosthusmann et al., 2020). c) The process is documented in Nyffeler et al. 2016 d) Sensitivity and specificity require still definition of a good standard and have therefore not been done.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides a list of chemicals used to establish the prediction model and mentions the application of the model to screen compound libraries, partially addressing the setup and testing of the model. However, it lacks clarity on the statistical approaches or classifiers used, does not specify if the model applies to changes on both sides of controls, and does not address how data in the opposite direction are handled. The documentation is mentioned, but the explanation of sensitivity and specificity is incomplete."
+        },
+        {
+          "title": "8.4 Test performance",
+          "question": "Indicate here basic performance parameters or, if possible, preliminary estimates (label as such): Baseline variation (noise) within assays AND between assays. What is the signal/noise ratio (signal = standard positive control)? Is the z-factor determined? Give the specificity of the test method. How is it determined? Give the sensitivity of the test method. How is it determined? Give measures of the uncertainty of your test method. How are they determined? What is the detection limit (required change of endpoint to become measurable)? If available, give limit of detection (LOD) and limit of quantification (LOQ). What are inter-operator variations? Are there data of ‘historical controls’ over a longer time period?",
+          "answer": "Some background on the test performance is given in chapters 8.2/8.3 (prediction model). Several performance parameters for the test were obtained in several separate evaluation rounds. A first evaluation was done during the first publication of the model and its applications (Nyffeler et al. 2016). Here, a panel of well-selected positive and negative controls have been tested. Accordingly, the specificity was 100% and the sensitivity was > 90 %. In dedicated experiments, S/N ratios of > 20 and a z’ of > 0.5 have been determined. The compound used as positive control cytochalasin D was run across 35 different assay plates. The migration percentage relative to the solvent control varied between 30 and 70% across all plates (Nyffeler et al. 2016, Supplementary S2). Later, the test has been used in screening campaigns, and real-live performance data under broader screen conditions have been obtained. The different performance data need to be considered, when a compound is a hit in a screen, or whether it has been specifically evaluated in a hit follow-up or a mechanistic project. A first screen application has been the NTP80 screen (80 compounds provided by the US NTP). Data are published in Nyffeler et al. 2017. A second screen application has been the cross systems case study of the EU-ToxRisk project. The baseline variation is indicated in Krebs et al., 2020. Moreover, an overview is given for 19 compounds on the BMC/BMCL ratio as measure of readout certainty. A third screen was performed in the context of the EFSA DNT test battery evaluation with 120 compounds (Masjosthusmann et al. 2020). From this screen the following performance indicators were obtained: A: Specificity of DNT IVB: 100% → Also with cMINC as standalone assay in 17 `tool negatives´ tested (Masjosthusmann et al. 2020). B: Sensitivity of DNT IVB: 82.7% → With cMINC combined in a full DNT battery and a selected set of 27 positive compounds with evidence for DNT (Masjosthusmann et al. 2020). C: Baseline variation (intra-experimental) Migration: 14.8 ± 4.3% Cell viability: 6 ± 3% D: Baseline variation (inter-experimental) Migration: 15.6% Cell viability: 9.7% E: Variation of a positive control run on each (inter-experimental) Migration: 32.2% Definition of values C-E C: Baseline variation (intra-experimental) is the mean coefficient of variation CV±SD of the CV of all replicates of the solvent control from each experiment across n>200 experiments. D: Baseline variation (inter-experimental) is the variability across all independent experiments (n>200) after normalization based on the response of the lowest test concentration. It was assumed that the lowest test concentration does not affect any of the endpoints measured. E: Variation of a positive control run on each (inter-experimental) is the variability of the positive control across all independent experiments (n>40) after normalization. Example for a positive control that on average reduced the specific endpoint down to 40% (relative to solvent control) and a calculated variability of 50%: 0.5 x 40% = +/- 20% → The positive control with mean of 40% varies from 20% to 60%.",
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer provides a comprehensive overview of the test method's performance parameters, including specificity, sensitivity, signal/noise ratio, z-factor, baseline variation, and inter-operator variations. It also references multiple studies and data sources, indicating thoroughness and reliability. The answer addresses the detection limit and provides historical control data, making it relevant and complete."
+        },
+        {
+          "title": "8.5 In vitro – in vivo extrapolation (IVIVE)",
+          "question": "Describe parameters important for the determination of free compound concentrations in the medium. Indicate the lipid and protein content of the medium and the cells. Indicate the volume of the cells. Indicate volume (medium volume) and surface area of culture dish. Is there information/literature on IVIVE strategies/data in the test? Has the test been used earlier for IVIVE? Are there special considerations that are relevant for IVIVE (e.g. potential for compound accumulation due to frequent medium changes and compound re-addition, glycoprotein (MDR1) expression, capacity for xenobiotic metabolism of test system)?",
+          "answer": "1. Estimated lipid content and albumin concentration in in vitro test media and human plasma: Medium Lipid content (ml/ml) Albumin concentration (µM) UKN2 2.8E-6 5.6 Human plasma 6000 600 2. A three-step (physiology-based) pharmacokinetic (PBPK) modelling strategy has been used to evaluate the clinical relevance of the in vitro concentrations, which impair NCC migration in the scratch assay. The in vivo plasma concentrations of the tested compounds were within the same range as the concentrations used in the scratch assay (Zimmer B. et al., 2014). 3. No special considerations known.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by providing information on lipid content and albumin concentration, which are relevant parameters for determining free compound concentrations. However, it lacks details on the protein content of the medium and cells, the volume of the cells, and the volume and surface area of the culture dish. It mentions a PBPK modeling strategy related to IVIVE but does not provide comprehensive information on IVIVE strategies or previous use of the test for IVIVE. The answer also lacks clarity on special considerations relevant for IVIVE, only stating 'No special considerations known' without further explanation."
+        },
+        {
+          "title": "8.6 Applicability of test method",
+          "question": "Which compounds is the test likely to pick up correctly, where is it likely to fail? How does the test method react to mixtures and UVCBs? Are there areas (according to industry sector, compound chemistry, physical-chemical properties) that need to be excluded from testing, or that are particularly suitable? Which compound class cannot be detected (e.g. neurotransmitters for which the receptors are not expressed, endocrine disruptors in absence of respective pathway)? Are any compounds known to interfere with the test system (e.g. fluorescent or colored chemicals)?",
+          "answer": "Pesticides, flame retardants, polychlorinated biphenyls (PCBs), drugs have been detected. The exact applicability domain is not yet clear. Volatile compounds and substances that are not water-soluble cannot be measured.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by listing some compounds that can be detected and mentioning limitations regarding volatile and non-water-soluble substances. However, it lacks detail on how the test method reacts to mixtures and UVCBs, specific areas to exclude or include, and does not address interference from other compounds."
+        },
+        {
+          "title": "8.7 Incorporation in test battery",
+          "question": "Does the test fit into a test battery? If yes, into which test battery and are there any restrictions? Indicate potential strengths and weaknesses of the system in a test battery (e.g. method is a good confirmation assay, good for creating alerts, mechanistic follow-up, screening, etc.). Compare performance to similar tests. Which gaps in a known or potential battery does the test method fill? Should the test preferentially be used in the first tier or later tiers, are complementary assays required or is it a stand-alone method?",
+          "answer": "a) Strengths: • Medium throughput (The term “medium” is derived from a comparison and in relation to a number of other known DNT NAMs) • Automated microscopy b) The comparable scratch assay is a low throughput assay. The orthogonal transwell-assay is also of lower throughput. c) The assay has been considered as part of the ESNATS (Embryonic Stem cell-based Novel Alternative Testing Strategies) screen battery. d) The test can to some extent be stand-alone (positive hits are meaningful). The ‘negative hits’ provide little information and require other tests in a developmental toxicity test battery",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by mentioning the test's inclusion in the ESNATS screen battery and its strengths and weaknesses. However, it lacks clarity and completeness regarding potential restrictions, comparison to similar tests, and specific gaps it fills in a test battery. It also does not clearly indicate whether the test should be used in the first tier or later tiers."
+        }
+      ]
+    },
+    {
+      "title": "9. Publication/validation status",
+      "subsections": [
+        {
+          "title": "9.1 Availability of key publications",
+          "question": "Refer to published literature on the test AND indicate in detail deviations from published descriptions (e.g. plastic plate supplier, cell number, endpoint measurement, timing, etc.). Provide the most relevant publications that describe/give a comprehensive overview of (a) your test system and/or (b) your test method. Describe what aspects are covered therein. Give a prioritized (according to importance) list of further publications on the test method or its application. Give short comments on which type(s) of information can be obtained from these publications (e.g. contains test chemical lists, contains more positive/negative controls, contains validation against other tests, contains incorporation in test battery, demonstrates use by other lab, etc.).",
+          "answer": "Establishment of a human cell-based in vitro battery to assess developmental neurotoxicity hazard of chemicals Blum, J. et al. Chemosphere, 2022. PMID: 36328314 Neurodevelopmental toxicity assessment of flame retardants using a human DNT in vitro testing battery. Klose, J. et al. Cell Biol Toxicol. 2021. PMID: 33969458 Establishment of an a priori protocol for the implementation and interpretation of an in-vitro testing battery forthe assessment of developmental neurotoxicity. Masjosthusmann, S. et al. EFSA Supporting Publications. 2020; 17(10): 1938E. The EU-ToxRisk method documentation, data processing and chemical testing pipeline for the regulatory use of new approach methods. Krebs, A. et al. Arch. Toxicol., 2020. PMID: 32632539 A structure-activity relationship linking non-planar PCBs to functional deficits of neural crest cells: new roles for connexins. Nyffeler, J. et al. Arch. Toxicol., 2018. PMID: 29164306 Combination of multiple neural crest migration assays to identify environmental toxicants from a proof-of- concept chemical library. Nyffeler, J. et al. Arch. Toxicol., 2017. PMID: 28477266 Design of a high-throughput human neural crest cell migration assay to indicate potential developmental toxicants. Nyffeler, J. et al. ALTEX, 2016. PMID: 27463612 Identification of transcriptome signatures and biomarkers specific for potential developmental toxicants inhibiting human neural crest cell migration. Pallocca, G. et al. Arch.Toxicol., 2016. PMID: 26705709 Profiling of drugs and environmental chemicals for functional impairment of neural crest migration in a novel stem cell-based test battery. Zimmer, B. et al. Arch. Toxicol., 2014. PMID: 24691702 Evaluation of developmental toxicants and signaling pathways in a functional test based on the migration of human neural crest cells. Zimmer, B. et al. Environ. Health Perspect., 2012. PMID: 22571897",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides a list of relevant publications related to the test method, which partially addresses the question. However, it lacks detailed information on deviations from published descriptions, such as specifics about plastic plate suppliers, cell numbers, endpoint measurements, and timing. Additionally, there is no prioritization of the publications or comments on the types of information each publication provides, such as test chemical lists or validation against other tests."
+        },
+        {
+          "title": "9.2 (Potential) linkage to AOPs",
+          "question": "Indicate whether the test method has been or could be linked to an AOP (or several AOPs) and in which form (e.g. test of KE activation). Can the test method cover an AOP MIE/KE? Reference relevant AOP and if in AOP-wiki, refer to status.",
+          "answer": "Test method is not linked to AOP.",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer does not address the question adequately. It only states that the test method is not linked to an AOP, without providing any information on whether it could be linked, in what form, or referencing any relevant AOPs or their status in the AOP-wiki."
+        },
+        {
+          "title": "9.3 Steps towards mechanistic validation",
+          "question": "Indicate/summarize information on mechanistic validation, e.g. by omics approaches or by use of endpoint specific controls (MCC; section 5.5). Has it been explored in how far the system reflects human biology, signaling, tissue organization relevant to the form of toxicity to be assessed (e.g. nigrostriatal neurons should contain dopamine, liver tests relevant to cholestasis may need to contain bile canalicular structures, etc.)?",
+          "answer": "a) Cells express typical NCC markers, are of human origin and are able to migrate b) Cell migration requires dynamic variability of the cytoskeleton, e.g. actin reorganization and the dynamic instability of microtubules in the leading edge. If this is inhibited by cytochalasin D or taxol migration of NCCs is inhibited. c) A formal mechanistic validation has not been performed.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer provides some relevant information about mechanistic validation, such as the expression of typical markers and the impact of certain inhibitors on cell migration. However, it lacks completeness as it does not fully explore how the system reflects human biology or tissue organization relevant to the specific form of toxicity. Additionally, it explicitly states that a formal mechanistic validation has not been performed, indicating a gap in the validation process."
+        },
+        {
+          "title": "9.4 Pre-validation or validation",
+          "question": "Indicate/summarize activities for test qualification, pre-validation or validation. Indicate e.g. ring trials, full (pre-)validations. Give an overview of compounds or libraries that have been tested.",
+          "answer": "To date, 141 unique compounds (as defined by unique DTXSIDs) have been tested successfully in this assay. No formal OECD 34 validation study has been done (e.g., ring trials with a standard set of known positive and negative controls). In total, >200 different compounds were tested in the cMINC assay. The test method was developed using a compound training set (Nyffeler et al. 2016). It was used for an 80 compound screening library from the US National Toxicology Program (NTP) (Nyffeler et al. 2017). The test method was part of a DNT hazard assessment for 120 compounds in a DNT testing battery. The later compound set includes potential DNT positive and DNT negative compounds (Blum et al., 2022).",
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer provides a comprehensive overview of the test qualification and validation activities, including the number of compounds tested, the absence of formal OECD 34 validation, and references to specific studies and libraries. It mentions the use of a compound training set and specific screening libraries, addressing the question fully and with relevant details."
+        },
+        {
+          "title": "9.5 Linkage to (e.g. OECD) guidelines/regulatory use",
+          "question": "Indicate whether the test method is linked to an OECD Test Guideline (how, and which) or other regulatory guidance (e.g. EMA).",
+          "answer": "Test is not linked to regulatory guidelines.",
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer directly addresses the question by clearly stating that the test is not linked to any regulatory guidelines, which is relevant and complete for the question asked."
+        }
+      ]
+    },
+    {
+      "title": "10. Test method transferability",
+      "subsections": [
+        {
+          "title": "10.1 Operator training",
+          "question": "What experience is required? How are new operators trained in your laboratory? How much training/experience is required for smooth assay performance?",
+          "answer": "Experiences are required in: - cell culture - multichannel/multistep pipetting - handling of Array Scan VTI HCS Reader (Cellomics, PA) and its software - Microsoft Excel - Ringassay software - GraphPad Prism Operator is trained and guided by a highly experienced instructor. Approximately 4 weeks will be needed for a smooth assay performance. Learning iPSC culture and cell differentiation takes several months.",
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer fully addresses the question by listing specific experiences required, describing the training process with an experienced instructor, and providing a timeline for achieving smooth assay performance. It also mentions the time needed for learning specific techniques, making it relevant and complete."
+        },
+        {
+          "title": "10.2 Transfer",
+          "question": "Has the test system been transferred to other labs? Has the test method been used by various operators (over a long time period)? Has the test method been transferred to other labs? Is there data on inter-laboratory variability? What are procedures and how was the performance (experience) of the transfer?",
+          "answer": "The assay hasn’t been transferred or applied in other labs.",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer does not address the majority of the questions asked. It only states that the assay hasn't been transferred or applied in other labs, but does not provide information on use by various operators, inter-laboratory variability, or procedures and performance of any transfer."
+        }
+      ]
+    },
+    {
+      "title": "11. Safety, ethics and specific requirements",
+      "subsections": [
+        {
+          "title": "11.1 Specific hazards; issues of waste disposal",
+          "question": "Are there special legal requirements for running the test in your lab; are there special hazards associated with the test that may affect operators, bystanders, others (e.g. through waste).",
+          "answer": "No specific requirements.",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer is too brief and lacks detail. It does not address potential special legal requirements or hazards associated with the test, nor does it provide any context or explanation."
+        },
+        {
+          "title": "11.2 Safety data sheet (SDS)",
+          "question": "Are the SDSs for all hazardous reagents used in the test method available? Are the SDSs for all hazardous test compounds stored? Describe where and how the SDSs are stored internally. How is safe handling ensured? Is the exposure scenario for the hazardous reagents used in the test method available?",
+          "answer": "SDS are available in the university of Konstanz DaMaRIS database (Dangerous Materials Registry Information System).",
+          "answer_quality_score": "Low",
+          "answer_quality_justification": "The answer only partially addresses the availability of SDSs by mentioning their storage in a specific database. It does not address the storage of SDSs for hazardous test compounds, the internal storage method, how safe handling is ensured, or the availability of exposure scenarios."
+        },
+        {
+          "title": "11.3 Specific facilities/licenses",
+          "question": "Are special permits (e.g. genetic work, stem cells, radioactivity, etc.) required? Are special facilities required? Is special ethical approval necessary (indicate approval document).",
+          "answer": "Work requires S1 cell culture laboratories (genetically modified cells) No specific facilities are required No specific ethical approval is required.",
+          "answer_quality_score": "Medium",
+          "answer_quality_justification": "The answer partially addresses the question by mentioning the requirement for S1 cell culture laboratories, which implies a need for special permits related to genetically modified cells. However, it lacks clarity and completeness regarding whether any specific permits or ethical approvals are required, as it only states that no specific facilities or ethical approval are needed without further details or documentation."
+        },
+        {
+          "title": "11.4 Commercial aspects/intellectual property of material/procedures",
+          "question": "List elements of the test method (e.g. consumables, chemicals, analytical methods, equipment) that are protected by patents or any other means. Indicate the type of protection and where the element (or license for it) may be obtained.",
+          "answer": "To our best knowledge, no elements needed to conduct the experimental part of the test method are protected. Programs used to conduct the analysis of the data (Microsoft Excel and GraphPad Prism) need to be purchased or obtained by license agreement, however data analysis and plotting can be done with other, freely available tools.",
+          "answer_quality_score": "High",
+          "answer_quality_justification": "The answer fully addresses the question by stating that no elements of the test method are protected, and it provides information about the software used for data analysis, including the need for a license. It also suggests alternatives, making the response relevant and complete."
+        }
+      ]
+    }
+  ]
+}
