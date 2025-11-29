@@ -14,7 +14,7 @@ except Exception:
     _HAVE_SCIPY = False
 # from scipy.stats import gaussian_kde  # unused
 from pathlib import Path
-from myocyte.toxtempass.evaluation.post_processing.utils import has_answer_not_found
+from toxtempass.evaluation.post_processing.utils import has_answer_not_found
 import numpy as np
 
 # from toxtempass.models import Question  # unused

@@ -1,14 +1,12 @@
 import json
 import warnings
 from pathlib import Path
-
 import pandas as pd
 from django.db.models.query import QuerySet
 from langchain_openai import ChatOpenAI
 from tqdm.auto import tqdm
-
 from toxtempass import config
-from myocyte.toxtempass.evaluation.post_processing.cosine_similarities import bert_score, cosine_similarity
+from toxtempass.evaluation.post_processing.cosine_similarities import bert_score, cosine_similarity
 
 
 def has_answer_not_found(answer_text: str) -> bool:

@@ -5,7 +5,7 @@ import plotly.io as pio
 from pathlib import Path
 from scipy.stats import gaussian_kde
 
-from myocyte.toxtempass.evaluation.post_processing.utils import has_answer_not_found
+from toxtempass.evaluation.post_processing.utils import has_answer_not_found
 from toxtempass.models import Question
 
 # --- Configuration ---------------------------------------------------------
