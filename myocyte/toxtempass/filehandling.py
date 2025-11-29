@@ -2,7 +2,6 @@ import base64
 import csv
 import json
 import logging
-import mimetypes
 import shutil
 import tempfile
 from io import BytesIO
@@ -14,12 +13,12 @@ from django.core.files.uploadedfile import (
     TemporaryUploadedFile,
     UploadedFile,
 )
-from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_community.document_loaders import (
     BSHTMLLoader,
     TextLoader,
     UnstructuredWordDocumentLoader,
 )
+from langchain_core.messages import HumanMessage, SystemMessage
 from PIL import Image
 from pypdf import PdfReader
 from pypdf._page import PageObject

@@ -1,11 +1,9 @@
 import json
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
-from django.core.exceptions import ObjectDoesNotExist
 from tqdm.auto import tqdm
 
 # Ensure project root is on PYTHONPATH so 'toxtempass' imports work
@@ -20,29 +18,16 @@ from langchain_openai import ChatOpenAI
 
 from toxtempass import LLM_API_KEY, LLM_ENDPOINT, config
 from toxtempass.evaluation.config import config as eval_config
-from toxtempass.tests.fixtures.factories import AssayFactory, DocumentDictFactory
-from toxtempass.models import Answer, Question, QuestionSet
 from toxtempass.evaluation.post_processing.utils import (
     generate_comparison_csv,
     has_answer_not_found,
 )
+from toxtempass.evaluation.utils import select_question_set
+from toxtempass.models import Answer, Question
+from toxtempass.tests.fixtures.factories import AssayFactory, DocumentDictFactory
 from toxtempass.views import process_llm_async
 
 logger = logging.getLogger("llm")
-
-
-def select_question_set(label: str | None = None) -> QuestionSet:
-    """Pick the question set by label or fallback to latest visible."""
-    if label:
-        try:
-            return QuestionSet.objects.get(label=label)
-        except ObjectDoesNotExist as exc:
-            raise ValueError(f"QuestionSet with label '{label}' not found") from exc
-
-    qs = QuestionSet.objects.filter(is_visible=True).order_by("-created_at").first()
-    if not qs:
-        raise ValueError("No visible QuestionSet found; cannot run evaluation.")
-    return qs
 
 
 def run(
@@ -65,11 +50,9 @@ def run(
     """
     llm = None
     # Use config paths with optional overrides
-    processed_scored_dir = (
-        processed_scored_dir or eval_config.ncontrol_output_input_scores
-    )
-    raw_dir = raw_dir or eval_config.ncontrol_input
-    output_base_dir = output_base_dir or eval_config.ncontrol_output
+    processed_scored_dir = processed_scored_dir or eval_config.pcontrol_processed_input
+    raw_dir = raw_dir or eval_config.pcontrol_input
+    output_base_dir = output_base_dir or eval_config.pcontrol_output
 
     # Get model configurations from centralized config
     models = eval_config.get_models(tier=1, experiment=experiment)
@@ -140,7 +123,7 @@ def run(
             process_llm_async(
                 assay.id,
                 input_pdf_dict,
-                extract_images=eval_config.extract_images,
+                extract_images=eval_config.get_extract_images(experiment),
                 chatopenai=llm,
             )
             print(f"Success: {assay.status}")

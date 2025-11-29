@@ -1,11 +1,9 @@
 import json
 import logging
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
 
-from django.core.exceptions import ObjectDoesNotExist
 from langchain_openai import ChatOpenAI
 
 # Ensure project root is on PYTHONPATH so 'toxtempass' imports work
@@ -16,9 +14,10 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from toxtempass import LLM_API_KEY, LLM_ENDPOINT, config
 from toxtempass.evaluation.config import config as eval_config
-from toxtempass.tests.fixtures.factories import AssayFactory, DocumentDictFactory
-from toxtempass.models import Answer, Question, QuestionSet
 from toxtempass.evaluation.post_processing.utils import has_answer_not_found
+from toxtempass.evaluation.utils import select_question_set
+from toxtempass.models import Answer, Question, QuestionSet
+from toxtempass.tests.fixtures.factories import AssayFactory, DocumentDictFactory
 from toxtempass.views import process_llm_async
 
 # different test cases
@@ -28,20 +27,6 @@ from toxtempass.views import process_llm_async
 
 # Get logger
 logger = logging.getLogger("llm")
-
-
-def select_question_set(label: str | None = None) -> QuestionSet:
-    """Pick the question set by label or fallback to latest visible."""
-    if label:
-        try:
-            return QuestionSet.objects.get(label=label)
-        except ObjectDoesNotExist as exc:
-            raise ValueError(f"QuestionSet with label '{label}' not found") from exc
-
-    qs = QuestionSet.objects.filter(is_visible=True).order_by("-created_at").first()
-    if not qs:
-        raise ValueError("No visible QuestionSet found; cannot run evaluation.")
-    return qs
 
 
 def run(
@@ -62,8 +47,8 @@ def run(
     """
     llm = None
     # Use config paths with optional overrides
-    input_dir = input_dir or eval_config.pcontrol_input
-    output_base_dir = output_base_dir or eval_config.pcontrol_output
+    input_dir = input_dir or eval_config.ncontrol_input
+    output_base_dir = output_base_dir or eval_config.ncontrol_output
 
     # Get model configurations from centralized config
     models = eval_config.get_models(tier=2, experiment=experiment)
@@ -124,7 +109,7 @@ def run(
                     for key, value in input_tier2_dict.items()
                     if document_name in key
                 },
-                extract_images=eval_config.extract_images,
+                extract_images=eval_config.get_extract_images(experiment),
                 chatopenai=llm,
             )
             print(f"Success: {assay.status}")

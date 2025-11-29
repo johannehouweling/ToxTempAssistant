@@ -95,9 +95,19 @@ default_models = [
 ]
 ```
 
-#### Evaluation Settings
+#### Image Extraction
+Image extraction is now controlled per-experiment. By default, images are NOT extracted unless explicitly enabled in an experiment configuration:
+
 ```python
-extract_images = True
+"baseline_with_images": {
+    "models": [...],
+    "description": "...",
+    "extract_images": True,  # Enable image extraction for this experiment
+}
+```
+
+#### Validation Settings
+```python
 validation_metrics = ["cos_similarity", "bert_precision", "bert_recall", "bert_f1"]
 cos_similarity_threshold = 0.7
 ```
@@ -153,9 +163,21 @@ If not specified, experiments use the default prompts defined in `EvaluationConf
 ## Pre-defined Experiments
 
 ### baseline
-- **Models**: gpt-4o-mini (temp=0)
-- **Purpose**: Quick baseline test with single model
-- **Use case**: Fast validation or debugging
+- **Models**: gpt-4o-mini, gpt-4.1-nano, o3-mini (all at temp=0)
+- **Images**: Disabled (default)
+- **Purpose**: Baseline evaluation without image extraction
+- **Use case**: Fast validation or text-only testing
+
+### baseline_with_images
+- **Models**: gpt-4o-mini, gpt-4.1-nano, o3-mini (all at temp=0)
+- **Images**: Enabled
+- **Purpose**: Baseline evaluation with image extraction and description
+- **Use case**: Testing image-aware LLM capabilities
+
+Run with:
+```bash
+python manage.py run_evals --experiment baseline_with_images
+```
 
 ### temperature_sweep
 - **Models**: gpt-4o-mini at temperatures 0, 0.3, 0.7, 1.0

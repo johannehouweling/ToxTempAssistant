@@ -30,12 +30,14 @@ class ExperimentConfig(TypedDict, total=False):
     Optional fields:
         base_prompt: Custom base prompt (overrides default)
         image_prompt: Custom image description prompt (overrides default)
+        extract_images: Whether to extract and process images from PDFs (overrides default)
     """
 
     models: list[ModelConfig]
     description: str
     base_prompt: str
     image_prompt: str
+    extract_images: bool
 
 
 class EvaluationConfig:
@@ -59,6 +61,7 @@ class EvaluationConfig:
 
     # Tier 2 Paths (Negative Control)
     pcontrol_input = eval_root / "positive_control" / "input_files"
+    pcontrol_processed_input = eval_root / "positive_control" / "input_files" / "processed"
     pcontrol_output = eval_root / "positive_control" / "output"
 
     # Mark sure input files exists:
@@ -79,7 +82,7 @@ class EvaluationConfig:
 
     # Default Model Configuration
     # These are the models used when no experiment is specified
-    default_models: list[ModelConfig] = [
+    default_experiment: list[ModelConfig] = [
         {"name": "gpt-4o-mini", "temperature": 0},
         {"name": "gpt-4.1-nano", "temperature": 0},
         {"name": "o3-mini", "temperature": None},
@@ -92,6 +95,12 @@ class EvaluationConfig:
     # Pre-defined Experiments
     # Add new experiments here to easily run different configurations
     experiments: dict[str, ExperimentConfig] = {
+        "test_experiment": {
+            "models": [
+                {"name": "gpt-3.5-turbo", "temperature": 0}
+            ],
+            "description": "To test if this workflow works",
+        },
         "baseline": {
             "models": [
                 {"name": "gpt-4o-mini", "temperature": 0},
@@ -99,6 +108,15 @@ class EvaluationConfig:
                 {"name": "o3-mini", "temperature": None},
             ],
             "description": "Baseline experiment with 3 models (TTA paper 1) temp=0)",
+        },
+        "baseline_with_images": {
+            "models": [
+                {"name": "gpt-4o-mini", "temperature": 0},
+                {"name": "gpt-4.1-nano", "temperature": 0},
+                {"name": "o3-mini", "temperature": None},
+            ],
+            "description": "Baseline with image extraction enabled (3 models, temp=0)",
+            "extract_images": True,
         },
         "temperature_sweep": {
             "models": [
@@ -129,7 +147,8 @@ class EvaluationConfig:
     }
 
     # Evaluation Settings
-    extract_images: bool = True
+    # Note: extract_images is now controlled per-experiment via get_extract_images()
+    # To extract images, use an experiment with "extract_images": True (e.g., baseline_with_images)
     validation_metrics: list[str] = [
         "cos_similarity",
         "bert_precision",
@@ -237,7 +256,7 @@ class EvaluationConfig:
             return cls.tier2_models
 
         # Default models
-        return cls.default_models
+        return cls.default_experiment
 
     @classmethod
     def list_experiments(cls) -> dict[str, str]:
@@ -283,6 +302,26 @@ class EvaluationConfig:
         prompts = cls.get_prompts(experiment)
         combined = prompts["base_prompt"] + prompts["image_prompt"]
         return hashlib.md5(combined.encode()).hexdigest()[:8]
+
+    @classmethod
+    def get_extract_images(cls, experiment: str | None = None) -> bool:
+        """Get the extract_images setting for an experiment.
+
+        Args:
+            experiment: Experiment name. If specified, checks for experiment-specific setting.
+
+        Returns:
+            Boolean indicating whether to extract images from PDFs.
+
+        Priority order:
+            1. Experiment-specific setting (if specified in experiment config)
+            2. Default: False (images not extracted unless explicitly enabled in experiment)
+        """
+        if experiment and experiment in cls.experiments:
+            exp_config = cls.experiments[experiment]
+            if "extract_images" in exp_config:
+                return exp_config["extract_images"]
+        return False
 
 
 # Singleton instance for easy import
