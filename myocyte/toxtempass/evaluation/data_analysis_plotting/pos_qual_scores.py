@@ -1,31 +1,29 @@
-import numpy as np
-import pandas as pd
-from pathlib import Path
-
-
-base_dir = Path(
-    "/Users/johannehouweling/Desktop/ToxTempAssistant_Validation_FAIR/data/processed/positive"
-)
-
 from __future__ import annotations
-from pathlib import Path
+
 import json
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 import pandas as pd
-from typing import Dict, Any, List, Optional
+from myocyte.settings import BASE_DIR
 
-def flatten_toxjson(data: Dict[str, Any], source_file: Optional[str] = None) -> pd.DataFrame:
-    """
-    Flattens the ToxTemp-style JSON into a tabular DataFrame.
+base_dir = Path(BASE_DIR / "toxtempass/evaluation/positive_control/input_files/processed")
+
+
+def flatten_toxjson(
+    data: Dict[str, Any], source_file: Optional[str] = None
+) -> pd.DataFrame:
+    """Flatten the ToxTemp-style JSON into a tabular DataFrame.
+
     Rows include both main subsection questions and nested subquestions.
-
-    Columns:
-      - source_file, reference
-      - section_index, section_title
-      - subsection_index, subsection_title
-      - is_subquestion, subquestion_index
-      - parent_question (for subquestions)
-      - question, answer
-      - answer_quality_score, answer_quality_justification
+     Columns:
+       - source_file, reference
+       - section_index, section_title
+       - subsection_index, subsection_title
+       - is_subquestion, subquestion_index
+       - parent_question (for subquestions)
+       - question, answer
+       - answer_quality_score, answer_quality_justification.
     """
     rows: List[Dict[str, Any]] = []
     ref = data.get("reference", "")
@@ -43,38 +41,48 @@ def flatten_toxjson(data: Dict[str, Any], source_file: Optional[str] = None) -> 
             }
 
             # Main subsection Q/A
-            rows.append({
-                **base,
-                "is_subquestion": False,
-                "subquestion_index": None,
-                "parent_question": None,
-                "question": sub.get("question", ""),
-                "answer": sub.get("answer", ""),
-                "answer_quality_score": sub.get("answer_quality_score", ""),
-                "answer_quality_justification": sub.get("answer_quality_justification", ""),
-            })
+            rows.append(
+                {
+                    **base,
+                    "is_subquestion": False,
+                    "subquestion_index": None,
+                    "parent_question": None,
+                    "question": sub.get("question", ""),
+                    "answer": sub.get("answer", ""),
+                    "answer_quality_score": sub.get("answer_quality_score", ""),
+                    "answer_quality_justification": sub.get(
+                        "answer_quality_justification", ""
+                    ),
+                }
+            )
 
             # Nested subquestions (if any)
             for qi, sq in enumerate(sub.get("subquestions", []), start=1):
-                rows.append({
-                    **base,
-                    "is_subquestion": True,
-                    "subquestion_index": qi,
-                    "parent_question": sub.get("question", ""),
-                    "question": sq.get("question", ""),
-                    "answer": sq.get("answer", ""),
-                    "answer_quality_score": sq.get("answer_quality_score", ""),
-                    "answer_quality_justification": sq.get("answer_quality_justification", ""),
-                })
+                rows.append(
+                    {
+                        **base,
+                        "is_subquestion": True,
+                        "subquestion_index": qi,
+                        "parent_question": sub.get("question", ""),
+                        "question": sq.get("question", ""),
+                        "answer": sq.get("answer", ""),
+                        "answer_quality_score": sq.get("answer_quality_score", ""),
+                        "answer_quality_justification": sq.get(
+                            "answer_quality_justification", ""
+                        ),
+                    }
+                )
 
     return pd.DataFrame(rows)
+
 
 def load_json(path: Path) -> Dict[str, Any]:
     return json.loads(path.read_text())
 
+
 def flatten_folder(folder: Path) -> pd.DataFrame:
-    """
-    Flattens all *.json files in a folder and concatenates the results.
+    """Flatten all *.json files in a folder and concatenates the results.
+
     Adds 'source_file' to trace origin.
     """
     dfs: List[pd.DataFrame] = []
@@ -83,6 +91,7 @@ def flatten_folder(folder: Path) -> pd.DataFrame:
         df = flatten_toxjson(data, source_file=str(p))
         dfs.append(df)
     return pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
+
 
 # --- Usage examples ---
 
@@ -99,9 +108,9 @@ def flatten_folder(folder: Path) -> pd.DataFrame:
 # df.head()
 
 df = flatten_folder(base_dir)
-((df["answer"]!="")).value_counts(True)*616
-df = df[df["answer"]!=""]
-high = df[df['answer_quality_score']=="High"]['answer_quality_score'].count()
-medium = df[df['answer_quality_score']=="Medium"]['answer_quality_score'].count()
-low = df[df['answer_quality_score']=="Low"]['answer_quality_score'].count()
-high+medium+low
+(df["answer"] != "").value_counts(True) * 616
+df = df[df["answer"] != ""]
+high = df[df["answer_quality_score"] == "High"]["answer_quality_score"].count()
+medium = df[df["answer_quality_score"] == "Medium"]["answer_quality_score"].count()
+low = df[df["answer_quality_score"] == "Low"]["answer_quality_score"].count()
+high + medium + low

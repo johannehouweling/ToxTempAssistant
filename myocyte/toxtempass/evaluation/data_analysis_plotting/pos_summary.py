@@ -1,10 +1,11 @@
 import json
 from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from plotly import express as px
 import plotly.graph_objects as go
 from IPython.display import display
+from plotly import express as px
 from plotly.subplots import make_subplots
 
 

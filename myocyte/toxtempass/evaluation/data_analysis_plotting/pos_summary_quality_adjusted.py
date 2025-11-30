@@ -1,9 +1,8 @@
-import plotly.graph_objects as go
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import plotly.io as pio
 from plotly.subplots import make_subplots
-
 
 # Optional stats (used for correlation/tests below)
 try:

@@ -1,15 +1,12 @@
-import numpy as np
-import pandas as pd
 from pathlib import Path
 
-# Directory containing Tier1 results organized by model subfolder
-base_dir_tier1 = Path(
-    "/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier1_results"
-)
+import pandas as pd
+from myocyte.settings import BASE_DIR
 
-base_dir_tier2 = Path(
-    "/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier2_results"
-)
+# Directory containing Tier1 results organized by model subfolder
+base_dir_tier1 = BASE_DIR/"toxtempass/evaluation/positive_control/output"
+
+base_dir_tier2 = BASE_DIR/"toxtempass/evaluation/negative_control/output"
 # List of model subfolders
 model_dirs = ["gpt-4.1-nano", "gpt-4o-mini", "o3-mini"]
 

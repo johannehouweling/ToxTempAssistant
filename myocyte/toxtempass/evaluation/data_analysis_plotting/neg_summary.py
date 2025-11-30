@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
+
 import pandas as pd
 from plotly import express as px
-import plotly.io as pio
 
 model_files = {
     "gpt-4.1-nano": "/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier2_results/gpt-4.1-nano/tier2_summary_20250714_1823.json",

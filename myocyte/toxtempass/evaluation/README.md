@@ -9,22 +9,22 @@ The evaluation system consists of:
 - **Tier 2 (Negative Control)**: Tests that LLM correctly identifies when answers cannot be found
 - **Centralized Configuration**: Single source of truth for paths, models, and experiments
 
-## Quick Start
+## Quick start
 
-### List Available Experiments
+### List available experiments
 
 ```bash
 python manage.py run_evals --list-experiments
 ```
 
-### Run Default Configuration
+### Run default Configuration
 
 ```bash
 # Run both tiers with default models
 python manage.py run_evals
 ```
 
-### Run a Specific Experiment
+### Run a specific experiment
 
 ```bash
 # Run the baseline experiment (single model)
@@ -37,7 +37,7 @@ python manage.py run_evals --experiment temperature_sweep
 python manage.py run_evals --experiment model_comparison
 ```
 
-### Run Only One Tier
+### Run only one tier
 
 ```bash
 # Skip Tier 2, only run Tier 1
@@ -47,14 +47,14 @@ python manage.py run_evals --skip-ncontrol
 python manage.py run_evals --skip-pcontrol
 ```
 
-### Force Re-run
+### Force re-run
 
 ```bash
 # Re-run even if results already exist
 python manage.py run_evals --repeat
 ```
 
-## Configuration System
+## Configuration system
 
 All configuration is centralized in `evaluation/config.py`.
 
@@ -73,11 +73,11 @@ management/commands/
 └── run_evals.py                 # Django management command entry point
 ```
 
-### Configuration Options
+### Configuration options
 
 The `EvaluationConfig` class in `config.py` contains:
 
-#### Path Configuration
+#### Path configuration
 ```python
 # output negative control
 ncontrol_output = eval_root / "negative_control" / "output"
@@ -86,7 +86,7 @@ ncontrol_output = eval_root / "negative_control" / "output"
 pcontrol_output = eval_root / "positive_control" / "output"
 ```
 
-#### Model Configuration
+#### Model configuration
 ```python
 default_models = [
     {"name": "gpt-4o-mini", "temperature": 0},
@@ -95,7 +95,7 @@ default_models = [
 ]
 ```
 
-#### Image Extraction
+#### Image extraction
 Image extraction is now controlled per-experiment. By default, images are NOT extracted unless explicitly enabled in an experiment configuration:
 
 ```python
@@ -135,7 +135,7 @@ Then run it:
 python manage.py run_evals --experiment my_custom_experiment
 ```
 
-### Experiments with Custom Prompts
+### Experiments with custom prompts
 
 You can override the default prompts for specific experiments by adding `base_prompt` and/or `image_prompt` fields:
 
