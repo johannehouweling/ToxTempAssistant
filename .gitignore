@@ -17,6 +17,7 @@ logs/
 # Virtual environment:
 env/
 venv/
+.venv/
 
 # misc
 .DS_Store
