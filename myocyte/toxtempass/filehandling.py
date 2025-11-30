@@ -4,6 +4,7 @@ import json
 import logging
 import shutil
 import tempfile
+import warnings
 from io import BytesIO
 from pathlib import Path
 from zipfile import ZipFile
@@ -30,6 +31,14 @@ try:
     import openpyxl
 except ImportError:  # pragma: no cover - optional dependency
     openpyxl = None
+
+# Suppress PyPDF warnings about image and mask size mismatches
+# These are benign warnings that don't affect functionality
+warnings.filterwarnings(
+    "ignore",
+    message=".*image and mask size not matching.*",
+    category=UserWarning,
+)
 
 logger = logging.getLogger("llm")
 
@@ -412,14 +421,15 @@ def get_text_or_bytes_perfile_dict(
                         if page_text.strip():
                             paragraphs.append(page_text.strip())
 
-                        images = _extract_images_from_pdf_page(
-                            page, context_filename, page_number
-                        )
-                        if images:
-                            page_context = _truncate_context(page_text)
-                            for key in images:
-                                images[key]["page_context"] = page_context
-                            document_contents.update(images)
+                        if extract_images:
+                            images = _extract_images_from_pdf_page(
+                                page, context_filename, page_number
+                            )
+                            if images:
+                                page_context = _truncate_context(page_text)
+                                for key in images:
+                                    images[key]["page_context"] = page_context
+                                document_contents.update(images)
 
                     text = "\n".join(paragraphs)
 
@@ -434,12 +444,13 @@ def get_text_or_bytes_perfile_dict(
             elif suffix == ".docx":
                 loader = UnstructuredWordDocumentLoader(str(context_filename))
                 text = loader.load()[0].page_content
-                images = _extract_images_from_docx(context_filename)
-                if images:
-                    doc_context = _truncate_context(text)
-                    for key in images:
-                        images[key]["page_context"] = doc_context
-                    document_contents.update(images)
+                if extract_images:
+                    images = _extract_images_from_docx(context_filename)
+                    if images:
+                        doc_context = _truncate_context(text)
+                        for key in images:
+                            images[key]["page_context"] = doc_context
+                        document_contents.update(images)
 
             elif suffix == ".json":
                 text = _read_json_file(context_filename)
