@@ -1,6 +1,6 @@
 from django.core.exceptions import ObjectDoesNotExist
 
-from myocyte.toxtempass.models import QuestionSet
+from toxtempass.models import QuestionSet
 
 
 def select_question_set(label: str | None = None) -> QuestionSet:

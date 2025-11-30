@@ -61,7 +61,9 @@ class EvaluationConfig:
 
     # Tier 2 Paths (Negative Control)
     pcontrol_input = eval_root / "positive_control" / "input_files"
-    pcontrol_processed_input = eval_root / "positive_control" / "input_files" / "processed"
+    pcontrol_processed_input = (
+        eval_root / "positive_control" / "input_files" / "processed"
+    )
     pcontrol_output = eval_root / "positive_control" / "output"
 
     # Mark sure input files exists:
@@ -96,9 +98,7 @@ class EvaluationConfig:
     # Add new experiments here to easily run different configurations
     experiments: dict[str, ExperimentConfig] = {
         "test_experiment": {
-            "models": [
-                {"name": "gpt-3.5-turbo", "temperature": 0}
-            ],
+            "models": [{"name": "gpt-5-nano", "temperature": None}],
             "description": "To test if this workflow works",
         },
         "baseline": {
@@ -322,6 +322,122 @@ class EvaluationConfig:
             if "extract_images" in exp_config:
                 return exp_config["extract_images"]
         return False
+
+    @classmethod
+    def summarize_experiment_config(
+        cls, experiment: str | None = None, tier: int | None = None, style=None
+    ) -> str:
+        """Generate a styled summary of experiment configuration for console output.
+
+        Args:
+            experiment: Experiment name to summarize. If None, uses default config.
+            tier: Tier number (1 or 2) for displaying appropriate IO paths.
+            style: Optional Django style object (from self.style in management commands).
+                   If provided, uses built-in styles like HTTP_INFO, WARNING, etc.
+                   If not provided, returns unstyled output.
+
+        Returns:
+            Formatted string with styled output suitable for stdout.write() or print().
+
+        Example usage in a Django management command:
+            output = EvaluationConfig.summarize_experiment_config(
+                experiment="baseline",
+                tier=1,
+                style=self.style
+            )
+            self.stdout.write(output)
+        """
+        if style is None:
+            # Fallback: create a simple style object that doesn't apply styling
+            class NoStyle:
+                def __call__(self, text):
+                    return text
+
+                HTTP_INFO = __call__
+                WARNING = __call__
+                ERROR = __call__
+                SUCCESS = __call__
+
+            style = NoStyle()
+
+        lines = []
+        border = "═" * 70
+
+        # Title section
+        lines.append(style.HTTP_INFO(border))
+        if experiment:
+            exp_config = cls.experiments.get(experiment)
+            if exp_config:
+                lines.append(style.HTTP_INFO(f"  EXPERIMENT: {experiment}"))
+                lines.append(style.HTTP_INFO(border))
+                lines.append(
+                    f"{style.WARNING('Description:')} {exp_config['description']}"
+                )
+            else:
+                lines.append(style.ERROR(f"  Unknown experiment: {experiment}"))
+                lines.append(style.HTTP_INFO(border))
+                return "\n".join(lines)
+        else:
+            lines.append(style.HTTP_INFO("  DEFAULT CONFIGURATION"))
+            lines.append(style.HTTP_INFO(border))
+
+        # Models section
+        models = cls.get_models(tier=tier, experiment=experiment)
+        lines.append("")
+        lines.append(style.WARNING("MODELS:"))
+        for model in models:
+            temp_str = (
+                f"{model['temperature']}"
+                if model["temperature"] is not None
+                else "N/A (reasoning model)"
+            )
+            lines.append(
+                f"  {style.SUCCESS('•')} {model['name']} {style.HTTP_INFO(f'(temperature: {temp_str})')}"
+            )
+
+        # Settings section
+        lines.append("")
+        lines.append(style.WARNING("SETTINGS:"))
+        extract_images = cls.get_extract_images(experiment)
+        lines.append(
+            f"  Extract Images: {style.SUCCESS('Yes') if extract_images else style.ERROR('No')}"
+        )
+        prompt_hash = cls.get_prompt_hash(experiment)
+        prompt_note = ""
+        if experiment and experiment in cls.experiments:
+            exp_config = cls.experiments[experiment]
+            if "base_prompt" in exp_config or "image_prompt" in exp_config:
+                prompt_note = " (custom prompts)"
+        lines.append(f"  Prompt Hash: {style.HTTP_INFO(prompt_hash + prompt_note)}")
+
+        # Evaluation Metrics section
+        lines.append("")
+        lines.append(style.WARNING("EVALUATION METRICS:"))
+        metrics_str = ", ".join(cls.validation_metrics)
+        lines.append(f"  Metrics: {style.HTTP_INFO(metrics_str)}")
+        lines.append(
+            f"  Cosine Similarity Threshold: {style.HTTP_INFO(str(cls.cos_similarity_threshold))}"
+        )
+
+        # IO Paths section
+        lines.append("")
+        lines.append(style.WARNING("IO PATHS:"))
+        if tier == 1:
+            lines.append(f"  Input:  {style.HTTP_INFO(str(cls.pcontrol_input))}")
+            lines.append(f"  Output: {style.HTTP_INFO(str(cls.pcontrol_output))}")
+        elif tier == 2:
+            lines.append(f"  Input:  {style.HTTP_INFO(str(cls.ncontrol_input))}")
+            lines.append(f"  Output: {style.HTTP_INFO(str(cls.ncontrol_output))}")
+        else:
+            lines.append(f"  Tier 1 Input:  {style.HTTP_INFO(str(cls.pcontrol_input))}")
+            lines.append(f"  Tier 1 Output: {style.HTTP_INFO(str(cls.pcontrol_output))}")
+            lines.append(f"  Tier 2 Input:  {style.HTTP_INFO(str(cls.ncontrol_input))}")
+            lines.append(f"  Tier 2 Output: {style.HTTP_INFO(str(cls.ncontrol_output))}")
+
+        lines.append(style.HTTP_INFO(border))
+        lines.append("")
+
+        return "\n".join(lines)
 
 
 # Singleton instance for easy import

@@ -1,20 +1,13 @@
 import json
-import sys
+import logging
 from datetime import datetime
 from pathlib import Path
+from typing import TextIO
 
 import pandas as pd
-from tqdm.auto import tqdm
-
-# Ensure project root is on PYTHONPATH so 'toxtempass' imports work
-PROJECT_ROOT = Path("/Users/johannehouweling/ToxTempAssistant/myocyte")
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-import logging
-
 from langchain_openai import ChatOpenAI
+from tqdm.auto import tqdm
+from django.core.management.color import make_style
 
 from toxtempass import LLM_API_KEY, LLM_ENDPOINT, config
 from toxtempass.evaluation.config import config as eval_config
@@ -29,6 +22,8 @@ from toxtempass.views import process_llm_async
 
 logger = logging.getLogger("llm")
 
+style = make_style()
+
 
 def run(
     question_set_label: str | None = None,
@@ -37,6 +32,7 @@ def run(
     raw_dir: Path | None = None,
     output_base_dir: Path | None = None,
     experiment: str | None = None,
+    stdout: TextIO | None = None,
 ) -> None:
     """Run Tier1 pipeline for all configured models.
 
@@ -48,6 +44,7 @@ def run(
         output_base_dir: Tier1 output base directory
         experiment: Name of experiment configuration to use (from eval_config.experiments)
     """
+    stdout.write(eval_config.summarize_experiment_config(experiment=experiment))
     llm = None
     # Use config paths with optional overrides
     processed_scored_dir = processed_scored_dir or eval_config.pcontrol_processed_input
@@ -72,11 +69,11 @@ def run(
                 model=model_name,
                 default_headers=config.extra_headers,
             )
-            logger.info(
+            stdout.write(style.SUCCESS(
                 f"Using ({model_name}) at {LLM_ENDPOINT} with temperature={temp}."
-            )
+            ))
         else:
-            logger.error("Required environment variables are missing")
+            stdout.write(style.ERROR("Required environment variables are missing"))
 
         gtruth_jsons = processed_scored_dir.glob("*.json")
         gtruth_pdfs = raw_dir.glob("*.pdf")
@@ -104,11 +101,13 @@ def run(
         records = []
 
         for json_file, pdf_file_path in tqdm(
-            json_pdf_dict.items(), desc="Processing files"
+            json_pdf_dict.items(), desc="Processing positive control files"
         ):
             pdf_file = pdf_file_path.name
             input_pdf_dict = DocumentDictFactory(
-                document_filenames=[pdf_file_path], num_bytes=0
+                document_filenames=[pdf_file_path],
+                num_bytes=0,
+                extract_images=eval_config.get_extract_images(experiment),
             )
             question_set = select_question_set(question_set_label)
             assay = AssayFactory(
@@ -126,11 +125,9 @@ def run(
                 extract_images=eval_config.get_extract_images(experiment),
                 chatopenai=llm,
             )
-            print(f"Success: {assay.status}")
-
             answers = Answer.objects.filter(assay=assay)
             df = generate_comparison_csv(
-                json_file, answers, output_tier1, pdf_file, model=llm, overwrite=False
+                json_file, answers, output_tier1, pdf_file, model=llm, overwrite=repeat
             )
 
             total = int(df[df["gtruth_answer"] != ""].dropna().shape[0])
@@ -143,8 +140,14 @@ def run(
             )
             df_passed = df[passed_mask]
             df_passed["db_qid"] = df_passed["question"].apply(
-                lambda x: str(Question.objects.get(question_text=x).id)
-                if Question.objects.filter(question_text=x).exists()
+                lambda x: str(
+                    Question.objects.get(
+                        question_text=x, subsection__section__question_set=question_set
+                    ).id
+                )
+                if Question.objects.filter(
+                    question_text=x, subsection__section__question_set=question_set
+                ).exists()
                 else pd.NA
             )
             passes = df_passed.shape[0]
@@ -177,7 +180,7 @@ def run(
                     "stats": agg_stats,
                 }
             )
-            print(f"{pdf_file}: {pass_rate}%")
+            stdout.write(style.SUCCESS(f"{pdf_file}: {pass_rate}%"))
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M")
         output_file = output_tier1 / f"tier1_summary_{timestamp}.json"
@@ -198,4 +201,4 @@ def run(
 
         with output_file.open("w", encoding="utf-8") as out_f:
             json.dump(summary, out_f, indent=2)
-        print(f"Tier 1 results saved to {output_file}")
+        stdout.write(style.SUCCESS(f"Positive control results saved to {output_file}"))

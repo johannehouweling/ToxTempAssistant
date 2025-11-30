@@ -87,6 +87,7 @@ class Command(BaseCommand):
                 question_set_label=question_set_label,
                 repeat=repeat,
                 experiment=experiment,
+                stdout=self.stdout,
             )
 
         if not skip_ncontrol:
@@ -95,6 +96,7 @@ class Command(BaseCommand):
                 question_set_label=question_set_label,
                 repeat=repeat,
                 experiment=experiment,
+                stdout=self.stdout,
             )
 
         self.stdout.write(self.style.SUCCESS("Evaluation complete!"))

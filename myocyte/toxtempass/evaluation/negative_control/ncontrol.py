@@ -1,22 +1,18 @@
 import json
 import logging
-import sys
 from datetime import datetime
 from pathlib import Path
+from typing import TextIO
 
 from langchain_openai import ChatOpenAI
-
-# Ensure project root is on PYTHONPATH so 'toxtempass' imports work
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
+from django.core.management.color import make_style
+from tqdm.auto import tqdm
 
 from toxtempass import LLM_API_KEY, LLM_ENDPOINT, config
 from toxtempass.evaluation.config import config as eval_config
 from toxtempass.evaluation.post_processing.utils import has_answer_not_found
 from toxtempass.evaluation.utils import select_question_set
-from toxtempass.models import Answer, Question, QuestionSet
+from toxtempass.models import Answer, Question
 from toxtempass.tests.fixtures.factories import AssayFactory, DocumentDictFactory
 from toxtempass.views import process_llm_async
 
@@ -28,6 +24,8 @@ from toxtempass.views import process_llm_async
 # Get logger
 logger = logging.getLogger("llm")
 
+style = make_style()
+
 
 def run(
     question_set_label: str | None = None,
@@ -35,6 +33,7 @@ def run(
     input_dir: Path | None = None,
     output_base_dir: Path | None = None,
     experiment: str | None = None,
+    stdout: TextIO | None = None,
 ) -> None:
     """Run Tier2 pipeline for all configured models.
 
@@ -45,6 +44,7 @@ def run(
         output_base_dir: Tier2 output base directory
         experiment: Name of experiment configuration to use (from eval_config.experiments)
     """
+    stdout.write(eval_config.summarize_experiment_config(experiment=experiment))
     llm = None
     # Use config paths with optional overrides
     input_dir = input_dir or eval_config.ncontrol_input
@@ -68,11 +68,13 @@ def run(
                 model=model_name,
                 default_headers=config.extra_headers,
             )
-            logger.info(
-                f"Using ({model_name}) at {LLM_ENDPOINT} with temperature={temp}."
+            stdout.write(
+                style.SUCCESS(
+                    f"Using ({model_name}) at {LLM_ENDPOINT} with temperature={temp}."
+                )
             )
         else:
-            logger.error("Required environment variables are missing")
+            stdout.write(style.ERROR("Required environment variables are missing"))
 
         files_tier2 = list(input_dir.glob("*.pdf"))
 
@@ -86,12 +88,16 @@ def run(
             continue
 
         input_tier2_dict = DocumentDictFactory(
-            document_filenames=files_tier2, num_bytes=0
+            document_filenames=files_tier2,
+            num_bytes=0,
+            extract_images=eval_config.get_extract_images(experiment),
         )
 
         records = []
 
-        for document_name in input_tier2_dict:
+        for document_name in tqdm(
+            input_tier2_dict, desc="Negative control documents", position=0, leave=True
+        ):
             pdf_file = Path(document_name).name
             question_set = select_question_set(question_set_label)
             assay = AssayFactory(
@@ -112,7 +118,6 @@ def run(
                 extract_images=eval_config.get_extract_images(experiment),
                 chatopenai=llm,
             )
-            print(f"Success: {assay.status}")
             answers = Answer.objects.filter(assay=assay)
             total = answers.count()
             passes = sum(1 for a in answers if has_answer_not_found(a.answer_text))
@@ -135,7 +140,7 @@ def run(
                     "failures": failures,
                 }
             )
-            print(f"{pdf_file}: {pass_rate}%")
+            stdout.write(style.SUCCESS(f"{pdf_file}: {pass_rate}%"))
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M")
         output_file = output_tier2 / f"tier2_summary_{timestamp}.json"
@@ -159,4 +164,4 @@ def run(
 
         with open(output_file, "w", encoding="utf-8") as out_f:
             json.dump(summary, out_f, indent=2)
-        print(f"Tier 2 results saved to {output_file}")
+        stdout.wrtie(style.SUCCESS(f"Negative control results saved to {output_file}."))

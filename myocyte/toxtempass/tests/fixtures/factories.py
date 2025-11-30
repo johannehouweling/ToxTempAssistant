@@ -26,9 +26,7 @@ class InvestigationFactory(DjangoModelFactory):
         model = Investigation
 
     owner = factory.SubFactory(PersonFactory)
-    title = factory.Faker(
-        "sentence", locale="en_US", nb_words=6, variable_nb_words=True
-    )
+    title = factory.Faker("sentence", locale="en_US", nb_words=6, variable_nb_words=True)
     description = factory.Faker(
         "sentence", locale="en_US", nb_words=20, variable_nb_words=True
     )
@@ -39,9 +37,7 @@ class StudyFactory(DjangoModelFactory):
         model = Study
 
     investigation = factory.SubFactory(InvestigationFactory)
-    title = factory.Faker(
-        "sentence", locale="en_US", nb_words=6, variable_nb_words=True
-    )
+    title = factory.Faker("sentence", locale="en_US", nb_words=6, variable_nb_words=True)
     description = factory.Faker(
         "sentence", locale="en_US", nb_words=20, variable_nb_words=True
     )
@@ -52,9 +48,7 @@ class AssayFactory(DjangoModelFactory):
         model = Assay
 
     study = factory.SubFactory(StudyFactory)
-    title = factory.Faker(
-        "sentence", locale="en_US", nb_words=6, variable_nb_words=True
-    )
+    title = factory.Faker("sentence", locale="en_US", nb_words=6, variable_nb_words=True)
     description = factory.Faker(
         "sentence", locale="en_US", nb_words=20, variable_nb_words=True
     )
@@ -74,6 +68,7 @@ class DocumentDictFactory(factory.Factory):
         num_bytes: int = 1,
         document_filenames: list[Path | str] | None = None,
         unlink: bool = False,  # if by default we want to consume documents
+        extract_images: bool = False,
         **kwargs,
     ) -> dict[str, dict[str, str]]:
         text_dict: dict[str, dict[str, str]] = {}
@@ -82,7 +77,9 @@ class DocumentDictFactory(factory.Factory):
         if document_filenames:
             # Coerce to Path
             paths = [Path(p) for p in document_filenames]
-            real_contents = get_text_or_bytes_perfile_dict(paths, unlink)
+            real_contents = get_text_or_bytes_perfile_dict(
+                paths, unlink, extract_images=extract_images
+            )
             text_dict.update(real_contents)
             # optionally re-raise or continue with dummy data
 
@@ -113,5 +110,6 @@ class DocumentDictFactory(factory.Factory):
 
 class AdminFactory(PersonFactory):
     """Factory for admin users (superuser + staff)."""
+
     is_superuser = True
     is_staff = True
