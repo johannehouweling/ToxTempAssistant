@@ -1,13 +1,13 @@
-# Evaluation Pipeline Documentation
+# LLM evaluation pipeline documentation
 
 This directory contains the evaluation pipelines for ToxTempAssistant, including centralized configuration for easy experiment management.
 
 ## Overview
 
 The evaluation system consists of:
-- **Tier 1 (Positive Control)**: Tests LLM accuracy against ground truth data
-- **Tier 2 (Negative Control)**: Tests that LLM correctly identifies when answers cannot be found
-- **Centralized Configuration**: Single source of truth for paths, models, and experiments
+- **Tier 1 (positive control)**: Tests LLM accuracy against 'ground truth' data
+- **Tier 2 (negative control)**: Tests that LLM correctly identifies when answers cannot be found
+- **Centralized configuration**: Single source of truth for paths, models, and experiments
 
 ## Quick start
 
@@ -17,7 +17,7 @@ The evaluation system consists of:
 python manage.py run_evals --list-experiments
 ```
 
-### Run default Configuration
+### Run default configuration
 
 ```bash
 # Run both tiers with default models
@@ -27,7 +27,7 @@ python manage.py run_evals
 ### Run a specific experiment
 
 ```bash
-# Run the baseline experiment (single model)
+# Run the baseline experiment
 python manage.py run_evals --experiment baseline
 
 # Run temperature sweep experiment
@@ -58,7 +58,7 @@ python manage.py run_evals --repeat
 
 All configuration is centralized in `evaluation/config.py`.
 
-### File Structure
+### File structure
 
 ```
 evaluation/
@@ -106,13 +106,13 @@ Image extraction is now controlled per-experiment. By default, images are NOT ex
 }
 ```
 
-#### Validation Settings
+#### Validation settings
 ```python
 validation_metrics = ["cos_similarity", "bert_precision", "bert_recall", "bert_f1"]
 cos_similarity_threshold = 0.7
 ```
 
-## Creating Custom Experiments
+## Creating custom experiments
 
 To create a new experiment, add an entry to the `experiments` dictionary in `config.py`:
 
@@ -160,16 +160,16 @@ experiments = {
 
 If not specified, experiments use the default prompts defined in `EvaluationConfig`.
 
-## Pre-defined Experiments
+## Pre-defined experiments
 
 ### baseline
-- **Models**: gpt-4o-mini, gpt-4.1-nano, o3-mini (all at temp=0)
+- **Models**: gpt-4o-mini, gpt-4.1-nano, o3-mini
 - **Images**: Disabled (default)
 - **Purpose**: Baseline evaluation without image extraction
 - **Use case**: Fast validation or text-only testing
 
 ### baseline_with_images
-- **Models**: gpt-4o-mini, gpt-4.1-nano, o3-mini (all at temp=0)
+- **Models**: gpt-4o-mini, gpt-4.1-nano, o3-mini
 - **Images**: Enabled
 - **Purpose**: Baseline evaluation with image extraction and description
 - **Use case**: Testing image-aware LLM capabilities
@@ -186,7 +186,7 @@ python manage.py run_evals --experiment baseline_with_images
 
 ### model_comparison
 - **Models**: gpt-4o, gpt-4o-mini, gpt-4.1-nano (all at temp=0)
-- **Purpose**: Compare different model families
+- **Purpose**: Compare different models in the same families
 - **Use case**: Selecting the best model for production
 
 ### full_suite
@@ -196,21 +196,32 @@ python manage.py run_evals --experiment baseline_with_images
 
 ## Output Structure
 
-Results are organized by model and temperature:
+Results are organized within the evaluation directory, separated by tier and model:
 
 ```
-test-results/
-├── Tier1_results/
-│   ├── gpt-4o-mini/
-│   │   └── tier1_summary_YYYYMMDD_HHMM.json
-│   ├── gpt-4o-mini_temp0.3/
-│   │   └── tier1_summary_YYYYMMDD_HHMM.json
-│   └── ...
-└── Tier2_results/
-    ├── gpt-4o-mini/
-    │   └── tier2_summary_YYYYMMDD_HHMM.json
-    └── ...
+evaluation/
+├── positive_control/
+│   └── output/
+│       ├── gpt-4o-mini/
+│       │   ├── tier1_comparison_*.csv
+│       │   └── tier1_summary_YYYYMMDD_HHMM.json
+│       ├── gpt-4o-mini_temp0.3/          # Temperature included when not default
+│       │   ├── tier1_comparison_*.csv
+│       │   └── tier1_summary_YYYYMMDD_HHMM.json
+│       └── ...
+└── negative_control/
+    └── output/
+        ├── gpt-4o-mini/
+        │   └── tier2_summary_YYYYMMDD_HHMM.json
+        └── ...
 ```
+
+**Tier 1 (positive control)** outputs:
+- `tier1_comparison_*.csv` - Per-document comparison of LLM answers vs ground truth with similarity metrics
+- `tier1_summary_*.json` - Aggregated summary with pass rates, failures, and statistics
+
+**Tier 2 (negative control)** outputs:
+- `tier2_summary_*.json` - Summary with pass rates for correctly identifying unanswerable questions
 
 ### Summary File Contents
 
@@ -233,7 +244,7 @@ Each summary JSON file includes experiment metadata for traceability:
 
 The `prompt_hash` allows quick comparison of which prompt version was used across experiments.
 
-## Advanced Usage
+## Advanced usage
 
 ### Custom Paths
 
@@ -251,7 +262,7 @@ Use a specific question set:
 python manage.py run_evals --question-set-label "v2.0"
 ```
 
-### Combining Options
+### Combining options
 
 ```bash
 # Run only Tier 1, with temperature_sweep experiment, forcing re-run
@@ -261,7 +272,7 @@ python manage.py run_evals \
     --repeat
 ```
 
-## Tier-Specific Model Overrides
+## Tier-specific model overrides
 
 If you want different models for Tier 1 vs Tier 2, you can set tier-specific overrides in `config.py`:
 
@@ -281,46 +292,20 @@ Priority order for model selection:
 2. Tier-specific override (if set in config)
 3. Default models
 
-## Best Practices
-
-### For Development
-```bash
-# Quick test with single model
-python manage.py run_evals --experiment baseline
-```
-
-### For Research
-```bash
-# Full evaluation across all models
-python manage.py run_evals --experiment full_suite
-```
-
-### For CI/CD
-```bash
-# Automated testing with repeat to ensure fresh results
-python manage.py run_evals --experiment baseline --repeat
-```
-
-### For Temperature Studies
-```bash
-# Dedicated temperature sweep
-python manage.py run_evals --experiment temperature_sweep
-```
-
 ## Troubleshooting
 
-### Experiment Not Found
+### Experiment not found
 ```
 Error: Unknown experiment 'my_exp'
 ```
 **Solution**: Use `--list-experiments` to see available experiments, or add your experiment to `config.py`.
 
-### Output Already Exists
+### Output already exists
 Results are skipped if output directory contains `tier*_summary*.json` files.
 
 **Solution**: Use `--repeat` flag to force re-run.
 
-### Missing API Keys
+### Missing API keys
 ```
 ERROR: Required environment variables are missing
 ```
@@ -335,9 +320,47 @@ When adding new experiments or modifying the configuration:
 3. Test your changes with `--list-experiments`
 4. Update this README if needed
 
+## Experiment configuration display
+
+When running evaluations, the system automatically displays a styled summary of the experiment configuration at the start of each run. This is generated by `EvaluationConfig.summarize_experiment_config()` which shows:
+
+- **Experiment name and description** (or "DEFAULT CONFIGURATION" if no experiment specified)
+- **Models**: All configured models with their temperature settings
+- **Settings**: Image extraction status and prompt hash (for tracking prompt versions)
+- **Evaluation Metrics**: Configured validation metrics and cosine similarity threshold
+- **IO Paths**: Input and output directories for the relevant tier
+
+Example output:
+```
+══════════════════════════════════════════════════════════════════════
+  EXPERIMENT: baseline
+══════════════════════════════════════════════════════════════════════
+Description: Baseline experiment with 3 models (TTA paper 1) temp=0)
+
+MODELS:
+  • gpt-4o-mini (temperature: 0)
+  • gpt-4.1-nano (temperature: 0)
+  • o3-mini (temperature: N/A (reasoning model))
+
+SETTINGS:
+  Extract Images: No
+  Prompt Hash: 4aa6ca3f
+
+EVALUATION METRICS:
+  Metrics: cos_similarity, bert_precision, bert_recall, bert_f1
+  Cosine Similarity Threshold: 0.7
+
+IO PATHS:
+  Tier 1 Input:  /path/to/positive_control/input_files
+  Tier 1 Output: /path/to/positive_control/output
+══════════════════════════════════════════════════════════════════════
+```
+
+The output uses Django's built-in styling (HTTP_INFO, WARNING, SUCCESS, ERROR) for colored terminal output when run via management commands.
+
 ## Related Files
 
-- `config.py` - Central configuration
-- `positive_control/validation_pipeline_tier1.py` - Tier 1 implementation
-- `negative_control/validation_pipeline_tier2.py` - Tier 2 implementation
+- `config.py` - Central configuration with `EvaluationConfig` class
+- `positive_control/pcontrol.py` - Tier 1 (positive control) implementation
+- `negative_control/ncontrol.py` - Tier 2 (negative control) implementation
 - `../management/commands/run_evals.py` - Django management command entry point
