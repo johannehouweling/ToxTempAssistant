@@ -1,4 +1,5 @@
 import base64
+from io import BytesIO
 from types import SimpleNamespace
 from unittest.mock import patch
 from zipfile import ZipFile
@@ -13,15 +14,23 @@ from toxtempass.filehandling import (
 )
 
 
+def _make_png_bytes(size=(10, 10), color="red") -> bytes:
+    buf = BytesIO()
+    img = Image.new("RGB", size, color=color)
+    img.save(buf, format="PNG")
+    return buf.getvalue()
+
+
 class DummyPdfImage:
-    def __init__(self, data: bytes, name: str = "img.jpeg", image_format: str = "JPEG"):
+    def __init__(self, data: bytes, name: str = "img.png", image_format: str = "PNG"):
         self.data = data
         self.name = name
         self.image_format = image_format
 
 
 def test_extract_images_from_pdf_page_creates_entries(tmp_path):
-    page = SimpleNamespace(images=[DummyPdfImage(b"binarydata", name="foo.jpg")])
+    png_bytes = _make_png_bytes(size=(20, 20))
+    page = SimpleNamespace(images=[DummyPdfImage(png_bytes, name="foo.png")])
     source = tmp_path / "sample.pdf"
     source.write_bytes(b"%PDF-1.7")  # minimal placeholder content
 
@@ -30,15 +39,18 @@ def test_extract_images_from_pdf_page_creates_entries(tmp_path):
     assert len(result) == 1
     [(key, meta)] = list(result.items())
     assert "sample.pdf#page2_" in key
-    assert meta["mime_type"] == "image/jpeg"
-    assert meta["encodedbytes"] == base64.b64encode(b"binarydata").decode("utf-8")
+    assert meta["mime_type"] == "image/webp"
+    decoded = base64.b64decode(meta["encodedbytes"])
+    # WebP files start with RIFF....WEBP
+    assert decoded[:4] == b"RIFF"
+    assert decoded[8:12] == b"WEBP"
     assert meta["origin"] == "embedded"
     assert meta["source_document"].endswith("sample.pdf")
 
 
 def test_extract_images_from_docx_reads_media(tmp_path):
     docx_path = tmp_path / "simple.docx"
-    img_bytes = b"\x89PNG\r\n\x1a\n"
+    img_bytes = _make_png_bytes(size=(20, 20))
     with ZipFile(docx_path, "w") as zip_file:
         zip_file.writestr("word/media/image1.png", img_bytes)
 
@@ -47,8 +59,10 @@ def test_extract_images_from_docx_reads_media(tmp_path):
     assert len(result) == 1
     [(key, meta)] = list(result.items())
     assert key.endswith("#image1.png")
-    assert meta["mime_type"] == "image/png"
-    assert meta["encodedbytes"] == base64.b64encode(img_bytes).decode("utf-8")
+    assert meta["mime_type"] == "image/webp"
+    decoded = base64.b64decode(meta["encodedbytes"])
+    assert decoded[:4] == b"RIFF"
+    assert decoded[8:12] == b"WEBP"
     assert meta["origin"] == "embedded"
     assert meta["source_document"].endswith("simple.docx")
 
@@ -83,7 +97,7 @@ def test_collect_source_documents_handles_embedded_and_uploaded(tmp_path):
 
 def test_image_descriptions_are_added_when_requested(tmp_path):
     image_path = tmp_path / "figure.png"
-    img = Image.new("RGB", (10, 10), color="red")
+    img = Image.new("RGB", (20, 20), color="red")
     img.save(image_path)
 
     with patch("toxtempass.filehandling._describe_image", return_value="Stub description"):
