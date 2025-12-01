@@ -2,10 +2,9 @@ import json
 import logging
 import re
 from pathlib import Path
-
 from langchain_openai import ChatOpenAI
 
-from myocyte.toxtempass.llm import get_llm
+from toxtempass.llm import get_llm
 from toxtempass import LLM_API_KEY, LLM_ENDPOINT, config
 
 # Get logger

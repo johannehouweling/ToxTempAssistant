@@ -2,9 +2,9 @@ import base64
 import csv
 import json
 import logging
-import mimetypes
 import shutil
 import tempfile
+import warnings
 from io import BytesIO
 from pathlib import Path
 from zipfile import ZipFile
@@ -14,12 +14,12 @@ from django.core.files.uploadedfile import (
     TemporaryUploadedFile,
     UploadedFile,
 )
-from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_community.document_loaders import (
     BSHTMLLoader,
     TextLoader,
     UnstructuredWordDocumentLoader,
 )
+from langchain_core.messages import HumanMessage, SystemMessage
 from PIL import Image
 from pypdf import PdfReader
 from pypdf._page import PageObject
@@ -31,6 +31,14 @@ try:
     import openpyxl
 except ImportError:  # pragma: no cover - optional dependency
     openpyxl = None
+
+# Suppress PyPDF warnings about image and mask size mismatches
+# These are benign warnings that don't affect functionality
+warnings.filterwarnings(
+    "ignore",
+    message=".*image and mask size not matching.*",
+    category=UserWarning,
+)
 
 logger = logging.getLogger("llm")
 
@@ -44,6 +52,12 @@ IMAGE_SUFFIX_FORMATS = {
     ".tiff": "TIFF",
     ".webp": "WEBP",
 }
+
+# Target format for all image conversions - WebP is most efficient for base64/tokens
+# This reduces API costs by minimizing the base64 payload size
+TARGET_IMAGE_FORMAT = "WEBP"
+TARGET_IMAGE_MIME = "image/webp"
+TARGET_IMAGE_QUALITY = 85  # WebP quality (0-100), 85 is good balance of quality/size
 
 DEFAULT_IMAGE_MIME = "image/png"
 MAX_TABLE_ROWS = 50
@@ -90,7 +104,9 @@ def _describe_image(
             normalized = description.strip()
             upper = normalized.upper()
             if upper == "IGNORE_IMAGE":
-                logger.info("Descriptor returned IGNORE_IMAGE for %s; skipping.", filename)
+                logger.info(
+                    "Descriptor returned IGNORE_IMAGE for %s; skipping.", filename
+                )
                 return ""
             if upper.startswith("I'M UNABLE") or upper.startswith("IT SEEMS"):
                 return ""
@@ -143,10 +159,45 @@ def summarize_image_entries(doc_dict: dict[str, dict[str, str]]) -> None:
         }
 
 
+def _convert_image_to_webp(
+    image_bytes: bytes, source_format: str | None = None
+) -> tuple[bytes, str]:
+    """Convert image bytes to WebP format for optimal token efficiency.
+
+    WebP provides the best compression ratio, reducing base64 size and API token usage.
+
+    Args:
+        image_bytes: Raw image bytes
+        source_format: Original format name (for logging)
+
+    Returns:
+        Tuple of (converted_bytes, mime_type)
+
+    Raises:
+        Exception: If conversion fails
+    """
+    img = Image.open(BytesIO(image_bytes))
+    output = BytesIO()
+    # Convert to RGB if necessary (WebP supports RGBA but not all modes)
+    if img.mode == "RGBA":
+        pass  # WebP supports RGBA
+    elif img.mode not in ("RGB", "L"):
+        img = img.convert("RGB")
+    img.save(output, format=TARGET_IMAGE_FORMAT, quality=TARGET_IMAGE_QUALITY)
+    logger.debug(
+        "Converted %s image to %s", source_format or "unknown", TARGET_IMAGE_FORMAT
+    )
+    return output.getvalue(), TARGET_IMAGE_MIME
+
+
 def _extract_images_from_pdf_page(
     page: PageObject, source_path: Path, page_number: int
 ) -> dict[str, dict[str, str]]:
-    """Extract images from a single PDF page into the document dictionary format."""
+    """Extract images from a single PDF page into the document dictionary format.
+
+    All images are converted to WebP format for optimal token efficiency when
+    sending to OpenAI's Vision API.
+    """
     images: dict[str, dict[str, str]] = {}
     pdf_images = getattr(page, "images", []) or []
 
@@ -173,9 +224,19 @@ def _extract_images_from_pdf_page(
             or Path(image_name).suffix.lstrip(".")
             or None
         )
-        mime_type = mimetypes.guess_type(image_name)[0]
-        if not mime_type and image_format:
-            mime_type = f"image/{image_format.lower()}"
+
+        # Always convert to WebP for optimal token efficiency
+        try:
+            image_bytes, mime_type = _convert_image_to_webp(image_bytes, image_format)
+        except Exception as exc:
+            logger.warning(
+                "Failed to convert %s image to WebP (%s page %s): %s. Skipping image.",
+                image_format or "unknown",
+                source_path,
+                page_number,
+                exc,
+            )
+            continue
 
         encoded = base64.b64encode(image_bytes).decode("utf-8")
         key = (
@@ -184,7 +245,7 @@ def _extract_images_from_pdf_page(
         )
         images[key] = {
             "encodedbytes": encoded,
-            "mime_type": mime_type or DEFAULT_IMAGE_MIME,
+            "mime_type": mime_type,
             "source_document": str(source_path),
             "origin": "embedded",
             "page_number": page_number,
@@ -194,7 +255,10 @@ def _extract_images_from_pdf_page(
 
 
 def _extract_images_from_docx(path: Path) -> dict[str, dict[str, str]]:
-    """Extract embedded images from a DOCX file."""
+    """Extract embedded images from a DOCX file.
+
+    All images are converted to WebP format for optimal token efficiency.
+    """
     images: dict[str, dict[str, str]] = {}
     try:
         with ZipFile(path) as docx_zip:
@@ -205,7 +269,19 @@ def _extract_images_from_docx(path: Path) -> dict[str, dict[str, str]]:
                 data = docx_zip.read(info)
                 if not data:
                     continue
-                mime_type = mimetypes.guess_type(filename)[0] or DEFAULT_IMAGE_MIME
+
+                # Convert to WebP for optimal token efficiency
+                original_format = Path(filename).suffix.lstrip(".")
+                try:
+                    data, mime_type = _convert_image_to_webp(data, original_format)
+                except Exception as exc:
+                    logger.warning(
+                        "Failed to convert DOCX image %s to WebP: %s. Skipping.",
+                        filename,
+                        exc,
+                    )
+                    continue
+
                 encoded = base64.b64encode(data).decode("utf-8")
                 key = f"{str(path)}#{filename}"
                 images[key] = {
@@ -345,14 +421,15 @@ def get_text_or_bytes_perfile_dict(
                         if page_text.strip():
                             paragraphs.append(page_text.strip())
 
-                        images = _extract_images_from_pdf_page(
-                            page, context_filename, page_number
-                        )
-                        if images:
-                            page_context = _truncate_context(page_text)
-                            for key in images:
-                                images[key]["page_context"] = page_context
-                            document_contents.update(images)
+                        if extract_images:
+                            images = _extract_images_from_pdf_page(
+                                page, context_filename, page_number
+                            )
+                            if images:
+                                page_context = _truncate_context(page_text)
+                                for key in images:
+                                    images[key]["page_context"] = page_context
+                                document_contents.update(images)
 
                     text = "\n".join(paragraphs)
 
@@ -367,12 +444,13 @@ def get_text_or_bytes_perfile_dict(
             elif suffix == ".docx":
                 loader = UnstructuredWordDocumentLoader(str(context_filename))
                 text = loader.load()[0].page_content
-                images = _extract_images_from_docx(context_filename)
-                if images:
-                    doc_context = _truncate_context(text)
-                    for key in images:
-                        images[key]["page_context"] = doc_context
-                    document_contents.update(images)
+                if extract_images:
+                    images = _extract_images_from_docx(context_filename)
+                    if images:
+                        doc_context = _truncate_context(text)
+                        for key in images:
+                            images[key]["page_context"] = doc_context
+                        document_contents.update(images)
 
             elif suffix == ".json":
                 text = _read_json_file(context_filename)
@@ -384,19 +462,19 @@ def get_text_or_bytes_perfile_dict(
                 text = _read_xlsx_file(context_filename)
 
             elif suffix in config.image_accept_files:
-                with Image.open(context_filename) as img:
-                    target_format = IMAGE_SUFFIX_FORMATS.get(
-                        suffix, (img.format or "PNG").upper()
+                # Convert all uploaded images to WebP for optimal token efficiency
+                with open(context_filename, "rb") as img_file:
+                    image_bytes = img_file.read()
+                try:
+                    image_bytes, mime_type = _convert_image_to_webp(image_bytes, suffix)
+                except Exception as exc:
+                    logger.warning(
+                        "Failed to convert uploaded image %s to WebP: %s. Skipping.",
+                        context_filename,
+                        exc,
                     )
-                    if target_format == "JPEG" and img.mode in ("RGBA", "P"):
-                        img = img.convert("RGB")
-                    s = BytesIO()
-                    img.save(s, format=target_format)
-                    encoded = base64.b64encode(s.getvalue()).decode("utf-8")
-                mime_type = (
-                    mimetypes.guess_type(context_filename.name)[0]
-                    or f"image/{target_format.lower()}"
-                )
+                    continue
+                encoded = base64.b64encode(image_bytes).decode("utf-8")
                 document_contents[str(context_filename)] = {
                     "encodedbytes": encoded,
                     "mime_type": mime_type,
@@ -405,7 +483,9 @@ def get_text_or_bytes_perfile_dict(
                     "page_number": None,
                     "page_context": None,
                 }
-                logger.info(f"The image '{context_filename}' was read successfully.")
+                logger.info(
+                    f"The image '{context_filename}' was read and converted to WebP."
+                )
                 continue
 
             if text:

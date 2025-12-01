@@ -92,6 +92,8 @@ class Config:
         "- Panel B: <...> (add entries for each panel; use only Panel A if single-panel)\n"
         "NOTES: <bullet list of exactly transcribed on-image text (preserve case, Greek letters, subscripts) and any ambiguities marked [illegible]>\n"
     )
+    min_image_width = 25
+    min_image_height = 25
     license = "AGPL"
     # obsfuscated email for scraper 'privacy'
     maintainer_email = "".join(
@@ -201,10 +203,13 @@ class Config:
                 "td .btn-group a.btn-outline-primary:first-of-type",
                 "Click here to view a ToxTemp",
             ],
-            ["#id_btn_new", "Whenever you are ready, click here to create a new ToxTemp."],
+            [
+                "#id_btn_new",
+                "Whenever you are ready, click here to create a new ToxTemp.",
+            ],
         ],
         "add_new": [
-            #id_question_set", "Choose which version of the ToxTemp template to use."],
+            # id_question_set", "Choose which version of the ToxTemp template to use."],
             [
                 "#id_investigation",
                 "Use this dropdown to select an Investigation. The buttons next to it allow you to edit or delete.",
