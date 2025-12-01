@@ -17,6 +17,7 @@ logs/
 # Virtual environment:
 env/
 venv/
+.venv/
 
 # misc
 .DS_Store
@@ -51,5 +52,5 @@ change_toxtemp.md
 # Queue storage
 __queuestorage__/
 
-# evlauation outputs
+# evaluation outputs
 output/
