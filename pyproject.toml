@@ -93,25 +93,32 @@ dependencies = [
     "zstandard>=0.23.0,<0.24.0",
 ]
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.4.1,<9.0.0",
-    "pytest-django>=4.11.1,<5.0.0",
-    "pytest-factoryboy>=2.8.1,<3.0.0",
-    "factory-boy>=3.3.3,<4.0.0",
-    "Faker>=37.4.2,<38.0.0",
-    "python-dotenv>=1.1.1,<2.0.0",
-    "pyyaml>=6.0.2,<7.0.0",
-    "regex>=2025.7.31,<2026.0.0",
-    "pytest-cov>=4.0.0,<5.0.0",
-    "bert-score>=0.3.13,<1.0.0",
-    "python-semantic-release[git]>=10.2.0,<11.0.0",
-    "pre-commit>=4.2.0,<5.0.0",
-    "ruff>=0.12.7,<1.0.0",
-    "commitizen>=4.8.3,<5.0.0",
-    "detect-secrets>=1.5.0,<2.0.0",
-    "jupyter>=1.1.1"
-]
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+pytest= ">=8.4.1,<9.0.0"
+pytest-django=">=4.11.1,<5.0.0"
+pytest-factoryboy=">=2.8.1,<3.0.0"
+factory-boy=">=3.3.3,<4.0.0"
+Faker=">=37.4.2,<38.0.0"
+python-dotenv=">=1.1.1,<2.0.0"
+pyyaml= ">=6.0.2,<7.0.0"
+regex=">=2025.7.31,<2026.0.0"
+pytest-cov=">=4.0.0,<5.0.0"
+python-semantic-release = {version=">=10.2.0,<11.0.0", extras=["git"]}
+pre-commit=">=4.2.0,<5.0.0"
+ruff=">=0.12.7,<1.0.0"
+commitizen=">=4.8.3,<5.0.0"
+detect-secrets=">=1.5.0,<2.0.0"
+jupyter=">=1.1.1"
+
+[tool.poetry.group.eval]
+optional = true
+
+[tool.poetry.group.eval.dependencies]
+bert-score=">=0.3.13,<1.0.0"
+
 
 [project.urls]
 homepage = "https://toxtempassistant.vhp4safety.nl"
