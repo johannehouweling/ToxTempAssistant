@@ -1,0 +1,65 @@
+# .github/workflows/cleanup-docker.yml
+name: Cleanup Docker caches (free disk)
+
+on:
+  workflow_dispatch: {}
+  workflow_call: {}  # allows reuse from other workflows
+
+permissions: {}
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Disk usage before
+        run: |
+          echo "===== DISK USAGE (df -h) ====="
+          df -h
+          echo
+          echo "===== Docker info ====="
+          docker info || true
+
+      - name: Stop compose stacks (if any)
+        run: |
+          if command -v docker >/dev/null 2>&1; then
+            # Best effort: bring down any compose projects that might be lingering
+            docker compose down -v --remove-orphans || true
+          fi
+
+      - name: Remove stray containers, networks, volumes
+        run: |
+          # Remove all containers (running or exited)
+          docker ps -aq | xargs -r docker rm -f
+          # Prune networks and volumes
+          docker network prune -f || true
+          docker volume prune -f || true
+
+      - name: Purge BuildKit / buildx caches
+        run: |
+          # Show cache usage if available
+          docker buildx version || true
+          docker buildx du || true
+          # Prune all buildx caches
+          docker buildx prune -af || true
+          # Remove non-default builders to drop ~/.cache/buildx data
+          set +e
+          for b in $(docker buildx ls --format '{{.Name}}' | tail -n +2); do
+            docker buildx rm "$b" || true
+          done
+          set -e
+
+      - name: Remove images and dangling layers
+        run: |
+          docker image prune -af || true
+          docker system prune -af --volumes || true
+
+      - name: Clear runner Python cache (host, not inside Docker)
+        run: |
+          rm -rf ~/.cache/pip || true
+          rm -rf ~/.cache/pipenv || true
+
+      - name: Disk usage after
+        run: |
+          echo "===== DISK USAGE (df -h) ====="
+          df -h
