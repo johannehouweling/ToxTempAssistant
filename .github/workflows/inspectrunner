@@ -1,0 +1,84 @@
+name: Disk space diagnostics
+
+on:
+  workflow_dispatch:  # run manually from the Actions tab
+
+jobs:
+  disk-diagnostics:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Show basic runner info
+        run: |
+          echo "===== BASIC INFO ====="
+          uname -a
+          echo "Workspace: $GITHUB_WORKSPACE"
+          echo "Runner temp: $RUNNER_TEMP"
+          echo "Runner tool cache: $RUNNER_TOOL_CACHE"
+
+      - name: Show disk + inode usage
+        run: |
+          echo "===== DISK USAGE (df -h) ====="
+          df -h
+          echo
+          echo "===== INODE USAGE (df -i) ====="
+          df -i
+
+      # Optional: if repo size itself might be the issue, keep checkout here
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Workspace disk usage (your repo)
+        run: |
+          echo "===== TOP DIRECTORIES IN WORKSPACE ====="
+          du -xh --max-depth=3 "$GITHUB_WORKSPACE" | sort -h | tail -n 40
+
+      - name: Runner home disk usage (/home/runner)
+        run: |
+          echo "===== TOP DIRECTORIES UNDER /home/runner ====="
+          du -xh --max-depth=3 /home/runner | sort -h | tail -n 40
+
+      - name: Investigate actions-runner cached/_diag
+        continue-on-error: true
+        run: |
+          echo "===== actions-runner cached/_diag ====="
+          if [ -d "/home/runner/actions-runner/cached/_diag" ]; then
+            du -xh --max-depth=2 /home/runner/actions-runner/cached/_diag | sort -h | tail -n 40
+            echo
+            echo "Total size of /home/runner/actions-runner/cached/_diag:"
+            du -sh /home/runner/actions-runner/cached/_diag
+          else
+            echo "/home/runner/actions-runner/cached/_diag does not exist on this runner."
+          fi
+
+      - name: Investigate runner temp directory
+        continue-on-error: true
+        run: |
+          echo "===== RUNNER TEMP ($RUNNER_TEMP) ====="
+          if [ -n "$RUNNER_TEMP" ] && [ -d "$RUNNER_TEMP" ]; then
+            du -xh --max-depth=2 "$RUNNER_TEMP" | sort -h | tail -n 40
+          else
+            echo "Runner temp directory not found."
+          fi
+
+      - name: Investigate hosted tool cache
+        continue-on-error: true
+        run: |
+          echo "===== HOSTED TOOL CACHE (/opt/hostedtoolcache) ====="
+          if [ -d "/opt/hostedtoolcache" ]; then
+            du -xh --max-depth=2 /opt/hostedtoolcache | sort -h | tail -n 40
+          else
+            echo "/opt/hostedtoolcache not found."
+          fi
+
+      - name: List Docker images (if any)
+        continue-on-error: true
+        run: |
+          echo "===== DOCKER IMAGES ====="
+          if command -v docker >/dev/null 2>&1; then
+            docker image ls
+          else
+            echo "Docker not available on this runner."
+          fi
