@@ -27,6 +27,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path(
         "init/<slug:label>", views.init_db, name="init_db"
+        # e.g., /init/v1 -> loads ToxTemp_v1.json questions into the database
     ),  # initializes database, meaning it creates the questions, sub/sections.
 ]
 
