@@ -124,10 +124,17 @@ def run(
                 input_pdf_dict,
                 extract_images=eval_config.get_extract_images(experiment),
                 chatopenai=llm,
+                verbose=True
             )
             answers = Answer.objects.filter(assay=assay)
             df = generate_comparison_csv(
-                json_file, answers, output_tier1, pdf_file, model=llm, overwrite=repeat
+                json_file,
+                answers,
+                output_tier1,
+                pdf_file,
+                model=llm,
+                overwrite=repeat,
+                experiment=experiment,
             )
 
             total = int(df[df["gtruth_answer"] != ""].dropna().shape[0])

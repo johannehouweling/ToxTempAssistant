@@ -33,6 +33,8 @@ class ExperimentConfig(TypedDict, total=False):
         base_prompt: Custom base prompt (overrides default)
         image_prompt: Custom image description prompt (overrides default)
         extract_images: Whether to extract and process images from PDFs (overrides default)
+        validation_metrics: List of metric names to compute (overrides default)
+        use_bert_scores: Whether to compute BERT scores for this experiment
     """
 
     models: list[ModelConfig]
@@ -40,6 +42,8 @@ class ExperimentConfig(TypedDict, total=False):
     base_prompt: str
     image_prompt: str
     extract_images: bool
+    validation_metrics: list[str]
+    use_bert_scores: bool
 
 
 class EvaluationConfig:
@@ -111,6 +115,20 @@ class EvaluationConfig:
             ],
             "description": "Baseline experiment with 3 models (TTA paper 1) temp=0)",
         },
+        "baseline_with_bert": {
+            "models": [
+                {"name": "gpt-4o-mini", "temperature": 0},
+                {"name": "gpt-4.1-nano", "temperature": 0},
+                {"name": "o3-mini", "temperature": None},
+            ],
+            "description": "Baseline experiment with 3 models (TTA paper 1) temp=0)",
+            "validation_metrics": [
+                "cos_similarity",
+                "bert_precision",
+                "bert_recall",
+                "bert_f1",
+            ],
+        },
         "baseline_with_images": {
             "models": [
                 {"name": "gpt-4o-mini", "temperature": 0},
@@ -149,14 +167,8 @@ class EvaluationConfig:
     }
 
     # Evaluation Settings
-    # Note: extract_images is now controlled per-experiment via get_extract_images()
-    # To extract images, use an experiment with "extract_images": True (e.g., baseline_with_images)
-    validation_metrics: list[str] = [
-        "cos_similarity",
-        "bert_precision",
-        "bert_recall",
-        "bert_f1",
-    ]
+    # Note: extract_images and metrics can be overridden per-experiment
+    validation_metrics: list[str] = ["cos_similarity"]
     cos_similarity_threshold: float = 0.7
 
     # Default Prompts - imported from the main app Config to ensure consistency
@@ -268,6 +280,15 @@ class EvaluationConfig:
         return False
 
     @classmethod
+    def get_validation_metrics(cls, experiment: str | None = None) -> list[str]:
+        """Get validation metrics for an experiment or default."""
+        if experiment and experiment in cls.experiments:
+            exp_config = cls.experiments[experiment]
+            if "validation_metrics" in exp_config:
+                return exp_config["validation_metrics"]
+        return cls.validation_metrics
+
+    @classmethod
     def summarize_experiment_config(
         cls, experiment: str | None = None, tier: int | None = None, style=None
     ) -> str:
@@ -357,7 +378,7 @@ class EvaluationConfig:
         # Evaluation Metrics section
         lines.append("")
         lines.append(style.WARNING("EVALUATION METRICS:"))
-        metrics_str = ", ".join(cls.validation_metrics)
+        metrics_str = ", ".join(cls.get_validation_metrics(experiment))
         lines.append(f"  Metrics: {style.HTTP_INFO(metrics_str)}")
         lines.append(
             f"  Cosine Similarity Threshold: {style.HTTP_INFO(str(cls.cos_similarity_threshold))}"
