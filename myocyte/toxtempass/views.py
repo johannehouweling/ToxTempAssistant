@@ -511,8 +511,20 @@ def create_questionset_from_json(label: str, created_by: Person) -> QuestionSet:
     if not label:
         raise ValueError("Version label is required.")
 
-    if QuestionSet.objects.filter(label=label).exists():
-        raise ValueError(f"Version '{label}' already exists")
+    existing_qs = QuestionSet.objects.filter(label=label).first()
+    if existing_qs:
+        has_content = Section.objects.filter(question_set=existing_qs).exists() or Question.objects.filter(
+            subsection__section__question_set=existing_qs
+        ).exists()
+        if has_content:
+            raise ValueError(f"Version '{label}' already exists")
+        # reuse the existing (empty) QuestionSet
+        qs = existing_qs
+        if qs.created_by is None:
+            qs.created_by = created_by
+            qs.save(update_fields=["created_by"])
+    else:
+        qs = QuestionSet.objects.create(label=label, created_by=created_by)
 
     path = settings.BASE_DIR / f"ToxTemp_{label}.json"
     try:
@@ -523,8 +535,6 @@ def create_questionset_from_json(label: str, created_by: Person) -> QuestionSet:
     pending_ctx = []  # will hold (Question, [context_title, ...])
 
     with transaction.atomic():
-        qs = QuestionSet.objects.create(label=label, created_by=created_by)
-
         # Phase 1: create everything and collect context titles
         for sec in data.get("sections", []):
             section = Section.objects.create(
