@@ -33,18 +33,19 @@ from guardian.shortcuts import get_objects_for_user
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from openai import RateLimitError
+from tqdm.auto import tqdm
 
 from myocyte import settings
 from toxtempass import config
 from toxtempass import utilities as beta_util
-from toxtempass.export import export_assay_to_file
 from toxtempass.demo import seed_demo_assay_for_user
+from toxtempass.export import export_assay_to_file
 from toxtempass.filehandling import (
     collect_source_documents,
     get_text_or_imagebytes_from_django_uploaded_file,
-    summarize_image_entries,
     split_doc_dict_by_type,
     stringyfy_text_dict,
+    summarize_image_entries,
 )
 from toxtempass.forms import (
     AssayAnswerForm,
@@ -794,6 +795,7 @@ def process_llm_async(
     extract_images: bool = False,
     answer_ids: list[int] | None = None,
     chatopenai: ChatOpenAI | None = None,
+    verbose: bool = False,
 ) -> None:
     """Process llm answer async.
 
@@ -863,47 +865,42 @@ def process_llm_async(
             # fire off the round in parallel
             with ThreadPoolExecutor(max_workers=config.max_workers_threading) as pool:
                 futures = {
-                    pool.submit(
-                        generate_answer,
-                        a,
-                        full_pdf_context,
-                        assay,
-                        chatopenai,
-                    ): a
+                    pool.submit(generate_answer, a, full_pdf_context, assay, chatopenai): a
                     for a in round_answers
                 }
-                for future in as_completed(futures):
-                    try:
-                        aid, text = future.result()
-                    except TimeoutError as te:
-                        logger.error(str(te))
-                        continue
-                    except Exception as exc:
-                        logger.exception(
-                            f"Fatal error for answer {futures[future].id}: {exc}"
-                        )
-                        continue
-                    try:
-                        # check assay existence before saving
-                        try:
-                            assay.refresh_from_db()
-                        except Assay.DoesNotExist:
-                            logger.info(
-                                f"Assay with id {assay_id} deleted during processing;"
-                                " stopping."
-                            )
-                            return
 
-                        # save the successful draft
-                        Answer.objects.filter(pk=aid).update(
-                            answer_text=text,
-                            answer_documents=source_documents,
-                        )
-                    except Exception as e:
-                        add_status_context(assay, str(e))
-                        assay.status = LLMStatus.ERROR
-                        assay.save()
-                        continue
+                with tqdm(total=len(futures), disable=not verbose, desc="Answers") as pbar:
+                    for future in as_completed(futures):
+                        try:
+                            aid, text = future.result()  # optionally: future.result(timeout=...)
+                        except TimeoutError as te:
+                            logger.error(str(te))
+                            continue
+                        except Exception as exc:
+                            logger.exception(f"Fatal error for answer {futures[future].id}: {exc}")
+                            continue
+                        finally:
+                            pbar.update(1)
+
+                        try:
+                            # check assay existence before saving
+                            try:
+                                assay.refresh_from_db()
+                            except Assay.DoesNotExist:
+                                logger.info(
+                                    f"Assay with id {assay_id} deleted during processing; stopping."
+                                )
+                                return
+
+                            Answer.objects.filter(pk=aid).update(
+                                answer_text=text,
+                                answer_documents=source_documents,
+                            )
+                        except Exception as e:
+                            add_status_context(assay, str(e))
+                            assay.status = LLMStatus.ERROR
+                            assay.save()
+                            continue
 
         assay.status = LLMStatus.DONE
         assay.save()
