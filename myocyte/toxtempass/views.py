@@ -6,7 +6,6 @@ import time
 from collections import defaultdict
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from pathlib import Path
 
 import requests
 from django.contrib.auth import authenticate, login, logout
@@ -507,36 +506,24 @@ def orcid_signup(request: HttpRequest) -> HttpResponse | JsonResponse:
     return render(request, "signup.html", {"form": form})
 
 
-@user_passes_test(is_admin)
-def init_db(request: HttpRequest, label: str) -> JsonResponse:
-    """Create a brand-new QuestionSet each time you upload."""
+def create_questionset_from_json(label: str, created_by: Person) -> QuestionSet:
+    """Create a QuestionSet from a ToxTemp_<label>.json file."""
     if not label:
-        return JsonResponse(
-            {
-                "message": (
-                    "Version label is required. "
-                    f"Call: {reverse('init_db', kwargs={'label': 'YOUR_LABEL'})}"
-                )
-            },
-            status=400,
-        )
+        raise ValueError("Version label is required.")
 
     if QuestionSet.objects.filter(label=label).exists():
-        return JsonResponse({"message": f"Version '{label}' already exists"}, status=400)
+        raise ValueError(f"Version '{label}' already exists")
 
-    # load JSON
-    path = Path().cwd() / f"ToxTemp_{label}.json"
+    path = settings.BASE_DIR / f"ToxTemp_{label}.json"
     try:
         data = json.loads(path.read_text())
     except FileNotFoundError:
-        return JsonResponse({"message": f"Could not find {path.name}"}, status=404)
-    except json.JSONDecodeError as e:
-        return JsonResponse({"message": f"JSON parse error: {e}"}, status=400)
+        raise FileNotFoundError(f"Could not find {path.name}")
 
     pending_ctx = []  # will hold (Question, [context_title, ...])
 
     with transaction.atomic():
-        qs = QuestionSet.objects.create(label=label, created_by=request.user)
+        qs = QuestionSet.objects.create(label=label, created_by=created_by)
 
         # Phase 1: create everything and collect context titles
         for sec in data.get("sections", []):
@@ -603,8 +590,26 @@ def init_db(request: HttpRequest, label: str) -> JsonResponse:
             subs = Subsection.objects.filter(title__in=titles, section__question_set=qs)
             question_obj.subsections_for_context.set(subs)
 
+    return qs
+
+
+@user_passes_test(is_admin)
+def init_db(request: HttpRequest, label: str) -> JsonResponse:
+    """Create a brand-new QuestionSet each time you upload."""
+    try:
+        qs = create_questionset_from_json(label=label, created_by=request.user)
+    except ValueError as exc:
+        return JsonResponse({"message": str(exc)}, status=400)
+    except FileNotFoundError as exc:
+        return JsonResponse({"message": str(exc)}, status=404)
+    except json.JSONDecodeError as exc:
+        return JsonResponse({"message": f"JSON parse error: {exc}"}, status=400)
+
     return JsonResponse(
-        {"message": f"QuestionSet '{label}' successfully created.", "version": label}
+        {
+            "message": f"QuestionSet '{qs.label}' successfully created.",
+            "version": qs.label,
+        }
     )
 
 
