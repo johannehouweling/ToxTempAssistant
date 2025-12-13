@@ -34,7 +34,6 @@ class ExperimentConfig(TypedDict, total=False):
         image_prompt: Custom image description prompt (overrides default)
         extract_images: Whether to extract and process images from PDFs (overrides default)
         validation_metrics: List of metric names to compute (overrides default)
-        use_bert_scores: Whether to compute BERT scores for this experiment
     """
 
     models: list[ModelConfig]
@@ -43,7 +42,6 @@ class ExperimentConfig(TypedDict, total=False):
     image_prompt: str
     extract_images: bool
     validation_metrics: list[str]
-    use_bert_scores: bool
 
 
 class EvaluationConfig:
