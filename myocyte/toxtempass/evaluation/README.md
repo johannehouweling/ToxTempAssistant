@@ -30,9 +30,6 @@ python manage.py run_evals
 # Run the baseline experiment
 python manage.py run_evals --experiment baseline
 
-# Run temperature sweep experiment
-python manage.py run_evals --experiment temperature_sweep
-
 # Run model comparison
 python manage.py run_evals --experiment model_comparison
 ```
@@ -108,9 +105,11 @@ Image extraction is now controlled per-experiment. By default, images are NOT ex
 
 #### Validation settings
 ```python
-validation_metrics = ["cos_similarity", "bert_precision", "bert_recall", "bert_f1"]
+# Defaults (applied when an experiment does not override them)
+validation_metrics = ["cos_similarity"]  # BERT metrics are excluded by default
 cos_similarity_threshold = 0.7
 ```
+You can override metrics per experiment (similar to `extract_images`). BERT scoring is off by default; add `bert_precision`, `bert_recall`, and/or `bert_f1` to an experiment’s `validation_metrics` to enable it.
 
 ## Creating custom experiments
 
@@ -128,7 +127,6 @@ experiments = {
         "description": "Test gpt-4o at different temperatures"
     }
 }
-```
 
 Then run it:
 ```bash
