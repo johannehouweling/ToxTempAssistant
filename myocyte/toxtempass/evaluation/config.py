@@ -165,7 +165,8 @@ class EvaluationConfig:
     }
 
     # Evaluation Settings
-    # Note: extract_images and metrics can be overridden per-experiment
+    # Note: extract_images can be overridden per-experiment; metrics can be too if desired.
+    # Default metrics exclude BERT to keep runs fast; add bert_* if you need them.
     validation_metrics: list[str] = ["cos_similarity"]
     cos_similarity_threshold: float = 0.7
 
