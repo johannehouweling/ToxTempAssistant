@@ -6,6 +6,7 @@ from django.db.models.query import QuerySet
 from langchain_openai import ChatOpenAI
 from tqdm.auto import tqdm
 from toxtempass import config
+from toxtempass.evaluation.config import config as eval_config
 from toxtempass.evaluation.post_processing.cosine_similarities import bert_score, cosine_similarity
 
 
@@ -15,7 +16,13 @@ def has_answer_not_found(answer_text: str) -> bool:
 
 
 def generate_comparison_csv(
-    json_file: Path, answers: QuerySet, output_dir: Path, pdf_file: str, model:ChatOpenAI = None, overwrite: bool = False
+    json_file: Path,
+    answers: QuerySet,
+    output_dir: Path,
+    pdf_file: str,
+    model: ChatOpenAI = None,
+    overwrite: bool = False,
+    experiment: str | None = None,
 ) -> None:
     """Generate a CSV comparing ground-truth answers with LLM-generated answers.
 
@@ -23,6 +30,7 @@ def generate_comparison_csv(
     :param answers: QuerySet of Answer objects.
     :param output_dir: Directory to save the CSV file.
     :param pdf_file: Name of the PDF file being processed.
+    :param experiment: Name of experiment configuration to use (from eval_config.experiments)
     """
     # Load the ground-truth JSON file with error handling
     try:
@@ -78,20 +86,28 @@ def generate_comparison_csv(
         lambda row: cosine_similarity(row["gtruth_answer"], row["llm_answer"]),
         axis=1,
     )
-    # Compute BERT scores and append as separate columns
-    warnings.filterwarnings("ignore", message="Empty candidate sentence detected") # Ignore warnings from bert_score
-    tqdm.pandas(desc="Calculating BERT scores", position=1, leave=True)
-    scores = df.progress_apply(
-        lambda row: bert_score(row['gtruth_answer'], row['llm_answer']),
-        axis=1,
-    ).tolist()
-    warnings.resetwarnings()
-    scores_df = pd.DataFrame(
-        scores,
-        columns=["bert_precision", "bert_recall", "bert_f1"],
-        index=df.index
+
+    # Compute BERT scores only if requested
+    metrics = getattr(eval_config, "validation_metrics", []) or []
+    bert_requested = any(
+        m in {"bert_precision", "bert_recall", "bert_f1"} for m in metrics
     )
-    df = pd.concat([df, scores_df], axis=1)
+    if bert_requested:
+        warnings.filterwarnings(
+            "ignore", message="Empty candidate sentence detected"
+        )  # Ignore warnings from bert_score
+        tqdm.pandas(desc="Calculating BERT scores", position=1, leave=True)
+        scores = df.progress_apply(
+            lambda row: bert_score(row["gtruth_answer"], row["llm_answer"]),
+            axis=1,
+        ).tolist()
+        warnings.resetwarnings()
+        scores_df = pd.DataFrame(
+            scores,
+            columns=["bert_precision", "bert_recall", "bert_f1"],
+            index=df.index,
+        )
+        df = pd.concat([df, scores_df], axis=1)
 
     # Save DataFrame to CSV
 
