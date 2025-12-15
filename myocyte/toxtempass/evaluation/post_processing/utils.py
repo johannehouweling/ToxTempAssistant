@@ -87,8 +87,9 @@ def generate_comparison_csv(
         axis=1,
     )
 
-    metrics = eval_config.get_validation_metrics(experiment)
-    bert_requested = eval_config.get_use_bert_scores(experiment) or any(
+    # Compute BERT scores only if requested
+    metrics = getattr(eval_config, "validation_metrics", []) or []
+    bert_requested = any(
         m in {"bert_precision", "bert_recall", "bert_f1"} for m in metrics
     )
     if bert_requested:
