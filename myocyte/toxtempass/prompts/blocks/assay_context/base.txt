@@ -1,17 +1,10 @@
-# Version: v1.0.0
-# Last Modified: 2025-12-15
+# Version: v1.0.1
+# Last Modified: 2025-01-15
 # Purpose: Assay-aware framing to prevent cross-assay assumptions
 
-Assay context (for framing only):
-
-Assay name: {{assay_name}}
-Assay purpose: {{assay_purpose}}
-Biological system: {{biological_system}}
-Experimental format: {{format}}
-Regulatory context: {{regulatory_context}}
-
-Framing rules:
-- Treat this assay strictly as described above.
-- Do NOT assume standard endpoints, controls, or validation criteria unless explicitly stated.
+Assay context framing:
+- ASSAY NAME/ASSAY DESCRIPTION define the subject and scope (purpose, system, format, regulatory notes).
+- Treat the assay strictly as described; do not broaden beyond what is stated.
+- Do NOT assume endpoints, controls, validation, or OECD TG compliance unless explicitly stated.
 - Do NOT generalize from similar assays or common practice.
-- The assay context limits interpretation; it does not add missing information.
+- Missing or ambiguous assay context → {not_found_string}.

@@ -1,9 +1,6 @@
 # Version: v1.0.0
-# Last Modified: 2025-12-15
+# Last Modified: 2025-01-15
 # Purpose: Descriptive question handling (narrative responses)
 
-Question type: descriptive
-- Use for narrative answers to ToxTemp template questions about the assay.
-- Apply GLOBAL constraints, ASSAY CONTEXT, section rules, PROCESS checklist, and OUTPUT base contract.
-- Max 3 sentences; factual only; no interpretation or best-practice commentary.
-- Keep the response limited to the asked field; do not include other template fields.
+Question type: descriptive.
+- 

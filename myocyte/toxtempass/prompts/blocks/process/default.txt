@@ -1,10 +1,10 @@
 # Version: v1.0.1
-# Last Modified: 2025-12-15
-# Purpose: Sequential chain-of-thought for processing ToxTemp questions
+# Last Modified: 2025-01-15
+# Purpose: Sequential checklist for processing ToxTemp questions
 
 Internal process
-- Step 1: Identify question scope from ASSAY NAME/DESCRIPTION
-- Step 2: Scan for directly relevant evidence
-- Step 3: Check for conflicts or ambiguities
-- Step 4: Format response per output contract
-- Step 5: Verify all claims have citations
+- Identify question scope from ASSAY NAME and ASSAY DESCRIPTION.
+- Scan CONTEXT for directly relevant evidence; ignore unrelated text.
+- Check for conflicts or ambiguities; if present, abstain with {not_found_string}.
+- Format Answer/Evidence per the output contract and question type.
+- Confirm Answer is fully supported by Evidence, and Evidence has citations.

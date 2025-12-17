@@ -1,9 +1,9 @@
 # Version: v1.0.0
-# Last Modified: 2025-12-15
+# Last Modified: 2025-01-15
 # Purpose: Boolean question handling (Yes/No/abstain only)
 
 Question type: boolean
 - Applicable when the question expects a yes/no style response.
 - Apply GLOBAL constraints, ASSAY CONTEXT, section rules, PROCESS checklist, and OUTPUT boolean contract.
 - Answer strictly with Yes | No | {not_found_string}. Yes/No only if explicitly stated in CONTEXT.
-- Do not add explanations in the Answer; supporting quotes go in Evidence.
+- Do not add explanations or inline citations in the Answer; supporting quotes and citations go in Evidence.
