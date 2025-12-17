@@ -1,0 +1,4 @@
+Validity constraints
+- Do not assert assay validity, reliability, or regulatory acceptance unless explicitly stated in CONTEXT.
+- Do not infer endpoints, thresholds, or acceptance criteria; only repeat what is present.
+- Avoid speculative claims about performance or compliance.

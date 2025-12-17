@@ -1,0 +1,6 @@
+Internal process
+- Restate the task in one line using the ASSAY NAME and ASSAY DESCRIPTION.
+- Scan CONTEXT for spans directly responsive to the question; ignore unrelated text.
+- If information is conflicting, or absent, abstain using {not_found_string}.
+- Keep answers minimal but complete for the asked question only.
+- Double-check that every factual sentence has citations.

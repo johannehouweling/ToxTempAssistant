@@ -1,0 +1,5 @@
+Question type: boolean
+- Applicable when the question expects a yes/no style response.
+- Apply GLOBAL constraints, ASSAY CONTEXT, section rules, PROCESS checklist, and OUTPUT boolean contract.
+- Answer strictly with Yes | No | {not_found_string}. Yes/No only if explicitly stated in CONTEXT.
+- Do not add explanations in the Answer; supporting quotes go in Evidence.

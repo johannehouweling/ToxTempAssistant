@@ -1,0 +1,5 @@
+Question type: descriptive
+- Use for narrative answers to ToxTemp template questions about the assay.
+- Apply GLOBAL constraints, ASSAY CONTEXT, section rules, PROCESS checklist, and OUTPUT base contract.
+- Max 3 sentences; factual only; no interpretation or best-practice commentary.
+- Keep the response limited to the asked field; do not include other template fields.

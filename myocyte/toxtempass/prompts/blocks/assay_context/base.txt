@@ -1,0 +1,14 @@
+Assay context (for framing only):
+
+Assay name: {{assay_name}}
+Assay purpose: {{assay_purpose}}
+Biological system: {{biological_system}}
+Experimental format: {{format}}
+Regulatory context: {{regulatory_context}}
+
+Framing rules:
+- Treat this assay strictly as described above.
+- Do NOT assume the assay follows an OECD Test Guideline unless explicitly stated.
+- Do NOT assume standard endpoints, controls, or validation criteria unless explicitly stated.
+- Do NOT generalize from similar assays or common practice.
+- The assay context limits interpretation; it does not add missing information.

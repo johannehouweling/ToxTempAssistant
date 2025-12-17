@@ -1,0 +1,4 @@
+Biological model constraints
+- The implicit subject is the assay defined by ASSAY NAME / ASSAY DESCRIPTION.
+- Use the cell line or primary cell terminology exactly as stated; do not normalize or rename.
+- Preserve experimental conditions (media, supplements, passage numbers) as written.

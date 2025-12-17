@@ -1,0 +1,16 @@
+version: v1.0
+system_role: blocks/system/role.txt
+global_constraints: blocks/global/constraints.txt
+assay_context: blocks/assay_context/base.txt
+process: blocks/process/default.txt
+question_types:
+  boolean: blocks/question_types/boolean.txt
+  descriptive: blocks/question_types/descriptive.txt
+sections:
+  biological_model: blocks/sections/biological_model.txt
+  validity: blocks/sections/validity.txt
+output:
+  boolean: blocks/output/boolean.txt
+  default: blocks/output/base.txt
+notes: >
+  v1.0: Manifest-driven prompt stack with system role, global + assay-aware constraints, process, per-question-type and per-output contracts, and domain sections for biological model and validity.
