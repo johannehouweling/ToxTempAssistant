@@ -118,6 +118,7 @@ optional = true
 
 [tool.poetry.group.eval.dependencies]
 bert-score=">=0.3.13,<1.0.0"
+ragas=">=0.2.0,<0.3.0"
 
 
 [project.urls]

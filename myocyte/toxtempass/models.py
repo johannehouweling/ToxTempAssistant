@@ -467,6 +467,11 @@ class Answer(AccessibleModel):
         help_text="Store list of Filenames used to answer this question.",
     )  # chnage this to VectorField with for a real database.
     answer_text = models.TextField(blank=True, default="")
+    evidence_text = models.TextField(
+        blank=True,
+        default="",
+        help_text="Extracted evidence/quotes from source documents used to generate this answer",
+    )
     accepted = models.BooleanField(
         null=True, blank=True, help_text="Marked as final answer."
     )
