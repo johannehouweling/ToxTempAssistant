@@ -676,11 +676,11 @@ llm = get_llm()
 
 
 def generate_answer(
-    ans: Answer,
-    full_pdf_context: str,
-    assay: Assay,
-    chatopenai: ChatOpenAI,
-) -> tuple[int, str]:
+    ans: Answer, # the Answer instance to process. This is assumed to have its related Question prefetched.
+    full_pdf_context: str, # full text context from PDFs and other context documents
+    assay: Assay, # the parent Assay instance
+    chatopenai: ChatOpenAI, # the LLM instance to use
+) -> tuple[int, str]: # returns (answer_id, answer_text)
     """Generate an answer for a single Answer instance."""
     ## some variables for logging and deadline handling
     # compute a soft deadline based on Django‑Q timeout (90% of it)
@@ -712,7 +712,7 @@ def generate_answer(
         if q.additional_llm_instruction:
             sys_msgs.append(SystemMessage(content=q.additional_llm_instruction))
 
-    # build context string
+    # build context string (the context the LLM can use to answer the question)
     if q.only_subsections_for_context and q.subsections_for_context.exists():
         # gather answers to *all* questions in those subsections
         ctx_answers = Answer.objects.filter(
