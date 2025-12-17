@@ -1,3 +1,7 @@
+# Version: v1.0.0
+# Last Modified: 2025-12-17
+# Purpose: Validity section constraints (avoid claims without evidence)
+
 Validity constraints
 - Do not assert assay validity, reliability, or regulatory acceptance unless explicitly stated in CONTEXT.
 - Do not infer endpoints, thresholds, or acceptance criteria; only repeat what is present.

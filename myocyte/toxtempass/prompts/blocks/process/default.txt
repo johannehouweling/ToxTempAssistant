@@ -1,6 +1,10 @@
+# Version: v1.0.1
+# Last Modified: 2024-12-17
+# Purpose: Sequential chain-of-thought for processing ToxTemp questions
+
 Internal process
-- Restate the task in one line using the ASSAY NAME and ASSAY DESCRIPTION.
-- Scan CONTEXT for spans directly responsive to the question; ignore unrelated text.
-- If information is conflicting, or absent, abstain using {not_found_string}.
-- Keep answers minimal but complete for the asked question only.
-- Double-check that every factual sentence has citations.
+- Step 1: Identify question scope from ASSAY NAME/DESCRIPTION
+- Step 2: Scan for directly relevant evidence
+- Step 3: Check for conflicts or ambiguities
+- Step 4: Format response per output contract
+- Step 5: Verify all claims have citations
