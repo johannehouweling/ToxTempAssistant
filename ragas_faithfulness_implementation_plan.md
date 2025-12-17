@@ -181,11 +181,6 @@ dependencies = [
 poetry add ragas
 ```
 
-### Cost Considerations
-- Using gpt-4o-mini for faithfulness: ~$0.001-0.002 per evaluation
-- For 1000 evaluations: ~$1.00-$2.00
-- OpenAI Batch API available for 50% discount on large datasets
-
 ## Testing
 
 ### Unit Tests

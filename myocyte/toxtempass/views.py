@@ -676,12 +676,16 @@ llm = get_llm()
 
 
 def generate_answer(
-    ans: Answer, # the Answer instance to process. This is assumed to have its related Question prefetched.
-    full_pdf_context: str, # full text context from PDFs and other context documents
-    assay: Assay, # the parent Assay instance
-    chatopenai: ChatOpenAI, # the LLM instance to use
-) -> tuple[int, str]: # returns (answer_id, answer_text)
-    """Generate an answer for a single Answer instance."""
+    ans: Answer,
+    full_pdf_context: str,
+    assay: Assay,
+    chatopenai: ChatOpenAI,
+) -> tuple[int, str, str]:
+    """Generate an answer for a single Answer instance.
+    
+    Returns:
+        Tuple of (answer_id, answer_text, context_used)
+    """
     ## some variables for logging and deadline handling
     # compute a soft deadline based on Django‑Q timeout (90% of it)
     q_timeout = settings.Q_CLUSTER.get("timeout", None)
@@ -762,7 +766,7 @@ def generate_answer(
 
         try:
             resp = chatopenai.invoke(messages)
-            return ans.id, (resp.content or "")
+            return ans.id, (resp.content or ""), context_str
 
         except RateLimitError as e:
             # parse “try again in Xs” if present
@@ -786,7 +790,7 @@ def generate_answer(
                 f"LLM error for answer {ans.id} [{max_ans_id - ans.id} "
                 "of {delta_ans}]: {exc}"
             )
-            return ans.id, ""
+            return ans.id, "", context_str
 
 
 def process_llm_async(
@@ -872,7 +876,7 @@ def process_llm_async(
                 with tqdm(total=len(futures), disable=not verbose, desc="Answers") as pbar:
                     for future in as_completed(futures):
                         try:
-                            aid, text = future.result()  # optionally: future.result(timeout=...)
+                            aid, text, context = future.result()  # optionally: future.result(timeout=...)
                         except TimeoutError as te:
                             logger.error(str(te))
                             continue
@@ -894,6 +898,7 @@ def process_llm_async(
 
                             Answer.objects.filter(pk=aid).update(
                                 answer_text=text,
+                                context_used=context,
                                 answer_documents=source_documents,
                             )
                         except Exception as e:
