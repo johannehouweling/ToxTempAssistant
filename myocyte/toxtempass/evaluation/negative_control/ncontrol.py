@@ -164,4 +164,4 @@ def run(
 
         with open(output_file, "w", encoding="utf-8") as out_f:
             json.dump(summary, out_f, indent=2)
-        stdout.wrtie(style.SUCCESS(f"Negative control results saved to {output_file}."))
+        stdout.write(style.SUCCESS(f"Negative control results saved to {output_file}."))
