@@ -162,6 +162,11 @@ class EvaluationConfig:
             ],
             "description": "Full model suite evaluation",
         },
+        "test_experiment_2": {
+            "models": [{"name": "gpt-5-mini", "temperature": None}],
+            "description": "To test if this workflow of Christophe works and test gpt-5-mini",
+            "validation_metrics": ["cos_similarity"],
+        },
     }
 
     # Evaluation Settings
