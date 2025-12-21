@@ -93,7 +93,7 @@ import plotly.graph_objects as go
 
 # Add model legend entries with grouping title
 model_written = False
-for model_name, symbol in zip(df_all["model_name"].unique(), ["circle", "diamond", "square"]):
+for model_name, symbol in zip(["gpt-4.1-nano", "gpt-4o-mini", "o3-mini"], ["circle", "diamond", "square"]):
     trace_kwargs = dict(
         x=[None],
         y=[None],
@@ -158,7 +158,7 @@ fig.update_layout(
 
 # Add lines connecting scatter plot dots per model (same style as Tier 1)
 # Ensure points are connected in x-order
-for _model in ["o3-mini", "gpt-4.1-nano", "gpt-4o-mini"]:
+for _model in ["gpt-4.1-nano", "gpt-4o-mini", "o3-mini"]:
     _m_df = (
         df_all[df_all["model_name"] == _model]
         .sort_values(by="title_dummy")
