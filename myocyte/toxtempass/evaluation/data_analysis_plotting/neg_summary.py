@@ -3,12 +3,18 @@ from pathlib import Path
 
 import pandas as pd
 from plotly import express as px
+from myocyte.settings import BASE_DIR
 
-model_files = {
-    "gpt-4.1-nano": "/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier2_results/gpt-4.1-nano/tier2_summary_20250714_1823.json",
-    "gpt-4o-mini": "/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier2_results/gpt-4o-mini/tier2_summary_20250714_1728.json",  # Update this path
-    "o3-mini": "/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier2_results/o3-mini/tier2_summary_20250714_1853.json",   # Update this path
-}
+base_dir_tier2 = BASE_DIR / "toxtempass/evaluation/negative_control/output"
+
+def _get_model_file(model: str) -> Path:
+    model_folder = base_dir_tier2 / model
+    json_paths = sorted(model_folder.glob("*.json"))
+    if not json_paths:
+        raise FileNotFoundError(f"No Tier2 JSON found for model '{model}' in {model_folder}")
+    return json_paths[0]
+
+model_files = {model: _get_model_file(model) for model in ["gpt-4.1-nano", "gpt-4o-mini", "o3-mini"]}
 
 def map_cont_rating_to_discrete(num: int) -> str:
     """Map."""
