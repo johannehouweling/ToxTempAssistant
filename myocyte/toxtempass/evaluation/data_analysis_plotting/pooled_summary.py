@@ -228,9 +228,14 @@ fig = px.scatter(
     color="Model",
     symbol="Model",
     symbol_map=shape_dict,
-    color_discrete_sequence=px.colors.qualitative.Plotly,
+    color_discrete_sequence=["rgba(0, 0, 0, 0.7)"] * len(summary_df),  
 )
-fig.update_traces(mode="markers", marker=dict(size=12), showlegend=True)
+fig.update_traces(
+    mode="markers",
+    marker=dict(size=12, color="rgba(0, 0, 0, 0.7)", line=dict(width=2, color="white")),
+    showlegend=True,
+    error_y=dict(color="#777", thickness=1.8),
+)
 # (Optional) If you want a marker outline for readability, uncomment:
 # fig.update_traces(marker=dict(size=12, line=dict(width=1)))
 
