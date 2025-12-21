@@ -1,0 +1,125 @@
+{
+  "timestamp": "20250714_1823",
+  "records": [
+    {
+      "file": "human-exposure-to-bisphenol-a.pdf",
+      "LLM_challenge_level": 1,
+      "passes": 76,
+      "total": 77,
+      "pass_rate": 98.7,
+      "failures": [
+        {
+          "question_id": 2,
+          "question_text": "Please describe in no more than 200 words the following:",
+          "answer_text": "Please provide the specific aspect or question you would like me to describe within the 200-word limit."
+        }
+      ]
+    },
+    {
+      "file": "seasonal-influenza-annual-epidemiological-report-2023-2024.pdf",
+      "LLM_challenge_level": 1,
+      "passes": 76,
+      "total": 77,
+      "pass_rate": 98.7,
+      "failures": [
+        {
+          "question_id": 1,
+          "question_text": "Provide a descriptive title using normal language without technical terms or acronyms.",
+          "answer_text": "Overview of the Influenza Season in Europe for 2023-2024"
+        }
+      ]
+    },
+    {
+      "file": "DMSO induces drastic changes in human cellular processes and epigenetic landscape in vitr.pdf",
+      "LLM_challenge_level": 2,
+      "passes": 74,
+      "total": 77,
+      "pass_rate": 96.1,
+      "failures": [
+        {
+          "question_id": 3,
+          "question_text": "Which toxicological target (organ, tissue, physiological/biochemical function, etc.) is modelled? (8.1)",
+          "answer_text": "The assay models human cellular processes and epigenetic landscape in vitro, specifically using 3D microtissues of cardiac and hepatic tissues. It assesses the effects of DMSO on these tissues, including changes in gene expression, microRNA regulation, and DNA methylation, thereby representing targets such as the heart (cardiac microtissues) and liver (hepatic microtissues). (Source: DMSO induces drastic changes in human cellular processes and epigenetic landscape in vitr.pdf)"
+        },
+        {
+          "question_id": 19,
+          "question_text": "Give a brief overview of your biological source system, i.e. the source or starting cells that you use. Which cell type(s) are used or obtained (e.g. monoculture/co-culture, differentiation state, 2D/3D, etc.)? If relevant, give human donor specifications (e.g. sex, age, pool of 10 donors, from healthy tissue, etc.).",
+          "answer_text": "The assay uses 3D human microtissues (MTs) as the biological source system. Specifically, the cardiac microtissues are composed of approximately 4,000 iPSC-derived human cardiomyocytes from a female Caucasian donor with no known disease phenotype, co-cultured with 1,000 cardiac fibroblasts from an 18-year-old Caucasian male. The hepatic microtissues contain approximately 1,000 primary human hepatocytes pooled from 10 donors (5 males and 5 females, aged 7\u201359 years), co-cultured with 1,000 primary human Kupffer cells from a 27-year-old Caucasian individual. The cardiac microtissues are derived from pluripotent stem cells and are still maturing, while the hepatic microtissues are composed of mature hepatocytes. Both tissue types are cultured in 3D configurations, providing a more physiologically relevant environment compared to 2D cultures (Source: Methods section)."
+        },
+        {
+          "question_id": 20,
+          "question_text": "List quantitative and semi-quantitative features that define your cell source/starting cell population. For test methods that are based on differentiation, describe your initial cells, e.g. iPSC, proliferating SH-SY5Y; the differentiated cells are described in section 4. Define cell identity, e.g. by STR signature (where available), karyotype information, sex (where available and relevant), ATCC number, passage number, source (supplier), sub-line (where relevant), source of primary material, purity of the cells, etc. Describe defining biological features you have measured or that are FIRMLY established (use simple listing, limit to max. 0.5 pages), e.g. the cells express specific marker genes, have specific surface antigens, lack certain markers, have or lack a relevant metabolic or transporting capacity, have a doubling time of x hours, etc. Transgenic cell lines have particular requirements concerning the characterization of the genetic manipulation (type of transgene, type of vector, integration/deletion site(s), stability, etc.). Organoids and microphysiological systems (MPS) may need some special/additional considerations as detailed in Pamies et al. (2018) and Marx et al. (2016), e.g. ratio of cell types used, percent of normal cells in tumor spheroids created from resected tissue; derivation of cells for re-aggregating brain cultures.",
+          "answer_text": "The assay utilizes human 3D microtissues derived from induced pluripotent stem cells (iPSCs) and primary human hepatocytes, representing a human cellular model for toxicological assessment. The initial cell populations are characterized as follows:\n\n**Cell Source and Identity:**\n- **Cardiac Microtissues:** Derived from human iPSC lines from a single female donor (Caucasian, no known disease phenotype). The cardiomyocytes are differentiated from iPSCs using established protocols, co-cultured with fibroblasts from the same donor. The iPSC line is characterized by STR signature, karyotype analysis confirming normal chromosomal complement, and sex (female). Passage number at the start of differentiation is <20. The source is InSphero, with a specific batch number provided.\n- **Hepatic Microtissues:** Comprised of primary human hepatocytes pooled from 10 donors (5 males, 5 females, ages 7\u201359). These are obtained from a commercial supplier (InSphero), with documented donor information, and are characterized by their origin, purity (>90%), and viability (>85%). The hepatocytes are used at passage 1\u20132 post-isolation.\n\n**Biological Features and Functional Characterization:**\n- **Marker Expression:** \n  - *Cardiac microtissues:* Express cardiac-specific markers such as TNNT2 (cardiac troponin T), MYH6 (alpha-myosin heavy chain), and ACTC1 (cardiac actin). Confirmed via immunostaining and qPCR.\n  - *Hepatic microtissues:* Express hepatocyte markers including ALB (albumin), CYP3A4, and HNF4A. Verified by immunostaining and functional assays.\n- **Surface Antigens:** \n  - *Cardiac:* Positive for cardiac troponin T (TNNT2), \u03b1-actinin.\n  - *Hepatic:* Positive for ASGPR1, HNF4A.\n- **Functional Capacities:**\n  - *Metabolic activity:* Hepatic microtissues demonstrate active cytochrome P450 enzyme activity (e.g., CYP3A4 activity measured via luminescent assay).\n  - *Transport capacity:* Both tissue types exhibit relevant transporter expression (e.g., OCTs, OATPs in hepatocytes; ion channels in cardiomyocytes).\n- **Proliferation and Doubling Time:**\n  - *Cardiac microtissues:* Derived from terminally differentiated cardiomyocytes; proliferation is minimal (<1% Ki-67 positive).\n  - *Hepatic microtissues:* Hepatocytes show a doubling time of approximately 48\u201372 hours in culture.\n- **Genetic and Karyotype Stability:** \n  - *iPSC-derived cardiomyocytes:* Confirmed normal karyotype (G-banding), STR signature matches donor, no detectable transgene integration.\n  - *Primary hepatocytes:* No genetic manipulation; source verified by supplier.\n- **Purity and Composition:**\n  - *Cardiac:* >85% cardiomyocytes (TNNT2 positive), <10% fibroblasts.\n  - *Hepatic:* >90% hepatocytes, minimal non-parenchymal contamination.\n- **Additional Considerations:**\n  - *Source:* InSphero (supplier) for both microtissues.\n  - *Passage number:* iPSC-derived cells at passage <20; primary hepatocytes at passage 1\u20132.\n  - *Reproducibility:* Batch-to-batch consistency verified via marker expression and functional assays.\n\nThis comprehensive characterization ensures the cell populations are well-defined, reproducible, and suitable for toxicological testing, with established biological features confirming their identity and functional capacity."
+        }
+      ]
+    },
+    {
+      "file": "application of the virtual cell based assay for simulation-KJNA28694ENN.pdf",
+      "LLM_challenge_level": 2,
+      "passes": 75,
+      "total": 77,
+      "pass_rate": 97.4,
+      "failures": [
+        {
+          "question_id": 15,
+          "question_text": "Provide the details of the principal contact person.",
+          "answer_text": "The principal contact persons are Pilar Prieto and Alicia Paini. Pilar Prieto's address is TP126 I-21027 Ispra (VA), Italy, and her email is pilar.prieto-peraita@ec.europa.eu. Alicia Paini's address is also TP126 I-21027 Ispra (VA), Italy, and her email is alicia.paini@ec.europa.eu _(Source: application of the virtual cell based assay for simulation-KJNA28694ENN.pdf)_."
+        },
+        {
+          "question_id": 64,
+          "question_text": "Describe parameters important for the determination of free compound concentrations in the medium. Indicate the lipid and protein content of the medium and the cells. Indicate the volume of the cells. Indicate volume (medium volume) and surface area of culture dish. Is there information/literature on IVIVE strategies/data in the test? Has the test been used earlier for IVIVE? Are there special considerations that are relevant for IVIVE (e.g. potential for compound accumulation due to frequent medium changes and compound re-addition, glycoprotein (MDR1) expression, capacity for xenobiotic metabolism of test system)?",
+          "answer_text": "The parameters important for determining free compound concentrations in the medium include physicochemical properties such as logKow, Henry Law Constant, molecular diffusion volume, molar volume, and molecular weight, which influence partitioning, evaporation, and degradation (Source: application of the virtual cell based assay for simulation-KJNA28694ENN.pdf). \n\nThe lipid and protein content of the medium used in the test are 0.08 kg/m\u00b3 (lipid content) and 0.0234 mol/m\u00b3 (protein content), respectively, as specified in the experimental setup (Source: section 3.5.1). The cells have a defined volume per cell, with the cell volume for 3T3 BALB/c cells being approximately 1.73E-15 m\u00b3 for the G1 phase, with similar volumes for other phases (Source: section 3.5.1).\n\nThe medium volume per well in the culture dish is 1E-7 m\u00b3, and the surface area of the culture well is 3.31E-05 m\u00b2 (Source: section 3.5.1 and 3.5.2). \n\nRegarding IVIVE strategies, the document discusses the potential for in vitro-in vivo extrapolation (IVIVE), including the use of physiologically based kinetic (PBK) models to translate in vitro concentrations to in vivo doses. The report notes that the VCBA model can be used to simulate chemical fate and bioavailability, which can inform IVIVE, although the current model does not explicitly incorporate metabolism or active transport processes (Source: sections 2 and 4.6). \n\nThe test system has been previously used in IVIVE contexts, notably in the ACuteTox project and other validation studies, where the model helped interpret in vitro toxicity data and compare it with in vivo toxicity endpoints (Source: section 4.4). \n\nSpecial considerations relevant for IVIVE include:\n- Potential compound accumulation due to frequent medium changes and re-addition, which can affect steady-state concentrations.\n- The expression of efflux transporters such as glycoprotein (MDR1), which can influence cellular uptake and efflux of compounds.\n- The capacity for xenobiotic metabolism, which is limited in the 3T3 BALB/c cell line used, as the cells are not metabolically competent, affecting the relevance of in vitro data for in vivo extrapolation (Source: section 4.6). \n\nThese factors should be considered when applying IVIVE strategies to interpret in vitro data and predict in vivo outcomes."
+        }
+      ]
+    },
+    {
+      "file": "ESOTC2023.pdf",
+      "LLM_challenge_level": 0,
+      "passes": 77,
+      "total": 77,
+      "pass_rate": 100.0,
+      "failures": []
+    },
+    {
+      "file": "CELEX_52020DC0065_EN_TXT.pdf",
+      "LLM_challenge_level": 0,
+      "passes": 77,
+      "total": 77,
+      "pass_rate": 100.0,
+      "failures": []
+    },
+    {
+      "file": "The_Burden_of_FAIRness_Metadata_Fatigue_Expanded.pdf",
+      "LLM_challenge_level": 0,
+      "passes": 76,
+      "total": 77,
+      "pass_rate": 98.7,
+      "failures": [
+        {
+          "question_id": 2,
+          "question_text": "Please describe in no more than 200 words the following:",
+          "answer_text": "Please specify the specific aspect or question you would like me to describe within the 200-word limit."
+        }
+      ]
+    },
+    {
+      "file": "Optimization of cell viability assays to improve repilicability and reproducibility.pdf",
+      "LLM_challenge_level": 2,
+      "passes": 75,
+      "total": 77,
+      "pass_rate": 97.4,
+      "failures": [
+        {
+          "question_id": 1,
+          "question_text": "Provide a descriptive title using normal language without technical terms or acronyms.",
+          "answer_text": "Improving the consistency and reliability of laboratory tests that measure how cancer cells respond to drugs"
+        },
+        {
+          "question_id": 4,
+          "question_text": "Which test system and readout(s) are used? (4.1; 5.2)",
+          "answer_text": "The test system used in the assay is a 2D in vitro cell-based model involving human breast cancer cell lines (HCC38, MCF7, MCF-10A, and MDA-MB-436) (Source: 1). The readouts employed are absorbance and fluorescence measurements of resorufin, which is produced during the resazurin reduction assay, to assess cell viability (Sources: 1, 4.1, 5.2)."
+        }
+      ]
+    }
+  ]
+}
