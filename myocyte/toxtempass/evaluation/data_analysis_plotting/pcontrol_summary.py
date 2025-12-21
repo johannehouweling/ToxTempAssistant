@@ -97,6 +97,7 @@ fig = px.scatter(
     color="cosine_similarity",
     color_continuous_scale=px.colors.sequential.Viridis,
     range_color=[min_cos, max_cos],
+    category_orders={"model": ["gpt-4.1-nano", "gpt-4o-mini", "o3-mini"]},
 )
 fig.update_layout(
     showlegend=True,
@@ -253,6 +254,7 @@ fig2 = px.scatter(
     symbol_map=shape_dict,
     color_discrete_sequence=["rgba(0, 0, 0, 0.7)", "rgba(0, 0, 0, 0.7)", "rgba(0, 0, 0, 0.7)"],
     range_color=[0, 1],
+    category_orders={"model": ["gpt-4.1-nano", "gpt-4o-mini", "o3-mini"]},
 )
 fig2.update_layout(
     showlegend=True,
@@ -349,6 +351,7 @@ fig3 = px.scatter(
     symbol_map=shape_dict,
     color_discrete_sequence=["rgba(0, 0, 0, 0.7)", "rgba(0, 0, 0, 0.7)", "rgba(0, 0, 0, 0.7)"],
     range_color=[0, 1],
+    category_orders={"model": ["gpt-4.1-nano", "gpt-4o-mini", "o3-mini"]},
 )
 fig3.update_layout(
     showlegend=True,

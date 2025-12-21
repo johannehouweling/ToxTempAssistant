@@ -228,7 +228,8 @@ fig = px.scatter(
     color="Model",
     symbol="Model",
     symbol_map=shape_dict,
-    color_discrete_sequence=["rgba(0, 0, 0, 0.7)"] * len(summary_df),  
+    color_discrete_sequence=["rgba(0, 0, 0, 0.7)"] * len(summary_df),
+    category_orders={"Model": ["gpt-4.1-nano", "gpt-4o-mini", "o3-mini"]},
 )
 fig.update_traces(
     mode="markers",
