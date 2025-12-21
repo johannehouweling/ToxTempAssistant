@@ -286,7 +286,7 @@ def _write_fig_image(fig_obj, filename: str, width=300, height=300, scale=6):
     )
     print(f"Saved summary plot to {target_path}")
 
-_write_fig_image(fig, "tier1_summary_combined_fig.png")
+_write_fig_image(fig, "pooled_summary_fig.png")
 # If running in an interactive session (e.g., Jupyter), you can also view inline:
 # fig.show()
 
