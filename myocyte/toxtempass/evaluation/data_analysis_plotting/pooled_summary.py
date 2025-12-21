@@ -213,7 +213,11 @@ summary_df["Accuracy_CI95"] = summary_df["Accuracy_SE"] * 1.96
 from plotly import express as px
 import plotly.graph_objects as go
 
-shape_dict = {"o3-mini": "square", "gpt-4.1-nano": "circle", "gpt-4o-mini": "diamond"}
+shape_dict = {
+    "o3-mini": "square",
+    "gpt-4.1-nano": "circle",
+    "gpt-4o-mini": "diamond",
+}
 
 # Accuracy scatter with error bars
 fig = px.scatter(
@@ -221,43 +225,51 @@ fig = px.scatter(
     x="Model",
     y="Accuracy",
     error_y="Accuracy_CI95",
+    color="Model",
+    symbol="Model",
+    symbol_map=shape_dict,
     color_discrete_sequence=px.colors.qualitative.Plotly,
 )
-fig.update_traces(mode="markers", marker=dict(size=12), showlegend=False)
+fig.update_traces(mode="markers", marker=dict(size=12), showlegend=True)
+# (Optional) If you want a marker outline for readability, uncomment:
+# fig.update_traces(marker=dict(size=12, line=dict(width=1)))
 
 # Add numeric labels above error bars
 for _, row in summary_df.iterrows():
     fig.add_annotation(
         x=row["Model"],
-        y=row["Accuracy"] + row["Accuracy_CI95"] + 0.01,  # slight offset above error bar
+        y=row["Accuracy"] + row["Accuracy_CI95"] + 0.025,  # slight offset above error bar
         text=f"{row['Accuracy']:.1%}",
         showarrow=False,
         font=dict(color="black", size=14),
         bgcolor="rgba(255,255,255,0.7)",
     )
 fig.update_layout(
-    yaxis=dict(title=r"$A|_{\cos\theta>0.6} \,\big/\,{\%}$", showgrid=True, gridcolor="lightgrey", zeroline=False),
-    xaxis=dict(title="Model", showgrid=False),
+    yaxis=dict(
+        title=r"$A|_{\cos\theta>0.6} \,\big/\,{\%}$",
+        showgrid=True,
+        gridcolor="lightgrey",
+        zeroline=False,
+    ),
+    xaxis=dict(title=None, showgrid=False),
     title_x=0.5,
-    title_y=0.96,
+    title_y=0.9,
     margin=dict(t=35, b=50, l=50, r=50),
-)            
-fig.update_layout(
     showlegend=False,
     legend=dict(
         title_text="",
         orientation="h",
-        xref ="paper",
-        yref ="paper",
+        xref="paper",
+        yref="paper",
         x=0.5,
         xanchor="center",
         y=1.02,
         yanchor="bottom",
     ),
-    yaxis_range=[0,0.85],
-    paper_bgcolor='white',
-    plot_bgcolor='white',
-)   
+    yaxis_range=[0.64, 0.84],
+    paper_bgcolor="white",
+    plot_bgcolor="white",
+)
 
 def _write_fig_image(fig_obj, filename: str, width=300, height=300, scale=6):
     """Write figure to a consistent plots directory under BASE_DIR."""
