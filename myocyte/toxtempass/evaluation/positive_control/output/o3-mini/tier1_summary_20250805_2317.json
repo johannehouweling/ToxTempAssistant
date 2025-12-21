@@ -1,0 +1,345 @@
+{
+  "timestamp": "20250805_2317",
+  "records": [
+    {
+      "file": "cMINC(UKN2).pdf",
+      "passes": 69,
+      "total": 69,
+      "pass_rate": 100.0,
+      "failures": [],
+      "stats": {
+        "cos_similarity": {
+          "mean": 0.6927779108054659,
+          "std": 0.1344989321066099,
+          "min": 0.3111617975177412,
+          "max": 0.897628749068077,
+          "median": 0.7084703305184693,
+          "percent_above_threshold": 0.5507246376811594
+        },
+        "bert_precision": {
+          "mean": 0.3308864841642587,
+          "std": 0.18234355761763774,
+          "min": -0.0368382968008518,
+          "max": 0.8064504265785217,
+          "median": 0.3213665783405304,
+          "percent_above_threshold": 0.043478260869565216
+        },
+        "bert_recall": {
+          "mean": -0.00879481346076489,
+          "std": 0.22299602354826928,
+          "min": -0.5756303668022156,
+          "max": 0.4954876601696014,
+          "median": -0.037654735147953,
+          "percent_above_threshold": 0.0
+        },
+        "bert_f1": {
+          "mean": 0.12880915875776092,
+          "std": 0.18439535091561748,
+          "min": -0.3664983808994293,
+          "max": 0.605983555316925,
+          "median": 0.1117530539631843,
+          "percent_above_threshold": 0.0
+        }
+      }
+    },
+    {
+      "file": "NeuriToxassay(UKN4).pdf",
+      "passes": 69,
+      "total": 69,
+      "pass_rate": 100.0,
+      "failures": [],
+      "stats": {
+        "cos_similarity": {
+          "mean": 0.7178804627675474,
+          "std": 0.1313789186639072,
+          "min": 0.2646775581731789,
+          "max": 0.9182499188666516,
+          "median": 0.7353491868172007,
+          "percent_above_threshold": 0.6376811594202898
+        },
+        "bert_precision": {
+          "mean": 0.34051630977352243,
+          "std": 0.18888483227054392,
+          "min": 0.0044821924529969,
+          "max": 0.8000767827033997,
+          "median": 0.3100534081459045,
+          "percent_above_threshold": 0.057971014492753624
+        },
+        "bert_recall": {
+          "mean": 0.01741195186311244,
+          "std": 0.2242259031279832,
+          "min": -0.5248937010765076,
+          "max": 0.5436102747917175,
+          "median": -0.0048079011030495,
+          "percent_above_threshold": 0.0
+        },
+        "bert_f1": {
+          "mean": 0.1497250908380037,
+          "std": 0.18229006070931333,
+          "min": -0.2881129682064056,
+          "max": 0.5961544513702393,
+          "median": 0.123583011329174,
+          "percent_above_threshold": 0.0
+        }
+      }
+    },
+    {
+      "file": "NPC2-5.pdf",
+      "passes": 75,
+      "total": 76,
+      "pass_rate": 98.68421052631578,
+      "failures": [
+        {
+          "question_id": 77,
+          "question_text": "List elements of the test method (e.g. consumables, chemicals, analytical methods, equipment) that are protected by patents or any other means. Indicate the type of protection and where the element (or license for it) may be obtained.",
+          "answer_text": "Answer not found in documents."
+        }
+      ],
+      "stats": {
+        "cos_similarity": {
+          "mean": 0.6924555149434652,
+          "std": 0.16599306143316644,
+          "min": 0.2258773459675406,
+          "max": 0.9015879246854944,
+          "median": 0.7661870310174858,
+          "percent_above_threshold": 0.6133333333333333
+        },
+        "bert_precision": {
+          "mean": 0.30389629235801596,
+          "std": 0.2175898491668784,
+          "min": -0.0875434055924415,
+          "max": 0.7765024900436401,
+          "median": 0.2620441615581512,
+          "percent_above_threshold": 0.013333333333333334
+        },
+        "bert_recall": {
+          "mean": -0.0015098294406197899,
+          "std": 0.22630375540900005,
+          "min": -0.6723759174346924,
+          "max": 0.4940080940723419,
+          "median": 0.0190140288323164,
+          "percent_above_threshold": 0.0
+        },
+        "bert_f1": {
+          "mean": 0.12339828114025295,
+          "std": 0.19901742136314432,
+          "min": -0.4975975453853607,
+          "max": 0.5376020669937134,
+          "median": 0.1202807873487472,
+          "percent_above_threshold": 0.0
+        }
+      }
+    },
+    {
+      "file": "MitoStressLUHMESassay(MSL).pdf",
+      "passes": 61,
+      "total": 61,
+      "pass_rate": 100.0,
+      "failures": [],
+      "stats": {
+        "cos_similarity": {
+          "mean": 0.6912293374796218,
+          "std": 0.13770548880481623,
+          "min": 0.1952315583007541,
+          "max": 0.8954933781278697,
+          "median": 0.7206791390177766,
+          "percent_above_threshold": 0.5901639344262295
+        },
+        "bert_precision": {
+          "mean": 0.3357598550434484,
+          "std": 0.1831649631129801,
+          "min": 0.0149473864585161,
+          "max": 0.8352301716804504,
+          "median": 0.3168903291225433,
+          "percent_above_threshold": 0.03278688524590164
+        },
+        "bert_recall": {
+          "mean": -0.008966747595027818,
+          "std": 0.23451229927175668,
+          "min": -0.4303576350212097,
+          "max": 0.5192331075668335,
+          "median": -0.0551589988172054,
+          "percent_above_threshold": 0.0
+        },
+        "bert_f1": {
+          "mean": 0.13144648547110635,
+          "std": 0.19108184866716715,
+          "min": -0.1858934611082077,
+          "max": 0.5681803226470947,
+          "median": 0.1178265735507011,
+          "percent_above_threshold": 0.0
+        }
+      }
+    },
+    {
+      "file": "PeriToxtest(UKN5).pdf",
+      "passes": 69,
+      "total": 69,
+      "pass_rate": 100.0,
+      "failures": [],
+      "stats": {
+        "cos_similarity": {
+          "mean": 0.7054238070582153,
+          "std": 0.11770113746210548,
+          "min": 0.3036468510996229,
+          "max": 0.8998597316974468,
+          "median": 0.7208274769589592,
+          "percent_above_threshold": 0.5652173913043478
+        },
+        "bert_precision": {
+          "mean": 0.339360611324293,
+          "std": 0.17886300744112424,
+          "min": -0.0680194422602653,
+          "max": 0.8093768954277039,
+          "median": 0.3205535113811493,
+          "percent_above_threshold": 0.014492753623188406
+        },
+        "bert_recall": {
+          "mean": 0.008276621013689126,
+          "std": 0.21397856134753562,
+          "min": -0.5257377624511719,
+          "max": 0.4736391007900238,
+          "median": 0.0216756649315357,
+          "percent_above_threshold": 0.0
+        },
+        "bert_f1": {
+          "mean": 0.14259186060086865,
+          "std": 0.17231135789015967,
+          "min": -0.3028134107589721,
+          "max": 0.5094006061553955,
+          "median": 0.1515855193138122,
+          "percent_above_threshold": 0.0
+        }
+      }
+    },
+    {
+      "file": "MitoMetassay(UKN4b).pdf",
+      "passes": 68,
+      "total": 68,
+      "pass_rate": 100.0,
+      "failures": [],
+      "stats": {
+        "cos_similarity": {
+          "mean": 0.7186137893371731,
+          "std": 0.11836891303339438,
+          "min": 0.2973956793396441,
+          "max": 0.9042745735368652,
+          "median": 0.7371920290110949,
+          "percent_above_threshold": 0.6617647058823529
+        },
+        "bert_precision": {
+          "mean": 0.32933242054765716,
+          "std": 0.1778548576580453,
+          "min": -0.0103503260761499,
+          "max": 0.8201286792755127,
+          "median": 0.31029854714870453,
+          "percent_above_threshold": 0.04411764705882353
+        },
+        "bert_recall": {
+          "mean": -0.0047417267273618365,
+          "std": 0.2126613059722347,
+          "min": -0.516875147819519,
+          "max": 0.5148544311523438,
+          "median": -0.02378509193658825,
+          "percent_above_threshold": 0.0
+        },
+        "bert_f1": {
+          "mean": 0.1331755139741718,
+          "std": 0.1780775954993977,
+          "min": -0.3018132448196411,
+          "max": 0.5987842679023743,
+          "median": 0.10751904919743535,
+          "percent_above_threshold": 0.0
+        }
+      }
+    },
+    {
+      "file": "NPC1.pdf",
+      "passes": 74,
+      "total": 75,
+      "pass_rate": 98.66666666666667,
+      "failures": [
+        {
+          "question_id": 41,
+          "question_text": "Does the test system have a particular apoptosis sensitivity or resistance? Is cytotoxicity hard to capture for minor cellular subpopulations? In multicellular systems, which cell population is the most sensitive? Are specific markers known for each cell population? Are there issues with distinguishing slowed proliferation from cell death? For repeated/prolonged dosing: Is early death and compensatory growth considered? For very short-term endpoints (e.g. electrophysiology measured 30 min after toxicant exposure): Is a delayed measure of cytotoxicity provided?",
+          "answer_text": "Answer not found in documents. (Sources: NPC1.pdf)"
+        }
+      ],
+      "stats": {
+        "cos_similarity": {
+          "mean": 0.6678270417615387,
+          "std": 0.15883824160066345,
+          "min": 0.2433467820138357,
+          "max": 0.8928098808673041,
+          "median": 0.7052013860271455,
+          "percent_above_threshold": 0.527027027027027
+        },
+        "bert_precision": {
+          "mean": 0.30938561796210706,
+          "std": 0.20757686146038345,
+          "min": -0.0470299534499645,
+          "max": 0.832449197769165,
+          "median": 0.2654728591442108,
+          "percent_above_threshold": 0.05405405405405406
+        },
+        "bert_recall": {
+          "mean": -0.01454682948816618,
+          "std": 0.21152078487827838,
+          "min": -0.4290998578071594,
+          "max": 0.4639878869056701,
+          "median": 0.0105104190297424,
+          "percent_above_threshold": 0.0
+        },
+        "bert_f1": {
+          "mean": 0.12046414297829205,
+          "std": 0.18956294889639527,
+          "min": -0.2582645416259765,
+          "max": 0.6239333748817444,
+          "median": 0.11842928081750864,
+          "percent_above_threshold": 0.0
+        }
+      }
+    },
+    {
+      "file": "MitoComplexesLUHMESassay(MCL).pdf",
+      "passes": 59,
+      "total": 59,
+      "pass_rate": 100.0,
+      "failures": [],
+      "stats": {
+        "cos_similarity": {
+          "mean": 0.661058812783233,
+          "std": 0.1396653295801924,
+          "min": 0.3476054833674558,
+          "max": 0.9179243006630112,
+          "median": 0.6770384149450508,
+          "percent_above_threshold": 0.4067796610169492
+        },
+        "bert_precision": {
+          "mean": 0.3414843260405301,
+          "std": 0.1975827082680235,
+          "min": 0.0044656596146523,
+          "max": 0.8143123984336853,
+          "median": 0.3269668519496918,
+          "percent_above_threshold": 0.05084745762711865
+        },
+        "bert_recall": {
+          "mean": -0.06623829188519867,
+          "std": 0.21265188650575134,
+          "min": -0.5037355422973633,
+          "max": 0.4445865750312805,
+          "median": -0.1122853755950927,
+          "percent_above_threshold": 0.0
+        },
+        "bert_f1": {
+          "mean": 0.09559342520848169,
+          "std": 0.1821412977934583,
+          "min": -0.2991722226142883,
+          "max": 0.5689654350280762,
+          "median": 0.0823074355721473,
+          "percent_above_threshold": 0.0
+        }
+      }
+    }
+  ]
+}
