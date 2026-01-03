@@ -610,9 +610,20 @@ def init_db(request: HttpRequest, label: str) -> JsonResponse:
     try:
         qs = create_questionset_from_json(label=label, created_by=request.user)
     except ValueError as exc:
-        return JsonResponse({"message": str(exc)}, status=400)
+        logger.exception(
+            "Invalid input while initializing QuestionSet for label '%s'.", label
+        )
+        return JsonResponse(
+            {"message": "Invalid input for QuestionSet initialization."}, status=400
+        )
     except FileNotFoundError as exc:
-        return JsonResponse({"message": str(exc)}, status=404)
+        logger.exception(
+            "QuestionSet configuration not found while initializing label '%s'.",
+            label,
+        )
+        return JsonResponse(
+            {"message": "Requested QuestionSet configuration not found."}, status=404
+        )
     except json.JSONDecodeError as exc:
         logger.exception("Failed to parse JSON for init_db with label '%s'.", label)
         return JsonResponse({"message": "Invalid JSON input."}, status=400)
