@@ -614,7 +614,8 @@ def init_db(request: HttpRequest, label: str) -> JsonResponse:
     except FileNotFoundError as exc:
         return JsonResponse({"message": str(exc)}, status=404)
     except json.JSONDecodeError as exc:
-        return JsonResponse({"message": f"JSON parse error: {exc}"}, status=400)
+        logger.exception("Failed to parse JSON for init_db with label '%s'.", label)
+        return JsonResponse({"message": "Invalid JSON input."}, status=400)
 
     return JsonResponse(
         {
