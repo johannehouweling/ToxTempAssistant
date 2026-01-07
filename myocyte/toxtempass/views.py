@@ -528,12 +528,21 @@ def create_questionset_from_json(label: str, created_by: Person) -> QuestionSet:
         qs = QuestionSet.objects.create(label=label, created_by=created_by)
 
     # security: validate label format
-    if not re.compile(r"^v[1-9][0-9]*$").fullmatch(label):
-        raise ValueError("Invalid label,"
-                         " labels should follow v<number> format, e.g. v1, v2, ...")
-    path = settings.BASE_DIR / f"ToxTemp_{label}.json"
+    if not re.fullmatch(r"v[1-9][0-9]*", label):
+        raise ValueError(
+            "Invalid label, labels should follow v<number> format, e.g. v1, v2, ..."
+        )
+
+    # security: construct path safely
+    base_dir = settings.BASE_DIR.resolve()
+    path = (base_dir / f"ToxTemp_{label}.json").resolve()
+
+    # security: enforce path stays within BASE_DIR
+    if base_dir not in path.parents:
+        raise ValueError("Invalid path")
+
     try:
-        data = json.loads(path.read_text())
+        data = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
         raise FileNotFoundError(f"Could not find {path.name}")
 
