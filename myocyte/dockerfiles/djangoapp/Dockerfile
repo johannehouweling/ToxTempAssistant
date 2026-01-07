@@ -70,8 +70,8 @@ COPY pyproject.toml poetry.lock ./
 
 # 2) Install into that in-project venv
 RUN if [ "$TESTING" = "true" ]; then \
-    echo "🧪 TESTING mode: installing ALL deps (incl. dev)"; \
-    poetry install --no-interaction --all-extras; \
+    echo "🧪 TESTING mode: installing ALL deps (incl. dev, not eval)"; \
+    poetry install --no-interaction --with "dev" --without "eval"; \
     else \
     echo "🚀 Production mode: installing only main deps"; \
     poetry install --no-interaction; \
