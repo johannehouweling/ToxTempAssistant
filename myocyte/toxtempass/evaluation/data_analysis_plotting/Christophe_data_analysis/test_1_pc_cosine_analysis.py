@@ -14,7 +14,7 @@ path = 'myocyte/toxtempass/evaluation/positive_control/output/gpt-5-mini'
 filenames = glob.glob(path + '/*.csv')
 
 #upload excel with sections as a dataframe
-section_df = pd.read_excel('myocyte/toxtempass/evaluation/data_analysis_plotting/Toxtemplate_sections.xlsx')
+section_df = pd.read_excel('myocyte/toxtempass/evaluation/data_analysis_plotting/Christophe_data_analysis/Toxtemplate_sections.xlsx')
 section_df.info()
 
 #create dataframe with individual files combined with sections from excel
