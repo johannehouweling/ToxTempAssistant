@@ -506,7 +506,7 @@ def orcid_signup(request: HttpRequest) -> HttpResponse | JsonResponse:
 
     return render(request, "signup.html", {"form": form})
 
-
+@user_passes_test(is_admin)
 def create_questionset_from_json(label: str, created_by: Person) -> QuestionSet:
     """Create a QuestionSet from a ToxTemp_<label>.json file."""
     if not label:
@@ -527,6 +527,10 @@ def create_questionset_from_json(label: str, created_by: Person) -> QuestionSet:
     else:
         qs = QuestionSet.objects.create(label=label, created_by=created_by)
 
+    # security: validate label format
+    if not re.compile(r"^v[1-9][0-9]*$").fullmatch(label):
+        raise ValueError("Invalid label,"
+                         " labels should follow v<number> format, e.g. v1, v2, ...")
     path = settings.BASE_DIR / f"ToxTemp_{label}.json"
     try:
         data = json.loads(path.read_text())
