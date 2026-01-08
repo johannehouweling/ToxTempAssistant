@@ -104,7 +104,7 @@ def apply_quality_scores(json_path, output_path):
 
 if __name__ == "__main__":
     # Directory containing input JSON files
-    input_dir = Path("/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier1/processed")
+    input_dir = Path(__file__).resolve().parent.parent / "positive_control" / "input_files" / "processed"
     # Process each .json file in the directory
     for input_path in input_dir.glob("*.json"):
         # Skip files already scored

@@ -3,12 +3,18 @@ from pathlib import Path
 
 import pandas as pd
 from plotly import express as px
+from myocyte.settings import BASE_DIR
 
-model_files = {
-    "gpt-4.1-nano": "/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier2_results/gpt-4.1-nano/tier2_summary_20250714_1823.json",
-    "gpt-4o-mini": "/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier2_results/gpt-4o-mini/tier2_summary_20250714_1728.json",  # Update this path
-    "o3-mini": "/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier2_results/o3-mini/tier2_summary_20250714_1853.json",   # Update this path
-}
+base_dir_tier2 = BASE_DIR / "toxtempass/evaluation/negative_control/output"
+
+def _get_model_file(model: str) -> Path:
+    model_folder = base_dir_tier2 / model
+    json_paths = sorted(model_folder.glob("*.json"))
+    if not json_paths:
+        raise FileNotFoundError(f"No Tier2 JSON found for model '{model}' in {model_folder}")
+    return json_paths[0]
+
+model_files = {model: _get_model_file(model) for model in ["gpt-4.1-nano", "gpt-4o-mini", "o3-mini"]}
 
 def map_cont_rating_to_discrete(num: int) -> str:
     """Map."""
@@ -87,7 +93,7 @@ import plotly.graph_objects as go
 
 # Add model legend entries with grouping title
 model_written = False
-for model_name, symbol in zip(df_all["model_name"].unique(), ["circle", "diamond", "square"]):
+for model_name, symbol in zip(["gpt-4.1-nano", "gpt-4o-mini", "o3-mini"], ["circle", "diamond", "square"]):
     trace_kwargs = dict(
         x=[None],
         y=[None],
@@ -152,7 +158,7 @@ fig.update_layout(
 
 # Add lines connecting scatter plot dots per model (same style as Tier 1)
 # Ensure points are connected in x-order
-for _model in ["o3-mini", "gpt-4.1-nano", "gpt-4o-mini"]:
+for _model in ["gpt-4.1-nano", "gpt-4o-mini", "o3-mini"]:
     _m_df = (
         df_all[df_all["model_name"] == _model]
         .sort_values(by="title_dummy")
@@ -172,14 +178,18 @@ marker_traces = [trace for trace in fig.data if getattr(trace, "mode", None) == 
 fig.data = tuple(line_traces + marker_traces)
 
 fig.show()
-# Export figure at 300×300 pixels (requires `pip install kaleido`)
-output_file_300px = Path("/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier2_results") / "tier2_summary_fig.png"
+# Export figure as PNG (requires `pip install -U kaleido`)
+output_dir = BASE_DIR / "toxtempass" / "evaluation" / "plots"
+output_dir.mkdir(parents=True, exist_ok=True)
+output_file = output_dir / "ncontrol_summary_fig.png"
+
 fig.write_image(
-    str(output_file_300px),
+    str(output_file),
     format="png",
     width=600,
     height=400,
     scale=6,
     engine="kaleido",
 )
-print(f"Saved 300px summary plot to {output_file_300px}")
+
+print(f"Saved summary plot to {output_file}")

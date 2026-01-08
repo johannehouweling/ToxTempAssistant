@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from IPython.display import display
+from myocyte.settings import BASE_DIR
 from plotly import express as px
 from plotly.subplots import make_subplots
 
@@ -21,16 +22,24 @@ def extract_question_text(failures, n=50) -> str:
 
 
 # Directory and summary files for each model
-base_dir = Path(
-    "/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier1_results/"
-)
-summary_files = list(base_dir.glob("*/*summary*.json"))
-{path.parent.name: path.name for path in summary_files }
+base_dir = BASE_DIR / "toxtempass/evaluation/positive_control/output"
+# Optional: limit to a subset of model folders; set to None to include all found models.
+# Example excluding gpt-5: ["gpt-4.1-nano", "gpt-4o-mini", "o3-mini"]
+models_to_plot = ["gpt-4.1-nano", "gpt-4o-mini", "o3-mini"]
 
-base_dir = Path(
-    "/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier1_results/"
-)
-summary_files = [(path, path.parent.name) for path in list(base_dir.glob("*/*summary*.json"))]
+# Common plot output directory inside the repo
+output_dir = BASE_DIR / "toxtempass" / "evaluation" / "plots"
+output_dir.mkdir(parents=True, exist_ok=True)
+
+all_summary_files = list(base_dir.glob("*/*summary*.json"))
+if models_to_plot:
+    summary_files = [
+        (path, path.parent.name)
+        for path in all_summary_files
+        if path.parent.name in set(models_to_plot)
+    ]
+else:
+    summary_files = [(path, path.parent.name) for path in all_summary_files]
 
 
 trans_dict = {
@@ -88,6 +97,7 @@ fig = px.scatter(
     color="cosine_similarity",
     color_continuous_scale=px.colors.sequential.Viridis,
     range_color=[min_cos, max_cos],
+    category_orders={"model": ["gpt-4.1-nano", "gpt-4o-mini", "o3-mini"]},
 )
 fig.update_layout(
     showlegend=True,
@@ -168,10 +178,7 @@ fig.data = tuple(line_traces + marker_traces)
 
 
 fig.show()
-output_file_300px = (
-    Path("/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier1_results")
-    / "tier1_summary_fig.png"
-)
+output_file_300px = output_dir / "pcontrol_summary_fig.png"
 
 fig.write_image(
     str(output_file_300px),
@@ -187,13 +194,8 @@ print(f"Saved 300px summary plot to {output_file_300px}")
 
 # TPR per ToxTemp and model 
 # Directory containing Tier1 results organized by model subfolder
-base_dir_tier1 = Path(
-    "/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier1_results"
-)
-
-base_dir_tier2 = Path(
-    "/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier2_results"
-)
+base_dir_tier1 = base_dir
+base_dir_tier2 = BASE_DIR / "toxtempass/evaluation/negative_control/output"
 # List of model subfolders
 model_dirs = ["gpt-4.1-nano", "gpt-4o-mini", "o3-mini"]
 
@@ -252,6 +254,7 @@ fig2 = px.scatter(
     symbol_map=shape_dict,
     color_discrete_sequence=["rgba(0, 0, 0, 0.7)", "rgba(0, 0, 0, 0.7)", "rgba(0, 0, 0, 0.7)"],
     range_color=[0, 1],
+    category_orders={"model": ["gpt-4.1-nano", "gpt-4o-mini", "o3-mini"]},
 )
 fig2.update_layout(
     showlegend=True,
@@ -323,8 +326,7 @@ fig2.update_traces(
 fig2.show()
 
 output_file_300pxB = (
-    Path("/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier1_results")
-    / "tier1_summary_figB.png"
+    output_dir / "pcontrol_summary_figB.png"
 )
 
 fig2.write_image(
@@ -349,6 +351,7 @@ fig3 = px.scatter(
     symbol_map=shape_dict,
     color_discrete_sequence=["rgba(0, 0, 0, 0.7)", "rgba(0, 0, 0, 0.7)", "rgba(0, 0, 0, 0.7)"],
     range_color=[0, 1],
+    category_orders={"model": ["gpt-4.1-nano", "gpt-4o-mini", "o3-mini"]},
 )
 fig3.update_layout(
     showlegend=True,
@@ -420,12 +423,11 @@ fig3.update_traces(
 fig3.show()
 
 output_file_300pxC = (
-    Path("/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Tier1_results")
-    / "tier1_summary_figC.png"
+    output_dir / "pcontrol_summary_figC.png"
 )
 
 fig3.write_image(
-    str(output_file_300pxB),
+    str(output_file_300pxC),
     format="png",
     width=500,
     height=400,
@@ -506,7 +508,7 @@ fig_comb.update_yaxes(title_text=r"$P|_{\cos\theta>0.6} \,\big/\,{\%}$", row=3, 
 
 
 fig_comb.write_image(
-    str(output_file_300px.with_name("tier1_summary_combined_fig.png")),
+    str(output_dir / "pcontrol_summary_combined_fig.png"),
     format="png",
     width=485,
     height=500,
@@ -514,4 +516,4 @@ fig_comb.write_image(
     engine="kaleido",
 )
 
-print(f"Saved 300px summary plot to {output_file_300px.with_name("tier1_summary_combined_fig.png")}")
+print(f"Saved 300px summary plot to {output_dir / 'pcontrol_summary_combined_fig.png'}")
