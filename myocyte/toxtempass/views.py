@@ -6,7 +6,6 @@ import time
 from collections import defaultdict
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from pathlib import Path
 
 import requests
 from django.contrib.auth import authenticate, login, logout
@@ -34,18 +33,19 @@ from guardian.shortcuts import get_objects_for_user
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from openai import RateLimitError
+from tqdm.auto import tqdm
 
 from myocyte import settings
 from toxtempass import config
 from toxtempass import utilities as beta_util
-from toxtempass.export import export_assay_to_file
 from toxtempass.demo import seed_demo_assay_for_user
+from toxtempass.export import export_assay_to_file
 from toxtempass.filehandling import (
     collect_source_documents,
     get_text_or_imagebytes_from_django_uploaded_file,
-    summarize_image_entries,
     split_doc_dict_by_type,
     stringyfy_text_dict,
+    summarize_image_entries,
 )
 from toxtempass.forms import (
     AssayAnswerForm,
@@ -507,37 +507,35 @@ def orcid_signup(request: HttpRequest) -> HttpResponse | JsonResponse:
     return render(request, "signup.html", {"form": form})
 
 
-@user_passes_test(is_admin)
-def init_db(request: HttpRequest, label: str) -> JsonResponse:
-    """Create a brand-new QuestionSet each time you upload."""
+def create_questionset_from_json(label: str, created_by: Person) -> QuestionSet:
+    """Create a QuestionSet from a ToxTemp_<label>.json file."""
     if not label:
-        return JsonResponse(
-            {
-                "message": (
-                    "Version label is required. "
-                    f"Call: {reverse('init_db', kwargs={'label': 'YOUR_LABEL'})}"
-                )
-            },
-            status=400,
-        )
+        raise ValueError("Version label is required.")
 
-    if QuestionSet.objects.filter(label=label).exists():
-        return JsonResponse({"message": f"Version '{label}' already exists"}, status=400)
+    existing_qs = QuestionSet.objects.filter(label=label).first()
+    if existing_qs:
+        has_content = Section.objects.filter(question_set=existing_qs).exists() or Question.objects.filter(
+            subsection__section__question_set=existing_qs
+        ).exists()
+        if has_content:
+            raise ValueError(f"Version '{label}' already exists")
+        # reuse the existing (empty) QuestionSet
+        qs = existing_qs
+        if qs.created_by is None:
+            qs.created_by = created_by
+            qs.save(update_fields=["created_by"])
+    else:
+        qs = QuestionSet.objects.create(label=label, created_by=created_by)
 
-    # load JSON
-    path = Path().cwd() / f"ToxTemp_{label}.json"
+    path = settings.BASE_DIR / f"ToxTemp_{label}.json"
     try:
         data = json.loads(path.read_text())
     except FileNotFoundError:
-        return JsonResponse({"message": f"Could not find {path.name}"}, status=404)
-    except json.JSONDecodeError as e:
-        return JsonResponse({"message": f"JSON parse error: {e}"}, status=400)
+        raise FileNotFoundError(f"Could not find {path.name}")
 
     pending_ctx = []  # will hold (Question, [context_title, ...])
 
     with transaction.atomic():
-        qs = QuestionSet.objects.create(label=label, created_by=request.user)
-
         # Phase 1: create everything and collect context titles
         for sec in data.get("sections", []):
             section = Section.objects.create(
@@ -603,8 +601,26 @@ def init_db(request: HttpRequest, label: str) -> JsonResponse:
             subs = Subsection.objects.filter(title__in=titles, section__question_set=qs)
             question_obj.subsections_for_context.set(subs)
 
+    return qs
+
+
+@user_passes_test(is_admin)
+def init_db(request: HttpRequest, label: str) -> JsonResponse:
+    """Create a brand-new QuestionSet each time you upload."""
+    try:
+        qs = create_questionset_from_json(label=label, created_by=request.user)
+    except ValueError as exc:
+        return JsonResponse({"message": str(exc)}, status=400)
+    except FileNotFoundError as exc:
+        return JsonResponse({"message": str(exc)}, status=404)
+    except json.JSONDecodeError as exc:
+        return JsonResponse({"message": f"JSON parse error: {exc}"}, status=400)
+
     return JsonResponse(
-        {"message": f"QuestionSet '{label}' successfully created.", "version": label}
+        {
+            "message": f"QuestionSet '{qs.label}' successfully created.",
+            "version": qs.label,
+        }
     )
 
 
@@ -779,6 +795,7 @@ def process_llm_async(
     extract_images: bool = False,
     answer_ids: list[int] | None = None,
     chatopenai: ChatOpenAI | None = None,
+    verbose: bool = False,
 ) -> None:
     """Process llm answer async.
 
@@ -848,47 +865,42 @@ def process_llm_async(
             # fire off the round in parallel
             with ThreadPoolExecutor(max_workers=config.max_workers_threading) as pool:
                 futures = {
-                    pool.submit(
-                        generate_answer,
-                        a,
-                        full_pdf_context,
-                        assay,
-                        chatopenai,
-                    ): a
+                    pool.submit(generate_answer, a, full_pdf_context, assay, chatopenai): a
                     for a in round_answers
                 }
-                for future in as_completed(futures):
-                    try:
-                        aid, text = future.result()
-                    except TimeoutError as te:
-                        logger.error(str(te))
-                        continue
-                    except Exception as exc:
-                        logger.exception(
-                            f"Fatal error for answer {futures[future].id}: {exc}"
-                        )
-                        continue
-                    try:
-                        # check assay existence before saving
-                        try:
-                            assay.refresh_from_db()
-                        except Assay.DoesNotExist:
-                            logger.info(
-                                f"Assay with id {assay_id} deleted during processing;"
-                                " stopping."
-                            )
-                            return
 
-                        # save the successful draft
-                        Answer.objects.filter(pk=aid).update(
-                            answer_text=text,
-                            answer_documents=source_documents,
-                        )
-                    except Exception as e:
-                        add_status_context(assay, str(e))
-                        assay.status = LLMStatus.ERROR
-                        assay.save()
-                        continue
+                with tqdm(total=len(futures), disable=not verbose, desc="Answers") as pbar:
+                    for future in as_completed(futures):
+                        try:
+                            aid, text = future.result()  # optionally: future.result(timeout=...)
+                        except TimeoutError as te:
+                            logger.error(str(te))
+                            continue
+                        except Exception as exc:
+                            logger.exception(f"Fatal error for answer {futures[future].id}: {exc}")
+                            continue
+                        finally:
+                            pbar.update(1)
+
+                        try:
+                            # check assay existence before saving
+                            try:
+                                assay.refresh_from_db()
+                            except Assay.DoesNotExist:
+                                logger.info(
+                                    f"Assay with id {assay_id} deleted during processing; stopping."
+                                )
+                                return
+
+                            Answer.objects.filter(pk=aid).update(
+                                answer_text=text,
+                                answer_documents=source_documents,
+                            )
+                        except Exception as e:
+                            add_status_context(assay, str(e))
+                            assay.status = LLMStatus.ERROR
+                            assay.save()
+                            continue
 
         assay.status = LLMStatus.DONE
         assay.save()
