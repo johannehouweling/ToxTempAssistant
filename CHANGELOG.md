@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v2.6.0 (2026-01-10)
+
+### Features
+
+- **storages**: Add FileAsset and AnswerFile models with storage deletion logic
+  ([`d6989d3`](https://github.com/johannehouweling/ToxTempAssistant/commit/d6989d350d0ebc2f0b1d68aebb0bbaba39c60948))
+
+
 ## v2.5.0 (2026-01-10)
 
 ### Features
