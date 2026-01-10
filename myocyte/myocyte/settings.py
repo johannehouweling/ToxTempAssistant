@@ -118,6 +118,14 @@ AUTHENTICATION_BACKENDS = (
     "guardian.backends.ObjectPermissionBackend",  # for guardian
 )
 
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+        },
+    },
+}
+
 ANONYMOUS_USER_ID = -1
 
 ROOT_URLCONF = "myocyte.urls"
