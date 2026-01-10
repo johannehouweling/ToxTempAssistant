@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v2.4.0 (2026-01-10)
+
+### Bug Fixes
+
+- **minio**: Add profiles
+  ([`8572ba9`](https://github.com/johannehouweling/ToxTempAssistant/commit/8572ba9130514a97bf3bec4953332f0748bea7a0))
+
+- **minio**: Attach minio to network
+  ([`81a335b`](https://github.com/johannehouweling/ToxTempAssistant/commit/81a335b3afe69d2155052ed9b3e113eda801c061))
+
+### Features
+
+- **minio**: Add MinIO initialization script and update docker-compose
+  ([`c29f9eb`](https://github.com/johannehouweling/ToxTempAssistant/commit/c29f9eb6d3a4a43840882716804f693e87de4840))
+
+
 ## v2.3.1 (2026-01-10)
 
 ### Bug Fixes
