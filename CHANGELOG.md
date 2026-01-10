@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v2.7.1 (2026-01-10)
+
+### Bug Fixes
+
+- **form**: Add enctype for file uploads and remove consent checkbox tracking
+  ([`0426f66`](https://github.com/johannehouweling/ToxTempAssistant/commit/0426f663f5509dc569146550413e7957840ffb94))
+
+
 ## v2.7.0 (2026-01-10)
 
 ### Features
