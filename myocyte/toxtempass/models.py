@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import uuid
 
 from django.contrib.auth.models import AbstractUser, BaseUserManager
@@ -454,6 +455,21 @@ class Question(AccessibleModel):
         return True
 
 
+class FileAssetManager(models.Manager):
+    """Custom manager for FileAsset model with orphan detection and cleanup."""
+
+    def get_orphaned(self, days: int = 7):
+        """Get FileAssets created before N days ago with no answer links."""
+        from toxtempass.fileops import get_orphaned_file_assets
+        return get_orphaned_file_assets(days)
+
+    def cleanup_orphaned(self, days: int = 7) -> tuple[int, dict]:
+        """Delete orphaned FileAssets and their S3 objects."""
+        from toxtempass.fileops import delete_orphaned_file_assets
+        orphans = self.get_orphaned(days)
+        return delete_orphaned_file_assets(orphans)
+
+
 class FileAsset(models.Model):
     class Status(models.TextChoices):
         AVAILABLE = "available", "Available"
@@ -478,6 +494,8 @@ class FileAsset(models.Model):
         related_name="uploaded_files",
     )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    objects = FileAssetManager()
 
     def __str__(self) -> str:
         return self.original_filename
@@ -554,5 +572,3 @@ class Feedback(AccessibleModel):
     def __str__(self):
         """Represent as String."""
         return f"Feedback from {self.user} on {self.submission_date}"
-
-
