@@ -253,21 +253,13 @@ class StartingForm(forms.Form):
     files = forms.FileField(
         widget=MultipleFileInput(attrs={"multiple": True}),
         required=False,
-        help_text=(
-            """Upload documents relevant to your test method to provide context for the
-              LLM-generated answers. This is only possible during the first draft.
-              Examples include publications, SOPs, protocols, certificates of analysis,
-              cell line reports, data management plans, project proposals, lab journals,
-              apparatus metadata, and regulatory guidance. Supported file types: PDF,
-              TXT, MD, HTML, and DOCX. Support for additional formats (e.g., PNG, JPG)
-              may be added in the future."""
-        ),
+        help_text="Upload documents to provide context for LLM-generated answers. Can be used when creating a draft or regenerating with the overwrite option.",
     )
     overwrite = forms.BooleanField(
         required=False,
         initial=False,
         label="Overwrite",
-        help_text="Permission to overwrite.",
+        help_text="Give permission to overwrite existing answers (including manual edits) with new LLM-generated content. Previous answers will be preserved in the answer history.",
     )
 
     extract_images = forms.BooleanField(
@@ -278,6 +270,22 @@ class StartingForm(forms.Form):
             "If checked, images found in uploaded documents (PDFs, DOCX) will be "
             "extracted and used as additional context for generating answers."
         ),
+    )
+    
+    share_files_for_development = forms.BooleanField(
+        required=False,
+        initial=True,
+        label="Share context files for development",
+        help_text=(
+            "I consent to sharing uploaded context files with the ToxTempAssistant "
+            "development team to help improve the system. Only the development team "
+            "will have access to these files. You can opt out by unchecking this box."
+        ),
+    )
+    
+    consent_acknowledged = forms.BooleanField(
+        required=False,
+        widget=forms.HiddenInput(),
     )
 
     def __init__(self, *args, user: Person = None, **kwargs):
@@ -331,6 +339,14 @@ class StartingForm(forms.Form):
                         "be visible in the history."
                     ),
                 )
+        
+        # Check if user has acknowledged consent (interacted with checkbox)
+        if not cleaned_data.get('consent_acknowledged'):
+            self.add_error(
+                'share_files_for_development',
+                'Please acknowledge your choice regarding file sharing by checking or unchecking this box.'
+            )
+        
         return cleaned_data
 
 

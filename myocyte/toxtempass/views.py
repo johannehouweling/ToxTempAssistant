@@ -1010,8 +1010,10 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
             assay = form.cleaned_data["assay"]
             extract_images = form.cleaned_data.get("extract_images", False)
             overwrite = form.cleaned_data.get("overwrite", False)
+            share_files = form.cleaned_data.get("share_files_for_development", True)
             qs = form.cleaned_data["question_set"]
             assay.question_set = qs
+            assay.share_files_for_development = share_files
             assay.save()
             # Security check: does the user still have view-permission on this Assay?
             if not assay.is_accessible_by(request.user, perm_prefix="view"):
