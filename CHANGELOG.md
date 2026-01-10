@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v2.4.1 (2026-01-10)
+
+### Bug Fixes
+
+- **minio**: Use latest version fo minio client
+  ([`95a7274`](https://github.com/johannehouweling/ToxTempAssistant/commit/95a72740ece21488ae882af250dc19408e081d29))
+
+### Chores
+
+- **ci**: Bump version of actions
+  ([`4446c57`](https://github.com/johannehouweling/ToxTempAssistant/commit/4446c57041205ace65642b1d3b2ca30cf184408a))
+
+
 ## v2.4.0 (2026-01-10)
 
 ### Bug Fixes
