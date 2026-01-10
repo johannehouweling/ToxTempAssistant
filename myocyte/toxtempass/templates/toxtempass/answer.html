@@ -95,6 +95,19 @@
           <div>
             <h1> Test method: {{ assay.title }}</h1>
           </div>
+          
+          <!-- Display Consent Status -->
+          <div class="alert alert-info mt-3" role="alert">
+            <strong><i class="bi bi-info-circle"></i> File Sharing Consent:</strong>
+            {% if assay.share_files_for_development %}
+              <i class="bi bi-check-circle-fill text-success"></i> You have consented to share uploaded files with the development team to improve ToxTempAssistant.
+            {% else %}
+              <i class="bi bi-x-circle-fill text-danger"></i> You have opted out of sharing uploaded files.
+            {% endif %}
+            <small class="d-block mt-1 text-muted">
+              <i class="bi bi-lock-fill"></i> This setting was locked when the assay was created and cannot be changed. Only the development team will have access to shared files.
+            </small>
+          </div>
             <form id="QuestionsForm" method="post" action="{{action}}" novalidate enctype="multipart/form-data">
                 {% csrf_token %}
                 <div id="non-field-errors"></div>

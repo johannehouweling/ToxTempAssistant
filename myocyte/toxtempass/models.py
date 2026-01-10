@@ -270,6 +270,10 @@ class Assay(AccessibleModel):
         null=True,
         help_text="Which version of the questionnaire this assay is using",
     )
+    share_files_for_development = models.BooleanField(
+        default=True,
+        help_text="User consent to share uploaded context files with development team to improve ToxTempAssistant",
+    )
 
     def __str__(self) -> str:
         """Assay as string."""
