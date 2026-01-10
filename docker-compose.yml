@@ -51,14 +51,14 @@ services:
 
   minio_init:
     profiles: ["prod","test"]
-    image: minio/mc:RELEASE.2025-09-07T16-13-09Z
+    image: minio/mc:latest
     container_name: minio_init
     depends_on:
       - minio
     env_file:
       - ${ENV_FILE:-./.env}
     volumes:
-      - .myocyte/dockerfiles/minio/init.sh:/init.sh:ro
+      - ./myocyte/dockerfiles/minio/init.sh:/init.sh:ro
     networks:
       - data_network
     entrypoint: /init.sh
