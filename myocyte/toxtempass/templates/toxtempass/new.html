@@ -82,6 +82,18 @@
                 return response.json();
             })
             .then(data => {
+                // Show/hide overwrite checkbox based on whether draft exists
+                const overwriteContainer = document.getElementById('id_overwrite')?.closest('.mb-3');
+                if (overwriteContainer) {
+                    if (data.gpt_allowed) {
+                        // No draft exists - hide overwrite checkbox
+                        overwriteContainer.style.display = 'none';
+                    } else {
+                        // Draft exists - show overwrite checkbox
+                        overwriteContainer.style.display = 'block';
+                    }
+                }
+                
                 if (
                     (data.gpt_allowed || document.getElementById('id_overwrite').checked) &&
                     document.getElementById('id_study').value &&
@@ -99,6 +111,12 @@
             .catch((error) => {
                 console.error('Error:', error);
             });
+        } else {
+            // No assay selected - hide overwrite checkbox
+            const overwriteContainer = document.getElementById('id_overwrite')?.closest('.mb-3');
+            if (overwriteContainer) {
+                overwriteContainer.style.display = 'none';
+            }
         }
         }
 

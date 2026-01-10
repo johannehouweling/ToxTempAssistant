@@ -253,7 +253,7 @@ class StartingForm(forms.Form):
     files = forms.FileField(
         widget=MultipleFileInput(attrs={"multiple": True}),
         required=False,
-        help_text="Upload documents to provide context for LLM-generated answers. Available during initial draft only.",
+        help_text="Upload documents to provide context for LLM-generated answers. Can be used when creating a draft or regenerating with the overwrite option.",
     )
     overwrite = forms.BooleanField(
         required=False,
