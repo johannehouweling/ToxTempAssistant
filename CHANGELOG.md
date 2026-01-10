@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v2.7.0 (2026-01-10)
+
+### Features
+
+- **file-storage**: Implement S3/MinIO file storage with user consent and orphan cleanup
+  ([`49ed5b8`](https://github.com/johannehouweling/ToxTempAssistant/commit/49ed5b8d0d44c01edd0aed5fa52c0ae919a5fb33))
+
+
 ## v2.6.0 (2026-01-10)
 
 ### Features
