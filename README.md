@@ -10,6 +10,7 @@ ToxTemp "was developed (i) to fulfill all requirements of GD211, (ii) to guide t
     - [Get OpenAI API credentials](#get-openai-api-credentials)
     - [Get ORCID iD credentials](#get-orcid-id-credentials)
     - [Create Certificate](#create-certificate)
+    - [MinIO setup](#minio-setup)
   - [License](#license)
   - [Maintainer](#maintainer)
   - [References](#references)
@@ -36,7 +37,8 @@ Modify and rename the '.env.dummy'-file to `.env` in same path as the `docker-co
 - `POSTGRES_USER` Postgres User, default 'postgres'
 - `POSTGRES_PASSWORD` Password for user, needs to be set using psql (see below)
 - `POSTGRES_DB` Database name for django to use, also postgres user needs to be granted permissions to said db (see below)
-
+- `MINIO_ROOT_USER` MinIO *admin console* username (root/admin account).
+- `MINIO_ROOT_PASSWORD` MinIO *admin console* password (root/admin account
 
 The easier way to spin up the server is by using our docker compose file, if you are using an external PostGres Server, it is best to remove the postgres portion and its network from the docker-file. 
 ```bash
@@ -61,6 +63,14 @@ To obtain ORCID iD and secret perform the following steps:
 Required for orcid login and general privacy considerations, it is advised to setup https. To this end a certificate is required. Create a Certificate Signing Request and send it to Certifying Authority, your institution should have someone. 
 See this article, which also has some details on making the certificiate work with nginx: https://www.digitalocean.com/community/tutorials/how-to-create-a-self-signed-ssl-certificate-for-nginx-in-ubuntu-20-04-1
 
+### MinIO setup
+MinIO provides local S3-compatible object storage for the app.
+
+- Set `MINIO_ROOT_USER` and `MINIO_ROOT_PASSWORD` in `.env` for the MinIO admin account.
+- Set `MINIO_DJANGO_USER` and `MINIO_DJANGO_PASSWORD` in `.env` for the application access keys.
+- Start the stack with `docker compose -f docker-compose.yml up` and open the MinIO console at `http://127.0.0.1:9001`.
+- Log in with the root credentials, create a user for Django with the access keys above, and create the bucket(s) needed by your deployment.
+- The MinIO API is available inside the Docker network on port `9000`; only the console is exposed to the host.
 
 ## License
 This project is licensed under the GNU Affero General Public License, see the LICENSE file for details.
