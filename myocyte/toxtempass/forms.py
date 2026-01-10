@@ -271,6 +271,22 @@ class StartingForm(forms.Form):
             "extracted and used as additional context for generating answers."
         ),
     )
+    
+    share_files_for_development = forms.BooleanField(
+        required=False,
+        initial=True,
+        label="Share context files for development",
+        help_text=(
+            "I consent to sharing uploaded context files with the ToxTempAssistant "
+            "development team to help improve the system. Only the development team "
+            "will have access to these files. You can opt out by unchecking this box."
+        ),
+    )
+    
+    consent_acknowledged = forms.BooleanField(
+        required=False,
+        widget=forms.HiddenInput(),
+    )
 
     def __init__(self, *args, user: Person = None, **kwargs):
         """Expect a 'user' keyword argument to filter the querysets.
@@ -324,6 +340,13 @@ class StartingForm(forms.Form):
                     ),
                 )
         
+        # Check if user has acknowledged consent (interacted with checkbox)
+        if not cleaned_data.get('consent_acknowledged'):
+            self.add_error(
+                'share_files_for_development',
+                'Please acknowledge your choice regarding file sharing by checking or unchecking this box.'
+            )
+        
         return cleaned_data
 
 
@@ -359,25 +382,9 @@ class StudyForm(forms.ModelForm):
 
 
 class AssayForm(forms.ModelForm):
-    share_files_for_development = forms.BooleanField(
-        required=False,
-        initial=True,
-        label="Share context files for development",
-        help_text=(
-            "I consent to sharing uploaded context files with the ToxTempAssistant "
-            "development team to help improve the system. Only the development team "
-            "will have access to these files. You can opt out by unchecking this box."
-        ),
-    )
-    
-    consent_acknowledged = forms.BooleanField(
-        required=False,
-        widget=forms.HiddenInput(),
-    )
-    
     class Meta:
         model = Assay
-        fields = ["study", "title", "description", "share_files_for_development"]
+        fields = ["study", "title", "description"]
         help_texts = {
             "description": (
                 "Please provide a concise description of the assay that"
@@ -400,19 +407,6 @@ class AssayForm(forms.ModelForm):
             self.fields["study"].queryset = Study.objects.filter(
                 investigation__in=accessible_investigations
             )
-    
-    def clean(self) -> dict:
-        """Clean form and validate consent acknowledgment."""
-        cleaned_data = super().clean()
-        
-        # Check if user has acknowledged consent (interacted with checkbox)
-        if not cleaned_data.get('consent_acknowledged'):
-            self.add_error(
-                'share_files_for_development',
-                'Please acknowledge your choice regarding file sharing by checking or unchecking this box.'
-            )
-        
-        return cleaned_data
 
 
 class AssayAnswerForm(forms.Form):
