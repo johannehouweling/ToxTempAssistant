@@ -1,3 +1,6 @@
+from __future__ import annotations
+import uuid
+
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.validators import validate_email
 from django.db import models
@@ -451,6 +454,36 @@ class Question(AccessibleModel):
         return True
 
 
+class FileAsset(models.Model):
+    class Status(models.TextChoices):
+        AVAILABLE = "available", "Available"
+        DELETED = "deleted", "Deleted"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    bucket = models.CharField(max_length=255, blank=True)
+    object_key = models.CharField(max_length=1024, unique=True)
+
+    original_filename = models.CharField(max_length=512)
+    content_type = models.CharField(max_length=255, blank=True)
+    size_bytes = models.BigIntegerField(null=True, blank=True)
+
+    sha256 = models.CharField(max_length=64, blank=True)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.AVAILABLE)
+
+    uploaded_by = models.ForeignKey(
+        Person,
+        null=True, blank=True,
+        on_delete=models.CASCADE,
+        related_name="uploaded_files",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return self.original_filename
+
+
+
 # Answer Model (linked to Assay)
 class Answer(AccessibleModel):
     assay = models.ForeignKey(Assay, on_delete=models.CASCADE, related_name="answers")
@@ -465,7 +498,15 @@ class Answer(AccessibleModel):
         null=True,
         blank=True,
         help_text="Store list of Filenames used to answer this question.",
-    )  # chnage this to VectorField with for a real database.
+    )  # change this to VectorField with for a real database.
+    files = models.ManyToManyField(
+        FileAsset,
+        through="AnswerFile",
+        related_name="answers",
+        blank=True,
+        null=True,
+        help_text="Actual stored files (only present if user consented to storage).",
+    )
     answer_text = models.TextField(blank=True, default="")
     accepted = models.BooleanField(
         null=True, blank=True, help_text="Marked as final answer."
@@ -488,6 +529,20 @@ class Answer(AccessibleModel):
         return self.answer_text[:max_length].rsplit(' ', 1)[0] + '...'
 
 
+class AnswerFile(models.Model):
+    answer = models.ForeignKey(Answer, on_delete=models.CASCADE)
+    file = models.ForeignKey(FileAsset, on_delete=models.CASCADE)
+
+    # optional per-link metadata, useful later
+    label = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["answer", "file"], name="uq_answer_file"),
+        ]
+
+
 # Feedback Model
 class Feedback(AccessibleModel):
     user = models.ForeignKey(Person, on_delete=models.CASCADE, related_name="feedbacks")
@@ -499,3 +554,5 @@ class Feedback(AccessibleModel):
     def __str__(self):
         """Represent as String."""
         return f"Feedback from {self.user} on {self.submission_date}"
+
+
