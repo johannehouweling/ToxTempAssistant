@@ -2,6 +2,98 @@
 
 <!-- version list -->
 
+## v2.3.0 (2026-01-10)
+
+### Bug Fixes
+
+- **evaluation**: Update input directory path for quality scoring to use relative path
+  ([`9f98a8e`](https://github.com/johannehouweling/ToxTempAssistant/commit/9f98a8e9f9d4844498648cf2cea7eb1df83af602))
+
+- **poetry**: Update lockfile
+  ([`2eb8988`](https://github.com/johannehouweling/ToxTempAssistant/commit/2eb898840d3b4deafb59fea9bf066913c9356a25))
+
+- **poetry**: Update poetry lock file
+  ([`2375150`](https://github.com/johannehouweling/ToxTempAssistant/commit/2375150c9c5f51558de295b9926dd0b64f4efb59))
+
+### Chores
+
+- **ci**: Deleted cleanup scripts
+  ([`080070f`](https://github.com/johannehouweling/ToxTempAssistant/commit/080070fca32a8c35064703e0413b3748d6516219))
+
+- **pyproject**: Update version to 2.2.0 and modify dependencies for compatibility
+  ([`de8c089`](https://github.com/johannehouweling/ToxTempAssistant/commit/de8c08943687c462779e1ba49f4d93ae9ba627bb))
+
+### Documentation
+
+- **config**: Update notes on evaluation metrics and BERT usage in EvaluationConfig
+  ([`4780266`](https://github.com/johannehouweling/ToxTempAssistant/commit/478026655ece897e4e1849f534d53c81f05f456c))
+
+- **config**: Update notes on evaluation metrics and BERT usage in EvaluationConfig
+  ([`d9eb306`](https://github.com/johannehouweling/ToxTempAssistant/commit/d9eb306b1bd750a04231dbd76c00c2554df3ff64))
+
+- **urls**: Add example usage comment for init_db path
+  ([`8ceea9f`](https://github.com/johannehouweling/ToxTempAssistant/commit/8ceea9fbfd0b11d92e8679b52e30dd72cbbf7267))
+
+- **urls**: Add example usage comment for init_db path
+  ([`0dae720`](https://github.com/johannehouweling/ToxTempAssistant/commit/0dae7205bef82a1cc15ad647a045225b7456392f))
+
+### Features
+
+- **data_analysis**: Update model handling and enhance scatter plot category orders for consistency
+  ([`a401a23`](https://github.com/johannehouweling/ToxTempAssistant/commit/a401a2307051bcfc6db7d8782cf760112dc4e105))
+
+- **evaluation**: Add validation metrics and BERT score options to ExperimentConfig and related
+  functions
+  ([`1bc2553`](https://github.com/johannehouweling/ToxTempAssistant/commit/1bc2553b496aa6a05790f87169129931c5994f3e))
+
+- **evaluation**: Add validation metrics and BERT score options to ExperimentConfig and related
+  functions
+  ([`8b5f322`](https://github.com/johannehouweling/ToxTempAssistant/commit/8b5f322f45edb082d89b98030d2875f23a7c242f))
+
+- **init_db**: Implement command to create QuestionSet from JSON file
+  ([`b1438a2`](https://github.com/johannehouweling/ToxTempAssistant/commit/b1438a2000ca704b8f5c22ab67ad3a44995cf474))
+
+- **init_db**: Implement command to create QuestionSet from JSON file
+  ([`1cbc8fe`](https://github.com/johannehouweling/ToxTempAssistant/commit/1cbc8fee5d26fb5949b2d6fdc0bda110284892f6))
+
+- **licenses**: Add third-party licenses documentation for OECD and EFSA materials
+  ([`89d0cce`](https://github.com/johannehouweling/ToxTempAssistant/commit/89d0ccef98276f94ffb4ce964f504f10f6ade306))
+
+- **minio**: Added minio for blob storage option
+  ([`789ebb6`](https://github.com/johannehouweling/ToxTempAssistant/commit/789ebb6321755f2fc390602b55f2a599998396a4))
+
+- **neg_summary, pooled_summary**: Refactor model file handling and enhance accuracy plotting with
+  error bars
+  ([`28d73e3`](https://github.com/johannehouweling/ToxTempAssistant/commit/28d73e3c3a22ba48a5146ecaa5e0b0025825b5c5))
+
+- **pooled_summary**: Enhance accuracy scatter plot with improved legend and error bar labels
+  ([`85e4b8f`](https://github.com/johannehouweling/ToxTempAssistant/commit/85e4b8f4cd68d6467be81fcfaf2c27f52919d4c1))
+
+- **pooled_summary**: Enhance scatter plot styling with updated color and error bar settings
+  ([`cfe6c9a`](https://github.com/johannehouweling/ToxTempAssistant/commit/cfe6c9aa681852b96a184e1a9533a6091051b98e))
+
+- **questionset**: Enhance create_questionset_from_json to reuse existing QuestionSet if empty
+  ([`d5e6470`](https://github.com/johannehouweling/ToxTempAssistant/commit/d5e6470c701ca1b29a86cf0d7bacd9ba37c06704))
+
+- **questionset**: Enhance create_questionset_from_json to reuse existing QuestionSet if empty
+  ([`cb2a708`](https://github.com/johannehouweling/ToxTempAssistant/commit/cb2a708145ea88342d721ca3dbdc53d0679851aa))
+
+### Refactoring
+
+- **data_analysis**: Add ncontrol_summary and pcontrol_summary scripts
+  ([`d057ec7`](https://github.com/johannehouweling/ToxTempAssistant/commit/d057ec78b573ef2ce11deb67c671d893f934c86f))
+
+- **data_analysis**: Remove unused neg_summary and pos_summary scripts; update pcontrol_summary for
+  improved directory handling and output paths
+  ([`f3780c7`](https://github.com/johannehouweling/ToxTempAssistant/commit/f3780c7d4bef6542466d4e7083d076f71ba9b874))
+
+- **evaluation**: Remove BERT score option from ExperimentConfig
+  ([`74f3e6e`](https://github.com/johannehouweling/ToxTempAssistant/commit/74f3e6e34d766800e1c8560e0a237ad1064658b4))
+
+- **evaluation**: Remove BERT score option from ExperimentConfig
+  ([`b64bb1c`](https://github.com/johannehouweling/ToxTempAssistant/commit/b64bb1cc68835bb1ad8d4dfbd8adcc442ab64345))
+
+
 ## v2.2.0 (2025-12-01)
 
 ### Bug Fixes
