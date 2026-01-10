@@ -28,6 +28,26 @@ services:
       - db_network
     # No volumes to ensure ephemeral test DB
 
+  # MinIO
+  minio:
+    profiles: ["prod","test"]
+    image: minio/minio:RELEASE.2025-10-15T17-29-55Z
+    container_name: minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    env_file:
+      - ${ENV_FILE:-./.env}
+    ports:
+      - "127.0.0.1:9001:9001"
+    expose:
+      - 9000
+      - 9001
+    volumes:
+      - minio_blob_data:/data
+    networks:
+      - data_network
+
+
   # Django app
   djangoapp:
     profiles: ["test", "prod"]
@@ -73,6 +93,7 @@ services:
       - GIT_TAG=${GIT_TAG}
     networks:
       - db_network
+      - data_network
       ### ATTENTION ###
       # The djangoapp container needs to be connected to the db_network
       # to access the Postgres database, but also to the default bridge network
@@ -82,5 +103,8 @@ services:
 networks:
   db_network:
     driver: bridge
+  data_network:
+    driver: bridge
 volumes:
   db_data:
+  minio_blob_data:
