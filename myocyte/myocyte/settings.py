@@ -287,6 +287,16 @@ EMAIL_SUBJECT_PREFIX = "[ToxTempAssistant ERROR] "
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "static"
 
+# Storage backends configuration (Django 4.2+)
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
