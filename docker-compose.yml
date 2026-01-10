@@ -50,6 +50,7 @@ services:
       - data_network
 
   minio_init:
+    profiles: ["prod","test"]
     image: minio/mc:RELEASE.2025-09-07T16-13-09Z
     container_name: minio_init
     depends_on:
