@@ -29,7 +29,7 @@
   </span>
 </h1>
  <!-- action defines where ajax sends the post to, novalidate to use bootstrap validation markup --> 
-    <form method="post" action="{{action}}" novalidate>
+    <form method="post" action="{{action}}" enctype="multipart/form-data" novalidate>
         {% csrf_token %}
         <div id='non-field-errors'></div>
         {% bootstrap_form form layout='floating' show_label=False %}
@@ -321,38 +321,6 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Consent checkbox acknowledgment tracking
-    const consentCheckbox = document.getElementById('id_share_files_for_development');
-    const acknowledgedField = document.getElementById('id_consent_acknowledged');
-    const form = document.querySelector('form');
-    
-    if (consentCheckbox && acknowledgedField) {
-        // Track if user has interacted with the consent checkbox
-        let hasInteracted = false;
-        
-        consentCheckbox.addEventListener('change', function() {
-            hasInteracted = true;
-            acknowledgedField.value = 'true';
-        });
-        
-        // On form submission, check if user has acknowledged
-        form.addEventListener('submit', function(e) {
-            if (!hasInteracted) {
-                e.preventDefault();
-                alert('Please acknowledge your choice regarding file sharing by checking or unchecking the box.');
-                consentCheckbox.focus();
-                // Highlight the field
-                const fieldContainer = consentCheckbox.closest('.mb-3');
-                if (fieldContainer) {
-                    fieldContainer.classList.add('border', 'border-danger', 'p-2', 'rounded');
-                    setTimeout(() => {
-                        fieldContainer.classList.remove('border', 'border-danger', 'p-2', 'rounded');
-                    }, 3000);
-                }
-            }
-        });
-    }
-    
     // Attach confirmation to all delete buttons (IDs ending with "_btn2")
     document.querySelectorAll('a[id$="_btn2"]').forEach(function(deleteBtn) {
       deleteBtn.addEventListener('click', function(event) {
