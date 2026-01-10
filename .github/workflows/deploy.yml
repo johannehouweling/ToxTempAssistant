@@ -48,3 +48,6 @@ jobs:
             sudo --preserve-env=GIT_HASH,GIT_TAG docker compose --profile prod up --build -d 
             # connect to default bridge network to allow communication with other containers
             sudo docker network connect bridge djangoapp
+            # If remote access to minio console is needed, uncomment the following line
+            # sudo docker network connect bridge minio
+

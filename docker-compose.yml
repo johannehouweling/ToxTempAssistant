@@ -37,8 +37,10 @@ services:
     command: server /data --console-address ":9001"
     env_file:
       - ${ENV_FILE:-./.env}
-    ports:
-      - "127.0.0.1:9001:9001"
+    # For remote access to the MinIO console, map port 9001 to the host
+    # Also needs attachment to the default bridge network in deploy.yml
+    # ports:
+    #   - "127.0.0.1:9001:9001"
     expose:
       - 9000
       - 9001
@@ -47,6 +49,19 @@ services:
     networks:
       - data_network
 
+  minio_init:
+    image: minio/mc:RELEASE.2025-09-07T16-13-09Z
+    container_name: minio_init
+    depends_on:
+      - minio
+    env_file:
+      - ${ENV_FILE:-./.env}
+    volumes:
+      - .myocyte/dockerfiles/minio/init.sh:/init.sh:ro
+    networks:
+      - data_network
+    entrypoint: /init.sh
+    restart: "no"
 
   # Django app
   djangoapp:
