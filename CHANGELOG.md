@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v2.3.1 (2026-01-10)
+
+### Bug Fixes
+
+- **minio**: Correct Release
+  ([`e387837`](https://github.com/johannehouweling/ToxTempAssistant/commit/e38783782975a1f69dc0db833b982479e798ed3d))
+
+
 ## v2.3.0 (2026-01-10)
 
 ### Bug Fixes
