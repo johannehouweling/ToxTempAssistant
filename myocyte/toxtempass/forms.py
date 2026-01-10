@@ -253,21 +253,13 @@ class StartingForm(forms.Form):
     files = forms.FileField(
         widget=MultipleFileInput(attrs={"multiple": True}),
         required=False,
-        help_text=(
-            """Upload documents relevant to your test method to provide context for the
-              LLM-generated answers. This is only possible during the first draft.
-              Examples include publications, SOPs, protocols, certificates of analysis,
-              cell line reports, data management plans, project proposals, lab journals,
-              apparatus metadata, and regulatory guidance. Supported file types: PDF,
-              TXT, MD, HTML, and DOCX. Support for additional formats (e.g., PNG, JPG)
-              may be added in the future."""
-        ),
+        help_text="Upload documents to provide context for LLM-generated answers. Available during initial draft only.",
     )
     overwrite = forms.BooleanField(
         required=False,
         initial=False,
         label="Overwrite",
-        help_text="Permission to overwrite.",
+        help_text="Give permission to overwrite existing answers (including manual edits) with new LLM-generated content. Previous answers will be preserved in the answer history.",
     )
 
     extract_images = forms.BooleanField(
