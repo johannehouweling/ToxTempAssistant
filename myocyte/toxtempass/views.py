@@ -6,13 +6,14 @@ import time
 from collections import defaultdict
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from itertools import product
 
 import requests
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth.models import User
 from django.contrib.humanize.templatetags.humanize import naturaltime
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import QuerySet
 from django.http import (
     FileResponse,
@@ -61,6 +62,7 @@ from toxtempass.forms import (
 from toxtempass.llm import get_llm
 from toxtempass.models import (
     Answer,
+    AnswerFile,
     Assay,
     Feedback,
     Investigation,
@@ -73,7 +75,6 @@ from toxtempass.models import (
     Subsection,
 )
 from toxtempass.tables import AssayTable
-from toxtempass.tasks import queue_email
 
 logger = logging.getLogger("views")
 
@@ -515,9 +516,12 @@ def create_questionset_from_json(label: str, created_by: Person) -> QuestionSet:
 
     existing_qs = QuestionSet.objects.filter(label=label).first()
     if existing_qs:
-        has_content = Section.objects.filter(question_set=existing_qs).exists() or Question.objects.filter(
-            subsection__section__question_set=existing_qs
-        ).exists()
+        has_content = (
+            Section.objects.filter(question_set=existing_qs).exists()
+            or Question.objects.filter(
+                subsection__section__question_set=existing_qs
+            ).exists()
+        )
         if has_content:
             raise ValueError(f"Version '{label}' already exists")
         # reuse the existing (empty) QuestionSet
@@ -866,19 +870,27 @@ def process_llm_async(
             # fire off the round in parallel
             with ThreadPoolExecutor(max_workers=config.max_workers_threading) as pool:
                 futures = {
-                    pool.submit(generate_answer, a, full_pdf_context, assay, chatopenai): a
+                    pool.submit(
+                        generate_answer, a, full_pdf_context, assay, chatopenai
+                    ): a
                     for a in round_answers
                 }
 
-                with tqdm(total=len(futures), disable=not verbose, desc="Answers") as pbar:
+                with tqdm(
+                    total=len(futures), disable=not verbose, desc="Answers"
+                ) as pbar:
                     for future in as_completed(futures):
                         try:
-                            aid, text = future.result()  # optionally: future.result(timeout=...)
+                            aid, text = (
+                                future.result()
+                            )  # optionally: future.result(timeout=...)
                         except TimeoutError as te:
                             logger.error(str(te))
                             continue
                         except Exception as exc:
-                            logger.exception(f"Fatal error for answer {futures[future].id}: {exc}")
+                            logger.exception(
+                                f"Fatal error for answer {futures[future].id}: {exc}"
+                            )
                             continue
                         finally:
                             pbar.update(1)
@@ -1036,7 +1048,7 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
             files = request.FILES.getlist("files")
             consent_file_storage = form.cleaned_data.get("consent_file_storage", False)
             answers_exist = assay.answers.exists()
-            
+
             # Store files to S3/MinIO if user consented
             stored_file_assets = []
             if files and consent_file_storage:
@@ -1061,13 +1073,23 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                             "errors": {"__all__": [f"File storage failed: {str(e)}"]},
                         }
                     )
-            
+
             # If files were uploaded and there are no existing answers,
             # seed empty answers.
             if files and not answers_exist:
                 form_empty_answers = AssayAnswerForm({}, assay=assay, user=request.user)
                 if form_empty_answers.is_valid():
                     form_empty_answers.save()
+                    if consent_file_storage and stored_file_assets:
+                        # Link stored FileAssets to the newly created Answers
+                        pairs = [
+                            AnswerFile(answer=answer, file=file)
+                            for answer, file in product(
+                                assay.answers.all(), stored_file_assets
+                            )
+                        ]
+                        with transaction.atomic():
+                            AnswerFile.objects.bulk_create(pairs, ignore_conflicts=True)
             # If files were uploaded and either overwrite is True or no existing
             if files and (overwrite or not answers_exist):
                 doc_dict = get_text_or_imagebytes_from_django_uploaded_file(
@@ -1093,9 +1115,14 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                             try:
                                 asset.status = "deleted"
                                 asset.save()
-                                logger.info("Marked FileAsset as deleted due to LLM failure: %s", asset.id)
+                                logger.info(
+                                    "Marked FileAsset as deleted due to LLM failure: %s",
+                                    asset.id,
+                                )
                             except Exception as cleanup_error:
-                                logger.exception("Failed to cleanup file asset: %s", cleanup_error)
+                                logger.exception(
+                                    "Failed to cleanup file asset: %s", cleanup_error
+                                )
                     return JsonResponse(
                         {
                             "success": False,
