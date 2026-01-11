@@ -470,11 +470,14 @@ class FileAsset(models.Model):
     size_bytes = models.BigIntegerField(null=True, blank=True)
 
     sha256 = models.CharField(max_length=64, blank=True)
-    status = models.CharField(max_length=16, choices=Status.choices, default=Status.AVAILABLE)
+    status = models.CharField(
+        max_length=16, choices=Status.choices, default=Status.AVAILABLE
+    )
 
     uploaded_by = models.ForeignKey(
         Person,
-        null=True, blank=True,
+        null=True,
+        blank=True,
         on_delete=models.CASCADE,
         related_name="uploaded_files",
     )
@@ -482,7 +485,6 @@ class FileAsset(models.Model):
 
     def __str__(self) -> str:
         return self.original_filename
-
 
 
 # Answer Model (linked to Assay)
@@ -543,6 +545,36 @@ class AnswerFile(models.Model):
             models.UniqueConstraint(fields=["answer", "file"], name="uq_answer_file"),
         ]
 
+class FileDownloadLog(models.Model):
+    """Audit log for file downloads (staff/superuser only)."""
+
+    file = models.ForeignKey(
+        FileAsset,
+        on_delete=models.CASCADE,
+        related_name="download_logs",
+    )
+    user = models.ForeignKey(
+        Person,
+        on_delete=models.CASCADE,
+        related_name="file_download_logs",
+    )
+    ip_address = models.GenericIPAddressField(
+        null=True,
+        blank=True,
+        help_text="IP address of the download request"
+    )
+    downloaded_at = models.DateTimeField(auto_now_add=True)
+
+    history = HistoricalRecords()
+
+    class Meta:
+        ordering = ["-downloaded_at"]
+        verbose_name = "File Download Log"
+        verbose_name_plural = "File Download Logs"
+
+    def __str__(self):
+        return f"{self.user.email} downloaded {self.file.original_filename} on {self.downloaded_at.strftime('%Y-%m-%d %H:%M:%S')}"
+
 
 # Feedback Model
 class Feedback(AccessibleModel):
@@ -555,5 +587,3 @@ class Feedback(AccessibleModel):
     def __str__(self):
         """Represent as String."""
         return f"Feedback from {self.user} on {self.submission_date}"
-
-

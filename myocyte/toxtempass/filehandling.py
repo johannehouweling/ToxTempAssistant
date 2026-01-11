@@ -11,6 +11,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING
 from zipfile import ZipFile
+from zipfile import ZipFile as ZipFileLib
 
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import (
@@ -18,6 +19,7 @@ from django.core.files.uploadedfile import (
     TemporaryUploadedFile,
     UploadedFile,
 )
+from django.http import HttpRequest
 from langchain_community.document_loaders import (
     BSHTMLLoader,
     TextLoader,
@@ -30,9 +32,7 @@ from pypdf._page import PageObject
 
 from toxtempass import config
 from toxtempass.llm import get_llm
-
-if TYPE_CHECKING:
-    from toxtempass.models import Assay, FileAsset, Person
+from toxtempass.models import AnswerFile, Assay, FileAsset, FileDownloadLog, Person
 
 try:
     import openpyxl
@@ -681,8 +681,10 @@ def store_files_to_storage(
                 f"{Path(file.name).name}"
             )
 
-            # Upload to storage
-            default_storage.save(object_key, file)
+            # Upload to storage using BytesIO from file_content
+            # (file pointer is exhausted after chunks() call above)
+            file_obj = BytesIO(file_content)
+            default_storage.save(object_key, file_obj)
             logger.info(
                 "Successfully uploaded file %s to storage: %s",
                 file.name,
@@ -713,6 +715,93 @@ def store_files_to_storage(
             raise
 
     logger.info(
-        "Stored %d files for user %s on assay %s", len(created_assets), user.email, assay.id
+        "Stored %d files for user %s on assay %s",
+        len(created_assets),
+        user.email,
+        assay.id,
     )
     return created_assets
+
+def download_assay_files_as_zip(
+    assay: Assay,
+    user: Person,
+    request: HttpRequest | None = None,
+) -> tuple[bytes, str]:
+    """Download all files associated with an assay as a ZIP archive.
+
+    Args:
+        assay: Assay object whose files to download
+        user: Person performing the download (staff/superuser only)
+        request: Optional HttpRequest to extract IP address for audit log
+
+    Returns:
+        Tuple of (zip_bytes, filename)
+
+    Raises:
+        Exception: If file retrieval or ZIP creation fails
+    """
+    # Get all files associated with all answers in this assay
+    answer_files = AnswerFile.objects.filter(
+        answer__assay=assay
+    ).select_related("file").distinct("file")
+
+    if not answer_files.exists():
+        logger.warning("No files found for assay %s", assay.id)
+        return b"", "empty.zip"
+
+    file_assets = [af.file for af in answer_files]
+    zip_buffer = BytesIO()
+
+    try:
+        with ZipFileLib(zip_buffer, "w") as zip_file:
+            for file_asset in file_assets:
+                try:
+                    # Download file from S3/MinIO
+                    file_content = default_storage.open(file_asset.object_key).read()
+
+                    # Add to ZIP with original filename
+                    zip_file.writestr(file_asset.original_filename, file_content)
+                    logger.debug("Added %s to ZIP", file_asset.original_filename)
+
+                except Exception as exc:
+                    logger.exception(
+                        "Failed to retrieve file %s from storage: %s",
+                        file_asset.id,
+                        exc,
+                    )
+                    raise
+
+        zip_bytes = zip_buffer.getvalue()
+
+        # Log the download for audit trail
+        try:
+            ip_address = None
+            if request:
+                x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+                if x_forwarded_for:
+                    ip_address = x_forwarded_for.split(",")[0]
+                else:
+                    ip_address = request.META.get("REMOTE_ADDR")
+
+            for file_asset in file_assets:
+                FileDownloadLog.objects.create(
+                    file=file_asset,
+                    user=user,
+                    ip_address=ip_address,
+                )
+            logger.info(
+                "Logged %d file downloads for assay %s by user %s",
+                len(file_assets),
+                assay.id,
+                user.email,
+            )
+        except Exception as exc:
+            logger.exception("Failed to create download log entries: %s", exc)
+            # Don't fail the download if logging fails
+            pass
+
+        return zip_bytes, f"assay_{assay.id}_files.zip"
+
+    except Exception as exc:
+        logger.exception("Failed to create ZIP archive for assay %s: %s", assay.id, exc)
+        raise
