@@ -676,7 +676,7 @@ def store_files_to_storage(
             # Generate S3 object key using user/assay structure
             # Format: consent_user_documents/{user.email}/{assay.id}/{uuid}/{filename}
             object_key = (
-                f"consent_user_documents/{user.email}/{assay.id}/"
+                f"consent_user_documents/{user.email}/assay/{assay.id}/"
                 f"{uuid.uuid4()}/"
                 f"{Path(file.name).name}"
             )
