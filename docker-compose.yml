@@ -101,6 +101,7 @@ services:
     depends_on:
       # ensure in a production environment that the database is up before starting Django
       - ${POSTGRES_HOST:-postgres_for_django}
+      - minio
     env_file:
       - ${ENV_FILE:-./.env}
     environment:
