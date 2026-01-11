@@ -65,3 +65,45 @@ class ToxtempassConfig(AppConfig):
         for k, v in summary.items():
             _LOG.info(f"{k:<22} {v}")
         _LOG.info("#" * len(toptitlebar))
+
+        # Register ephemeral django_q schedules (in-memory, not persisted to DB)
+        self._register_ephemeral_schedules()
+
+    def _register_ephemeral_schedules(self) -> None:
+        """Register ephemeral (in-memory) django_q schedules.
+
+        These schedules are created in memory at startup and not persisted to
+        the database. On each app restart, old schedules are discarded, preventing
+        duplicate task runs.
+        """
+        try:
+            from django_q.tasks import schedule
+            from django.utils import timezone
+            from datetime import timedelta
+
+            # Schedule orphaned file cleanup: every week (168 hours)
+            schedule(
+                "toxtempass.utilities.cleanup_orphaned_files",
+                schedule_type="H",  # Hourly recurring at specific times
+                repeats=-1,  # Infinite repeats
+                minutes=0,  # On the hour
+                next_run=timezone.now() + timedelta(hours=1),
+                kwargs={"phase": 1, "dry_run": False},
+            )
+            _LOG.info("Registered ephemeral schedule: cleanup_orphaned_files (Phase 1)")
+
+            # Phase 2 follows a week after Phase 1
+            schedule(
+                "toxtempass.utilities.cleanup_orphaned_files",
+                schedule_type="H",
+                repeats=-1,
+                minutes=0,
+                next_run=timezone.now() + timedelta(days=7, hours=1),
+                kwargs={"phase": 2, "dry_run": False},
+            )
+            _LOG.info("Registered ephemeral schedule: cleanup_orphaned_files (Phase 2)")
+
+        except ImportError:
+            _LOG.warning("django_q not available; ephemeral schedules not registered")
+        except Exception as e:
+            _LOG.warning(f"Failed to register ephemeral schedules: {e}")

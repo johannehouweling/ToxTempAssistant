@@ -44,6 +44,7 @@ from toxtempass.filehandling import (
     collect_source_documents,
     get_text_or_imagebytes_from_django_uploaded_file,
     split_doc_dict_by_type,
+    store_files_to_storage,
     stringyfy_text_dict,
     summarize_image_entries,
 )
@@ -1033,7 +1034,34 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                 )
 
             files = request.FILES.getlist("files")
+            consent_file_storage = form.cleaned_data.get("consent_file_storage", False)
             answers_exist = assay.answers.exists()
+            
+            # Store files to S3/MinIO if user consented
+            stored_file_assets = []
+            if files and consent_file_storage:
+                try:
+                    stored_file_assets = store_files_to_storage(
+                        files=files,
+                        user=request.user,
+                        assay=assay,
+                        consent=True,
+                    )
+                    logger.info(
+                        "Stored %d files for user %s on assay %s",
+                        len(stored_file_assets),
+                        request.user.email,
+                        assay.id,
+                    )
+                except Exception as e:
+                    logger.exception("Failed to store files: %s", e)
+                    return JsonResponse(
+                        {
+                            "success": False,
+                            "errors": {"__all__": [f"File storage failed: {str(e)}"]},
+                        }
+                    )
+            
             # If files were uploaded and there are no existing answers,
             # seed empty answers.
             if files and not answers_exist:
@@ -1058,6 +1086,16 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                     )
 
                 except Exception as e:
+                    logger.exception("LLM processing failed: %s", e)
+                    # Cleanup orphaned files if LLM fails
+                    if stored_file_assets:
+                        for asset in stored_file_assets:
+                            try:
+                                asset.status = "deleted"
+                                asset.save()
+                                logger.info("Marked FileAsset as deleted due to LLM failure: %s", asset.id)
+                            except Exception as cleanup_error:
+                                logger.exception("Failed to cleanup file asset: %s", cleanup_error)
                     return JsonResponse(
                         {
                             "success": False,

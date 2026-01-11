@@ -1,14 +1,18 @@
 import base64
 import csv
+import hashlib
 import json
 import logging
+import mimetypes
 import shutil
 import tempfile
 import warnings
 from io import BytesIO
 from pathlib import Path
+from typing import TYPE_CHECKING
 from zipfile import ZipFile
 
+from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import (
     InMemoryUploadedFile,
     TemporaryUploadedFile,
@@ -26,6 +30,9 @@ from pypdf._page import PageObject
 
 from toxtempass import config
 from toxtempass.llm import get_llm
+
+if TYPE_CHECKING:
+    from toxtempass.models import Assay, FileAsset, Person
 
 try:
     import openpyxl
@@ -610,3 +617,102 @@ def collect_source_documents(doc_dict: dict[str, dict[str, str]]) -> list[str]:
             seen.add(name)
             ordered.append(name)
     return ordered
+
+
+def _calculate_sha256(file_bytes: bytes) -> str:
+    """Calculate SHA256 hash for file bytes."""
+    return hashlib.sha256(file_bytes).hexdigest()
+
+
+def store_files_to_storage(
+    files: list[UploadedFile],
+    user: "Person",
+    assay: "Assay",
+    consent: bool,
+) -> list["FileAsset"]:
+    """Store uploaded files to S3/MinIO if user consented.
+
+    Args:
+        files: List of uploaded files from the form
+        user: Person object (uploader)
+        assay: Assay object associated with the files
+        consent: Whether user consented to file storage
+
+    Returns:
+        List of created FileAsset objects (empty if no consent)
+
+    Raises:
+        Exception: If file storage fails (propagates after logging)
+    """
+    from toxtempass.models import FileAsset
+    import uuid
+
+    if not consent:
+        logger.debug("User did not consent to file storage; skipping storage.")
+        return []
+
+    if not files:
+        logger.debug("No files provided for storage.")
+        return []
+
+    created_assets: list[FileAsset] = []
+
+    for file in files:
+        try:
+            # Read file content
+            file_content = b""
+            for chunk in file.chunks():
+                file_content += chunk
+
+            # Calculate metadata
+            file_size = len(file_content)
+            sha256_hash = _calculate_sha256(file_content)
+            content_type = (
+                getattr(file, "content_type", "")
+                or mimetypes.guess_type(file.name)[0]
+                or ""
+            )
+
+            # Generate S3 object key using user/assay structure
+            # Format: consent_user_documents/{user.email}/{assay.id}/{uuid}/{filename}
+            object_key = (
+                f"consent_user_documents/{user.email}/{assay.id}/"
+                f"{uuid.uuid4()}/"
+                f"{Path(file.name).name}"
+            )
+
+            # Upload to storage
+            default_storage.save(object_key, file)
+            logger.info(
+                "Successfully uploaded file %s to storage: %s",
+                file.name,
+                object_key,
+            )
+
+            # Create FileAsset record
+            asset = FileAsset.objects.create(
+                object_key=object_key,
+                original_filename=file.name,
+                content_type=content_type,
+                size_bytes=file_size,
+                sha256=sha256_hash,
+                status=FileAsset.Status.AVAILABLE,
+                uploaded_by=user,
+            )
+            created_assets.append(asset)
+            logger.debug("Created FileAsset record: id=%s, key=%s", asset.id, object_key)
+
+        except Exception as exc:
+            logger.exception(
+                "Failed to store file %s for user %s on assay %s: %s",
+                file.name,
+                user.email,
+                assay.id,
+                exc,
+            )
+            raise
+
+    logger.info(
+        "Stored %d files for user %s on assay %s", len(created_assets), user.email, assay.id
+    )
+    return created_assets
