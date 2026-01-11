@@ -92,8 +92,8 @@ class Config:
         "- Panel B: <...> (add entries for each panel; use only Panel A if single-panel)\n"
         "NOTES: <bullet list of exactly transcribed on-image text (preserve case, Greek letters, subscripts) and any ambiguities marked [illegible]>\n"
     )
-    min_image_width = 25
-    min_image_height = 25
+    min_image_width = 50
+    min_image_height = 50
     license = "AGPL"
     # obsfuscated email for scraper 'privacy'
     maintainer_email = "".join(

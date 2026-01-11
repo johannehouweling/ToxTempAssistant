@@ -168,22 +168,36 @@ def summarize_image_entries(doc_dict: dict[str, dict[str, str]]) -> None:
 
 def _convert_image_to_webp(
     image_bytes: bytes, source_format: str | None = None
-) -> tuple[bytes, str]:
+) -> tuple[bytes | None, str | None]:
     """Convert image bytes to WebP format for optimal token efficiency.
 
     WebP provides the best compression ratio, reducing base64 size and API token usage.
+    Filters out images smaller than configured minimum dimensions.
 
     Args:
         image_bytes: Raw image bytes
         source_format: Original format name (for logging)
 
     Returns:
-        Tuple of (converted_bytes, mime_type)
+        Tuple of (converted_bytes, mime_type) or (None, None) if image is too small
 
     Raises:
         Exception: If conversion fails
     """
     img = Image.open(BytesIO(image_bytes))
+    
+    # Filter out small images (icons, bullets, decorative elements)
+    if img.width < config.min_image_width or img.height < config.min_image_height:
+        logger.debug(
+            "Skipping small image (%dx%d, min: %dx%d) from %s",
+            img.width,
+            img.height,
+            config.min_image_width,
+            config.min_image_height,
+            source_format or "unknown"
+        )
+        return None, None
+    
     output = BytesIO()
     # Convert to RGB if necessary (WebP supports RGBA but not all modes)
     if img.mode == "RGBA":
@@ -192,7 +206,11 @@ def _convert_image_to_webp(
         img = img.convert("RGB")
     img.save(output, format=TARGET_IMAGE_FORMAT, quality=TARGET_IMAGE_QUALITY)
     logger.debug(
-        "Converted %s image to %s", source_format or "unknown", TARGET_IMAGE_FORMAT
+        "Converted %s image (%dx%d) to %s",
+        source_format or "unknown",
+        img.width,
+        img.height,
+        TARGET_IMAGE_FORMAT
     )
     return output.getvalue(), TARGET_IMAGE_MIME
 
@@ -235,6 +253,9 @@ def _extract_images_from_pdf_page(
         # Always convert to WebP for optimal token efficiency
         try:
             image_bytes, mime_type = _convert_image_to_webp(image_bytes, image_format)
+            # Skip if image was too small (filtered out)
+            if image_bytes is None or mime_type is None:
+                continue
         except Exception as exc:
             logger.warning(
                 "Failed to convert %s image to WebP (%s page %s): %s. Skipping image.",
@@ -281,6 +302,9 @@ def _extract_images_from_docx(path: Path) -> dict[str, dict[str, str]]:
                 original_format = Path(filename).suffix.lstrip(".")
                 try:
                     data, mime_type = _convert_image_to_webp(data, original_format)
+                    # Skip if image was too small (filtered out)
+                    if data is None or mime_type is None:
+                        continue
                 except Exception as exc:
                     logger.warning(
                         "Failed to convert DOCX image %s to WebP: %s. Skipping.",
@@ -474,6 +498,10 @@ def get_text_or_bytes_perfile_dict(
                     image_bytes = img_file.read()
                 try:
                     image_bytes, mime_type = _convert_image_to_webp(image_bytes, suffix)
+                    # Skip if image was too small (filtered out)
+                    if image_bytes is None or mime_type is None:
+                        logger.info("Skipping uploaded image %s (too small)", context_filename)
+                        continue
                 except Exception as exc:
                     logger.warning(
                         "Failed to convert uploaded image %s to WebP: %s. Skipping.",
