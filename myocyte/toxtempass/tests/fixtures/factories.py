@@ -7,7 +7,19 @@ import factory
 from factory.django import DjangoModelFactory
 
 from toxtempass.filehandling import get_text_or_bytes_perfile_dict
-from toxtempass.models import Assay, Investigation, LLMStatus, Person, Study
+from toxtempass.models import (
+    Answer,
+    Assay,
+    FileAsset,
+    Investigation,
+    LLMStatus,
+    Person,
+    Question,
+    QuestionSet,
+    Section,
+    Study,
+    Subsection,
+)
 
 
 class PersonFactory(DjangoModelFactory):
@@ -113,3 +125,73 @@ class AdminFactory(PersonFactory):
 
     is_superuser = True
     is_staff = True
+
+
+class QuestionSetFactory(DjangoModelFactory):
+    """Factory for QuestionSet model."""
+
+    class Meta:
+        model = QuestionSet
+
+    label = factory.Sequence(lambda n: f"v{n}")
+    display_name = factory.Faker("sentence", locale="en_US", nb_words=3, variable_nb_words=True)
+    hide_from_display = False
+    created_by = factory.SubFactory(PersonFactory)
+    is_visible = True
+
+
+class SectionFactory(DjangoModelFactory):
+    """Factory for Section model."""
+
+    class Meta:
+        model = Section
+
+    question_set = factory.SubFactory(QuestionSetFactory)
+    title = factory.Faker("sentence", locale="en_US", nb_words=5, variable_nb_words=True)
+
+
+class SubsectionFactory(DjangoModelFactory):
+    """Factory for Subsection model."""
+
+    class Meta:
+        model = Subsection
+
+    section = factory.SubFactory(SectionFactory)
+    title = factory.Faker("sentence", locale="en_US", nb_words=5, variable_nb_words=True)
+
+
+class QuestionFactory(DjangoModelFactory):
+    """Factory for Question model."""
+
+    class Meta:
+        model = Question
+
+    subsection = factory.SubFactory(SubsectionFactory)
+    question_text = factory.Faker("sentence", locale="en_US", nb_words=10, variable_nb_words=True)
+
+
+class AnswerFactory(DjangoModelFactory):
+    """Factory for Answer model."""
+
+    class Meta:
+        model = Answer
+
+    assay = factory.SubFactory(AssayFactory)
+    question = factory.SubFactory(QuestionFactory)
+    answer_text = factory.Faker("text", locale="en_US")
+    accepted = False
+
+
+class FileAssetFactory(DjangoModelFactory):
+    """Factory for FileAsset model."""
+
+    class Meta:
+        model = FileAsset
+
+    object_key = factory.LazyFunction(lambda: f"test/{uuid.uuid4()}/file.pdf")
+    original_filename = factory.Faker("file_name", extension="pdf")
+    content_type = "application/pdf"
+    size_bytes = factory.Faker("random_int", min=1000, max=1000000)
+    sha256 = factory.LazyFunction(lambda: uuid.uuid4().hex)
+    status = FileAsset.Status.AVAILABLE
+    uploaded_by = factory.SubFactory(PersonFactory)
