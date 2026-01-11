@@ -2,60 +2,6 @@
 
 <!-- version list -->
 
-## v2.7.1 (2026-01-10)
-
-### Bug Fixes
-
-- **form**: Add enctype for file uploads and remove consent checkbox tracking
-  ([`0426f66`](https://github.com/johannehouweling/ToxTempAssistant/commit/0426f663f5509dc569146550413e7957840ffb94))
-
-
-## v2.7.0 (2026-01-10)
-
-### Features
-
-- **file-storage**: Implement S3/MinIO file storage with user consent and orphan cleanup
-  ([`49ed5b8`](https://github.com/johannehouweling/ToxTempAssistant/commit/49ed5b8d0d44c01edd0aed5fa52c0ae919a5fb33))
-
-
-## v2.6.0 (2026-01-10)
-
-### Features
-
-- **storages**: Add FileAsset and AnswerFile models with storage deletion logic
-  ([`d6989d3`](https://github.com/johannehouweling/ToxTempAssistant/commit/d6989d350d0ebc2f0b1d68aebb0bbaba39c60948))
-
-
-## v2.5.0 (2026-01-10)
-
-### Features
-
-- **assay**: Add consent checkbox for file sharing and update related forms and views
-  ([`cf07caf`](https://github.com/johannehouweling/ToxTempAssistant/commit/cf07caf76091e5a58a25aadd432e1d69e71a34ac))
-
-- **forms**: Simplify help text for file uploads and enhance overwrite permission description
-  ([`7d9f26a`](https://github.com/johannehouweling/ToxTempAssistant/commit/7d9f26a0346da466180307b11f4557e1be32c839))
-
-- **forms, models**: Remove consent checkbox for file sharing and related logic
-  ([`45343df`](https://github.com/johannehouweling/ToxTempAssistant/commit/45343dfdbc7b40d7de9e8fde9fbbf7ff481a9d1a))
-
-- **forms, new.html**: Add consent checkbox for file sharing and implement acknowledgment tracking
-  ([`f689dc5`](https://github.com/johannehouweling/ToxTempAssistant/commit/f689dc5c96bfa7bf1050be465b2c8a12a7dc40eb))
-
-- **forms, new.html**: Update help text for file uploads and dynamically show/hide overwrite
-  checkbox based on draft existence
-  ([`3c9dc6b`](https://github.com/johannehouweling/ToxTempAssistant/commit/3c9dc6b8de733b2f173cc979c88b338b1ae79972))
-
-- **new.html**: Add popover for file upload field help text with supported formats
-  ([`45fcf08`](https://github.com/johannehouweling/ToxTempAssistant/commit/45fcf08f5f2c7bdd267d82be6b2602c376a99547))
-
-- **settings**: Add storage backends configuration for Django 4.2+
-  ([`7dad70e`](https://github.com/johannehouweling/ToxTempAssistant/commit/7dad70ec3f6a5c71021ca19551317bbaa617c45c))
-
-- **storage**: Integrate django-storages for S3 support and update dependencies
-  ([`1ca7168`](https://github.com/johannehouweling/ToxTempAssistant/commit/1ca7168bf984c72491bab7003166c5b3a5aa2298))
-
-
 ## v2.4.1 (2026-01-10)
 
 ### Bug Fixes

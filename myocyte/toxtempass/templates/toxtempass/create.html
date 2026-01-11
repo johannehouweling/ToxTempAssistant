@@ -16,40 +16,8 @@
 {% include "error_handling.html" %}
 
 <script>
-// Consent checkbox acknowledgment tracking
+// Auto-start tour on create_assay page
 document.addEventListener('DOMContentLoaded', function() {
-    const consentCheckbox = document.getElementById('id_share_files_for_development');
-    const acknowledgedField = document.getElementById('id_consent_acknowledged');
-    const form = document.querySelector('form');
-    
-    if (consentCheckbox && acknowledgedField && form) {
-        // Track if user has interacted with the consent checkbox
-        let hasInteracted = false;
-        
-        consentCheckbox.addEventListener('change', function() {
-            hasInteracted = true;
-            acknowledgedField.value = 'true';
-        });
-        
-        // On form submission, check if user has acknowledged
-        form.addEventListener('submit', function(e) {
-            if (!hasInteracted) {
-                e.preventDefault();
-                alert('Please acknowledge your choice regarding file sharing by checking or unchecking the box.');
-                consentCheckbox.focus();
-                // Highlight the field
-                const fieldContainer = consentCheckbox.closest('.mb-3');
-                if (fieldContainer) {
-                    fieldContainer.classList.add('border', 'border-danger', 'p-2', 'rounded');
-                    setTimeout(() => {
-                        fieldContainer.classList.remove('border', 'border-danger', 'p-2', 'rounded');
-                    }, 3000);
-                }
-            }
-        });
-    }
-    
-    // Auto-start tour on create_assay page
     const urlName = document.body.getAttribute('data-url-name');
     const config = window.ToxTempConfig || {};
     const onboardingHelp = config.user_onboarding_help || {};

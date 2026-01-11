@@ -1,7 +1,3 @@
-from __future__ import annotations
-
-import uuid
-
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.validators import validate_email
 from django.db import models
@@ -336,6 +332,7 @@ class Assay(AccessibleModel):
         """Return the owner of this assay (i.e., the owner of the parent investigation)."""
         return self.study.investigation.owner
 
+
 # New model to track individual user's assay views
 class AssayView(models.Model):
     user = models.ForeignKey(Person, on_delete=models.CASCADE, related_name="assay_views")
@@ -455,53 +452,6 @@ class Question(AccessibleModel):
         return True
 
 
-class FileAssetManager(models.Manager):
-    """Custom manager for FileAsset model with orphan detection and cleanup."""
-
-    def get_orphaned(self, days: int = 7):
-        """Get FileAssets created before N days ago with no answer links."""
-        from toxtempass.fileops import get_orphaned_file_assets
-        return get_orphaned_file_assets(days)
-
-    def cleanup_orphaned(self, days: int = 7) -> tuple[int, dict]:
-        """Delete orphaned FileAssets and their S3 objects."""
-        from toxtempass.fileops import delete_orphaned_file_assets
-        orphans = self.get_orphaned(days)
-        return delete_orphaned_file_assets(orphans)
-
-
-class FileAsset(models.Model):
-    class Status(models.TextChoices):
-        AVAILABLE = "available", "Available"
-        DELETED = "deleted", "Deleted"
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-
-    bucket = models.CharField(max_length=255, blank=True)
-    object_key = models.CharField(max_length=1024, unique=True)
-
-    original_filename = models.CharField(max_length=512)
-    content_type = models.CharField(max_length=255, blank=True)
-    size_bytes = models.BigIntegerField(null=True, blank=True)
-
-    sha256 = models.CharField(max_length=64, blank=True)
-    status = models.CharField(max_length=16, choices=Status.choices, default=Status.AVAILABLE)
-
-    uploaded_by = models.ForeignKey(
-        Person,
-        null=True, blank=True,
-        on_delete=models.CASCADE,
-        related_name="uploaded_files",
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    objects = FileAssetManager()
-
-    def __str__(self) -> str:
-        return self.original_filename
-
-
-
 # Answer Model (linked to Assay)
 class Answer(AccessibleModel):
     assay = models.ForeignKey(Assay, on_delete=models.CASCADE, related_name="answers")
@@ -516,15 +466,7 @@ class Answer(AccessibleModel):
         null=True,
         blank=True,
         help_text="Store list of Filenames used to answer this question.",
-    )  # change this to VectorField with for a real database.
-    files = models.ManyToManyField(
-        FileAsset,
-        through="AnswerFile",
-        related_name="answers",
-        blank=True,
-        null=True,
-        help_text="Actual stored files (only present if user consented to storage).",
-    )
+    )  # chnage this to VectorField with for a real database.
     answer_text = models.TextField(blank=True, default="")
     accepted = models.BooleanField(
         null=True, blank=True, help_text="Marked as final answer."
@@ -538,27 +480,13 @@ class Answer(AccessibleModel):
     def get_parent(self) -> Assay:
         """Return the parent Assay object."""
         return self.assay
-    
+
     @property
     def preview_text(self, max_length: int = 75) -> str:
         """Return a preview of the answer text, truncated to max_length."""
         if len(self.answer_text) <= max_length:
             return self.answer_text
-        return self.answer_text[:max_length].rsplit(' ', 1)[0] + '...'
-
-
-class AnswerFile(models.Model):
-    answer = models.ForeignKey(Answer, on_delete=models.CASCADE)
-    file = models.ForeignKey(FileAsset, on_delete=models.CASCADE)
-
-    # optional per-link metadata, useful later
-    label = models.CharField(max_length=255, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=["answer", "file"], name="uq_answer_file"),
-        ]
+        return self.answer_text[:max_length].rsplit(" ", 1)[0] + "..."
 
 
 # Feedback Model

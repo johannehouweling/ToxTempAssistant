@@ -796,7 +796,6 @@ def process_llm_async(
     answer_ids: list[int] | None = None,
     chatopenai: ChatOpenAI | None = None,
     verbose: bool = False,
-    file_asset_ids: list | None = None,
 ) -> None:
     """Process llm answer async.
 
@@ -804,15 +803,6 @@ def process_llm_async(
     2) save them, then round 2, etc.
     Each question can override or replace instructions,
     and can scope context to specific subsections or use the PDFs.
-    
-    Args:
-        assay_id: ID of the assay to process
-        doc_dict: Dictionary of document content
-        extract_images: Whether to extract images from documents
-        answer_ids: Optional list of specific answer IDs to regenerate
-        chatopenai: Optional ChatOpenAI instance (for testing)
-        verbose: Whether to show progress bars
-        file_asset_ids: Optional list of FileAsset UUIDs to link to answers
     """
     try:
         try:
@@ -906,27 +896,6 @@ def process_llm_async(
                                 answer_text=text,
                                 answer_documents=source_documents,
                             )
-                            
-                            # Link FileAssets to this Answer if provided
-                            if file_asset_ids:
-                                try:
-                                    from toxtempass.fileops import link_files_to_answer
-                                    
-                                    answer = Answer.objects.get(pk=aid)
-                                    link_files_to_answer(answer, file_asset_ids)
-                                    logger.info(
-                                        "Linked %d FileAssets to Answer %s",
-                                        len(file_asset_ids),
-                                        aid,
-                                    )
-                                except Exception as exc:
-                                    logger.exception(
-                                        "Failed to link FileAssets to Answer %s: %s",
-                                        aid,
-                                        exc,
-                                    )
-                                    # Don't fail the entire process if linking fails
-                                    
                         except Exception as e:
                             add_status_context(assay, str(e))
                             assay.status = LLMStatus.ERROR
@@ -1035,13 +1004,12 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
     # POST: process the StartingForm and kick off the async task
     # --------------------------------
     if request.method == "POST":
-        form = StartingForm(request.POST, request.FILES, user=request.user)
+        form = StartingForm(request.POST, user=request.user)
 
         if form.is_valid():
             assay = form.cleaned_data["assay"]
             extract_images = form.cleaned_data.get("extract_images", False)
             overwrite = form.cleaned_data.get("overwrite", False)
-            share_files = form.cleaned_data.get("share_files_for_development", True)
             qs = form.cleaned_data["question_set"]
             assay.question_set = qs
             assay.save()
@@ -1066,31 +1034,6 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
 
             files = request.FILES.getlist("files")
             answers_exist = assay.answers.exists()
-            
-            # Upload files to S3 if consent is given
-            file_asset_ids = []
-            if files and share_files:
-                from toxtempass.fileops import upload_file_to_s3
-                
-                for uploaded_file in files:
-                    try:
-                        file_asset = upload_file_to_s3(uploaded_file, request.user)
-                        file_asset_ids.append(file_asset.id)
-                        logger.info(
-                            "Uploaded file %s to S3 (FileAsset %s) for assay %s",
-                            uploaded_file.name,
-                            file_asset.id,
-                            assay.id,
-                        )
-                    except Exception as exc:
-                        logger.exception(
-                            "Failed to upload file %s to S3: %s",
-                            uploaded_file.name,
-                            exc,
-                        )
-                        # Continue processing even if one file fails
-                        continue
-            
             # If files were uploaded and there are no existing answers,
             # seed empty answers.
             if files and not answers_exist:
@@ -1106,16 +1049,12 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                     # Set assay status to busy and hand it off to the async worker
                     assay.status = LLMStatus.SCHEDULED
                     assay.save()
-                    # Fire off the asynchronous worker with file_asset_ids
+                    # Fire off the asynchronous worker
                     async_task(
                         process_llm_async,
                         assay.id,
                         doc_dict,
                         extract_images,
-                        None,  # answer_ids
-                        None,  # chatopenai
-                        False,  # verbose
-                        file_asset_ids if file_asset_ids else None,  # file_asset_ids
                     )
 
                 except Exception as e:
