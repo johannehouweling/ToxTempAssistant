@@ -1,4 +1,5 @@
 import logging
+from io import BytesIO
 
 from django.contrib import admin
 from django.http import FileResponse
@@ -70,7 +71,8 @@ class AssayAdmin(admin.ModelAdmin):
                 self.message_user(request, "No files found for this assay.", level="warning")
                 return
 
-            response = FileResponse(zip_bytes, content_type="application/zip")
+            # Wrap zip_bytes in BytesIO for FileResponse
+            response = FileResponse(BytesIO(zip_bytes), content_type="application/zip")
             response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
             logger.info(
