@@ -2,6 +2,28 @@
 
 <!-- version list -->
 
+## v2.8.0 (2026-01-11)
+
+### Bug Fixes
+
+- **storages**: Staticfiles on server as per usual
+  ([`daba64b`](https://github.com/johannehouweling/ToxTempAssistant/commit/daba64b96f4fcdc75a8ee1c7275973f0951a4186))
+
+- **ui**: Tighten helper text on StartingForm's FileField
+  ([`6097abc`](https://github.com/johannehouweling/ToxTempAssistant/commit/6097abca35184157e5e482f6fc84f30890793fee))
+
+### Features
+
+- **new.html**: Add popover for file upload field help text with supported formats
+  ([`9f1037d`](https://github.com/johannehouweling/ToxTempAssistant/commit/9f1037d4558fe1509ed160fc797ee6a4ad77c6a6))
+
+- **storage**: Integrate django-storages for S3 support and update dependencies
+  ([`9afbd34`](https://github.com/johannehouweling/ToxTempAssistant/commit/9afbd343ea387d1daafa322d08d3bbab435ebc54))
+
+- **storages**: Add FileAsset and AnswerFile models with storage deletion logic
+  ([`92d171b`](https://github.com/johannehouweling/ToxTempAssistant/commit/92d171b3072fb00f0a3a3e358008fd78b2c32df5))
+
+
 ## v2.4.1 (2026-01-10)
 
 ### Bug Fixes
