@@ -275,6 +275,13 @@ class StartingForm(forms.Form):
         ),
     )
 
+    consent_file_storage = forms.BooleanField(
+        required=True,
+        initial=True,
+        label="Consent to share uploaded files with development team",
+        help_text="I consent to sharing the uploaded context files with the ToxTempAssistant development team to help improve the system. Only the development team will have access to these files. This is optional and does not affect your ability to use ToxTempAssistant.",
+    )
+
     def __init__(self, *args, user: Person = None, **kwargs):
         """Expect a 'user' keyword argument to filter the querysets.
 

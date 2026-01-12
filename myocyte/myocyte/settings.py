@@ -118,6 +118,11 @@ AUTHENTICATION_BACKENDS = (
     "guardian.backends.ObjectPermissionBackend",  # for guardian
 )
 
+AWS_STORAGE_BUCKET_NAME = os.environ["AWS_STORAGE_BUCKET_NAME"]
+AWS_S3_ENDPOINT_URL = os.environ["AWS_S3_ENDPOINT_URL"]
+AWS_ACCESS_KEY_ID = os.environ["AWS_ACCESS_KEY_ID"]
+AWS_SECRET_ACCESS_KEY = os.environ["AWS_SECRET_ACCESS_KEY"]
+
 STORAGES = {
     "default": {
         "BACKEND": "storages.backends.s3.S3Storage",
