@@ -6,7 +6,7 @@ from django.core.files.storage import default_storage
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
-from myocyte.toxtempass.demo import seed_demo_assay_for_user
+from toxtempass.demo import seed_demo_assay_for_user
 
 from .models import FileAsset, Person
 
