@@ -2,6 +2,20 @@
 
 <!-- version list -->
 
+## v2.9.1 (2026-01-12)
+
+### Bug Fixes
+
+- <trigger release only>
+  ([`961dc3c`](https://github.com/johannehouweling/ToxTempAssistant/commit/961dc3c6155f318be935df90e579154130cebeaa))
+
+### Refactoring
+
+- **demo**: Demo assays are now created when a new user is added to db from one central location
+  (signals.py)
+  ([`4434cd2`](https://github.com/johannehouweling/ToxTempAssistant/commit/4434cd2ae2fa76ed61350859d5e61a7921132825))
+
+
 ## v2.9.0 (2026-01-12)
 
 ### Bug Fixes
