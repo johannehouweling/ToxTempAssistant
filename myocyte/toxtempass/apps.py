@@ -33,6 +33,7 @@ class ToxtempassConfig(AppConfig):
 
     def ready(self) -> None:
         """Log a summary of key settings on startup."""
+        import toxtempass.signals  # noqa: F401, I001
 
         summary = {
             "DJANGO_DEBUG": _limit(settings.DEBUG),
