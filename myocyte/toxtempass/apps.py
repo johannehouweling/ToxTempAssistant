@@ -67,7 +67,5 @@ class ToxtempassConfig(AppConfig):
             _LOG.info(f"{k:<22} {v}")
         _LOG.info("#" * len(toptitlebar))
 
-        # Register ephemeral django_q schedules (in-memory, not persisted to DB)
-        self._register_ephemeral_schedules()
 
    
