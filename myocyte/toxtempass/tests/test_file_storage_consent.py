@@ -167,7 +167,7 @@ class TestStoreFilesToStorage:
         )
         
         assert len(result) == 1
-        assert "consent_user_documents/test@example.com/123/" in result[0].object_key
+        assert "consent_user_documents/test@example.com/assay/123/" in result[0].object_key
         assert result[0].object_key.endswith("/myfile.pdf")
 
     @patch("toxtempass.filehandling.default_storage.save")
