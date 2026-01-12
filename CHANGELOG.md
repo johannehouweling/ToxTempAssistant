@@ -2,6 +2,60 @@
 
 <!-- version list -->
 
+## v2.9.0 (2026-01-12)
+
+### Bug Fixes
+
+- **file storage**: Add logging for file downloads and implement download action for assays
+  ([`80266b7`](https://github.com/johannehouweling/ToxTempAssistant/commit/80266b7142e9d7c0b6e6667322cb4088337d5368))
+
+- **file storage**: Correct S3 object key format for user documents
+  ([`1c93f42`](https://github.com/johannehouweling/ToxTempAssistant/commit/1c93f42d410d33f3188a5aa07fee3baf3eb1d34c))
+
+- **file storage**: Fix how files are linked to assays
+  ([`1d226cb`](https://github.com/johannehouweling/ToxTempAssistant/commit/1d226cb09ccd62da4adcdc6db3c085bc8488321a))
+
+- **file storage**: Wrap zip_bytes in BytesIO for FileResponse in AssayAdmin
+  ([`51589ca`](https://github.com/johannehouweling/ToxTempAssistant/commit/51589ca431d9b953d5274e87a3c5396704b67e5f))
+
+- **image processing**: Increase minimum image dimensions and filter out small images in conversion
+  ([`f68e9e3`](https://github.com/johannehouweling/ToxTempAssistant/commit/f68e9e3e5e65fba98b005a4c630224c6307b8d28))
+
+- **storages**: Actually make AWS env vars availble to settings.py
+  ([`cd33c48`](https://github.com/johannehouweling/ToxTempAssistant/commit/cd33c489ed14a06b53297507c5a6afd1ae32aed5))
+
+- **storages**: Make sure that djangoapp has minio available
+  ([`524f9e2`](https://github.com/johannehouweling/ToxTempAssistant/commit/524f9e201a1cf968458c0190eb456d015fbd13b3))
+
+- **tests**: Update image sizes in PDF and DOCX extraction tests for consistency
+  ([`28acf61`](https://github.com/johannehouweling/ToxTempAssistant/commit/28acf616d73ece5cbea1459e5d85f2a2ac74854c))
+
+- **tests**: Update object key path in file storage consent test for accuracy
+  ([`75c0cbf`](https://github.com/johannehouweling/ToxTempAssistant/commit/75c0cbf9329c15f0ffb77353ee99fc0dbd02e1cf))
+
+### Chores
+
+- **ci**: Update poetry lock
+  ([`444dde5`](https://github.com/johannehouweling/ToxTempAssistant/commit/444dde54ed55dfa80397902fa3d6f465dfd63aa0))
+
+### Features
+
+- **factory**: Add factories for QuestionSet, Section, Subsection, Question, Answer, and FileAsset
+  models
+  ([`c89aae0`](https://github.com/johannehouweling/ToxTempAssistant/commit/c89aae009fcfc9b71227148920e0754e07e316c5))
+
+- **file storage**: Implement user consent for file storage and add cleanup commands
+  ([`9b5c43c`](https://github.com/johannehouweling/ToxTempAssistant/commit/9b5c43ce2e25f0f2131731d0121b7fd471fbfc6e))
+
+- **uploadfiles**: Consent button on upload to store files for improvements.
+  ([`6f5241c`](https://github.com/johannehouweling/ToxTempAssistant/commit/6f5241c2cfee8f343b4f488826c2933d33ec3a7f))
+
+### Refactoring
+
+- **tests**: Remove orphaned file cleanup tests
+  ([`ee61d51`](https://github.com/johannehouweling/ToxTempAssistant/commit/ee61d51da010b0c4687b9d4bf54f7e8ca6e0426b))
+
+
 ## v2.8.0 (2026-01-11)
 
 ### Bug Fixes
