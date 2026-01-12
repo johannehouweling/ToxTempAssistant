@@ -13,7 +13,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth.models import User
 from django.contrib.humanize.templatetags.humanize import naturaltime
-from django.db import IntegrityError, transaction
+from django.db import transaction
 from django.db.models import QuerySet
 from django.http import (
     FileResponse,
@@ -39,7 +39,6 @@ from tqdm.auto import tqdm
 from myocyte import settings
 from toxtempass import config
 from toxtempass import utilities as beta_util
-from toxtempass.demo import seed_demo_assay_for_user
 from toxtempass.export import export_assay_to_file
 from toxtempass.filehandling import (
     collect_source_documents,
@@ -178,10 +177,6 @@ def signup(request: HttpRequest) -> HttpResponse | JsonResponse:
             user = form.save(commit=False)
             user.save()
             login(request, user, backend="django.contrib.auth.backends.ModelBackend")
-            try:
-                seed_demo_assay_for_user(user)
-            except Exception:
-                logger.exception("Failed to seed demo assay for user %s", user.id)
             # Mark the user as having requested beta and enqueue notification to mntnr.
             try:
                 async_task("toxtempass.tasks.send_beta_signup_notification", user.id)

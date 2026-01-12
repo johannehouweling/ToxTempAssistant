@@ -3,22 +3,15 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from django.db import transaction
 
-from toxtempass.models import (
-    Answer,
-    Assay,
-    Investigation,
-    LLMStatus,
-    Study,
-)
+from toxtempass.models import Answer, Assay, Investigation, LLMStatus, Person, Study
 
 logger = logging.getLogger("demo")
 
 
-def seed_demo_assay_for_user(user) -> Optional[Assay]:
+def seed_demo_assay_for_user(user:Person) -> Assay|None:
     """Clone the demo template assay for the given user if not already present."""
     if not user or not getattr(user, "pk", None):
         return None
