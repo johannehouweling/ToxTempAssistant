@@ -153,7 +153,7 @@ class TestStoreFilesToStorage:
         file.content_type = "application/pdf"
         
         def capture_key(key, file_obj):
-            assert key.startswith("consent_user_documents/test@example.com/123/")
+            assert key.startswith("consent_user_documents/test@example.com/assay/123/")
             assert key.endswith("/myfile.pdf")
             return key
         
