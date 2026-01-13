@@ -42,7 +42,7 @@ def test_seed_demo_assay_for_user_creates_copy_once():
 
     user = PersonFactory() # signal will call seed_demo_assay_for_user on creation
     
-    demo_assay = Assay.objects.filter(demo_lock=True)
+    demo_assay = Assay.objects.get(demo_lock=True)
     assert demo_assay is not None
     assert demo_assay.demo_source == template_assay
     assert demo_assay.study.investigation.owner == user
