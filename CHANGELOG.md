@@ -2,6 +2,32 @@
 
 <!-- version list -->
 
+## v2.9.2 (2026-01-13)
+
+### Bug Fixes
+
+- **demo**: Change filter to get for demo_assay retrieval
+  ([`31cfe56`](https://github.com/johannehouweling/ToxTempAssistant/commit/31cfe56ccee8c9a9fc5088a8927a5b68fc4e62ef))
+
+- **demo**: Fix the test to work with automatic signals based demo assay creation
+  ([`42bc81b`](https://github.com/johannehouweling/ToxTempAssistant/commit/42bc81b9c611323cf7244edef33f592ad0a3e15d))
+
+- **demo**: Test
+  ([`ca5d186`](https://github.com/johannehouweling/ToxTempAssistant/commit/ca5d186bed46206d86cc7aae0b7342e634d756a5))
+
+- **demo**: Wrong import path for seed_demo_assay_for_user func
+  ([`a465848`](https://github.com/johannehouweling/ToxTempAssistant/commit/a465848812f650b872e1056bb5a92f1a5573874d))
+
+- **signals**: Import signals module in app configuration to ensure signal handling
+  ([`57671fe`](https://github.com/johannehouweling/ToxTempAssistant/commit/57671fefa3db7416437c5d37a023167b074820c2))
+
+- **storages**: Remove broken orphaned file handling logic
+  ([`f90745e`](https://github.com/johannehouweling/ToxTempAssistant/commit/f90745e433cee2b9a93c655379182f4c67c7733a))
+
+- **storages**: Still remove dangling orphan function registration
+  ([`42d1c18`](https://github.com/johannehouweling/ToxTempAssistant/commit/42d1c18d2e518ba53046ff8202f80b45bc86ea0a))
+
+
 ## v2.9.1 (2026-01-12)
 
 ### Bug Fixes
