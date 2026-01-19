@@ -969,6 +969,9 @@ class AssayListView(SingleTableView):
         """Inject context."""
         context = super().get_context_data(**kwargs)
         context["show_tour"] = not user_has_seen_tour_page("overview", self.request.user)
+        context["reload_busy_interval"] = config.reload_busy_interval_seconds
+        context["reload_busy_max_retries"] = config.reload_busy_max_retries
+        context["LLMStatus"] = LLMStatus
         # Tour management is now handled by JavaScript localStorage
         # No backend flags needed
         return context
@@ -1165,6 +1168,18 @@ def get_filtered_assays(request: HttpRequest, study_id: int) -> JsonResponse:
         return JsonResponse(assays_list, safe=False)
     return JsonResponse([], safe=False)
 
+@user_passes_test(is_logged_in, login_url="/login/")
+def get_assay_is_busy_or_scheduled(
+    request: HttpRequest, pk: int
+) -> JsonResponse:
+    """Check if the Assay is busy or scheduled."""
+    if request.method == "POST":
+        assay = get_object_or_404(Assay, pk=pk)
+        if not assay.is_accessible_by(request.user, perm_prefix="view"):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("You do not have permission to access this assay.")
+        is_busy_or_scheduled = assay.status in {LLMStatus.BUSY, LLMStatus.SCHEDULED}
+        return JsonResponse({"is_busy_or_scheduled": is_busy_or_scheduled})
 
 @user_passes_test(is_logged_in, login_url="/login/")
 def initial_gpt_allowed_for_assay(request: HttpRequest, pk: int) -> JsonResponse:

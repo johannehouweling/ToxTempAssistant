@@ -86,7 +86,7 @@ class AssayTable(tables.Table):
         template_code="""
         <div class="btn-group" role="group">
             {% if record.status == LLMStatus.SCHEDULED.value %}
-                <div class="btn-group" role="group" data-bs-toggle="tooltip" title="Processing scheduled. Refresh the page to see updates.">
+                <div class="btn-group" role="group" data-assay-id="{{ record.id }}" data-assay-status="{{ record.status }}" data-bs-toggle="tooltip" title="Processing scheduled. Refresh the page to see updates.">
                     <button class="btn btn-sm btn-outline-secondary" disabled>
                         <span class="d-flex">
                             <i class="bi bi-hourglass"></i>
@@ -95,21 +95,21 @@ class AssayTable(tables.Table):
                     </button>
                 </div>
             {% elif record.status == LLMStatus.BUSY.value %}
-                <div class="btn-group" role="group" data-bs-toggle="tooltip" title="Processing ongoing ({{record.number_processed_answers}}/{{record.get_n_answers}}). Refresh the page to see updates.">
+                <div class="btn-group" role="group" data-assay-id="{{ record.id }}" data-assay-status="{{ record.status }}" data-bs-toggle="tooltip" title="Processing ongoing ({{record.number_processed_answers}}/{{record.get_n_answers}}). Refresh the page to see updates.">
                     <button class="btn btn-sm btn-outline-secondary" disabled>
                             <span class="spinner-grow spinner-grow-sm" aria-hidden="true"></span>
                             <span role="status">Busy</span>
                     </button>
                 </div>
             {% elif record.status == LLMStatus.ERROR.value %}
-                <a class="btn btn-sm btn-outline-danger" href="{% url 'answer_assay_questions' record.id %}">
+                <a class="btn btn-sm btn-outline-danger" data-assay-id="{{ record.id }}" data-assay-status="{{ record.status }}" href="{% url 'answer_assay_questions' record.id %}">
                     <span data-bs-toggle="tooltip" title="Processing failed">
                         <i class="bi bi-bug"></i>
                         <span class="ms-1 d-none d-lg-inline">Error</span>
                     </span>
                 </a>
             {% else %}
-                <a class="btn btn-sm btn-outline-primary" href="{% url 'answer_assay_questions' record.id %}">
+                <a class="btn btn-sm btn-outline-primary" data-assay-id="{{ record.id }}" data-assay-status="{{ record.status }}" href="{% url 'answer_assay_questions' record.id %}">
                     <i class="bi bi-eye"></i>
                     <span class="ms-1 d-none d-lg-inline">View</span>
                 </a>

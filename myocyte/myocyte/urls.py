@@ -26,12 +26,15 @@ from myocyte import settings
 urlpatterns = [
     path("admin/", admin.site.urls),
     path(
-        "init/<slug:label>", views.init_db, name="init_db"
+        "init/<slug:label>",
+        views.init_db,
+        name="init_db",
         # e.g., /init/v1 -> loads ToxTemp_v1.json questions into the database
     ),  # initializes database, meaning it creates the questions, sub/sections.
 ]
 
 urlpatterns += [
+    path("", views.AssayListView.as_view(), name="overview"),
     path("add/", views.new_form_view, name="add_new"),
     # Login stuff
     path("login/", views.LoginView.as_view(), name="login"),
@@ -73,12 +76,16 @@ urlpatterns += [
         "study/delete/<int:pk>/", views.delete_study, name="delete_study"
     ),  # hard-coded in new.html
     # Assay URLs
-    path("", views.AssayListView.as_view(), name="overview"),
     path("assay/create/", views.create_or_update_assay, name="create_assay"),
     path(
         "assay/gpt-allowed/<int:pk>",
         views.initial_gpt_allowed_for_assay,
         name="assay_gpt_allowed",
+    ),
+    path(
+        "assay/scheduled-or-busy/<int:pk>",
+        views.get_assay_is_busy_or_scheduled,
+        name="assay_scheduled_or_busy",
     ),
     path(
         "assay/update/<int:pk>/", views.create_or_update_assay, name="update_assay"

@@ -173,7 +173,12 @@ class Config:
     # this is just for security purposes, to add a new type you also need to
     # define a template for it in export.py
     allowed_export_types = {"json", "md", "pdf", "html", "docx", "xml"}
-
+    
+    # How often to reload the overview page to check for busy/scheduled assays 
+    # (in milliseconds)
+    reload_busy_interval_seconds = 10000
+    reload_busy_max_retries = 30  # e.g., 30 × 10s = 5 minutes
+    # ORCID settings
     _orcid_client_id = os.getenv("ORCID_CLIENT_ID")
     _orcid_client_secret = os.getenv("ORCID_CLIENT_SECRET")
 
