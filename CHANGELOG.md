@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v2.10.1 (2026-01-19)
+
+### Bug Fixes
+
+- **ui**: Enhance button tooltip messages for scheduled and busy statuses
+  ([`e75830a`](https://github.com/johannehouweling/ToxTempAssistant/commit/e75830a39434dcb2882e17ff24b925de1af1db73))
+
+
 ## v2.10.0 (2026-01-19)
 
 ### Features
