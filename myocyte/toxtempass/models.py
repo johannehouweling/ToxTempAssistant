@@ -323,6 +323,20 @@ class Assay(AccessibleModel):
         ).count()
 
     @property
+    def number_processed_answers(self) -> int:
+        """Check if there are any answers processed for this assay."""
+        not_found_string = config.not_found_string
+        # Get all questions related to this assay
+        return Answer.objects.filter(
+            assay=self,
+        ).filter(
+            ~Q(
+                Q(answer_text="")
+                | Q(answer_text__isnull=True)
+            )
+        ).count()
+
+    @property
     def number_answers_found_but_not_accepted(self) -> int:
         """Check if there are any answers found but not yet accepted for this assay."""
         not_found_string = config.not_found_string

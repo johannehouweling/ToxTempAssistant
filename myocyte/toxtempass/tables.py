@@ -86,19 +86,23 @@ class AssayTable(tables.Table):
         template_code="""
         <div class="btn-group" role="group">
             {% if record.status == LLMStatus.SCHEDULED.value %}
-                <button class="btn btn-sm btn-outline-secondary" disabled>
-                    <span class="d-flex" data-bs-toggle="tooltip" title="Processing. Check back soon.">
-                        <i class="bi bi-hourglass"></i>
-                        <span class="ms-1 d-none d-lg-inline">Sched.</span>
-                    </span>
-                </button>
+                <div class="btn-group" role="group" data-bs-toggle="tooltip" title="Processing scheduled. Refresh the page to see updates.">
+                    <button class="btn btn-sm btn-outline-secondary" disabled>
+                        <span class="d-flex">
+                            <i class="bi bi-hourglass"></i>
+                            <span class="ms-1 d-none d-lg-inline">Sched.</span>
+                        </span>
+                    </button>
+                </div>
             {% elif record.status == LLMStatus.BUSY.value %}
-                <button class="btn btn-sm btn-outline-secondary" disabled>
-                    <span class="d-flex" data-bs-toggle="tooltip" title="Processing ongoing">
-                        <i class="bi bi-hourglass-split"></i>
-                        <span class="ms-2 d-none d-lg-inline">Busy</span>
-                    </span>
-                </button>
+                <div class="btn-group" role="group" data-bs-toggle="tooltip" title="Processing ongoing ({{record.number_processed_answers}}/{{record.get_n_answers}}). Refresh the page to see updates.">
+                    <button class="btn btn-sm btn-outline-secondary" disabled>
+                        <span class="d-flex">
+                            <i class="bi bi-hourglass-split"></i>
+                            <span class="ms-2 d-none d-lg-inline">Busy</span>
+                        </span>
+                    </button>
+                </div>
             {% elif record.status == LLMStatus.ERROR.value %}
                 <a class="btn btn-sm btn-outline-danger" href="{% url 'answer_assay_questions' record.id %}">
                     <span data-bs-toggle="tooltip" title="Processing failed">
