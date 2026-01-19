@@ -97,10 +97,8 @@ class AssayTable(tables.Table):
             {% elif record.status == LLMStatus.BUSY.value %}
                 <div class="btn-group" role="group" data-bs-toggle="tooltip" title="Processing ongoing ({{record.number_processed_answers}}/{{record.get_n_answers}}). Refresh the page to see updates.">
                     <button class="btn btn-sm btn-outline-secondary" disabled>
-                        <span class="d-flex">
-                            <i class="bi bi-hourglass-split"></i>
-                            <span class="ms-2 d-none d-lg-inline">Busy</span>
-                        </span>
+                            <span class="spinner-grow spinner-grow-sm" aria-hidden="true"></span>
+                            <span role="status">Busy</span>
                     </button>
                 </div>
             {% elif record.status == LLMStatus.ERROR.value %}
