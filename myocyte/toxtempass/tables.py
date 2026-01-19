@@ -167,20 +167,40 @@ class AssayTable(tables.Table):
         """Render the progress bar based on the number of answers."""
         total = record.get_n_answers
         accepted = record.get_n_accepted_answers
+        draft_but_not_accepted = record.number_answers_found_but_not_accepted
         if total:
-            pct = int((accepted / total) * 100)
+            pct_accepted = int((accepted / total) * 100)
+            pct_draft_but_not_accepted = int((draft_but_not_accepted / total) * 100)
         else:
-            pct = 0
+            pct_accepted = 0
+            pct_draft_but_not_accepted = 0
+        answers_accepted_string = "answer" if pct_accepted == 1 else "answers"
+        draft_but_not_accepted_string = (
+            "answer" if pct_draft_but_not_accepted == 1 else "answers"
+        )
         return format_html(
             (
-                '<div class="progress border"><div class="progress-bar" '
-                'role="progressbar" style="width: {}%;" aria-valuenow="{}"'
-                'aria-valuemin="0" aria-valuemax="100" data-bs-toggle="tooltip"'
-                ' title="{}%"></div></div>'
+                '<div class="progress border bg-white">'
+                    '<div class="progress-bar bg-primary" '
+                        'role="progressbar" style="width: {}%;" aria-valuenow="{}"'
+                        'aria-valuemin="0" aria-valuemax="100" data-bs-toggle="tooltip"'
+                        ' title="{} {} accepted">'
+                    '</div>'
+                    '<div class="progress-bar-striped bg-primary opacity-50" '
+                        'role="progressbar" style="width: {}%;" aria-valuenow="{}"'
+                        'aria-valuemin="0" aria-valuemax="100" data-bs-toggle="tooltip"'
+                        ' title="{} unaccepted draft {}">'
+                    '</div>'
+                '</div>'
             ),
-            pct,
-            pct,
-            pct,
+            pct_accepted,
+            pct_accepted,
+            accepted,
+            answers_accepted_string,
+            pct_draft_but_not_accepted,
+            pct_draft_but_not_accepted,
+            draft_but_not_accepted,
+            draft_but_not_accepted_string
         )
 
     def before_render(self, request):

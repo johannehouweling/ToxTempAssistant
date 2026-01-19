@@ -4,6 +4,7 @@ import uuid
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.validators import validate_email
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 from guardian.shortcuts import assign_perm
 from simple_history.models import HistoricalRecords
@@ -313,13 +314,33 @@ class Assay(AccessibleModel):
         return hasattr(self, "feedback")
 
     @property
-    def number_answers_not_found(self) -> float:
+    def number_answers_not_found(self) -> int:
         """Check if there are any answers not found for this assay."""
         not_found_string = config.not_found_string
         # Get all questions related to this assay
         return Answer.objects.filter(
             assay=self, answer_text__icontains=not_found_string
         ).count()
+
+    @property
+    def number_answers_found_but_not_accepted(self) -> int:
+        """Check if there are any answers found but not yet accepted for this assay."""
+        not_found_string = config.not_found_string
+        # Get all questions related to this assay
+        return (
+            Answer.objects.filter(
+                assay=self,
+                accepted=False,
+            )
+            .filter(
+                ~Q(
+                    Q(answer_text__icontains=not_found_string)
+                    | Q(answer_text="")
+                    | Q(answer_text__isnull=True)
+                )
+            )
+            .count()
+        )
 
     @property
     def is_saved(self) -> bool:
@@ -545,6 +566,7 @@ class AnswerFile(models.Model):
             models.UniqueConstraint(fields=["answer", "file"], name="uq_answer_file"),
         ]
 
+
 class FileDownloadLog(models.Model):
     """Audit log for file downloads (staff/superuser only)."""
 
@@ -559,9 +581,7 @@ class FileDownloadLog(models.Model):
         related_name="file_download_logs",
     )
     ip_address = models.GenericIPAddressField(
-        null=True,
-        blank=True,
-        help_text="IP address of the download request"
+        null=True, blank=True, help_text="IP address of the download request"
     )
     downloaded_at = models.DateTimeField(auto_now_add=True)
 
