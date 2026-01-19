@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v2.10.0 (2026-01-19)
+
+### Features
+
+- **ui**: Add property to count answers found but not accepted and update progress bar rendering
+  ([`2a0c5a7`](https://github.com/johannehouweling/ToxTempAssistant/commit/2a0c5a7e2825d99c3268bdbe163aaefc474b11c7))
+
+
 ## v2.9.2 (2026-01-13)
 
 ### Bug Fixes
