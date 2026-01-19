@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v2.11.0 (2026-01-19)
+
+### Bug Fixes
+
+- **ui**: Update busy status button to show loading spinner
+  ([`f035981`](https://github.com/johannehouweling/ToxTempAssistant/commit/f0359816ef3f2c51c48f9ff4a15963310a8f4fe2))
+
+### Features
+
+- **ui**: Implement polling for assay status updates and add configuration for reload intervals
+  ([`2b8248d`](https://github.com/johannehouweling/ToxTempAssistant/commit/2b8248d18bf590de35f1d0b7cf5cfdd250c8a517))
+
+
 ## v2.10.1 (2026-01-19)
 
 ### Bug Fixes
