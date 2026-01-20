@@ -6,6 +6,7 @@ import time
 from collections import defaultdict
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from itertools import product
 
 import requests
 from django.contrib.auth import authenticate, login, logout
@@ -38,12 +39,12 @@ from tqdm.auto import tqdm
 from myocyte import settings
 from toxtempass import config
 from toxtempass import utilities as beta_util
-from toxtempass.demo import seed_demo_assay_for_user
 from toxtempass.export import export_assay_to_file
 from toxtempass.filehandling import (
     collect_source_documents,
     get_text_or_imagebytes_from_django_uploaded_file,
     split_doc_dict_by_type,
+    store_files_to_storage,
     stringyfy_text_dict,
     summarize_image_entries,
 )
@@ -60,6 +61,7 @@ from toxtempass.forms import (
 from toxtempass.llm import get_llm
 from toxtempass.models import (
     Answer,
+    AnswerFile,
     Assay,
     Feedback,
     Investigation,
@@ -72,7 +74,6 @@ from toxtempass.models import (
     Subsection,
 )
 from toxtempass.tables import AssayTable
-from toxtempass.tasks import queue_email
 
 logger = logging.getLogger("views")
 
@@ -176,10 +177,6 @@ def signup(request: HttpRequest) -> HttpResponse | JsonResponse:
             user = form.save(commit=False)
             user.save()
             login(request, user, backend="django.contrib.auth.backends.ModelBackend")
-            try:
-                seed_demo_assay_for_user(user)
-            except Exception:
-                logger.exception("Failed to seed demo assay for user %s", user.id)
             # Mark the user as having requested beta and enqueue notification to mntnr.
             try:
                 async_task("toxtempass.tasks.send_beta_signup_notification", user.id)
@@ -514,9 +511,12 @@ def create_questionset_from_json(label: str, created_by: Person) -> QuestionSet:
 
     existing_qs = QuestionSet.objects.filter(label=label).first()
     if existing_qs:
-        has_content = Section.objects.filter(question_set=existing_qs).exists() or Question.objects.filter(
-            subsection__section__question_set=existing_qs
-        ).exists()
+        has_content = (
+            Section.objects.filter(question_set=existing_qs).exists()
+            or Question.objects.filter(
+                subsection__section__question_set=existing_qs
+            ).exists()
+        )
         if has_content:
             raise ValueError(f"Version '{label}' already exists")
         # reuse the existing (empty) QuestionSet
@@ -865,19 +865,27 @@ def process_llm_async(
             # fire off the round in parallel
             with ThreadPoolExecutor(max_workers=config.max_workers_threading) as pool:
                 futures = {
-                    pool.submit(generate_answer, a, full_pdf_context, assay, chatopenai): a
+                    pool.submit(
+                        generate_answer, a, full_pdf_context, assay, chatopenai
+                    ): a
                     for a in round_answers
                 }
 
-                with tqdm(total=len(futures), disable=not verbose, desc="Answers") as pbar:
+                with tqdm(
+                    total=len(futures), disable=not verbose, desc="Answers"
+                ) as pbar:
                     for future in as_completed(futures):
                         try:
-                            aid, text = future.result()  # optionally: future.result(timeout=...)
+                            aid, text = (
+                                future.result()
+                            )  # optionally: future.result(timeout=...)
                         except TimeoutError as te:
                             logger.error(str(te))
                             continue
                         except Exception as exc:
-                            logger.exception(f"Fatal error for answer {futures[future].id}: {exc}")
+                            logger.exception(
+                                f"Fatal error for answer {futures[future].id}: {exc}"
+                            )
                             continue
                         finally:
                             pbar.update(1)
@@ -961,6 +969,9 @@ class AssayListView(SingleTableView):
         """Inject context."""
         context = super().get_context_data(**kwargs)
         context["show_tour"] = not user_has_seen_tour_page("overview", self.request.user)
+        context["reload_busy_interval"] = config.reload_busy_interval_seconds
+        context["reload_busy_max_retries"] = config.reload_busy_max_retries
+        context["LLMStatus"] = LLMStatus
         # Tour management is now handled by JavaScript localStorage
         # No backend flags needed
         return context
@@ -1033,13 +1044,50 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                 )
 
             files = request.FILES.getlist("files")
+            consent_file_storage = form.cleaned_data.get("consent_file_storage", False)
             answers_exist = assay.answers.exists()
+
+            # Store files to S3/MinIO if user consented
+            stored_file_assets = []
+            if files and consent_file_storage:
+                try:
+                    stored_file_assets = store_files_to_storage(
+                        files=files,
+                        user=request.user,
+                        assay=assay,
+                        consent=True,
+                    )
+                    logger.info(
+                        "Stored %d files for user %s on assay %s",
+                        len(stored_file_assets),
+                        request.user.email,
+                        assay.id,
+                    )
+                except Exception as e:
+                    logger.exception("Failed to store files: %s", e)
+                    return JsonResponse(
+                        {
+                            "success": False,
+                            "errors": {"__all__": [f"File storage failed: {str(e)}"]},
+                        }
+                    )
+
             # If files were uploaded and there are no existing answers,
             # seed empty answers.
             if files and not answers_exist:
                 form_empty_answers = AssayAnswerForm({}, assay=assay, user=request.user)
                 if form_empty_answers.is_valid():
                     form_empty_answers.save()
+                    if consent_file_storage and stored_file_assets:
+                        # Link stored FileAssets to the newly created Answers
+                        pairs = [
+                            AnswerFile(answer=answer, file=file)
+                            for answer, file in product(
+                                assay.answers.all(), stored_file_assets
+                            )
+                        ]
+                        with transaction.atomic():
+                            AnswerFile.objects.bulk_create(pairs, ignore_conflicts=True)
             # If files were uploaded and either overwrite is True or no existing
             if files and (overwrite or not answers_exist):
                 doc_dict = get_text_or_imagebytes_from_django_uploaded_file(
@@ -1058,6 +1106,21 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                     )
 
                 except Exception as e:
+                    logger.exception("LLM processing failed: %s", e)
+                    # Cleanup orphaned files if LLM fails
+                    if stored_file_assets:
+                        for asset in stored_file_assets:
+                            try:
+                                asset.status = "deleted"
+                                asset.save()
+                                logger.info(
+                                    "Marked FileAsset as deleted due to LLM failure: %s",
+                                    asset.id,
+                                )
+                            except Exception as cleanup_error:
+                                logger.exception(
+                                    "Failed to cleanup file asset: %s", cleanup_error
+                                )
                     return JsonResponse(
                         {
                             "success": False,
@@ -1105,6 +1168,18 @@ def get_filtered_assays(request: HttpRequest, study_id: int) -> JsonResponse:
         return JsonResponse(assays_list, safe=False)
     return JsonResponse([], safe=False)
 
+@user_passes_test(is_logged_in, login_url="/login/")
+def get_assay_is_busy_or_scheduled(
+    request: HttpRequest, pk: int
+) -> JsonResponse:
+    """Check if the Assay is busy or scheduled."""
+    if request.method == "POST":
+        assay = get_object_or_404(Assay, pk=pk)
+        if not assay.is_accessible_by(request.user, perm_prefix="view"):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("You do not have permission to access this assay.")
+        is_busy_or_scheduled = assay.status in {LLMStatus.BUSY, LLMStatus.SCHEDULED}
+        return JsonResponse({"is_busy_or_scheduled": is_busy_or_scheduled})
 
 @user_passes_test(is_logged_in, login_url="/login/")
 def initial_gpt_allowed_for_assay(request: HttpRequest, pk: int) -> JsonResponse:

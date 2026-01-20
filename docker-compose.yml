@@ -28,6 +28,42 @@ services:
       - db_network
     # No volumes to ensure ephemeral test DB
 
+  # MinIO
+  minio:
+    profiles: ["prod","test"]
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    container_name: minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    env_file:
+      - ${ENV_FILE:-./.env}
+    # For remote access to the MinIO console, map port 9001 to the host
+    # Also needs attachment to the default bridge network in deploy.yml
+    # ports:
+    #   - "127.0.0.1:9001:9001"
+    expose:
+      - 9000
+      - 9001
+    volumes:
+      - minio_blob_data:/data
+    networks:
+      - data_network
+
+  minio_init:
+    profiles: ["prod","test"]
+    image: minio/mc:latest
+    container_name: minio_init
+    depends_on:
+      - minio
+    env_file:
+      - ${ENV_FILE:-./.env}
+    volumes:
+      - ./myocyte/dockerfiles/minio/init.sh:/init.sh:ro
+    networks:
+      - data_network
+    entrypoint: /init.sh
+    restart: "no"
+
   # Django app
   djangoapp:
     profiles: ["test", "prod"]
@@ -65,6 +101,7 @@ services:
     depends_on:
       # ensure in a production environment that the database is up before starting Django
       - ${POSTGRES_HOST:-postgres_for_django}
+      - minio
     env_file:
       - ${ENV_FILE:-./.env}
     environment:
@@ -73,6 +110,7 @@ services:
       - GIT_TAG=${GIT_TAG}
     networks:
       - db_network
+      - data_network
       ### ATTENTION ###
       # The djangoapp container needs to be connected to the db_network
       # to access the Postgres database, but also to the default bridge network
@@ -82,5 +120,8 @@ services:
 networks:
   db_network:
     driver: bridge
+  data_network:
+    driver: bridge
 volumes:
   db_data:
+  minio_blob_data:

@@ -163,11 +163,15 @@
           <div class="container">
             <!-- Progress bar -->
             {% with percentanswers=assay.get_n_accepted_answers|intdivperc:assay.get_n_answers %}
-            <div id="progress" class="progress mt-3" role="progressbar" aria-label="Example with label" aria-valuenow="{{assay.get_n_accepted_answers}}" aria-valuemin="0" aria-valuemax="{{assay.get_n_answers}}">
-              <div  class="progress-bar text-white p-1" style="width: {{percentanswers}}%">{{percentanswers}} %</div>
+            {% with percent_draft_unaccepted=assay.number_answers_found_but_not_accepted|intdivperc:assay.get_n_answers  %}
+            <div id="progress border bg-white" class="progress mt-3" role="progressbar" aria-label="Example with label" aria-valuenow="{{assay.get_n_accepted_answers}}" aria-valuemin="0" aria-valuemax="{{assay.get_n_answers}}">
+              <div  class="progress-bar bg-primary"  role="progressbar" style="width: {{percentanswers}}%;" aria-valuenow="{{percentanswers}}" aria-valuemin="0" aria-valuemax="100" data-bs-toggle="tooltip" title="{{assay.get_n_accepted_answers}} answer(s) accepted">{{percentanswers}} %</div>
+              <div  class="progress-bar-striped bg-primary opacity-50"  role="progressbar" style="width: {{percent_draft_unaccepted}}%;" aria-valuenow="{{percent_draft_unaccepted}}" aria-valuemin="0" aria-valuemax="100" data-bs-toggle="tooltip" title="{{assay.number_answers_found_but_not_accepted}} unaccepted draft answer(s)"></div>
 
             </div>
             {% endwith %}
+            {% endwith %}
+
             <!-- Buttons -->
 
             <div class="my-3 d-flex">

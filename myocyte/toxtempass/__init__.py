@@ -92,8 +92,8 @@ class Config:
         "- Panel B: <...> (add entries for each panel; use only Panel A if single-panel)\n"
         "NOTES: <bullet list of exactly transcribed on-image text (preserve case, Greek letters, subscripts) and any ambiguities marked [illegible]>\n"
     )
-    min_image_width = 25
-    min_image_height = 25
+    min_image_width = 50
+    min_image_height = 50
     license = "AGPL"
     # obsfuscated email for scraper 'privacy'
     maintainer_email = "".join(
@@ -173,7 +173,12 @@ class Config:
     # this is just for security purposes, to add a new type you also need to
     # define a template for it in export.py
     allowed_export_types = {"json", "md", "pdf", "html", "docx", "xml"}
-
+    
+    # How often to reload the overview page to check for busy/scheduled assays 
+    # (in milliseconds)
+    reload_busy_interval_seconds = 10000
+    reload_busy_max_retries = 30  # e.g., 30 × 10s = 5 minutes
+    # ORCID settings
     _orcid_client_id = os.getenv("ORCID_CLIENT_ID")
     _orcid_client_secret = os.getenv("ORCID_CLIENT_SECRET")
 

@@ -1,0 +1,1346 @@
+{
+  "timestamp": "20250805_2317",
+  "records": [
+    {
+      "file": "cMINC(UKN2).pdf",
+      "passes": 45,
+      "total": 69,
+      "pass_rate": 65.21739130434783,
+      "failures": [
+        {
+          "question_id": 2,
+          "question_text": "Please describe in no more than 200 words the following:",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 22,
+          "question_text": "Name known causes of variability of the initial cells/source cells. Indicate critical consumables or batch effects (e.g. relevance of the plate format and supplier, batch effects of fetal calf serum (FCS) or serum replacement, critical additives like type of trypsin, apo-transferrin vs. holo-transferrin, etc.). Indicate critical handling steps and influencing factors (e.g. special care needed in pipetting, steps that need to be performed quickly, cell density, washing procedures, etc.). As in 3.3., special/additional requirements apply to genetically-modified cells and microphysiological systems, e.g. dependence on matrix chemistry and geometry, dependence on microfluidics system, consideration of surface cells vs core cells, etc. Give recommendations to increase/ensure reproducibility and performance.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 23,
+          "question_text": "Describe the principles of the selected differentiation protocol, including a scheme and graphical overview, indicating all phases, media, substrates, manipulation steps (medium change/re-plating, medium additives, etc.). Special/additional requirements apply to microphysiological systems and organoids: e.g. cell printing, self-aggregation/self-organisation process, interaction with the matrix, geometrical characterization (size/shape), etc.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 29,
+          "question_text": "What is known about endogenous metabolic capacity (CYP system (phase I); relevant conjugation reactions (phase II))? What is known about other pathways relevant to xenobiotic metabolism? What specific information is there on transporter activity?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 30,
+          "question_text": "Are there transcriptomics data or other omics data available that describe the test system (characterization of cells without compounds)? Briefly list and describe such data. Indicate the type of data available (e.g. RNASeq or proteomics data). Refer to data file, data base or publication.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 31,
+          "question_text": "Give information on where the test system differs from the mimicked human tissue and which gaps of analogy need to be considered.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 33,
+          "question_text": "Fill only if section 3 has not been answered. Provide the SOP for the general maintenance procedure as a database link. This should also include the following information: How are the cells maintained outside the experiment (basic cell propagation)? How pure is the cell population (average, e.g. 95% of iPSC cells Oct4-positive)? What are the quality control measures and acceptance criteria for each cell batch? Which number(s) passage(s) can be used in the test? Is Good Cell Culture Practice (GCCP) and/or Good In Vitro Method Practice (GIVIMP) followed? How long can same cell batches be used? How are freezing stocks and cell banks prepared? For primary cells: how are they obtained in general and what are they characterized for (and what are inclusion and exclusion criteria).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 34,
+          "question_text": "Provide an exposure scheme (graphically, show timelines, addition of medium supplements and compounds, sampling, etc.), within the context of the overall cell culture scheme (e.g. freshly re-plated cells or confluent cells at start, certain coatings, etc.). Include medium changes, cell re-plating, whether compounds are re-added in cases of medium change, critical medium supplements, etc.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 41,
+          "question_text": "Does the test system have a particular apoptosis sensitivity or resistance? Is cytotoxicity hard to capture for minor cellular subpopulations? In multicellular systems, which cell population is the most sensitive? Are specific markers known for each cell population? Are there issues with distinguishing slowed proliferation from cell death? For repeated/prolonged dosing: Is early death and compensatory growth considered? For very short-term endpoints (e.g. electrophysiology measured 30 min after toxicant exposure): Is a delayed measure of cytotoxicity provided?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 44,
+          "question_text": "Give an overview of the range of volumes, particular lab ware/instruments for dispensing, temperature/lighting considerations, particular media/buffers for dilution, decision rules for the solvent, tests of solubility as stocks and in culture medium, etc. How are compound stocks prepared (fold concentration, verification, storage, etc.)? How are dilutions prepared? What solvent is used? Is filtering used to obtain sterility? How does the final addition to the test system take place? Give details of addition of test compounds to test systems (e.g. in which compartment of compartmentalized cultures, in which volume, before after or during medium change, etc.).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 46,
+          "question_text": "How is the time plan of pipetting established, followed, and documented? How is adherence to plate maps during pipetting documented? What are the routine procedures to document intermediate steps with potential errors, mistakes and uncertainties? How are errors documented (e.g. pipetting twice in one well)? How are the plate wells used sequentially \u2013 following which pattern? Detailed information should also be included in an SOP, preferably in DB-ALM format (see link in 6.6).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 48,
+          "question_text": "What types of compounds are problematic, e.g. interference with analytical endpoint, low solubility, precipitation of medium components, etc.? What experimental variables are hard to control (e.g. because they are fluorescent)? What are critical handling steps during the execution of the assay? Robustness issues, e.g. known variations of test performance due to operator training, season, use of certain consumable or unknown causes, etc. Describe known pitfalls (or potential operator mistakes).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 49,
+          "question_text": "Ideally the SOP follows the DB-ALM or a comparable format: https://ecvam-dbalm.jrc.ec.europa.eu/home/contribute Refer to additional file(s) (containing information covered in sections 3 and 4), containing all details and explanations. Has the SOP been deposited in an accessible data base? Has the SOP been reviewed externally and if yes, how?",
+          "answer_text": "The SOP for the cMINC assay has been deposited in the DB-ALM database, specifically referenced as Protocol no 195. This protocol is accessible online at the provided link: http://cidportal.jrc.ec.europa.eu/ftp/jrc-opendata/EURL-ECVAM/datasets/DBALM/VER2-0/online/DBALM_docs/195_P_cMINC.pdf _(Source: cMINC(UKN2).pdf)_.\n\nRegarding external review, the document does not specify whether the SOP has been reviewed externally or the details of such a review. Therefore, the information about external review is not available in the provided context. Answer not found in documents."
+        },
+        {
+          "question_id": 52,
+          "question_text": "Indicate the names (and database names) of related tests and give a short description (including a brief comment on differences to the present method). If the test method has been used for high throughput transcriptomics or deep sequencing as alternative endpoint, this should be indicated.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 53,
+          "question_text": "What is the data format? Raw data: give general explanation. Upload an exemplary file of raw data (e.g. Excel file as exported out of plate reader). Provide an example of processed data at a level suitable for general display and comparison of conditions and across experiments and methods. If the file format is not proprietary or binary, include a template. This will help other users to provide their data in a similar way to the general data infrastructure. Example as used in EU-ToxRisk: Excel sheet with columns specifying line number, assay name, date of experiment, identifier for reference to partner lab book, compound, concentration (in: -log[M]), line number of corresponding control, number of replicates, endpoints, data of endpoint(s), etc.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 55,
+          "question_text": "How are raw data processed to obtain summary data (e.g. EC50, BMC15, ratios, PoD, etc.) in your lab? Describe all processing steps from background correction (e.g. measurement of medium control) to normalization steps (e.g. if you relate treated samples to untreated controls).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 56,
+          "question_text": "How are data normally handled to obtain the overall test result (e.g. concentration response fitting using model X, determination of EC50 by method Y, use of EC50 as final data)? How do you model your concentration response curve (e.g. LL.4 parameter fit) and which software do you use (e.g. GraphPad Prism, R, etc.)? Do you usually calculate an uncertainty measure of your summary data (e.g. a 95% confidence interval for the BMC or a BMCL), and with which software? Can you give uncertainty for non-cytotoxicity or no-effect? How do you handle non-monotonic curve shapes or other curve features that are hard to describe with the usual mathematical fit model?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 59,
+          "question_text": "Give example of the metadata file (if available). If metadata or data format (see 7.1) are pre-defined in the project, state here 'as pre-defined in project xxx' (e.g. EU-ToxRisk).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 61,
+          "question_text": "Provide the statistics of your benchmark response (threshold and variance): (i) For dichotomized data, provide your prediction model. When do you consider the result as toxic or not toxic? (ii) For pseudo-dichotomized outcomes (two classes with borderline class in between): define borderline range. (iii) For multi-class or continuous outcomes: provide definitions and rationale. What is the rationale for your threshold? This can be on a mathematical (e.g. 3-fold standard deviation) or a biological basis (e.g. below 80% viability). Is there a toxicological rationale for the threshold settings and definitions of your prediction model? What are the limitations of your prediction model? What is a \u2018hit\u2019 if the test is used in screening mode (= hit definition, if different from above)?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 64,
+          "question_text": "Describe parameters important for the determination of free compound concentrations in the medium. Indicate the lipid and protein content of the medium and the cells. Indicate the volume of the cells. Indicate volume (medium volume) and surface area of culture dish. Is there information/literature on IVIVE strategies/data in the test? Has the test been used earlier for IVIVE? Are there special considerations that are relevant for IVIVE (e.g. potential for compound accumulation due to frequent medium changes and compound re-addition, glycoprotein (MDR1) expression, capacity for xenobiotic metabolism of test system)?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 65,
+          "question_text": "Which compounds is the test likely to pick up correctly, where is it likely to fail? How does the test method react to mixtures and UVCBs? Are there areas (according to industry sector, compound chemistry, physical-chemical properties) that need to be excluded from testing, or that are particularly suitable? Which compound class cannot be detected (e.g. neurotransmitters for which the receptors are not expressed, endocrine disruptors in absence of respective pathway)? Are any compounds known to interfere with the test system (e.g. fluorescent or colored chemicals)?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 67,
+          "question_text": "Refer to published literature on the test AND indicate in detail deviations from published descriptions (e.g. plastic plate supplier, cell number, endpoint measurement, timing, etc.). Provide the most relevant publications that describe/give a comprehensive overview of (a) your test system and/or (b) your test method. Describe what aspects are covered therein. Give a prioritized (according to importance) list of further publications on the test method or its application. Give short comments on which type(s) of information can be obtained from these publications (e.g. contains test chemical lists, contains more positive/negative controls, contains validation against other tests, contains incorporation in test battery, demonstrates use by other lab, etc.).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 68,
+          "question_text": "Indicate whether the test method has been or could be linked to an AOP (or several AOPs) and in which form (e.g. test of KE activation). Can the test method cover an AOP MIE/KE? Reference relevant AOP and if in AOP-wiki, refer to status.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 74,
+          "question_text": "Are there special legal requirements for running the test in your lab; are there special hazards associated with the test that may affect operators, bystanders, others (e.g. through waste).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 75,
+          "question_text": "Are the SDSs for all hazardous reagents used in the test method available? Are the SDSs for all hazardous test compounds stored? Describe where and how the SDSs are stored internally. How is safe handling ensured? Is the exposure scenario for the hazardous reagents used in the test method available?",
+          "answer_text": "Answer not found in documents."
+        }
+      ],
+      "stats": {
+        "cos_similarity": {
+          "mean": 0.7035759226681125,
+          "std": 0.1218799076582103,
+          "min": 0.3304631809876194,
+          "max": 0.937281507050434,
+          "median": 0.7145940739055986,
+          "percent_above_threshold": 0.5555555555555556
+        },
+        "bert_precision": {
+          "mean": 0.39206969001226954,
+          "std": 0.2168878587121214,
+          "min": 0.0466156415641307,
+          "max": 0.7762526273727417,
+          "median": 0.3502269387245178,
+          "percent_above_threshold": 0.13333333333333333
+        },
+        "bert_recall": {
+          "mean": 0.0934896125923842,
+          "std": 0.22435535567569692,
+          "min": -0.4728294014930725,
+          "max": 0.6112861633300781,
+          "median": 0.1056601628661155,
+          "percent_above_threshold": 0.0
+        },
+        "bert_f1": {
+          "mean": 0.21715882367118158,
+          "std": 0.18859448545711988,
+          "min": -0.2864863574504852,
+          "max": 0.6911724209785461,
+          "median": 0.2179612964391708,
+          "percent_above_threshold": 0.0
+        }
+      }
+    },
+    {
+      "file": "NeuriToxassay(UKN4).pdf",
+      "passes": 50,
+      "total": 69,
+      "pass_rate": 72.46376811594203,
+      "failures": [
+        {
+          "question_id": 2,
+          "question_text": "Please describe in no more than 200 words the following:",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 13,
+          "question_text": "Normal text names often do not uniquely define the method. Therefore, each method should be assigned a clearly and uniquely defined data base name.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 23,
+          "question_text": "Describe the principles of the selected differentiation protocol, including a scheme and graphical overview, indicating all phases, media, substrates, manipulation steps (medium change/re-plating, medium additives, etc.). Special/additional requirements apply to microphysiological systems and organoids: e.g. cell printing, self-aggregation/self-organisation process, interaction with the matrix, geometrical characterization (size/shape), etc.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 24,
+          "question_text": "Provide the SOP of the general maintenance procedure as a database link. This should also include the following information: How are the cells maintained outside the experiment (basic cell propagation)? How pure is the cell population (average, e.g. 95% of iPSC cells Oct4-positive)? What are the quality control measures and acceptance criteria for each cell batch? Which number(s) passage(s) can be used in the test? Is Good Cell Culture Practice (GCCP) and/or Good In Vitro Method Practice (GIVIMP) followed? How long can same cell batches be used? How are frozen stocks and cell banks prepared? For primary cells: how are they obtained in general and what are they characterized for (and what are inclusion and exclusion criteria).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 29,
+          "question_text": "What is known about endogenous metabolic capacity (CYP system (phase I); relevant conjugation reactions (phase II))? What is known about other pathways relevant to xenobiotic metabolism? What specific information is there on transporter activity?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 33,
+          "question_text": "Fill only if section 3 has not been answered. Provide the SOP for the general maintenance procedure as a database link. This should also include the following information: How are the cells maintained outside the experiment (basic cell propagation)? How pure is the cell population (average, e.g. 95% of iPSC cells Oct4-positive)? What are the quality control measures and acceptance criteria for each cell batch? Which number(s) passage(s) can be used in the test? Is Good Cell Culture Practice (GCCP) and/or Good In Vitro Method Practice (GIVIMP) followed? How long can same cell batches be used? How are freezing stocks and cell banks prepared? For primary cells: how are they obtained in general and what are they characterized for (and what are inclusion and exclusion criteria).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 34,
+          "question_text": "Provide an exposure scheme (graphically, show timelines, addition of medium supplements and compounds, sampling, etc.), within the context of the overall cell culture scheme (e.g. freshly re-plated cells or confluent cells at start, certain coatings, etc.). Include medium changes, cell re-plating, whether compounds are re-added in cases of medium change, critical medium supplements, etc.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 41,
+          "question_text": "Does the test system have a particular apoptosis sensitivity or resistance? Is cytotoxicity hard to capture for minor cellular subpopulations? In multicellular systems, which cell population is the most sensitive? Are specific markers known for each cell population? Are there issues with distinguishing slowed proliferation from cell death? For repeated/prolonged dosing: Is early death and compensatory growth considered? For very short-term endpoints (e.g. electrophysiology measured 30 min after toxicant exposure): Is a delayed measure of cytotoxicity provided?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 42,
+          "question_text": "Which rule do you apply to test whether a test run is within the normal performance frame? How do you document this decision? Indicate actions if the AC are not met.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 44,
+          "question_text": "Give an overview of the range of volumes, particular lab ware/instruments for dispensing, temperature/lighting considerations, particular media/buffers for dilution, decision rules for the solvent, tests of solubility as stocks and in culture medium, etc. How are compound stocks prepared (fold concentration, verification, storage, etc.)? How are dilutions prepared? What solvent is used? Is filtering used to obtain sterility? How does the final addition to the test system take place? Give details of addition of test compounds to test systems (e.g. in which compartment of compartmentalized cultures, in which volume, before after or during medium change, etc.).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 48,
+          "question_text": "What types of compounds are problematic, e.g. interference with analytical endpoint, low solubility, precipitation of medium components, etc.? What experimental variables are hard to control (e.g. because they are fluorescent)? What are critical handling steps during the execution of the assay? Robustness issues, e.g. known variations of test performance due to operator training, season, use of certain consumable or unknown causes, etc. Describe known pitfalls (or potential operator mistakes).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 53,
+          "question_text": "What is the data format? Raw data: give general explanation. Upload an exemplary file of raw data (e.g. Excel file as exported out of plate reader). Provide an example of processed data at a level suitable for general display and comparison of conditions and across experiments and methods. If the file format is not proprietary or binary, include a template. This will help other users to provide their data in a similar way to the general data infrastructure. Example as used in EU-ToxRisk: Excel sheet with columns specifying line number, assay name, date of experiment, identifier for reference to partner lab book, compound, concentration (in: -log[M]), line number of corresponding control, number of replicates, endpoints, data of endpoint(s), etc.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 55,
+          "question_text": "How are raw data processed to obtain summary data (e.g. EC50, BMC15, ratios, PoD, etc.) in your lab? Describe all processing steps from background correction (e.g. measurement of medium control) to normalization steps (e.g. if you relate treated samples to untreated controls).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 56,
+          "question_text": "How are data normally handled to obtain the overall test result (e.g. concentration response fitting using model X, determination of EC50 by method Y, use of EC50 as final data)? How do you model your concentration response curve (e.g. LL.4 parameter fit) and which software do you use (e.g. GraphPad Prism, R, etc.)? Do you usually calculate an uncertainty measure of your summary data (e.g. a 95% confidence interval for the BMC or a BMCL), and with which software? Can you give uncertainty for non-cytotoxicity or no-effect? How do you handle non-monotonic curve shapes or other curve features that are hard to describe with the usual mathematical fit model?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 57,
+          "question_text": "How and how long are raw and other related data stored? What backup procedures are used (how frequently)? How are data versions identified?",
+          "answer_text": "Raw data is extracted by copy-pasting into Excel files, and data from all technical replicates are collected in one file. All raw data, including outliers, are stored. The data are initially stored on the microscope computer and then exported to other servers, which are backed up regularly _(Source: NeuriToxassay(UKN4).pdf)_.\n\nThe specific frequency of backup procedures is not mentioned in the provided context. Additionally, there is no detailed information on how data versions are identified. Therefore, for these aspects, the answer is: Answer not found in documents."
+        },
+        {
+          "question_id": 61,
+          "question_text": "Provide the statistics of your benchmark response (threshold and variance): (i) For dichotomized data, provide your prediction model. When do you consider the result as toxic or not toxic? (ii) For pseudo-dichotomized outcomes (two classes with borderline class in between): define borderline range. (iii) For multi-class or continuous outcomes: provide definitions and rationale. What is the rationale for your threshold? This can be on a mathematical (e.g. 3-fold standard deviation) or a biological basis (e.g. below 80% viability). Is there a toxicological rationale for the threshold settings and definitions of your prediction model? What are the limitations of your prediction model? What is a \u2018hit\u2019 if the test is used in screening mode (= hit definition, if different from above)?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 64,
+          "question_text": "Describe parameters important for the determination of free compound concentrations in the medium. Indicate the lipid and protein content of the medium and the cells. Indicate the volume of the cells. Indicate volume (medium volume) and surface area of culture dish. Is there information/literature on IVIVE strategies/data in the test? Has the test been used earlier for IVIVE? Are there special considerations that are relevant for IVIVE (e.g. potential for compound accumulation due to frequent medium changes and compound re-addition, glycoprotein (MDR1) expression, capacity for xenobiotic metabolism of test system)?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 65,
+          "question_text": "Which compounds is the test likely to pick up correctly, where is it likely to fail? How does the test method react to mixtures and UVCBs? Are there areas (according to industry sector, compound chemistry, physical-chemical properties) that need to be excluded from testing, or that are particularly suitable? Which compound class cannot be detected (e.g. neurotransmitters for which the receptors are not expressed, endocrine disruptors in absence of respective pathway)? Are any compounds known to interfere with the test system (e.g. fluorescent or colored chemicals)?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 74,
+          "question_text": "Are there special legal requirements for running the test in your lab; are there special hazards associated with the test that may affect operators, bystanders, others (e.g. through waste).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 75,
+          "question_text": "Are the SDSs for all hazardous reagents used in the test method available? Are the SDSs for all hazardous test compounds stored? Describe where and how the SDSs are stored internally. How is safe handling ensured? Is the exposure scenario for the hazardous reagents used in the test method available?",
+          "answer_text": "Answer not found in documents."
+        }
+      ],
+      "stats": {
+        "cos_similarity": {
+          "mean": 0.7169492678557089,
+          "std": 0.10949063975064369,
+          "min": 0.4215548969039264,
+          "max": 0.9129783322399196,
+          "median": 0.7263410721132882,
+          "percent_above_threshold": 0.64
+        },
+        "bert_precision": {
+          "mean": 0.36999082535505295,
+          "std": 0.19971836542023963,
+          "min": 0.067697174847126,
+          "max": 0.7877991199493408,
+          "median": 0.3484634459018707,
+          "percent_above_threshold": 0.06
+        },
+        "bert_recall": {
+          "mean": 0.07655495287850499,
+          "std": 0.19856453933704427,
+          "min": -0.330365926027298,
+          "max": 0.4535227715969085,
+          "median": 0.056825434789061505,
+          "percent_above_threshold": 0.0
+        },
+        "bert_f1": {
+          "mean": 0.1989809206314385,
+          "std": 0.16246872535684773,
+          "min": -0.1459773629903793,
+          "max": 0.5379878282546997,
+          "median": 0.17995587736368174,
+          "percent_above_threshold": 0.0
+        }
+      }
+    },
+    {
+      "file": "NPC2-5.pdf",
+      "passes": 48,
+      "total": 76,
+      "pass_rate": 63.1578947368421,
+      "failures": [
+        {
+          "question_id": 2,
+          "question_text": "Please describe in no more than 200 words the following:",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 10,
+          "question_text": "Provide the original/published name, as well as the potential tradename.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 22,
+          "question_text": "Name known causes of variability of the initial cells/source cells. Indicate critical consumables or batch effects (e.g. relevance of the plate format and supplier, batch effects of fetal calf serum (FCS) or serum replacement, critical additives like type of trypsin, apo-transferrin vs. holo-transferrin, etc.). Indicate critical handling steps and influencing factors (e.g. special care needed in pipetting, steps that need to be performed quickly, cell density, washing procedures, etc.). As in 3.3., special/additional requirements apply to genetically-modified cells and microphysiological systems, e.g. dependence on matrix chemistry and geometry, dependence on microfluidics system, consideration of surface cells vs core cells, etc. Give recommendations to increase/ensure reproducibility and performance.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 23,
+          "question_text": "Describe the principles of the selected differentiation protocol, including a scheme and graphical overview, indicating all phases, media, substrates, manipulation steps (medium change/re-plating, medium additives, etc.). Special/additional requirements apply to microphysiological systems and organoids: e.g. cell printing, self-aggregation/self-organisation process, interaction with the matrix, geometrical characterization (size/shape), etc.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 24,
+          "question_text": "Provide the SOP of the general maintenance procedure as a database link. This should also include the following information: How are the cells maintained outside the experiment (basic cell propagation)? How pure is the cell population (average, e.g. 95% of iPSC cells Oct4-positive)? What are the quality control measures and acceptance criteria for each cell batch? Which number(s) passage(s) can be used in the test? Is Good Cell Culture Practice (GCCP) and/or Good In Vitro Method Practice (GIVIMP) followed? How long can same cell batches be used? How are frozen stocks and cell banks prepared? For primary cells: how are they obtained in general and what are they characterized for (and what are inclusion and exclusion criteria).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 29,
+          "question_text": "What is known about endogenous metabolic capacity (CYP system (phase I); relevant conjugation reactions (phase II))? What is known about other pathways relevant to xenobiotic metabolism? What specific information is there on transporter activity?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 32,
+          "question_text": "Are there elements of the test system that are protected by patents or any other means?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 33,
+          "question_text": "Fill only if section 3 has not been answered. Provide the SOP for the general maintenance procedure as a database link. This should also include the following information: How are the cells maintained outside the experiment (basic cell propagation)? How pure is the cell population (average, e.g. 95% of iPSC cells Oct4-positive)? What are the quality control measures and acceptance criteria for each cell batch? Which number(s) passage(s) can be used in the test? Is Good Cell Culture Practice (GCCP) and/or Good In Vitro Method Practice (GIVIMP) followed? How long can same cell batches be used? How are freezing stocks and cell banks prepared? For primary cells: how are they obtained in general and what are they characterized for (and what are inclusion and exclusion criteria).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 34,
+          "question_text": "Provide an exposure scheme (graphically, show timelines, addition of medium supplements and compounds, sampling, etc.), within the context of the overall cell culture scheme (e.g. freshly re-plated cells or confluent cells at start, certain coatings, etc.). Include medium changes, cell re-plating, whether compounds are re-added in cases of medium change, critical medium supplements, etc.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 37,
+          "question_text": "Provide information on machine settings, analytical standards, data processing and normalization procedures. For imaging endpoints: provide detailed algorithm. This information should also be covered in an SOP, preferably in DB-ALM format (see link in 6.6).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 38,
+          "question_text": "MCC are chemicals/manipulations that show biologically plausible changes of the endpoint. List such controls (up to 10), indicate why you consider them as MCC, and describe expected data on such controls. Highlight the compounds to be used for testing day-to-day test performance, i.e. for setting acceptance criteria (AC). If available, indicate MCC that each increase or decrease the activity of the relevant pathway. Do pathway inhibitions or activations correlate with the test method response?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 41,
+          "question_text": "Does the test system have a particular apoptosis sensitivity or resistance? Is cytotoxicity hard to capture for minor cellular subpopulations? In multicellular systems, which cell population is the most sensitive? Are specific markers known for each cell population? Are there issues with distinguishing slowed proliferation from cell death? For repeated/prolonged dosing: Is early death and compensatory growth considered? For very short-term endpoints (e.g. electrophysiology measured 30 min after toxicant exposure): Is a delayed measure of cytotoxicity provided?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 43,
+          "question_text": "Indicate 'real data points per month' (not per week/per quarter, etc.): count three working weeks per month. Each concentration is a data point. Necessary controls that are required for calibration and for acceptability criteria are NOT counted as data points. All technical replicates of one condition are counted as one single data point (see notes for explanation) Indicate possibility/extent of repeated measures (over time) from same dish. Explain your estimate.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 44,
+          "question_text": "Give an overview of the range of volumes, particular lab ware/instruments for dispensing, temperature/lighting considerations, particular media/buffers for dilution, decision rules for the solvent, tests of solubility as stocks and in culture medium, etc. How are compound stocks prepared (fold concentration, verification, storage, etc.)? How are dilutions prepared? What solvent is used? Is filtering used to obtain sterility? How does the final addition to the test system take place? Give details of addition of test compounds to test systems (e.g. in which compartment of compartmentalized cultures, in which volume, before after or during medium change, etc.).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 45,
+          "question_text": "How are day-to-day procedures documented (type of \u2018lab book\u2019 organisation, templates)? Define lab-specific procedures used for each practical experiment on how to calculate test compound concentrations (and to document this). How are plate maps defined and reported? Detailed information should also be covered in an SOP, preferably in DB-ALM format (see link in 6.6).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 46,
+          "question_text": "How is the time plan of pipetting established, followed, and documented? How is adherence to plate maps during pipetting documented? What are the routine procedures to document intermediate steps with potential errors, mistakes and uncertainties? How are errors documented (e.g. pipetting twice in one well)? How are the plate wells used sequentially \u2013 following which pattern? Detailed information should also be included in an SOP, preferably in DB-ALM format (see link in 6.6).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 49,
+          "question_text": "Ideally the SOP follows the DB-ALM or a comparable format: https://ecvam-dbalm.jrc.ec.europa.eu/home/contribute Refer to additional file(s) (containing information covered in sections 3 and 4), containing all details and explanations. Has the SOP been deposited in an accessible data base? Has the SOP been reviewed externally and if yes, how?",
+          "answer_text": "The SOP for the neural progenitor cell migration and differentiation assay (NPC2-5) is referenced as being in DB-ALM format (Appendix J in Masjosthusmann et al. 2020). However, there is no specific mention of whether the SOP has been deposited in an accessible database or if it has been reviewed externally. Therefore, the answers to your questions are:\n\n1. **Has the SOP been deposited in an accessible database?** Answer not found in documents.\n2. **Has the SOP been reviewed externally and if yes, how?** Answer not found in documents."
+        },
+        {
+          "question_id": 53,
+          "question_text": "What is the data format? Raw data: give general explanation. Upload an exemplary file of raw data (e.g. Excel file as exported out of plate reader). Provide an example of processed data at a level suitable for general display and comparison of conditions and across experiments and methods. If the file format is not proprietary or binary, include a template. This will help other users to provide their data in a similar way to the general data infrastructure. Example as used in EU-ToxRisk: Excel sheet with columns specifying line number, assay name, date of experiment, identifier for reference to partner lab book, compound, concentration (in: -log[M]), line number of corresponding control, number of replicates, endpoints, data of endpoint(s), etc.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 55,
+          "question_text": "How are raw data processed to obtain summary data (e.g. EC50, BMC15, ratios, PoD, etc.) in your lab? Describe all processing steps from background correction (e.g. measurement of medium control) to normalization steps (e.g. if you relate treated samples to untreated controls).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 56,
+          "question_text": "How are data normally handled to obtain the overall test result (e.g. concentration response fitting using model X, determination of EC50 by method Y, use of EC50 as final data)? How do you model your concentration response curve (e.g. LL.4 parameter fit) and which software do you use (e.g. GraphPad Prism, R, etc.)? Do you usually calculate an uncertainty measure of your summary data (e.g. a 95% confidence interval for the BMC or a BMCL), and with which software? Can you give uncertainty for non-cytotoxicity or no-effect? How do you handle non-monotonic curve shapes or other curve features that are hard to describe with the usual mathematical fit model?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 59,
+          "question_text": "Give example of the metadata file (if available). If metadata or data format (see 7.1) are pre-defined in the project, state here 'as pre-defined in project xxx' (e.g. EU-ToxRisk).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 61,
+          "question_text": "Provide the statistics of your benchmark response (threshold and variance): (i) For dichotomized data, provide your prediction model. When do you consider the result as toxic or not toxic? (ii) For pseudo-dichotomized outcomes (two classes with borderline class in between): define borderline range. (iii) For multi-class or continuous outcomes: provide definitions and rationale. What is the rationale for your threshold? This can be on a mathematical (e.g. 3-fold standard deviation) or a biological basis (e.g. below 80% viability). Is there a toxicological rationale for the threshold settings and definitions of your prediction model? What are the limitations of your prediction model? What is a \u2018hit\u2019 if the test is used in screening mode (= hit definition, if different from above)?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 64,
+          "question_text": "Describe parameters important for the determination of free compound concentrations in the medium. Indicate the lipid and protein content of the medium and the cells. Indicate the volume of the cells. Indicate volume (medium volume) and surface area of culture dish. Is there information/literature on IVIVE strategies/data in the test? Has the test been used earlier for IVIVE? Are there special considerations that are relevant for IVIVE (e.g. potential for compound accumulation due to frequent medium changes and compound re-addition, glycoprotein (MDR1) expression, capacity for xenobiotic metabolism of test system)?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 65,
+          "question_text": "Which compounds is the test likely to pick up correctly, where is it likely to fail? How does the test method react to mixtures and UVCBs? Are there areas (according to industry sector, compound chemistry, physical-chemical properties) that need to be excluded from testing, or that are particularly suitable? Which compound class cannot be detected (e.g. neurotransmitters for which the receptors are not expressed, endocrine disruptors in absence of respective pathway)? Are any compounds known to interfere with the test system (e.g. fluorescent or colored chemicals)?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 74,
+          "question_text": "Are there special legal requirements for running the test in your lab; are there special hazards associated with the test that may affect operators, bystanders, others (e.g. through waste).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 75,
+          "question_text": "Are the SDSs for all hazardous reagents used in the test method available? Are the SDSs for all hazardous test compounds stored? Describe where and how the SDSs are stored internally. How is safe handling ensured? Is the exposure scenario for the hazardous reagents used in the test method available?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 76,
+          "question_text": "Are special permits (e.g. genetic work, stem cells, radioactivity, etc.) required? Are special facilities required? Is special ethical approval necessary (indicate approval document).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 77,
+          "question_text": "List elements of the test method (e.g. consumables, chemicals, analytical methods, equipment) that are protected by patents or any other means. Indicate the type of protection and where the element (or license for it) may be obtained.",
+          "answer_text": "Answer not found in documents."
+        }
+      ],
+      "stats": {
+        "cos_similarity": {
+          "mean": 0.6802031512312121,
+          "std": 0.18041107782869345,
+          "min": 0.2907044901701845,
+          "max": 0.9206527069197712,
+          "median": 0.7358811175684385,
+          "percent_above_threshold": 0.6041666666666666
+        },
+        "bert_precision": {
+          "mean": 0.35629571372798335,
+          "std": 0.2444237812649574,
+          "min": -0.0912444740533828,
+          "max": 0.7721349000930786,
+          "median": 0.34385743737220764,
+          "percent_above_threshold": 0.08333333333333333
+        },
+        "bert_recall": {
+          "mean": 0.03511396063307377,
+          "std": 0.24384517301092257,
+          "min": -0.7131134867668152,
+          "max": 0.4805304706096649,
+          "median": 0.0737236831337213,
+          "percent_above_threshold": 0.0
+        },
+        "bert_f1": {
+          "mean": 0.16679385459671417,
+          "std": 0.2267405918172787,
+          "min": -0.5404663681983948,
+          "max": 0.5736249685287476,
+          "median": 0.1700918972492218,
+          "percent_above_threshold": 0.0
+        }
+      }
+    },
+    {
+      "file": "MitoStressLUHMESassay(MSL).pdf",
+      "passes": 37,
+      "total": 61,
+      "pass_rate": 60.65573770491803,
+      "failures": [
+        {
+          "question_id": 2,
+          "question_text": "Please describe in no more than 200 words the following:",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 13,
+          "question_text": "Normal text names often do not uniquely define the method. Therefore, each method should be assigned a clearly and uniquely defined data base name.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 22,
+          "question_text": "Name known causes of variability of the initial cells/source cells. Indicate critical consumables or batch effects (e.g. relevance of the plate format and supplier, batch effects of fetal calf serum (FCS) or serum replacement, critical additives like type of trypsin, apo-transferrin vs. holo-transferrin, etc.). Indicate critical handling steps and influencing factors (e.g. special care needed in pipetting, steps that need to be performed quickly, cell density, washing procedures, etc.). As in 3.3., special/additional requirements apply to genetically-modified cells and microphysiological systems, e.g. dependence on matrix chemistry and geometry, dependence on microfluidics system, consideration of surface cells vs core cells, etc. Give recommendations to increase/ensure reproducibility and performance.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 23,
+          "question_text": "Describe the principles of the selected differentiation protocol, including a scheme and graphical overview, indicating all phases, media, substrates, manipulation steps (medium change/re-plating, medium additives, etc.). Special/additional requirements apply to microphysiological systems and organoids: e.g. cell printing, self-aggregation/self-organisation process, interaction with the matrix, geometrical characterization (size/shape), etc.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 24,
+          "question_text": "Provide the SOP of the general maintenance procedure as a database link. This should also include the following information: How are the cells maintained outside the experiment (basic cell propagation)? How pure is the cell population (average, e.g. 95% of iPSC cells Oct4-positive)? What are the quality control measures and acceptance criteria for each cell batch? Which number(s) passage(s) can be used in the test? Is Good Cell Culture Practice (GCCP) and/or Good In Vitro Method Practice (GIVIMP) followed? How long can same cell batches be used? How are frozen stocks and cell banks prepared? For primary cells: how are they obtained in general and what are they characterized for (and what are inclusion and exclusion criteria).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 29,
+          "question_text": "What is known about endogenous metabolic capacity (CYP system (phase I); relevant conjugation reactions (phase II))? What is known about other pathways relevant to xenobiotic metabolism? What specific information is there on transporter activity?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 33,
+          "question_text": "Fill only if section 3 has not been answered. Provide the SOP for the general maintenance procedure as a database link. This should also include the following information: How are the cells maintained outside the experiment (basic cell propagation)? How pure is the cell population (average, e.g. 95% of iPSC cells Oct4-positive)? What are the quality control measures and acceptance criteria for each cell batch? Which number(s) passage(s) can be used in the test? Is Good Cell Culture Practice (GCCP) and/or Good In Vitro Method Practice (GIVIMP) followed? How long can same cell batches be used? How are freezing stocks and cell banks prepared? For primary cells: how are they obtained in general and what are they characterized for (and what are inclusion and exclusion criteria).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 34,
+          "question_text": "Provide an exposure scheme (graphically, show timelines, addition of medium supplements and compounds, sampling, etc.), within the context of the overall cell culture scheme (e.g. freshly re-plated cells or confluent cells at start, certain coatings, etc.). Include medium changes, cell re-plating, whether compounds are re-added in cases of medium change, critical medium supplements, etc.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 37,
+          "question_text": "Provide information on machine settings, analytical standards, data processing and normalization procedures. For imaging endpoints: provide detailed algorithm. This information should also be covered in an SOP, preferably in DB-ALM format (see link in 6.6).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 38,
+          "question_text": "MCC are chemicals/manipulations that show biologically plausible changes of the endpoint. List such controls (up to 10), indicate why you consider them as MCC, and describe expected data on such controls. Highlight the compounds to be used for testing day-to-day test performance, i.e. for setting acceptance criteria (AC). If available, indicate MCC that each increase or decrease the activity of the relevant pathway. Do pathway inhibitions or activations correlate with the test method response?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 39,
+          "question_text": "What chemicals/manipulations are used as positive controls? Describe the expected data on such controls (signal and its uncertainty)? How good are in vivo reference data on the positive controls? Are in vivo relevant threshold concentrations known?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 40,
+          "question_text": "What chemicals/manipulations are used as negative controls? Describe the expected data on such controls (signal and its uncertainty)? (Such data define the background noise of the test method) What is the rationale for the concentration setting of negative controls? Do you use unspecific controls? If yes, indicate the compounds and the respective rationale for their use and the concentration selection.",
+          "answer_text": "The negative control used in the MitoStressLUHMES assay (MSL) is a solvent, specifically 0.1% DMSO final concentration. The expected data for this negative control should show that the oxygen consumption rate (OCR) does not change significantly in response to the control injection. This indicates that the background noise of the test method is stable and that the assay is functioning correctly without interference from the solvent _(Source: MitoStressLUHMESassay(MSL).pdf)_.\n\nThe rationale for setting the concentration of the negative control at 0.1% DMSO is to ensure that it is within a range that does not affect the cellular metabolism or mitochondrial function while still allowing for the solubilization of test compounds _(Source: MitoStressLUHMESassay(MSL).pdf)_.\n\nThere are no specific unspecific controls mentioned in the provided context. Therefore, the focus remains on the negative control of DMSO, which serves to establish a baseline for comparison against the test compounds _(Answer not found in documents.)_."
+        },
+        {
+          "question_id": 41,
+          "question_text": "Does the test system have a particular apoptosis sensitivity or resistance? Is cytotoxicity hard to capture for minor cellular subpopulations? In multicellular systems, which cell population is the most sensitive? Are specific markers known for each cell population? Are there issues with distinguishing slowed proliferation from cell death? For repeated/prolonged dosing: Is early death and compensatory growth considered? For very short-term endpoints (e.g. electrophysiology measured 30 min after toxicant exposure): Is a delayed measure of cytotoxicity provided?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 44,
+          "question_text": "Give an overview of the range of volumes, particular lab ware/instruments for dispensing, temperature/lighting considerations, particular media/buffers for dilution, decision rules for the solvent, tests of solubility as stocks and in culture medium, etc. How are compound stocks prepared (fold concentration, verification, storage, etc.)? How are dilutions prepared? What solvent is used? Is filtering used to obtain sterility? How does the final addition to the test system take place? Give details of addition of test compounds to test systems (e.g. in which compartment of compartmentalized cultures, in which volume, before after or during medium change, etc.).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 45,
+          "question_text": "How are day-to-day procedures documented (type of \u2018lab book\u2019 organisation, templates)? Define lab-specific procedures used for each practical experiment on how to calculate test compound concentrations (and to document this). How are plate maps defined and reported? Detailed information should also be covered in an SOP, preferably in DB-ALM format (see link in 6.6).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 46,
+          "question_text": "How is the time plan of pipetting established, followed, and documented? How is adherence to plate maps during pipetting documented? What are the routine procedures to document intermediate steps with potential errors, mistakes and uncertainties? How are errors documented (e.g. pipetting twice in one well)? How are the plate wells used sequentially \u2013 following which pattern? Detailed information should also be included in an SOP, preferably in DB-ALM format (see link in 6.6).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 47,
+          "question_text": "How is the concentration range of test compounds defined (e.g. only single concentrations, always 1:10 serial dilutions or variable dilution factors, ten different concentrations, etc.)? Is there a rule for defining starting dilutions? For functional endpoints that may not provide full concentration-response, how is the test concentration defined? E.g. EC10 of viability data are usually tested for gene expression endpoints. Detailed information should also be included in an SOP, preferably in DB-ALM format (see link in 6.6).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 48,
+          "question_text": "What types of compounds are problematic, e.g. interference with analytical endpoint, low solubility, precipitation of medium components, etc.? What experimental variables are hard to control (e.g. because they are fluorescent)? What are critical handling steps during the execution of the assay? Robustness issues, e.g. known variations of test performance due to operator training, season, use of certain consumable or unknown causes, etc. Describe known pitfalls (or potential operator mistakes).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 49,
+          "question_text": "Ideally the SOP follows the DB-ALM or a comparable format: https://ecvam-dbalm.jrc.ec.europa.eu/home/contribute Refer to additional file(s) (containing information covered in sections 3 and 4), containing all details and explanations. Has the SOP been deposited in an accessible data base? Has the SOP been reviewed externally and if yes, how?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 53,
+          "question_text": "What is the data format? Raw data: give general explanation. Upload an exemplary file of raw data (e.g. Excel file as exported out of plate reader). Provide an example of processed data at a level suitable for general display and comparison of conditions and across experiments and methods. If the file format is not proprietary or binary, include a template. This will help other users to provide their data in a similar way to the general data infrastructure. Example as used in EU-ToxRisk: Excel sheet with columns specifying line number, assay name, date of experiment, identifier for reference to partner lab book, compound, concentration (in: -log[M]), line number of corresponding control, number of replicates, endpoints, data of endpoint(s), etc.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 55,
+          "question_text": "How are raw data processed to obtain summary data (e.g. EC50, BMC15, ratios, PoD, etc.) in your lab? Describe all processing steps from background correction (e.g. measurement of medium control) to normalization steps (e.g. if you relate treated samples to untreated controls).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 56,
+          "question_text": "How are data normally handled to obtain the overall test result (e.g. concentration response fitting using model X, determination of EC50 by method Y, use of EC50 as final data)? How do you model your concentration response curve (e.g. LL.4 parameter fit) and which software do you use (e.g. GraphPad Prism, R, etc.)? Do you usually calculate an uncertainty measure of your summary data (e.g. a 95% confidence interval for the BMC or a BMCL), and with which software? Can you give uncertainty for non-cytotoxicity or no-effect? How do you handle non-monotonic curve shapes or other curve features that are hard to describe with the usual mathematical fit model?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 57,
+          "question_text": "How and how long are raw and other related data stored? What backup procedures are used (how frequently)? How are data versions identified?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 59,
+          "question_text": "Give example of the metadata file (if available). If metadata or data format (see 7.1) are pre-defined in the project, state here 'as pre-defined in project xxx' (e.g. EU-ToxRisk).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 61,
+          "question_text": "Provide the statistics of your benchmark response (threshold and variance): (i) For dichotomized data, provide your prediction model. When do you consider the result as toxic or not toxic? (ii) For pseudo-dichotomized outcomes (two classes with borderline class in between): define borderline range. (iii) For multi-class or continuous outcomes: provide definitions and rationale. What is the rationale for your threshold? This can be on a mathematical (e.g. 3-fold standard deviation) or a biological basis (e.g. below 80% viability). Is there a toxicological rationale for the threshold settings and definitions of your prediction model? What are the limitations of your prediction model? What is a \u2018hit\u2019 if the test is used in screening mode (= hit definition, if different from above)?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 62,
+          "question_text": "How was the prediction model set up (using which test set of chemicals to train the model; using probing with what kind of classifiers/statistical approaches)? Has the prediction model been tested (what was the test set of chemicals)? List chemicals or give n, if n > 50. Is the process documented (publication)? Does the prediction model (PM) apply to changes to both sides of controls (up/down)? If the PM is one-sided (e.g. toxicants leading to a decrease vs. control), how are data in the opposite direction handled and interpreted? If the PM is two-sided, do different rules, characteristics and interpretations apply to the two sides (e.g. is a decrease in viability or an increase in viability both interpreted as an effect/toxicity; are thresholds and performance characteristics to both sides the same?).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 63,
+          "question_text": "Indicate here basic performance parameters or, if possible, preliminary estimates (label as such): Baseline variation (noise) within assays AND between assays. What is the signal/noise ratio (signal = standard positive control)? Is the z-factor determined? Give the specificity of the test method. How is it determined? Give the sensitivity of the test method. How is it determined? Give measures of the uncertainty of your test method. How are they determined? What is the detection limit (required change of endpoint to become measurable)? If available, give limit of detection (LOD) and limit of quantification (LOQ). What are inter-operator variations? Are there data of \u2018historical controls\u2019 over a longer time period?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 64,
+          "question_text": "Describe parameters important for the determination of free compound concentrations in the medium. Indicate the lipid and protein content of the medium and the cells. Indicate the volume of the cells. Indicate volume (medium volume) and surface area of culture dish. Is there information/literature on IVIVE strategies/data in the test? Has the test been used earlier for IVIVE? Are there special considerations that are relevant for IVIVE (e.g. potential for compound accumulation due to frequent medium changes and compound re-addition, glycoprotein (MDR1) expression, capacity for xenobiotic metabolism of test system)?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 65,
+          "question_text": "Which compounds is the test likely to pick up correctly, where is it likely to fail? How does the test method react to mixtures and UVCBs? Are there areas (according to industry sector, compound chemistry, physical-chemical properties) that need to be excluded from testing, or that are particularly suitable? Which compound class cannot be detected (e.g. neurotransmitters for which the receptors are not expressed, endocrine disruptors in absence of respective pathway)? Are any compounds known to interfere with the test system (e.g. fluorescent or colored chemicals)?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 74,
+          "question_text": "Are there special legal requirements for running the test in your lab; are there special hazards associated with the test that may affect operators, bystanders, others (e.g. through waste).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 75,
+          "question_text": "Are the SDSs for all hazardous reagents used in the test method available? Are the SDSs for all hazardous test compounds stored? Describe where and how the SDSs are stored internally. How is safe handling ensured? Is the exposure scenario for the hazardous reagents used in the test method available?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 77,
+          "question_text": "List elements of the test method (e.g. consumables, chemicals, analytical methods, equipment) that are protected by patents or any other means. Indicate the type of protection and where the element (or license for it) may be obtained.",
+          "answer_text": "Answer not found in documents."
+        }
+      ],
+      "stats": {
+        "cos_similarity": {
+          "mean": 0.6937994159292121,
+          "std": 0.12431232539290342,
+          "min": 0.3360522227180965,
+          "max": 0.8827918903047521,
+          "median": 0.7123777900795912,
+          "percent_above_threshold": 0.5675675675675675
+        },
+        "bert_precision": {
+          "mean": 0.34995673566653923,
+          "std": 0.23580345349771242,
+          "min": -0.092504508793354,
+          "max": 0.777052104473114,
+          "median": 0.2938412427902221,
+          "percent_above_threshold": 0.10810810810810811
+        },
+        "bert_recall": {
+          "mean": 0.06269420304562191,
+          "std": 0.1869016672504679,
+          "min": -0.2578301429748535,
+          "max": 0.5624338388442993,
+          "median": 0.0538900084793567,
+          "percent_above_threshold": 0.0
+        },
+        "bert_f1": {
+          "mean": 0.17950150602169937,
+          "std": 0.15763902672194668,
+          "min": -0.0773199275135994,
+          "max": 0.640109121799469,
+          "median": 0.1718142926692962,
+          "percent_above_threshold": 0.0
+        }
+      }
+    },
+    {
+      "file": "PeriToxtest(UKN5).pdf",
+      "passes": 53,
+      "total": 69,
+      "pass_rate": 76.81159420289855,
+      "failures": [
+        {
+          "question_id": 2,
+          "question_text": "Please describe in no more than 200 words the following:",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 23,
+          "question_text": "Describe the principles of the selected differentiation protocol, including a scheme and graphical overview, indicating all phases, media, substrates, manipulation steps (medium change/re-plating, medium additives, etc.). Special/additional requirements apply to microphysiological systems and organoids: e.g. cell printing, self-aggregation/self-organisation process, interaction with the matrix, geometrical characterization (size/shape), etc.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 29,
+          "question_text": "What is known about endogenous metabolic capacity (CYP system (phase I); relevant conjugation reactions (phase II))? What is known about other pathways relevant to xenobiotic metabolism? What specific information is there on transporter activity?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 30,
+          "question_text": "Are there transcriptomics data or other omics data available that describe the test system (characterization of cells without compounds)? Briefly list and describe such data. Indicate the type of data available (e.g. RNASeq or proteomics data). Refer to data file, data base or publication.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 33,
+          "question_text": "Fill only if section 3 has not been answered. Provide the SOP for the general maintenance procedure as a database link. This should also include the following information: How are the cells maintained outside the experiment (basic cell propagation)? How pure is the cell population (average, e.g. 95% of iPSC cells Oct4-positive)? What are the quality control measures and acceptance criteria for each cell batch? Which number(s) passage(s) can be used in the test? Is Good Cell Culture Practice (GCCP) and/or Good In Vitro Method Practice (GIVIMP) followed? How long can same cell batches be used? How are freezing stocks and cell banks prepared? For primary cells: how are they obtained in general and what are they characterized for (and what are inclusion and exclusion criteria).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 34,
+          "question_text": "Provide an exposure scheme (graphically, show timelines, addition of medium supplements and compounds, sampling, etc.), within the context of the overall cell culture scheme (e.g. freshly re-plated cells or confluent cells at start, certain coatings, etc.). Include medium changes, cell re-plating, whether compounds are re-added in cases of medium change, critical medium supplements, etc.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 41,
+          "question_text": "Does the test system have a particular apoptosis sensitivity or resistance? Is cytotoxicity hard to capture for minor cellular subpopulations? In multicellular systems, which cell population is the most sensitive? Are specific markers known for each cell population? Are there issues with distinguishing slowed proliferation from cell death? For repeated/prolonged dosing: Is early death and compensatory growth considered? For very short-term endpoints (e.g. electrophysiology measured 30 min after toxicant exposure): Is a delayed measure of cytotoxicity provided?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 44,
+          "question_text": "Give an overview of the range of volumes, particular lab ware/instruments for dispensing, temperature/lighting considerations, particular media/buffers for dilution, decision rules for the solvent, tests of solubility as stocks and in culture medium, etc. How are compound stocks prepared (fold concentration, verification, storage, etc.)? How are dilutions prepared? What solvent is used? Is filtering used to obtain sterility? How does the final addition to the test system take place? Give details of addition of test compounds to test systems (e.g. in which compartment of compartmentalized cultures, in which volume, before after or during medium change, etc.).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 46,
+          "question_text": "How is the time plan of pipetting established, followed, and documented? How is adherence to plate maps during pipetting documented? What are the routine procedures to document intermediate steps with potential errors, mistakes and uncertainties? How are errors documented (e.g. pipetting twice in one well)? How are the plate wells used sequentially \u2013 following which pattern? Detailed information should also be included in an SOP, preferably in DB-ALM format (see link in 6.6).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 48,
+          "question_text": "What types of compounds are problematic, e.g. interference with analytical endpoint, low solubility, precipitation of medium components, etc.? What experimental variables are hard to control (e.g. because they are fluorescent)? What are critical handling steps during the execution of the assay? Robustness issues, e.g. known variations of test performance due to operator training, season, use of certain consumable or unknown causes, etc. Describe known pitfalls (or potential operator mistakes).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 52,
+          "question_text": "Indicate the names (and database names) of related tests and give a short description (including a brief comment on differences to the present method). If the test method has been used for high throughput transcriptomics or deep sequencing as alternative endpoint, this should be indicated.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 53,
+          "question_text": "What is the data format? Raw data: give general explanation. Upload an exemplary file of raw data (e.g. Excel file as exported out of plate reader). Provide an example of processed data at a level suitable for general display and comparison of conditions and across experiments and methods. If the file format is not proprietary or binary, include a template. This will help other users to provide their data in a similar way to the general data infrastructure. Example as used in EU-ToxRisk: Excel sheet with columns specifying line number, assay name, date of experiment, identifier for reference to partner lab book, compound, concentration (in: -log[M]), line number of corresponding control, number of replicates, endpoints, data of endpoint(s), etc.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 55,
+          "question_text": "How are raw data processed to obtain summary data (e.g. EC50, BMC15, ratios, PoD, etc.) in your lab? Describe all processing steps from background correction (e.g. measurement of medium control) to normalization steps (e.g. if you relate treated samples to untreated controls).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 64,
+          "question_text": "Describe parameters important for the determination of free compound concentrations in the medium. Indicate the lipid and protein content of the medium and the cells. Indicate the volume of the cells. Indicate volume (medium volume) and surface area of culture dish. Is there information/literature on IVIVE strategies/data in the test? Has the test been used earlier for IVIVE? Are there special considerations that are relevant for IVIVE (e.g. potential for compound accumulation due to frequent medium changes and compound re-addition, glycoprotein (MDR1) expression, capacity for xenobiotic metabolism of test system)?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 65,
+          "question_text": "Which compounds is the test likely to pick up correctly, where is it likely to fail? How does the test method react to mixtures and UVCBs? Are there areas (according to industry sector, compound chemistry, physical-chemical properties) that need to be excluded from testing, or that are particularly suitable? Which compound class cannot be detected (e.g. neurotransmitters for which the receptors are not expressed, endocrine disruptors in absence of respective pathway)? Are any compounds known to interfere with the test system (e.g. fluorescent or colored chemicals)?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 74,
+          "question_text": "Are there special legal requirements for running the test in your lab; are there special hazards associated with the test that may affect operators, bystanders, others (e.g. through waste).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 75,
+          "question_text": "Are the SDSs for all hazardous reagents used in the test method available? Are the SDSs for all hazardous test compounds stored? Describe where and how the SDSs are stored internally. How is safe handling ensured? Is the exposure scenario for the hazardous reagents used in the test method available?",
+          "answer_text": "Answer not found in documents."
+        }
+      ],
+      "stats": {
+        "cos_similarity": {
+          "mean": 0.6946233133936458,
+          "std": 0.10901310143517169,
+          "min": 0.4249434719342223,
+          "max": 0.929648802590421,
+          "median": 0.705813298639073,
+          "percent_above_threshold": 0.5094339622641509
+        },
+        "bert_precision": {
+          "mean": 0.3877106689900722,
+          "std": 0.22433641191846887,
+          "min": -0.1784276664257049,
+          "max": 0.8174815773963928,
+          "median": 0.3770870268344879,
+          "percent_above_threshold": 0.11320754716981132
+        },
+        "bert_recall": {
+          "mean": 0.06938432427650351,
+          "std": 0.20055399388945921,
+          "min": -0.452983021736145,
+          "max": 0.5099425911903381,
+          "median": 0.0483366958796978,
+          "percent_above_threshold": 0.0
+        },
+        "bert_f1": {
+          "mean": 0.20142010376428449,
+          "std": 0.17942557661510536,
+          "min": -0.2019810229539871,
+          "max": 0.6232949495315552,
+          "median": 0.1892174482345581,
+          "percent_above_threshold": 0.0
+        }
+      }
+    },
+    {
+      "file": "MitoMetassay(UKN4b).pdf",
+      "passes": 53,
+      "total": 68,
+      "pass_rate": 77.94117647058823,
+      "failures": [
+        {
+          "question_id": 2,
+          "question_text": "Please describe in no more than 200 words the following:",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 13,
+          "question_text": "Normal text names often do not uniquely define the method. Therefore, each method should be assigned a clearly and uniquely defined data base name.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 23,
+          "question_text": "Describe the principles of the selected differentiation protocol, including a scheme and graphical overview, indicating all phases, media, substrates, manipulation steps (medium change/re-plating, medium additives, etc.). Special/additional requirements apply to microphysiological systems and organoids: e.g. cell printing, self-aggregation/self-organisation process, interaction with the matrix, geometrical characterization (size/shape), etc.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 24,
+          "question_text": "Provide the SOP of the general maintenance procedure as a database link. This should also include the following information: How are the cells maintained outside the experiment (basic cell propagation)? How pure is the cell population (average, e.g. 95% of iPSC cells Oct4-positive)? What are the quality control measures and acceptance criteria for each cell batch? Which number(s) passage(s) can be used in the test? Is Good Cell Culture Practice (GCCP) and/or Good In Vitro Method Practice (GIVIMP) followed? How long can same cell batches be used? How are frozen stocks and cell banks prepared? For primary cells: how are they obtained in general and what are they characterized for (and what are inclusion and exclusion criteria).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 29,
+          "question_text": "What is known about endogenous metabolic capacity (CYP system (phase I); relevant conjugation reactions (phase II))? What is known about other pathways relevant to xenobiotic metabolism? What specific information is there on transporter activity?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 33,
+          "question_text": "Fill only if section 3 has not been answered. Provide the SOP for the general maintenance procedure as a database link. This should also include the following information: How are the cells maintained outside the experiment (basic cell propagation)? How pure is the cell population (average, e.g. 95% of iPSC cells Oct4-positive)? What are the quality control measures and acceptance criteria for each cell batch? Which number(s) passage(s) can be used in the test? Is Good Cell Culture Practice (GCCP) and/or Good In Vitro Method Practice (GIVIMP) followed? How long can same cell batches be used? How are freezing stocks and cell banks prepared? For primary cells: how are they obtained in general and what are they characterized for (and what are inclusion and exclusion criteria).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 34,
+          "question_text": "Provide an exposure scheme (graphically, show timelines, addition of medium supplements and compounds, sampling, etc.), within the context of the overall cell culture scheme (e.g. freshly re-plated cells or confluent cells at start, certain coatings, etc.). Include medium changes, cell re-plating, whether compounds are re-added in cases of medium change, critical medium supplements, etc.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 41,
+          "question_text": "Does the test system have a particular apoptosis sensitivity or resistance? Is cytotoxicity hard to capture for minor cellular subpopulations? In multicellular systems, which cell population is the most sensitive? Are specific markers known for each cell population? Are there issues with distinguishing slowed proliferation from cell death? For repeated/prolonged dosing: Is early death and compensatory growth considered? For very short-term endpoints (e.g. electrophysiology measured 30 min after toxicant exposure): Is a delayed measure of cytotoxicity provided?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 44,
+          "question_text": "Give an overview of the range of volumes, particular lab ware/instruments for dispensing, temperature/lighting considerations, particular media/buffers for dilution, decision rules for the solvent, tests of solubility as stocks and in culture medium, etc. How are compound stocks prepared (fold concentration, verification, storage, etc.)? How are dilutions prepared? What solvent is used? Is filtering used to obtain sterility? How does the final addition to the test system take place? Give details of addition of test compounds to test systems (e.g. in which compartment of compartmentalized cultures, in which volume, before after or during medium change, etc.).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 53,
+          "question_text": "What is the data format? Raw data: give general explanation. Upload an exemplary file of raw data (e.g. Excel file as exported out of plate reader). Provide an example of processed data at a level suitable for general display and comparison of conditions and across experiments and methods. If the file format is not proprietary or binary, include a template. This will help other users to provide their data in a similar way to the general data infrastructure. Example as used in EU-ToxRisk: Excel sheet with columns specifying line number, assay name, date of experiment, identifier for reference to partner lab book, compound, concentration (in: -log[M]), line number of corresponding control, number of replicates, endpoints, data of endpoint(s), etc.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 55,
+          "question_text": "How are raw data processed to obtain summary data (e.g. EC50, BMC15, ratios, PoD, etc.) in your lab? Describe all processing steps from background correction (e.g. measurement of medium control) to normalization steps (e.g. if you relate treated samples to untreated controls).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 56,
+          "question_text": "How are data normally handled to obtain the overall test result (e.g. concentration response fitting using model X, determination of EC50 by method Y, use of EC50 as final data)? How do you model your concentration response curve (e.g. LL.4 parameter fit) and which software do you use (e.g. GraphPad Prism, R, etc.)? Do you usually calculate an uncertainty measure of your summary data (e.g. a 95% confidence interval for the BMC or a BMCL), and with which software? Can you give uncertainty for non-cytotoxicity or no-effect? How do you handle non-monotonic curve shapes or other curve features that are hard to describe with the usual mathematical fit model?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 61,
+          "question_text": "Provide the statistics of your benchmark response (threshold and variance): (i) For dichotomized data, provide your prediction model. When do you consider the result as toxic or not toxic? (ii) For pseudo-dichotomized outcomes (two classes with borderline class in between): define borderline range. (iii) For multi-class or continuous outcomes: provide definitions and rationale. What is the rationale for your threshold? This can be on a mathematical (e.g. 3-fold standard deviation) or a biological basis (e.g. below 80% viability). Is there a toxicological rationale for the threshold settings and definitions of your prediction model? What are the limitations of your prediction model? What is a \u2018hit\u2019 if the test is used in screening mode (= hit definition, if different from above)?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 65,
+          "question_text": "Which compounds is the test likely to pick up correctly, where is it likely to fail? How does the test method react to mixtures and UVCBs? Are there areas (according to industry sector, compound chemistry, physical-chemical properties) that need to be excluded from testing, or that are particularly suitable? Which compound class cannot be detected (e.g. neurotransmitters for which the receptors are not expressed, endocrine disruptors in absence of respective pathway)? Are any compounds known to interfere with the test system (e.g. fluorescent or colored chemicals)?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 74,
+          "question_text": "Are there special legal requirements for running the test in your lab; are there special hazards associated with the test that may affect operators, bystanders, others (e.g. through waste).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 75,
+          "question_text": "Are the SDSs for all hazardous reagents used in the test method available? Are the SDSs for all hazardous test compounds stored? Describe where and how the SDSs are stored internally. How is safe handling ensured? Is the exposure scenario for the hazardous reagents used in the test method available?",
+          "answer_text": "Answer not found in documents."
+        }
+      ],
+      "stats": {
+        "cos_similarity": {
+          "mean": 0.7235341379201035,
+          "std": 0.0961280473787874,
+          "min": 0.4319810243199307,
+          "max": 0.9141349007864992,
+          "median": 0.7295186539891593,
+          "percent_above_threshold": 0.660377358490566
+        },
+        "bert_precision": {
+          "mean": 0.3722573524727574,
+          "std": 0.20355210586905417,
+          "min": -0.0277277063578367,
+          "max": 0.7837784886360168,
+          "median": 0.3444356620311737,
+          "percent_above_threshold": 0.07547169811320754
+        },
+        "bert_recall": {
+          "mean": 0.05738588205960421,
+          "std": 0.1992758243798838,
+          "min": -0.4119617640972137,
+          "max": 0.516050398349762,
+          "median": 0.0308407638221979,
+          "percent_above_threshold": 0.0
+        },
+        "bert_f1": {
+          "mean": 0.18843532780861869,
+          "std": 0.17038957170269264,
+          "min": -0.1669046431779861,
+          "max": 0.6250995993614197,
+          "median": 0.1825579404830932,
+          "percent_above_threshold": 0.0
+        }
+      }
+    },
+    {
+      "file": "NPC1.pdf",
+      "passes": 45,
+      "total": 75,
+      "pass_rate": 60.0,
+      "failures": [
+        {
+          "question_id": 2,
+          "question_text": "Please describe in no more than 200 words the following:",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 14,
+          "question_text": "Include affiliation.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 22,
+          "question_text": "Name known causes of variability of the initial cells/source cells. Indicate critical consumables or batch effects (e.g. relevance of the plate format and supplier, batch effects of fetal calf serum (FCS) or serum replacement, critical additives like type of trypsin, apo-transferrin vs. holo-transferrin, etc.). Indicate critical handling steps and influencing factors (e.g. special care needed in pipetting, steps that need to be performed quickly, cell density, washing procedures, etc.). As in 3.3., special/additional requirements apply to genetically-modified cells and microphysiological systems, e.g. dependence on matrix chemistry and geometry, dependence on microfluidics system, consideration of surface cells vs core cells, etc. Give recommendations to increase/ensure reproducibility and performance.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 23,
+          "question_text": "Describe the principles of the selected differentiation protocol, including a scheme and graphical overview, indicating all phases, media, substrates, manipulation steps (medium change/re-plating, medium additives, etc.). Special/additional requirements apply to microphysiological systems and organoids: e.g. cell printing, self-aggregation/self-organisation process, interaction with the matrix, geometrical characterization (size/shape), etc.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 24,
+          "question_text": "Provide the SOP of the general maintenance procedure as a database link. This should also include the following information: How are the cells maintained outside the experiment (basic cell propagation)? How pure is the cell population (average, e.g. 95% of iPSC cells Oct4-positive)? What are the quality control measures and acceptance criteria for each cell batch? Which number(s) passage(s) can be used in the test? Is Good Cell Culture Practice (GCCP) and/or Good In Vitro Method Practice (GIVIMP) followed? How long can same cell batches be used? How are frozen stocks and cell banks prepared? For primary cells: how are they obtained in general and what are they characterized for (and what are inclusion and exclusion criteria).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 29,
+          "question_text": "What is known about endogenous metabolic capacity (CYP system (phase I); relevant conjugation reactions (phase II))? What is known about other pathways relevant to xenobiotic metabolism? What specific information is there on transporter activity?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 32,
+          "question_text": "Are there elements of the test system that are protected by patents or any other means?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 33,
+          "question_text": "Fill only if section 3 has not been answered. Provide the SOP for the general maintenance procedure as a database link. This should also include the following information: How are the cells maintained outside the experiment (basic cell propagation)? How pure is the cell population (average, e.g. 95% of iPSC cells Oct4-positive)? What are the quality control measures and acceptance criteria for each cell batch? Which number(s) passage(s) can be used in the test? Is Good Cell Culture Practice (GCCP) and/or Good In Vitro Method Practice (GIVIMP) followed? How long can same cell batches be used? How are freezing stocks and cell banks prepared? For primary cells: how are they obtained in general and what are they characterized for (and what are inclusion and exclusion criteria).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 34,
+          "question_text": "Provide an exposure scheme (graphically, show timelines, addition of medium supplements and compounds, sampling, etc.), within the context of the overall cell culture scheme (e.g. freshly re-plated cells or confluent cells at start, certain coatings, etc.). Include medium changes, cell re-plating, whether compounds are re-added in cases of medium change, critical medium supplements, etc.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 37,
+          "question_text": "Provide information on machine settings, analytical standards, data processing and normalization procedures. For imaging endpoints: provide detailed algorithm. This information should also be covered in an SOP, preferably in DB-ALM format (see link in 6.6).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 38,
+          "question_text": "MCC are chemicals/manipulations that show biologically plausible changes of the endpoint. List such controls (up to 10), indicate why you consider them as MCC, and describe expected data on such controls. Highlight the compounds to be used for testing day-to-day test performance, i.e. for setting acceptance criteria (AC). If available, indicate MCC that each increase or decrease the activity of the relevant pathway. Do pathway inhibitions or activations correlate with the test method response?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 39,
+          "question_text": "What chemicals/manipulations are used as positive controls? Describe the expected data on such controls (signal and its uncertainty)? How good are in vivo reference data on the positive controls? Are in vivo relevant threshold concentrations known?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 41,
+          "question_text": "Does the test system have a particular apoptosis sensitivity or resistance? Is cytotoxicity hard to capture for minor cellular subpopulations? In multicellular systems, which cell population is the most sensitive? Are specific markers known for each cell population? Are there issues with distinguishing slowed proliferation from cell death? For repeated/prolonged dosing: Is early death and compensatory growth considered? For very short-term endpoints (e.g. electrophysiology measured 30 min after toxicant exposure): Is a delayed measure of cytotoxicity provided?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 42,
+          "question_text": "Which rule do you apply to test whether a test run is within the normal performance frame? How do you document this decision? Indicate actions if the AC are not met.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 43,
+          "question_text": "Indicate 'real data points per month' (not per week/per quarter, etc.): count three working weeks per month. Each concentration is a data point. Necessary controls that are required for calibration and for acceptability criteria are NOT counted as data points. All technical replicates of one condition are counted as one single data point (see notes for explanation) Indicate possibility/extent of repeated measures (over time) from same dish. Explain your estimate.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 44,
+          "question_text": "Give an overview of the range of volumes, particular lab ware/instruments for dispensing, temperature/lighting considerations, particular media/buffers for dilution, decision rules for the solvent, tests of solubility as stocks and in culture medium, etc. How are compound stocks prepared (fold concentration, verification, storage, etc.)? How are dilutions prepared? What solvent is used? Is filtering used to obtain sterility? How does the final addition to the test system take place? Give details of addition of test compounds to test systems (e.g. in which compartment of compartmentalized cultures, in which volume, before after or during medium change, etc.).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 45,
+          "question_text": "How are day-to-day procedures documented (type of \u2018lab book\u2019 organisation, templates)? Define lab-specific procedures used for each practical experiment on how to calculate test compound concentrations (and to document this). How are plate maps defined and reported? Detailed information should also be covered in an SOP, preferably in DB-ALM format (see link in 6.6).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 46,
+          "question_text": "How is the time plan of pipetting established, followed, and documented? How is adherence to plate maps during pipetting documented? What are the routine procedures to document intermediate steps with potential errors, mistakes and uncertainties? How are errors documented (e.g. pipetting twice in one well)? How are the plate wells used sequentially \u2013 following which pattern? Detailed information should also be included in an SOP, preferably in DB-ALM format (see link in 6.6).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 48,
+          "question_text": "What types of compounds are problematic, e.g. interference with analytical endpoint, low solubility, precipitation of medium components, etc.? What experimental variables are hard to control (e.g. because they are fluorescent)? What are critical handling steps during the execution of the assay? Robustness issues, e.g. known variations of test performance due to operator training, season, use of certain consumable or unknown causes, etc. Describe known pitfalls (or potential operator mistakes).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 51,
+          "question_text": "Describe possible variations, modifications and extensions of the test method: a) other endpoints, b) other analytical methods for same endpoint, c) other exposure schemes (e.g. repeated exposure, prolonged exposure, etc.), d) experimental variations (e.g. use of a specific medium, presence of an inhibitor or substrate that affects test outcome, etc.)",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 53,
+          "question_text": "What is the data format? Raw data: give general explanation. Upload an exemplary file of raw data (e.g. Excel file as exported out of plate reader). Provide an example of processed data at a level suitable for general display and comparison of conditions and across experiments and methods. If the file format is not proprietary or binary, include a template. This will help other users to provide their data in a similar way to the general data infrastructure. Example as used in EU-ToxRisk: Excel sheet with columns specifying line number, assay name, date of experiment, identifier for reference to partner lab book, compound, concentration (in: -log[M]), line number of corresponding control, number of replicates, endpoints, data of endpoint(s), etc.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 55,
+          "question_text": "How are raw data processed to obtain summary data (e.g. EC50, BMC15, ratios, PoD, etc.) in your lab? Describe all processing steps from background correction (e.g. measurement of medium control) to normalization steps (e.g. if you relate treated samples to untreated controls).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 56,
+          "question_text": "How are data normally handled to obtain the overall test result (e.g. concentration response fitting using model X, determination of EC50 by method Y, use of EC50 as final data)? How do you model your concentration response curve (e.g. LL.4 parameter fit) and which software do you use (e.g. GraphPad Prism, R, etc.)? Do you usually calculate an uncertainty measure of your summary data (e.g. a 95% confidence interval for the BMC or a BMCL), and with which software? Can you give uncertainty for non-cytotoxicity or no-effect? How do you handle non-monotonic curve shapes or other curve features that are hard to describe with the usual mathematical fit model?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 59,
+          "question_text": "Give example of the metadata file (if available). If metadata or data format (see 7.1) are pre-defined in the project, state here 'as pre-defined in project xxx' (e.g. EU-ToxRisk).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 61,
+          "question_text": "Provide the statistics of your benchmark response (threshold and variance): (i) For dichotomized data, provide your prediction model. When do you consider the result as toxic or not toxic? (ii) For pseudo-dichotomized outcomes (two classes with borderline class in between): define borderline range. (iii) For multi-class or continuous outcomes: provide definitions and rationale. What is the rationale for your threshold? This can be on a mathematical (e.g. 3-fold standard deviation) or a biological basis (e.g. below 80% viability). Is there a toxicological rationale for the threshold settings and definitions of your prediction model? What are the limitations of your prediction model? What is a \u2018hit\u2019 if the test is used in screening mode (= hit definition, if different from above)?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 64,
+          "question_text": "Describe parameters important for the determination of free compound concentrations in the medium. Indicate the lipid and protein content of the medium and the cells. Indicate the volume of the cells. Indicate volume (medium volume) and surface area of culture dish. Is there information/literature on IVIVE strategies/data in the test? Has the test been used earlier for IVIVE? Are there special considerations that are relevant for IVIVE (e.g. potential for compound accumulation due to frequent medium changes and compound re-addition, glycoprotein (MDR1) expression, capacity for xenobiotic metabolism of test system)?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 65,
+          "question_text": "Which compounds is the test likely to pick up correctly, where is it likely to fail? How does the test method react to mixtures and UVCBs? Are there areas (according to industry sector, compound chemistry, physical-chemical properties) that need to be excluded from testing, or that are particularly suitable? Which compound class cannot be detected (e.g. neurotransmitters for which the receptors are not expressed, endocrine disruptors in absence of respective pathway)? Are any compounds known to interfere with the test system (e.g. fluorescent or colored chemicals)?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 74,
+          "question_text": "Are there special legal requirements for running the test in your lab; are there special hazards associated with the test that may affect operators, bystanders, others (e.g. through waste).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 75,
+          "question_text": "Are the SDSs for all hazardous reagents used in the test method available? Are the SDSs for all hazardous test compounds stored? Describe where and how the SDSs are stored internally. How is safe handling ensured? Is the exposure scenario for the hazardous reagents used in the test method available?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 76,
+          "question_text": "Are special permits (e.g. genetic work, stem cells, radioactivity, etc.) required? Are special facilities required? Is special ethical approval necessary (indicate approval document).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 77,
+          "question_text": "List elements of the test method (e.g. consumables, chemicals, analytical methods, equipment) that are protected by patents or any other means. Indicate the type of protection and where the element (or license for it) may be obtained.",
+          "answer_text": "Answer not found in documents."
+        }
+      ],
+      "stats": {
+        "cos_similarity": {
+          "mean": 0.6595569371398184,
+          "std": 0.17749914235590036,
+          "min": 0.2411908205517123,
+          "max": 0.9468957668956024,
+          "median": 0.7196730993748113,
+          "percent_above_threshold": 0.5555555555555556
+        },
+        "bert_precision": {
+          "mean": 0.36283025663966934,
+          "std": 0.23807720356782353,
+          "min": -0.0073619098402559,
+          "max": 0.7963398098945618,
+          "median": 0.2660319805145263,
+          "percent_above_threshold": 0.08888888888888889
+        },
+        "bert_recall": {
+          "mean": 0.045747469707081705,
+          "std": 0.22920806004489994,
+          "min": -0.4711249470710754,
+          "max": 0.5013902187347412,
+          "median": 0.073947362601757,
+          "percent_above_threshold": 0.0
+        },
+        "bert_f1": {
+          "mean": 0.18049389086663722,
+          "std": 0.21761760593962853,
+          "min": -0.2763736546039581,
+          "max": 0.5624734163284302,
+          "median": 0.1290832012891769,
+          "percent_above_threshold": 0.0
+        }
+      }
+    },
+    {
+      "file": "MitoComplexesLUHMESassay(MCL).pdf",
+      "passes": 36,
+      "total": 59,
+      "pass_rate": 61.016949152542374,
+      "failures": [
+        {
+          "question_id": 2,
+          "question_text": "Please describe in no more than 200 words the following:",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 13,
+          "question_text": "Normal text names often do not uniquely define the method. Therefore, each method should be assigned a clearly and uniquely defined data base name.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 22,
+          "question_text": "Name known causes of variability of the initial cells/source cells. Indicate critical consumables or batch effects (e.g. relevance of the plate format and supplier, batch effects of fetal calf serum (FCS) or serum replacement, critical additives like type of trypsin, apo-transferrin vs. holo-transferrin, etc.). Indicate critical handling steps and influencing factors (e.g. special care needed in pipetting, steps that need to be performed quickly, cell density, washing procedures, etc.). As in 3.3., special/additional requirements apply to genetically-modified cells and microphysiological systems, e.g. dependence on matrix chemistry and geometry, dependence on microfluidics system, consideration of surface cells vs core cells, etc. Give recommendations to increase/ensure reproducibility and performance.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 23,
+          "question_text": "Describe the principles of the selected differentiation protocol, including a scheme and graphical overview, indicating all phases, media, substrates, manipulation steps (medium change/re-plating, medium additives, etc.). Special/additional requirements apply to microphysiological systems and organoids: e.g. cell printing, self-aggregation/self-organisation process, interaction with the matrix, geometrical characterization (size/shape), etc.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 24,
+          "question_text": "Provide the SOP of the general maintenance procedure as a database link. This should also include the following information: How are the cells maintained outside the experiment (basic cell propagation)? How pure is the cell population (average, e.g. 95% of iPSC cells Oct4-positive)? What are the quality control measures and acceptance criteria for each cell batch? Which number(s) passage(s) can be used in the test? Is Good Cell Culture Practice (GCCP) and/or Good In Vitro Method Practice (GIVIMP) followed? How long can same cell batches be used? How are frozen stocks and cell banks prepared? For primary cells: how are they obtained in general and what are they characterized for (and what are inclusion and exclusion criteria).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 29,
+          "question_text": "What is known about endogenous metabolic capacity (CYP system (phase I); relevant conjugation reactions (phase II))? What is known about other pathways relevant to xenobiotic metabolism? What specific information is there on transporter activity?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 30,
+          "question_text": "Are there transcriptomics data or other omics data available that describe the test system (characterization of cells without compounds)? Briefly list and describe such data. Indicate the type of data available (e.g. RNASeq or proteomics data). Refer to data file, data base or publication.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 31,
+          "question_text": "Give information on where the test system differs from the mimicked human tissue and which gaps of analogy need to be considered.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 33,
+          "question_text": "Fill only if section 3 has not been answered. Provide the SOP for the general maintenance procedure as a database link. This should also include the following information: How are the cells maintained outside the experiment (basic cell propagation)? How pure is the cell population (average, e.g. 95% of iPSC cells Oct4-positive)? What are the quality control measures and acceptance criteria for each cell batch? Which number(s) passage(s) can be used in the test? Is Good Cell Culture Practice (GCCP) and/or Good In Vitro Method Practice (GIVIMP) followed? How long can same cell batches be used? How are freezing stocks and cell banks prepared? For primary cells: how are they obtained in general and what are they characterized for (and what are inclusion and exclusion criteria).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 34,
+          "question_text": "Provide an exposure scheme (graphically, show timelines, addition of medium supplements and compounds, sampling, etc.), within the context of the overall cell culture scheme (e.g. freshly re-plated cells or confluent cells at start, certain coatings, etc.). Include medium changes, cell re-plating, whether compounds are re-added in cases of medium change, critical medium supplements, etc.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 37,
+          "question_text": "Provide information on machine settings, analytical standards, data processing and normalization procedures. For imaging endpoints: provide detailed algorithm. This information should also be covered in an SOP, preferably in DB-ALM format (see link in 6.6).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 38,
+          "question_text": "MCC are chemicals/manipulations that show biologically plausible changes of the endpoint. List such controls (up to 10), indicate why you consider them as MCC, and describe expected data on such controls. Highlight the compounds to be used for testing day-to-day test performance, i.e. for setting acceptance criteria (AC). If available, indicate MCC that each increase or decrease the activity of the relevant pathway. Do pathway inhibitions or activations correlate with the test method response?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 39,
+          "question_text": "What chemicals/manipulations are used as positive controls? Describe the expected data on such controls (signal and its uncertainty)? How good are in vivo reference data on the positive controls? Are in vivo relevant threshold concentrations known?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 40,
+          "question_text": "What chemicals/manipulations are used as negative controls? Describe the expected data on such controls (signal and its uncertainty)? (Such data define the background noise of the test method) What is the rationale for the concentration setting of negative controls? Do you use unspecific controls? If yes, indicate the compounds and the respective rationale for their use and the concentration selection.",
+          "answer_text": "The negative control for the MitoComplexesLUHMES assay (MCL) is a solvent, specifically 0.1% DMSO (dimethyl sulfoxide) final concentration. The expected data for this negative control is that the oxygen consumption rate (OCR) must not change significantly in response to control injection. Additionally, the oxygen levels should start at approximately 150 mmHg for each measurement and must not drop below 60 mmHg after compound treatment _(Source: MitoComplexesLUHMESassay(MCL).pdf)_.\n\nThe rationale for using DMSO as a negative control is to ensure that any observed effects on mitochondrial complex activity can be attributed to the test compounds rather than the solvent itself. The concentration of 0.1% DMSO is chosen as it is a common solvent concentration that is generally considered non-toxic to cells while allowing for the solubilization of test compounds _(Source: MitoComplexesLUHMESassay(MCL).pdf)_.\n\nThe assay does not specify the use of unspecific controls beyond the negative control with DMSO. Therefore, no additional unspecific controls or their rationale for use are indicated in the provided context _(Answer not found in documents.)_."
+        },
+        {
+          "question_id": 41,
+          "question_text": "Does the test system have a particular apoptosis sensitivity or resistance? Is cytotoxicity hard to capture for minor cellular subpopulations? In multicellular systems, which cell population is the most sensitive? Are specific markers known for each cell population? Are there issues with distinguishing slowed proliferation from cell death? For repeated/prolonged dosing: Is early death and compensatory growth considered? For very short-term endpoints (e.g. electrophysiology measured 30 min after toxicant exposure): Is a delayed measure of cytotoxicity provided?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 44,
+          "question_text": "Give an overview of the range of volumes, particular lab ware/instruments for dispensing, temperature/lighting considerations, particular media/buffers for dilution, decision rules for the solvent, tests of solubility as stocks and in culture medium, etc. How are compound stocks prepared (fold concentration, verification, storage, etc.)? How are dilutions prepared? What solvent is used? Is filtering used to obtain sterility? How does the final addition to the test system take place? Give details of addition of test compounds to test systems (e.g. in which compartment of compartmentalized cultures, in which volume, before after or during medium change, etc.).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 46,
+          "question_text": "How is the time plan of pipetting established, followed, and documented? How is adherence to plate maps during pipetting documented? What are the routine procedures to document intermediate steps with potential errors, mistakes and uncertainties? How are errors documented (e.g. pipetting twice in one well)? How are the plate wells used sequentially \u2013 following which pattern? Detailed information should also be included in an SOP, preferably in DB-ALM format (see link in 6.6).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 47,
+          "question_text": "How is the concentration range of test compounds defined (e.g. only single concentrations, always 1:10 serial dilutions or variable dilution factors, ten different concentrations, etc.)? Is there a rule for defining starting dilutions? For functional endpoints that may not provide full concentration-response, how is the test concentration defined? E.g. EC10 of viability data are usually tested for gene expression endpoints. Detailed information should also be included in an SOP, preferably in DB-ALM format (see link in 6.6).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 48,
+          "question_text": "What types of compounds are problematic, e.g. interference with analytical endpoint, low solubility, precipitation of medium components, etc.? What experimental variables are hard to control (e.g. because they are fluorescent)? What are critical handling steps during the execution of the assay? Robustness issues, e.g. known variations of test performance due to operator training, season, use of certain consumable or unknown causes, etc. Describe known pitfalls (or potential operator mistakes).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 49,
+          "question_text": "Ideally the SOP follows the DB-ALM or a comparable format: https://ecvam-dbalm.jrc.ec.europa.eu/home/contribute Refer to additional file(s) (containing information covered in sections 3 and 4), containing all details and explanations. Has the SOP been deposited in an accessible data base? Has the SOP been reviewed externally and if yes, how?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 51,
+          "question_text": "Describe possible variations, modifications and extensions of the test method: a) other endpoints, b) other analytical methods for same endpoint, c) other exposure schemes (e.g. repeated exposure, prolonged exposure, etc.), d) experimental variations (e.g. use of a specific medium, presence of an inhibitor or substrate that affects test outcome, etc.)",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 53,
+          "question_text": "What is the data format? Raw data: give general explanation. Upload an exemplary file of raw data (e.g. Excel file as exported out of plate reader). Provide an example of processed data at a level suitable for general display and comparison of conditions and across experiments and methods. If the file format is not proprietary or binary, include a template. This will help other users to provide their data in a similar way to the general data infrastructure. Example as used in EU-ToxRisk: Excel sheet with columns specifying line number, assay name, date of experiment, identifier for reference to partner lab book, compound, concentration (in: -log[M]), line number of corresponding control, number of replicates, endpoints, data of endpoint(s), etc.",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 55,
+          "question_text": "How are raw data processed to obtain summary data (e.g. EC50, BMC15, ratios, PoD, etc.) in your lab? Describe all processing steps from background correction (e.g. measurement of medium control) to normalization steps (e.g. if you relate treated samples to untreated controls).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 56,
+          "question_text": "How are data normally handled to obtain the overall test result (e.g. concentration response fitting using model X, determination of EC50 by method Y, use of EC50 as final data)? How do you model your concentration response curve (e.g. LL.4 parameter fit) and which software do you use (e.g. GraphPad Prism, R, etc.)? Do you usually calculate an uncertainty measure of your summary data (e.g. a 95% confidence interval for the BMC or a BMCL), and with which software? Can you give uncertainty for non-cytotoxicity or no-effect? How do you handle non-monotonic curve shapes or other curve features that are hard to describe with the usual mathematical fit model?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 59,
+          "question_text": "Give example of the metadata file (if available). If metadata or data format (see 7.1) are pre-defined in the project, state here 'as pre-defined in project xxx' (e.g. EU-ToxRisk).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 61,
+          "question_text": "Provide the statistics of your benchmark response (threshold and variance): (i) For dichotomized data, provide your prediction model. When do you consider the result as toxic or not toxic? (ii) For pseudo-dichotomized outcomes (two classes with borderline class in between): define borderline range. (iii) For multi-class or continuous outcomes: provide definitions and rationale. What is the rationale for your threshold? This can be on a mathematical (e.g. 3-fold standard deviation) or a biological basis (e.g. below 80% viability). Is there a toxicological rationale for the threshold settings and definitions of your prediction model? What are the limitations of your prediction model? What is a \u2018hit\u2019 if the test is used in screening mode (= hit definition, if different from above)?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 62,
+          "question_text": "How was the prediction model set up (using which test set of chemicals to train the model; using probing with what kind of classifiers/statistical approaches)? Has the prediction model been tested (what was the test set of chemicals)? List chemicals or give n, if n > 50. Is the process documented (publication)? Does the prediction model (PM) apply to changes to both sides of controls (up/down)? If the PM is one-sided (e.g. toxicants leading to a decrease vs. control), how are data in the opposite direction handled and interpreted? If the PM is two-sided, do different rules, characteristics and interpretations apply to the two sides (e.g. is a decrease in viability or an increase in viability both interpreted as an effect/toxicity; are thresholds and performance characteristics to both sides the same?).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 63,
+          "question_text": "Indicate here basic performance parameters or, if possible, preliminary estimates (label as such): Baseline variation (noise) within assays AND between assays. What is the signal/noise ratio (signal = standard positive control)? Is the z-factor determined? Give the specificity of the test method. How is it determined? Give the sensitivity of the test method. How is it determined? Give measures of the uncertainty of your test method. How are they determined? What is the detection limit (required change of endpoint to become measurable)? If available, give limit of detection (LOD) and limit of quantification (LOQ). What are inter-operator variations? Are there data of \u2018historical controls\u2019 over a longer time period?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 64,
+          "question_text": "Describe parameters important for the determination of free compound concentrations in the medium. Indicate the lipid and protein content of the medium and the cells. Indicate the volume of the cells. Indicate volume (medium volume) and surface area of culture dish. Is there information/literature on IVIVE strategies/data in the test? Has the test been used earlier for IVIVE? Are there special considerations that are relevant for IVIVE (e.g. potential for compound accumulation due to frequent medium changes and compound re-addition, glycoprotein (MDR1) expression, capacity for xenobiotic metabolism of test system)?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 65,
+          "question_text": "Which compounds is the test likely to pick up correctly, where is it likely to fail? How does the test method react to mixtures and UVCBs? Are there areas (according to industry sector, compound chemistry, physical-chemical properties) that need to be excluded from testing, or that are particularly suitable? Which compound class cannot be detected (e.g. neurotransmitters for which the receptors are not expressed, endocrine disruptors in absence of respective pathway)? Are any compounds known to interfere with the test system (e.g. fluorescent or colored chemicals)?",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 74,
+          "question_text": "Are there special legal requirements for running the test in your lab; are there special hazards associated with the test that may affect operators, bystanders, others (e.g. through waste).",
+          "answer_text": "Answer not found in documents."
+        },
+        {
+          "question_id": 75,
+          "question_text": "Are the SDSs for all hazardous reagents used in the test method available? Are the SDSs for all hazardous test compounds stored? Describe where and how the SDSs are stored internally. How is safe handling ensured? Is the exposure scenario for the hazardous reagents used in the test method available?",
+          "answer_text": "Answer not found in documents."
+        }
+      ],
+      "stats": {
+        "cos_similarity": {
+          "mean": 0.6692766466128718,
+          "std": 0.13397268812157492,
+          "min": 0.3261609483928907,
+          "max": 0.9167739862661236,
+          "median": 0.6920970225208825,
+          "percent_above_threshold": 0.4444444444444444
+        },
+        "bert_precision": {
+          "mean": 0.3997463182701419,
+          "std": 0.2309263905211112,
+          "min": 0.01386200170964,
+          "max": 0.7519455552101135,
+          "median": 0.4266027361154556,
+          "percent_above_threshold": 0.1111111111111111
+        },
+        "bert_recall": {
+          "mean": 0.039026578681336514,
+          "std": 0.21398925899688329,
+          "min": -0.348156064748764,
+          "max": 0.5202497839927673,
+          "median": -0.02111234795302145,
+          "percent_above_threshold": 0.0
+        },
+        "bert_f1": {
+          "mean": 0.18155311290239398,
+          "std": 0.1715393080214154,
+          "min": -0.1102645322680473,
+          "max": 0.5974172353744507,
+          "median": 0.1869079545140266,
+          "percent_above_threshold": 0.0
+        }
+      }
+    }
+  ]
+}

@@ -1,19 +1,25 @@
 import base64
 import csv
+import hashlib
 import json
 import logging
+import mimetypes
 import shutil
 import tempfile
 import warnings
 from io import BytesIO
 from pathlib import Path
+from typing import TYPE_CHECKING
 from zipfile import ZipFile
+from zipfile import ZipFile as ZipFileLib
 
+from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import (
     InMemoryUploadedFile,
     TemporaryUploadedFile,
     UploadedFile,
 )
+from django.http import HttpRequest
 from langchain_community.document_loaders import (
     BSHTMLLoader,
     TextLoader,
@@ -26,6 +32,7 @@ from pypdf._page import PageObject
 
 from toxtempass import config
 from toxtempass.llm import get_llm
+from toxtempass.models import AnswerFile, Assay, FileAsset, FileDownloadLog, Person
 
 try:
     import openpyxl
@@ -161,22 +168,36 @@ def summarize_image_entries(doc_dict: dict[str, dict[str, str]]) -> None:
 
 def _convert_image_to_webp(
     image_bytes: bytes, source_format: str | None = None
-) -> tuple[bytes, str]:
+) -> tuple[bytes | None, str | None]:
     """Convert image bytes to WebP format for optimal token efficiency.
 
     WebP provides the best compression ratio, reducing base64 size and API token usage.
+    Filters out images smaller than configured minimum dimensions.
 
     Args:
         image_bytes: Raw image bytes
         source_format: Original format name (for logging)
 
     Returns:
-        Tuple of (converted_bytes, mime_type)
+        Tuple of (converted_bytes, mime_type) or (None, None) if image is too small
 
     Raises:
         Exception: If conversion fails
     """
     img = Image.open(BytesIO(image_bytes))
+    
+    # Filter out small images (icons, bullets, decorative elements)
+    if img.width < config.min_image_width or img.height < config.min_image_height:
+        logger.debug(
+            "Skipping small image (%dx%d, min: %dx%d) from %s",
+            img.width,
+            img.height,
+            config.min_image_width,
+            config.min_image_height,
+            source_format or "unknown"
+        )
+        return None, None
+    
     output = BytesIO()
     # Convert to RGB if necessary (WebP supports RGBA but not all modes)
     if img.mode == "RGBA":
@@ -185,7 +206,11 @@ def _convert_image_to_webp(
         img = img.convert("RGB")
     img.save(output, format=TARGET_IMAGE_FORMAT, quality=TARGET_IMAGE_QUALITY)
     logger.debug(
-        "Converted %s image to %s", source_format or "unknown", TARGET_IMAGE_FORMAT
+        "Converted %s image (%dx%d) to %s",
+        source_format or "unknown",
+        img.width,
+        img.height,
+        TARGET_IMAGE_FORMAT
     )
     return output.getvalue(), TARGET_IMAGE_MIME
 
@@ -228,6 +253,9 @@ def _extract_images_from_pdf_page(
         # Always convert to WebP for optimal token efficiency
         try:
             image_bytes, mime_type = _convert_image_to_webp(image_bytes, image_format)
+            # Skip if image was too small (filtered out)
+            if image_bytes is None or mime_type is None:
+                continue
         except Exception as exc:
             logger.warning(
                 "Failed to convert %s image to WebP (%s page %s): %s. Skipping image.",
@@ -274,6 +302,9 @@ def _extract_images_from_docx(path: Path) -> dict[str, dict[str, str]]:
                 original_format = Path(filename).suffix.lstrip(".")
                 try:
                     data, mime_type = _convert_image_to_webp(data, original_format)
+                    # Skip if image was too small (filtered out)
+                    if data is None or mime_type is None:
+                        continue
                 except Exception as exc:
                     logger.warning(
                         "Failed to convert DOCX image %s to WebP: %s. Skipping.",
@@ -467,6 +498,10 @@ def get_text_or_bytes_perfile_dict(
                     image_bytes = img_file.read()
                 try:
                     image_bytes, mime_type = _convert_image_to_webp(image_bytes, suffix)
+                    # Skip if image was too small (filtered out)
+                    if image_bytes is None or mime_type is None:
+                        logger.info("Skipping uploaded image %s (too small)", context_filename)
+                        continue
                 except Exception as exc:
                     logger.warning(
                         "Failed to convert uploaded image %s to WebP: %s. Skipping.",
@@ -610,3 +645,191 @@ def collect_source_documents(doc_dict: dict[str, dict[str, str]]) -> list[str]:
             seen.add(name)
             ordered.append(name)
     return ordered
+
+
+def _calculate_sha256(file_bytes: bytes) -> str:
+    """Calculate SHA256 hash for file bytes."""
+    return hashlib.sha256(file_bytes).hexdigest()
+
+
+def store_files_to_storage(
+    files: list[UploadedFile],
+    user: "Person",
+    assay: "Assay",
+    consent: bool,
+) -> list["FileAsset"]:
+    """Store uploaded files to S3/MinIO if user consented.
+
+    Args:
+        files: List of uploaded files from the form
+        user: Person object (uploader)
+        assay: Assay object associated with the files
+        consent: Whether user consented to file storage
+
+    Returns:
+        List of created FileAsset objects (empty if no consent)
+
+    Raises:
+        Exception: If file storage fails (propagates after logging)
+    """
+    from toxtempass.models import FileAsset
+    import uuid
+
+    if not consent:
+        logger.debug("User did not consent to file storage; skipping storage.")
+        return []
+
+    if not files:
+        logger.debug("No files provided for storage.")
+        return []
+
+    created_assets: list[FileAsset] = []
+
+    for file in files:
+        try:
+            # Read file content
+            file_content = b""
+            for chunk in file.chunks():
+                file_content += chunk
+
+            # Calculate metadata
+            file_size = len(file_content)
+            sha256_hash = _calculate_sha256(file_content)
+            content_type = (
+                getattr(file, "content_type", "")
+                or mimetypes.guess_type(file.name)[0]
+                or ""
+            )
+
+            # Generate S3 object key using user/assay structure
+            # Format: consent_user_documents/{user.email}/{assay.id}/{uuid}/{filename}
+            object_key = (
+                f"consent_user_documents/{user.email}/assay/{assay.id}/"
+                f"{uuid.uuid4()}/"
+                f"{Path(file.name).name}"
+            )
+
+            # Upload to storage using BytesIO from file_content
+            # (file pointer is exhausted after chunks() call above)
+            file_obj = BytesIO(file_content)
+            default_storage.save(object_key, file_obj)
+            logger.info(
+                "Successfully uploaded file %s to storage: %s",
+                file.name,
+                object_key,
+            )
+
+            # Create FileAsset record
+            asset = FileAsset.objects.create(
+                object_key=object_key,
+                original_filename=file.name,
+                content_type=content_type,
+                size_bytes=file_size,
+                sha256=sha256_hash,
+                status=FileAsset.Status.AVAILABLE,
+                uploaded_by=user,
+            )
+            created_assets.append(asset)
+            logger.debug("Created FileAsset record: id=%s, key=%s", asset.id, object_key)
+
+        except Exception as exc:
+            logger.exception(
+                "Failed to store file %s for user %s on assay %s: %s",
+                file.name,
+                user.email,
+                assay.id,
+                exc,
+            )
+            raise
+
+    logger.info(
+        "Stored %d files for user %s on assay %s",
+        len(created_assets),
+        user.email,
+        assay.id,
+    )
+    return created_assets
+
+def download_assay_files_as_zip(
+    assay: Assay,
+    user: Person,
+    request: HttpRequest | None = None,
+) -> tuple[bytes, str]:
+    """Download all files associated with an assay as a ZIP archive.
+
+    Args:
+        assay: Assay object whose files to download
+        user: Person performing the download (staff/superuser only)
+        request: Optional HttpRequest to extract IP address for audit log
+
+    Returns:
+        Tuple of (zip_bytes, filename)
+
+    Raises:
+        Exception: If file retrieval or ZIP creation fails
+    """
+    # Get all files associated with all answers in this assay
+    answer_files = AnswerFile.objects.filter(
+        answer__assay=assay
+    ).select_related("file").distinct("file")
+
+    if not answer_files.exists():
+        logger.warning("No files found for assay %s", assay.id)
+        return b"", "empty.zip"
+
+    file_assets = [af.file for af in answer_files]
+    zip_buffer = BytesIO()
+
+    try:
+        with ZipFileLib(zip_buffer, "w") as zip_file:
+            for file_asset in file_assets:
+                try:
+                    # Download file from S3/MinIO
+                    file_content = default_storage.open(file_asset.object_key).read()
+
+                    # Add to ZIP with original filename
+                    zip_file.writestr(file_asset.original_filename, file_content)
+                    logger.debug("Added %s to ZIP", file_asset.original_filename)
+
+                except Exception as exc:
+                    logger.exception(
+                        "Failed to retrieve file %s from storage: %s",
+                        file_asset.id,
+                        exc,
+                    )
+                    raise
+
+        zip_bytes = zip_buffer.getvalue()
+
+        # Log the download for audit trail
+        try:
+            ip_address = None
+            if request:
+                x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+                if x_forwarded_for:
+                    ip_address = x_forwarded_for.split(",")[0]
+                else:
+                    ip_address = request.META.get("REMOTE_ADDR")
+
+            for file_asset in file_assets:
+                FileDownloadLog.objects.create(
+                    file=file_asset,
+                    user=user,
+                    ip_address=ip_address,
+                )
+            logger.info(
+                "Logged %d file downloads for assay %s by user %s",
+                len(file_assets),
+                assay.id,
+                user.email,
+            )
+        except Exception as exc:
+            logger.exception("Failed to create download log entries: %s", exc)
+            # Don't fail the download if logging fails
+            pass
+
+        return zip_bytes, f"assay_{assay.id}_files.zip"
+
+    except Exception as exc:
+        logger.exception("Failed to create ZIP archive for assay %s: %s", assay.id, exc)
+        raise

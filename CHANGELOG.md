@@ -2,6 +2,280 @@
 
 <!-- version list -->
 
+## v2.11.0 (2026-01-19)
+
+### Bug Fixes
+
+- **ui**: Update busy status button to show loading spinner
+  ([`f035981`](https://github.com/johannehouweling/ToxTempAssistant/commit/f0359816ef3f2c51c48f9ff4a15963310a8f4fe2))
+
+### Features
+
+- **ui**: Implement polling for assay status updates and add configuration for reload intervals
+  ([`2b8248d`](https://github.com/johannehouweling/ToxTempAssistant/commit/2b8248d18bf590de35f1d0b7cf5cfdd250c8a517))
+
+
+## v2.10.1 (2026-01-19)
+
+### Bug Fixes
+
+- **ui**: Enhance button tooltip messages for scheduled and busy statuses
+  ([`e75830a`](https://github.com/johannehouweling/ToxTempAssistant/commit/e75830a39434dcb2882e17ff24b925de1af1db73))
+
+
+## v2.10.0 (2026-01-19)
+
+### Features
+
+- **ui**: Add property to count answers found but not accepted and update progress bar rendering
+  ([`2a0c5a7`](https://github.com/johannehouweling/ToxTempAssistant/commit/2a0c5a7e2825d99c3268bdbe163aaefc474b11c7))
+
+
+## v2.9.2 (2026-01-13)
+
+### Bug Fixes
+
+- **demo**: Change filter to get for demo_assay retrieval
+  ([`31cfe56`](https://github.com/johannehouweling/ToxTempAssistant/commit/31cfe56ccee8c9a9fc5088a8927a5b68fc4e62ef))
+
+- **demo**: Fix the test to work with automatic signals based demo assay creation
+  ([`42bc81b`](https://github.com/johannehouweling/ToxTempAssistant/commit/42bc81b9c611323cf7244edef33f592ad0a3e15d))
+
+- **demo**: Test
+  ([`ca5d186`](https://github.com/johannehouweling/ToxTempAssistant/commit/ca5d186bed46206d86cc7aae0b7342e634d756a5))
+
+- **demo**: Wrong import path for seed_demo_assay_for_user func
+  ([`a465848`](https://github.com/johannehouweling/ToxTempAssistant/commit/a465848812f650b872e1056bb5a92f1a5573874d))
+
+- **signals**: Import signals module in app configuration to ensure signal handling
+  ([`57671fe`](https://github.com/johannehouweling/ToxTempAssistant/commit/57671fefa3db7416437c5d37a023167b074820c2))
+
+- **storages**: Remove broken orphaned file handling logic
+  ([`f90745e`](https://github.com/johannehouweling/ToxTempAssistant/commit/f90745e433cee2b9a93c655379182f4c67c7733a))
+
+- **storages**: Still remove dangling orphan function registration
+  ([`42d1c18`](https://github.com/johannehouweling/ToxTempAssistant/commit/42d1c18d2e518ba53046ff8202f80b45bc86ea0a))
+
+
+## v2.9.1 (2026-01-12)
+
+### Bug Fixes
+
+- <trigger release only>
+  ([`961dc3c`](https://github.com/johannehouweling/ToxTempAssistant/commit/961dc3c6155f318be935df90e579154130cebeaa))
+
+### Refactoring
+
+- **demo**: Demo assays are now created when a new user is added to db from one central location
+  (signals.py)
+  ([`4434cd2`](https://github.com/johannehouweling/ToxTempAssistant/commit/4434cd2ae2fa76ed61350859d5e61a7921132825))
+
+
+## v2.9.0 (2026-01-12)
+
+### Bug Fixes
+
+- **file storage**: Add logging for file downloads and implement download action for assays
+  ([`80266b7`](https://github.com/johannehouweling/ToxTempAssistant/commit/80266b7142e9d7c0b6e6667322cb4088337d5368))
+
+- **file storage**: Correct S3 object key format for user documents
+  ([`1c93f42`](https://github.com/johannehouweling/ToxTempAssistant/commit/1c93f42d410d33f3188a5aa07fee3baf3eb1d34c))
+
+- **file storage**: Fix how files are linked to assays
+  ([`1d226cb`](https://github.com/johannehouweling/ToxTempAssistant/commit/1d226cb09ccd62da4adcdc6db3c085bc8488321a))
+
+- **file storage**: Wrap zip_bytes in BytesIO for FileResponse in AssayAdmin
+  ([`51589ca`](https://github.com/johannehouweling/ToxTempAssistant/commit/51589ca431d9b953d5274e87a3c5396704b67e5f))
+
+- **image processing**: Increase minimum image dimensions and filter out small images in conversion
+  ([`f68e9e3`](https://github.com/johannehouweling/ToxTempAssistant/commit/f68e9e3e5e65fba98b005a4c630224c6307b8d28))
+
+- **storages**: Actually make AWS env vars availble to settings.py
+  ([`cd33c48`](https://github.com/johannehouweling/ToxTempAssistant/commit/cd33c489ed14a06b53297507c5a6afd1ae32aed5))
+
+- **storages**: Make sure that djangoapp has minio available
+  ([`524f9e2`](https://github.com/johannehouweling/ToxTempAssistant/commit/524f9e201a1cf968458c0190eb456d015fbd13b3))
+
+- **tests**: Update image sizes in PDF and DOCX extraction tests for consistency
+  ([`28acf61`](https://github.com/johannehouweling/ToxTempAssistant/commit/28acf616d73ece5cbea1459e5d85f2a2ac74854c))
+
+- **tests**: Update object key path in file storage consent test for accuracy
+  ([`75c0cbf`](https://github.com/johannehouweling/ToxTempAssistant/commit/75c0cbf9329c15f0ffb77353ee99fc0dbd02e1cf))
+
+### Chores
+
+- **ci**: Update poetry lock
+  ([`444dde5`](https://github.com/johannehouweling/ToxTempAssistant/commit/444dde54ed55dfa80397902fa3d6f465dfd63aa0))
+
+### Features
+
+- **factory**: Add factories for QuestionSet, Section, Subsection, Question, Answer, and FileAsset
+  models
+  ([`c89aae0`](https://github.com/johannehouweling/ToxTempAssistant/commit/c89aae009fcfc9b71227148920e0754e07e316c5))
+
+- **file storage**: Implement user consent for file storage and add cleanup commands
+  ([`9b5c43c`](https://github.com/johannehouweling/ToxTempAssistant/commit/9b5c43ce2e25f0f2131731d0121b7fd471fbfc6e))
+
+- **uploadfiles**: Consent button on upload to store files for improvements.
+  ([`6f5241c`](https://github.com/johannehouweling/ToxTempAssistant/commit/6f5241c2cfee8f343b4f488826c2933d33ec3a7f))
+
+### Refactoring
+
+- **tests**: Remove orphaned file cleanup tests
+  ([`ee61d51`](https://github.com/johannehouweling/ToxTempAssistant/commit/ee61d51da010b0c4687b9d4bf54f7e8ca6e0426b))
+
+
+## v2.8.0 (2026-01-11)
+
+### Bug Fixes
+
+- **storages**: Staticfiles on server as per usual
+  ([`daba64b`](https://github.com/johannehouweling/ToxTempAssistant/commit/daba64b96f4fcdc75a8ee1c7275973f0951a4186))
+
+- **ui**: Tighten helper text on StartingForm's FileField
+  ([`6097abc`](https://github.com/johannehouweling/ToxTempAssistant/commit/6097abca35184157e5e482f6fc84f30890793fee))
+
+### Features
+
+- **new.html**: Add popover for file upload field help text with supported formats
+  ([`9f1037d`](https://github.com/johannehouweling/ToxTempAssistant/commit/9f1037d4558fe1509ed160fc797ee6a4ad77c6a6))
+
+- **storage**: Integrate django-storages for S3 support and update dependencies
+  ([`9afbd34`](https://github.com/johannehouweling/ToxTempAssistant/commit/9afbd343ea387d1daafa322d08d3bbab435ebc54))
+
+- **storages**: Add FileAsset and AnswerFile models with storage deletion logic
+  ([`92d171b`](https://github.com/johannehouweling/ToxTempAssistant/commit/92d171b3072fb00f0a3a3e358008fd78b2c32df5))
+
+
+## v2.4.1 (2026-01-10)
+
+### Bug Fixes
+
+- **minio**: Use latest version fo minio client
+  ([`95a7274`](https://github.com/johannehouweling/ToxTempAssistant/commit/95a72740ece21488ae882af250dc19408e081d29))
+
+### Chores
+
+- **ci**: Bump version of actions
+  ([`4446c57`](https://github.com/johannehouweling/ToxTempAssistant/commit/4446c57041205ace65642b1d3b2ca30cf184408a))
+
+
+## v2.4.0 (2026-01-10)
+
+### Bug Fixes
+
+- **minio**: Add profiles
+  ([`8572ba9`](https://github.com/johannehouweling/ToxTempAssistant/commit/8572ba9130514a97bf3bec4953332f0748bea7a0))
+
+- **minio**: Attach minio to network
+  ([`81a335b`](https://github.com/johannehouweling/ToxTempAssistant/commit/81a335b3afe69d2155052ed9b3e113eda801c061))
+
+### Features
+
+- **minio**: Add MinIO initialization script and update docker-compose
+  ([`c29f9eb`](https://github.com/johannehouweling/ToxTempAssistant/commit/c29f9eb6d3a4a43840882716804f693e87de4840))
+
+
+## v2.3.1 (2026-01-10)
+
+### Bug Fixes
+
+- **minio**: Correct Release
+  ([`e387837`](https://github.com/johannehouweling/ToxTempAssistant/commit/e38783782975a1f69dc0db833b982479e798ed3d))
+
+
+## v2.3.0 (2026-01-10)
+
+### Bug Fixes
+
+- **evaluation**: Update input directory path for quality scoring to use relative path
+  ([`9f98a8e`](https://github.com/johannehouweling/ToxTempAssistant/commit/9f98a8e9f9d4844498648cf2cea7eb1df83af602))
+
+- **poetry**: Update lockfile
+  ([`2eb8988`](https://github.com/johannehouweling/ToxTempAssistant/commit/2eb898840d3b4deafb59fea9bf066913c9356a25))
+
+- **poetry**: Update poetry lock file
+  ([`2375150`](https://github.com/johannehouweling/ToxTempAssistant/commit/2375150c9c5f51558de295b9926dd0b64f4efb59))
+
+### Chores
+
+- **ci**: Deleted cleanup scripts
+  ([`080070f`](https://github.com/johannehouweling/ToxTempAssistant/commit/080070fca32a8c35064703e0413b3748d6516219))
+
+- **pyproject**: Update version to 2.2.0 and modify dependencies for compatibility
+  ([`de8c089`](https://github.com/johannehouweling/ToxTempAssistant/commit/de8c08943687c462779e1ba49f4d93ae9ba627bb))
+
+### Documentation
+
+- **config**: Update notes on evaluation metrics and BERT usage in EvaluationConfig
+  ([`4780266`](https://github.com/johannehouweling/ToxTempAssistant/commit/478026655ece897e4e1849f534d53c81f05f456c))
+
+- **config**: Update notes on evaluation metrics and BERT usage in EvaluationConfig
+  ([`d9eb306`](https://github.com/johannehouweling/ToxTempAssistant/commit/d9eb306b1bd750a04231dbd76c00c2554df3ff64))
+
+- **urls**: Add example usage comment for init_db path
+  ([`8ceea9f`](https://github.com/johannehouweling/ToxTempAssistant/commit/8ceea9fbfd0b11d92e8679b52e30dd72cbbf7267))
+
+- **urls**: Add example usage comment for init_db path
+  ([`0dae720`](https://github.com/johannehouweling/ToxTempAssistant/commit/0dae7205bef82a1cc15ad647a045225b7456392f))
+
+### Features
+
+- **data_analysis**: Update model handling and enhance scatter plot category orders for consistency
+  ([`a401a23`](https://github.com/johannehouweling/ToxTempAssistant/commit/a401a2307051bcfc6db7d8782cf760112dc4e105))
+
+- **evaluation**: Add validation metrics and BERT score options to ExperimentConfig and related
+  functions
+  ([`1bc2553`](https://github.com/johannehouweling/ToxTempAssistant/commit/1bc2553b496aa6a05790f87169129931c5994f3e))
+
+- **evaluation**: Add validation metrics and BERT score options to ExperimentConfig and related
+  functions
+  ([`8b5f322`](https://github.com/johannehouweling/ToxTempAssistant/commit/8b5f322f45edb082d89b98030d2875f23a7c242f))
+
+- **init_db**: Implement command to create QuestionSet from JSON file
+  ([`b1438a2`](https://github.com/johannehouweling/ToxTempAssistant/commit/b1438a2000ca704b8f5c22ab67ad3a44995cf474))
+
+- **init_db**: Implement command to create QuestionSet from JSON file
+  ([`1cbc8fe`](https://github.com/johannehouweling/ToxTempAssistant/commit/1cbc8fee5d26fb5949b2d6fdc0bda110284892f6))
+
+- **licenses**: Add third-party licenses documentation for OECD and EFSA materials
+  ([`89d0cce`](https://github.com/johannehouweling/ToxTempAssistant/commit/89d0ccef98276f94ffb4ce964f504f10f6ade306))
+
+- **minio**: Added minio for blob storage option
+  ([`789ebb6`](https://github.com/johannehouweling/ToxTempAssistant/commit/789ebb6321755f2fc390602b55f2a599998396a4))
+
+- **neg_summary, pooled_summary**: Refactor model file handling and enhance accuracy plotting with
+  error bars
+  ([`28d73e3`](https://github.com/johannehouweling/ToxTempAssistant/commit/28d73e3c3a22ba48a5146ecaa5e0b0025825b5c5))
+
+- **pooled_summary**: Enhance accuracy scatter plot with improved legend and error bar labels
+  ([`85e4b8f`](https://github.com/johannehouweling/ToxTempAssistant/commit/85e4b8f4cd68d6467be81fcfaf2c27f52919d4c1))
+
+- **pooled_summary**: Enhance scatter plot styling with updated color and error bar settings
+  ([`cfe6c9a`](https://github.com/johannehouweling/ToxTempAssistant/commit/cfe6c9aa681852b96a184e1a9533a6091051b98e))
+
+- **questionset**: Enhance create_questionset_from_json to reuse existing QuestionSet if empty
+  ([`d5e6470`](https://github.com/johannehouweling/ToxTempAssistant/commit/d5e6470c701ca1b29a86cf0d7bacd9ba37c06704))
+
+- **questionset**: Enhance create_questionset_from_json to reuse existing QuestionSet if empty
+  ([`cb2a708`](https://github.com/johannehouweling/ToxTempAssistant/commit/cb2a708145ea88342d721ca3dbdc53d0679851aa))
+
+### Refactoring
+
+- **data_analysis**: Add ncontrol_summary and pcontrol_summary scripts
+  ([`d057ec7`](https://github.com/johannehouweling/ToxTempAssistant/commit/d057ec78b573ef2ce11deb67c671d893f934c86f))
+
+- **data_analysis**: Remove unused neg_summary and pos_summary scripts; update pcontrol_summary for
+  improved directory handling and output paths
+  ([`f3780c7`](https://github.com/johannehouweling/ToxTempAssistant/commit/f3780c7d4bef6542466d4e7083d076f71ba9b874))
+
+- **evaluation**: Remove BERT score option from ExperimentConfig
+  ([`74f3e6e`](https://github.com/johannehouweling/ToxTempAssistant/commit/74f3e6e34d766800e1c8560e0a237ad1064658b4))
+
+- **evaluation**: Remove BERT score option from ExperimentConfig
+  ([`b64bb1c`](https://github.com/johannehouweling/ToxTempAssistant/commit/b64bb1cc68835bb1ad8d4dfbd8adcc442ab64345))
+
+
 ## v2.2.0 (2025-12-01)
 
 ### Bug Fixes

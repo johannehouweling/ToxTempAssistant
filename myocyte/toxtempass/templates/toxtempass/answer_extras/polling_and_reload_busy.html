@@ -1,0 +1,92 @@
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const INTERVAL_MS = {{ reload_busy_interval }};
+  const MAX_RETRIES = {{ reload_busy_max_retries }};
+
+  // Persisted state in this tab
+  const RETRIES_KEY = "assayPoll.retries";
+  const RUN_KEY = "assayPoll.runId";
+  const LAST_SEEN_KEY = "assayPoll.lastSeenBusyIds";
+
+  const runId = String(Date.now());
+  sessionStorage.setItem(RUN_KEY, runId);
+
+  function getRetries() {
+    return Number(sessionStorage.getItem(RETRIES_KEY) || "0");
+  }
+  function setRetries(v) {
+    sessionStorage.setItem(RETRIES_KEY, String(v));
+  }
+  function clearState() {
+    sessionStorage.removeItem(RETRIES_KEY);
+    sessionStorage.removeItem(LAST_SEEN_KEY);
+    // keep RUN_KEY overwritten on each load
+  }
+
+  function scheduleNext() {
+    setTimeout(updateAssayStatuses, INTERVAL_MS);
+  }
+
+  function updateAssayStatuses() {
+    // If the user reloaded manually, a new runId was set; stop any older scheduled calls.
+    if (sessionStorage.getItem(RUN_KEY) !== runId) return;
+
+    const retries = getRetries();
+    if (retries >= MAX_RETRIES) {
+      console.warn("Stopped polling (max retries reached).");
+      return;
+    }
+    setRetries(retries + 1);
+
+    const busyElements = document.querySelectorAll(
+      '[data-assay-status="{{ LLMStatus.BUSY }}"], [data-assay-status="{{ LLMStatus.SCHEDULED }}"]'
+    );
+
+    if (busyElements.length === 0) {
+      clearState();
+      return;
+    }
+
+    const busyIds = Array.from(busyElements).map((el) => el.getAttribute("data-assay-id"));
+    sessionStorage.setItem(LAST_SEEN_KEY, JSON.stringify(busyIds));
+
+    let pending = busyElements.length;
+    let shouldReload = false;
+    let anyStillBusy = false;
+
+    busyElements.forEach((el) => {
+      const assayId = el.getAttribute("data-assay-id");
+
+      fetch("{% url 'assay_scheduled_or_busy' pk='9999999' %}".replace("9999999", assayId), {
+        method: "POST",
+        headers: { "X-CSRFToken": "{{ csrf_token }}" },
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.is_busy_or_scheduled === false) shouldReload = true;
+          if (data.is_busy_or_scheduled === true) anyStillBusy = true;
+        })
+        .catch(() => {
+          anyStillBusy = true;
+        })
+        .finally(() => {
+          pending -= 1;
+          if (pending === 0) {
+            if (shouldReload) {
+              clearState();
+              location.reload();
+              return;
+            }
+            if (anyStillBusy) {
+              scheduleNext();
+            } else {
+              clearState();
+            }
+          }
+        });
+    });
+  }
+
+  scheduleNext();
+});
+</script>

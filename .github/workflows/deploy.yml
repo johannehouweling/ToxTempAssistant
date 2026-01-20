@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # we need full history & tags to checkout the correct tag
           fetch-depth: 0
@@ -48,3 +48,6 @@ jobs:
             sudo --preserve-env=GIT_HASH,GIT_TAG docker compose --profile prod up --build -d 
             # connect to default bridge network to allow communication with other containers
             sudo docker network connect bridge djangoapp
+            # If remote access to minio console is needed, uncomment the following line
+            # sudo docker network connect bridge minio
+

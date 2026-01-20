@@ -315,6 +315,37 @@
 </script>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
+    // Add popover icon to file upload field help text
+    const filesInput = document.getElementById('id_files');
+    if (filesInput) {
+      // Find the help text (form-text) for this field
+      const helpText = filesInput.closest('.mb-3')?.querySelector('.form-text');
+      if (helpText) {
+        // Create popover icon
+        const popoverIcon = document.createElement('a');
+        popoverIcon.setAttribute('tabindex', '0');
+        popoverIcon.setAttribute('class', 'text-dark small');
+        popoverIcon.setAttribute('style', 'margin-left: 0.5rem; cursor: pointer;');
+        popoverIcon.setAttribute('role', 'button');
+        popoverIcon.setAttribute('data-bs-toggle', 'popover');
+        popoverIcon.setAttribute('data-bs-trigger', 'focus');
+        popoverIcon.setAttribute('title', 'Supported File Formats');
+        popoverIcon.setAttribute('data-bs-html', 'true');
+        popoverIcon.setAttribute('data-bs-content', `
+          <strong>Documents:</strong><br>
+          PDF, DOCX, TXT, MD, HTML<br><br>
+          <strong>Images:</strong><br>
+          PNG, JPG, GIF, BMP, TIFF, WebP<br><br>
+          <strong>Data:</strong><br>
+          JSON, CSV, XLSX<br><br>
+          <em>Examples:</em> publications, SOPs, protocols, certificates, figures, diagrams, data tables
+        `);
+        popoverIcon.innerHTML = '<i class="bi fs-6 text-secondary bi-question-circle"></i>';
+        helpText.appendChild(popoverIcon);
+      }
+    }
+    
+    // Initialize all popovers
     var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
     var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
       return new bootstrap.Popover(popoverTriggerEl)

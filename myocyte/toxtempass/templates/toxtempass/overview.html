@@ -20,6 +20,9 @@
         const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
       })
     </script>
+
+    {% include "answer_extras/polling_and_reload_busy.html" %}
+
     {% include "answer_extras/feedback_export.html" %}
 
   {% endblock %}
@@ -36,4 +39,6 @@
         }
         </style>
   {% endblock %}
+
 {% endblock %}
+

@@ -21,10 +21,10 @@ from toxtempass.models import (
     Answer,
     Assay,
     Investigation,
+    LLMStatus,
     Person,
     Question,
     QuestionSet,
-    LLMStatus,
     Section,
     Study,
 )
@@ -255,12 +255,7 @@ class StartingForm(forms.Form):
         required=False,
         help_text=(
             """Upload documents relevant to your test method to provide context for the
-              LLM-generated answers. This is only possible during the first draft.
-              Examples include publications, SOPs, protocols, certificates of analysis,
-              cell line reports, data management plans, project proposals, lab journals,
-              apparatus metadata, and regulatory guidance. Supported file types: PDF,
-              TXT, MD, HTML, and DOCX. Support for additional formats (e.g., PNG, JPG)
-              may be added in the future."""
+              LLM-generated answers."""
         ),
     )
     overwrite = forms.BooleanField(
@@ -278,6 +273,13 @@ class StartingForm(forms.Form):
             "If checked, images found in uploaded documents (PDFs, DOCX) will be "
             "extracted and used as additional context for generating answers."
         ),
+    )
+
+    consent_file_storage = forms.BooleanField(
+        required=True,
+        initial=True,
+        label="Consent to share uploaded files with development team",
+        help_text="I consent to sharing the uploaded context files with the ToxTempAssistant development team to help improve the system. Only the development team will have access to these files. This is optional and does not affect your ability to use ToxTempAssistant.",
     )
 
     def __init__(self, *args, user: Person = None, **kwargs):

@@ -86,28 +86,30 @@ class AssayTable(tables.Table):
         template_code="""
         <div class="btn-group" role="group">
             {% if record.status == LLMStatus.SCHEDULED.value %}
-                <button class="btn btn-sm btn-outline-secondary" disabled>
-                    <span class="d-flex" data-bs-toggle="tooltip" title="Processing. Check back soon.">
-                        <i class="bi bi-hourglass"></i>
-                        <span class="ms-1 d-none d-lg-inline">Sched.</span>
-                    </span>
-                </button>
+                <div class="btn-group" role="group" data-assay-id="{{ record.id }}" data-assay-status="{{ record.status }}" data-bs-toggle="tooltip" title="Processing scheduled. Refresh the page to see updates.">
+                    <button class="btn btn-sm btn-outline-secondary" disabled>
+                        <span class="d-flex">
+                            <i class="bi bi-hourglass"></i>
+                            <span class="ms-1 d-none d-lg-inline">Sched.</span>
+                        </span>
+                    </button>
+                </div>
             {% elif record.status == LLMStatus.BUSY.value %}
-                <button class="btn btn-sm btn-outline-secondary" disabled>
-                    <span class="d-flex" data-bs-toggle="tooltip" title="Processing ongoing">
-                        <i class="bi bi-hourglass-split"></i>
-                        <span class="ms-2 d-none d-lg-inline">Busy</span>
-                    </span>
-                </button>
+                <div class="btn-group" role="group" data-assay-id="{{ record.id }}" data-assay-status="{{ record.status }}" data-bs-toggle="tooltip" title="Processing ongoing ({{record.number_processed_answers}}/{{record.get_n_answers}}). Refresh the page to see updates.">
+                    <button class="btn btn-sm btn-outline-secondary" disabled>
+                            <span class="spinner-grow spinner-grow-sm" aria-hidden="true"></span>
+                            <span role="status">Busy</span>
+                    </button>
+                </div>
             {% elif record.status == LLMStatus.ERROR.value %}
-                <a class="btn btn-sm btn-outline-danger" href="{% url 'answer_assay_questions' record.id %}">
+                <a class="btn btn-sm btn-outline-danger" data-assay-id="{{ record.id }}" data-assay-status="{{ record.status }}" href="{% url 'answer_assay_questions' record.id %}">
                     <span data-bs-toggle="tooltip" title="Processing failed">
                         <i class="bi bi-bug"></i>
                         <span class="ms-1 d-none d-lg-inline">Error</span>
                     </span>
                 </a>
             {% else %}
-                <a class="btn btn-sm btn-outline-primary" href="{% url 'answer_assay_questions' record.id %}">
+                <a class="btn btn-sm btn-outline-primary" data-assay-id="{{ record.id }}" data-assay-status="{{ record.status }}" href="{% url 'answer_assay_questions' record.id %}">
                     <i class="bi bi-eye"></i>
                     <span class="ms-1 d-none d-lg-inline">View</span>
                 </a>
@@ -167,20 +169,40 @@ class AssayTable(tables.Table):
         """Render the progress bar based on the number of answers."""
         total = record.get_n_answers
         accepted = record.get_n_accepted_answers
+        draft_but_not_accepted = record.number_answers_found_but_not_accepted
         if total:
-            pct = int((accepted / total) * 100)
+            pct_accepted = int((accepted / total) * 100)
+            pct_draft_but_not_accepted = int((draft_but_not_accepted / total) * 100)
         else:
-            pct = 0
+            pct_accepted = 0
+            pct_draft_but_not_accepted = 0
+        answers_accepted_string = "answer" if pct_accepted == 1 else "answers"
+        draft_but_not_accepted_string = (
+            "answer" if pct_draft_but_not_accepted == 1 else "answers"
+        )
         return format_html(
             (
-                '<div class="progress border"><div class="progress-bar" '
-                'role="progressbar" style="width: {}%;" aria-valuenow="{}"'
-                'aria-valuemin="0" aria-valuemax="100" data-bs-toggle="tooltip"'
-                ' title="{}%"></div></div>'
+                '<div class="progress border bg-white">'
+                    '<div class="progress-bar bg-primary" '
+                        'role="progressbar" style="width: {}%;" aria-valuenow="{}"'
+                        'aria-valuemin="0" aria-valuemax="100" data-bs-toggle="tooltip"'
+                        ' title="{} {} accepted">'
+                    '</div>'
+                    '<div class="progress-bar-striped bg-primary opacity-50" '
+                        'role="progressbar" style="width: {}%;" aria-valuenow="{}"'
+                        'aria-valuemin="0" aria-valuemax="100" data-bs-toggle="tooltip"'
+                        ' title="{} unaccepted draft {}">'
+                    '</div>'
+                '</div>'
             ),
-            pct,
-            pct,
-            pct,
+            pct_accepted,
+            pct_accepted,
+            accepted,
+            answers_accepted_string,
+            pct_draft_but_not_accepted,
+            pct_draft_but_not_accepted,
+            draft_but_not_accepted,
+            draft_but_not_accepted_string
         )
 
     def before_render(self, request):

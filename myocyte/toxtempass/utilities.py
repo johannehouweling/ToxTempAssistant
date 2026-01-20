@@ -1,6 +1,10 @@
 import hashlib
+import logging
 from pathlib import Path
 
+from toxtempass.models import Person
+
+logger = logging.getLogger(__name__)
 
 def calculate_md5(pdf_file_path:Path)-> str:
     """Calculate MD5 hash for a given PDF file."""
@@ -54,8 +58,7 @@ from typing import Optional
 
 
 def generate_beta_token(person_id: int) -> str:
-    """
-    Generate a time-signed token for admitting a person to the beta program.
+    """Generate a time-signed token for admitting a person to the beta program.
 
     The returned token is created with Django's signing machinery and should be
     safe to embed in approval links. It encodes a small payload containing the
@@ -69,8 +72,7 @@ def generate_beta_token(person_id: int) -> str:
 
 
 def verify_beta_token(token: str, max_age_days: int = 30) -> Optional[dict]:
-    """
-    Verify a beta token and return the payload on success, otherwise None.
+    """Verify a beta token and return the payload on success, otherwise None.
 
     max_age_days controls how long the token is valid (default 30 days).
     """
@@ -87,8 +89,7 @@ def verify_beta_token(token: str, max_age_days: int = 30) -> Optional[dict]:
 
 
 def set_beta_requested(person, comment: Optional[str] = None) -> None:
-    """
-    Mark a Person as having requested access to the beta program.
+    """Mark a Person as having requested access to the beta program.
 
     Safely handles person.preferences == None. Sets:
       - beta_signup = True
@@ -111,9 +112,8 @@ def set_beta_requested(person, comment: Optional[str] = None) -> None:
     person.save(update_fields=["preferences"])
 
 
-def set_beta_admitted(person, admitted: bool, comment: Optional[str] = None) -> None:
-    """
-    Admit or revoke a Person's beta status.
+def set_beta_admitted(person:Person, admitted: bool, comment: Optional[str] = None) -> None:
+    """Admit or revoke a Person's beta status.
 
     Sets:
       - beta_admitted = bool(admitted)
@@ -131,3 +131,4 @@ def set_beta_admitted(person, admitted: bool, comment: Optional[str] = None) -> 
         prefs["beta_comment"] = comment
     person.preferences = prefs
     person.save(update_fields=["preferences"])
+

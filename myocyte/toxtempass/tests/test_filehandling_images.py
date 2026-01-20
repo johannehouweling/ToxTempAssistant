@@ -29,7 +29,7 @@ class DummyPdfImage:
 
 
 def test_extract_images_from_pdf_page_creates_entries(tmp_path):
-    png_bytes = _make_png_bytes(size=(20, 20))
+    png_bytes = _make_png_bytes(size=(60, 60))
     page = SimpleNamespace(images=[DummyPdfImage(png_bytes, name="foo.png")])
     source = tmp_path / "sample.pdf"
     source.write_bytes(b"%PDF-1.7")  # minimal placeholder content
@@ -50,7 +50,7 @@ def test_extract_images_from_pdf_page_creates_entries(tmp_path):
 
 def test_extract_images_from_docx_reads_media(tmp_path):
     docx_path = tmp_path / "simple.docx"
-    img_bytes = _make_png_bytes(size=(20, 20))
+    img_bytes = _make_png_bytes(size=(60, 60))
     with ZipFile(docx_path, "w") as zip_file:
         zip_file.writestr("word/media/image1.png", img_bytes)
 
@@ -97,7 +97,7 @@ def test_collect_source_documents_handles_embedded_and_uploaded(tmp_path):
 
 def test_image_descriptions_are_added_when_requested(tmp_path):
     image_path = tmp_path / "figure.png"
-    img = Image.new("RGB", (20, 20), color="red")
+    img = Image.new("RGB", (60, 60), color="red")
     img.save(image_path)
 
     with patch("toxtempass.filehandling._describe_image", return_value="Stub description"):

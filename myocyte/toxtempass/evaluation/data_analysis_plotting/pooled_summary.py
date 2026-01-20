@@ -194,81 +194,107 @@ summary_df['Specificity'] = summary_df['Model'].apply(get_specificty_per_model)
 #summary_df["weight_factor"] =  summary_df["NonTrivialCount"] / (616 + summary_df["NonTrivialCount"] )
 summary_df["Weighing_Factor_Pi"] = summary_df['Total_Tier1'] / (summary_df['Total_Tier2'] + summary_df['Total_Tier1'])
 summary_df['Accuracy'] = summary_df["Weighing_Factor_Pi"] * summary_df["TPR"] + (1-summary_df["Weighing_Factor_Pi"])*  summary_df['Specificity']
+# Approximate binomial standard error for Accuracy (prop. weighted TPR/Specificity)
+def _binomial_se(p, n):
+    return (p * (1 - p) / n) ** 0.5 if n > 0 else 0
+
+accuracy_se = []
+for _, row in summary_df.iterrows():
+    pi = row["Weighing_Factor_Pi"]
+    tpr = row["TPR"]
+    spec = row["Specificity"]
+    n1 = row["Total_Tier1"]
+    n2 = row["Total_Tier2"]
+    var = (pi ** 2) * (_binomial_se(tpr, n1) ** 2) + ((1 - pi) ** 2) * (_binomial_se(spec, n2) ** 2)
+    accuracy_se.append(var ** 0.5)
+summary_df["Accuracy_SE"] = accuracy_se
+summary_df["Accuracy_CI95"] = summary_df["Accuracy_SE"] * 1.96
 
 from plotly import express as px
 import plotly.graph_objects as go
 
-shape_dict = {"o3-mini": "square", "gpt-4.1-nano": "circle", "gpt-4o-mini": "diamond"}
+shape_dict = {
+    "o3-mini": "square",
+    "gpt-4.1-nano": "circle",
+    "gpt-4o-mini": "diamond",
+}
 
-# Accuracy Plot
-fig = px.bar(
+# Accuracy scatter with error bars
+fig = px.scatter(
     summary_df,
     x="Model",
     y="Accuracy",
-    text="Accuracy",
-    title="Overall Accuracy",
+    error_y="Accuracy_CI95",
     color="Model",
-    # symbol_map=shape_dict,
-    color_discrete_sequence=px.colors.qualitative.Plotly,
+    symbol="Model",
+    symbol_map=shape_dict,
+    color_discrete_sequence=["rgba(0, 0, 0, 0.7)"] * len(summary_df),
+    category_orders={"Model": ["gpt-4.1-nano", "gpt-4o-mini", "o3-mini"]},
 )
 fig.update_traces(
-    texttemplate="",
-    textposition="none",
-    # Plotly does not support direct background color for bar text annotations,
-    # so we add annotation overlays for background color below.
+    mode="markers",
+    marker=dict(size=12, color="rgba(0, 0, 0, 0.7)", line=dict(width=2, color="white")),
+    showlegend=True,
+    error_y=dict(color="#777", thickness=1.8),
 )
+# (Optional) If you want a marker outline for readability, uncomment:
+# fig.update_traces(marker=dict(size=12, line=dict(width=1)))
 
-# Add annotation overlays for background color behind bar text
-for i, row in summary_df.iterrows():
+# Add numeric labels above error bars
+for _, row in summary_df.iterrows():
     fig.add_annotation(
         x=row["Model"],
-        y=row["Accuracy"],
+        y=row["Accuracy"] + row["Accuracy_CI95"] + 0.025,  # slight offset above error bar
         text=f"{row['Accuracy']:.1%}",
         showarrow=False,
         font=dict(color="black", size=14),
-        bgcolor="rgba(255,255,255,0.7)",  # Change this to your desired background color
-        yshift=10,
+        bgcolor="rgba(255,255,255,0.7)",
     )
 fig.update_layout(
-    yaxis=dict(title=r"$A|_{\cos\theta>0.6} \,\big/\,{\%}$", showgrid=True, gridcolor="lightgrey", zeroline=False),
-    xaxis=dict(title="Model", showgrid=False),
+    yaxis=dict(
+        title=r"$A|_{\cos\theta>0.6} \,\big/\,{\%}$",
+        showgrid=True,
+        gridcolor="lightgrey",
+        zeroline=False,
+    ),
+    xaxis=dict(title=None, showgrid=False),
     title_x=0.5,
-    title_y=0.96,
+    title_y=0.9,
     margin=dict(t=35, b=50, l=50, r=50),
-)            
-fig.update_layout(
     showlegend=False,
     legend=dict(
         title_text="",
         orientation="h",
-        xref ="paper",
-        yref ="paper",
+        xref="paper",
+        yref="paper",
         x=0.5,
         xanchor="center",
         y=1.02,
         yanchor="bottom",
     ),
-    yaxis_range=[0,0.85],
-    paper_bgcolor='white',
-    plot_bgcolor='white',
-)   
-
-
-output_file_300px = (
-    Path("/Users/johannehouweling/Desktop/ToxTempAssistant_Validation/Accuracy")
-    /"modelsummary.png"
+    yaxis_range=[0.64, 0.84],
+    paper_bgcolor="white",
+    plot_bgcolor="white",
 )
 
-fig.write_image(
-    str(output_file_300px.with_name("tier1_summary_combined_fig.png")),
-    format="png",
-    width=300,
-    height=300,
-    scale=6,
-    engine="kaleido",
-)
+def _write_fig_image(fig_obj, filename: str, width=300, height=300, scale=6):
+    """Write figure to a consistent plots directory under BASE_DIR."""
+    output_dir = BASE_DIR / "toxtempass" / "evaluation" / "plots"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    target_path = output_dir / filename
+    fig_obj.write_image(
+        str(target_path),
+        format="png",
+        width=width,
+        height=height,
+        scale=scale,
+        engine="kaleido",
+    )
+    print(f"Saved summary plot to {target_path}")
 
-print(f"Saved 300px summary plot to {output_file_300px.with_name("tier1_summary_combined_fig.png")}")
+_write_fig_image(fig, "pooled_summary_fig.png")
+# If running in an interactive session (e.g., Jupyter), you can also view inline:
+# fig.show()
 
 
 # fig.update_traces(marker=dict(size=10))

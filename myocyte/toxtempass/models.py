@@ -1,6 +1,10 @@
+from __future__ import annotations
+import uuid
+
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.validators import validate_email
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 from guardian.shortcuts import assign_perm
 from simple_history.models import HistoricalRecords
@@ -310,13 +314,47 @@ class Assay(AccessibleModel):
         return hasattr(self, "feedback")
 
     @property
-    def number_answers_not_found(self) -> float:
+    def number_answers_not_found(self) -> int:
         """Check if there are any answers not found for this assay."""
         not_found_string = config.not_found_string
         # Get all questions related to this assay
         return Answer.objects.filter(
             assay=self, answer_text__icontains=not_found_string
         ).count()
+
+    @property
+    def number_processed_answers(self) -> int:
+        """Check if there are any answers processed for this assay."""
+        not_found_string = config.not_found_string
+        # Get all questions related to this assay
+        return Answer.objects.filter(
+            assay=self,
+        ).filter(
+            ~Q(
+                Q(answer_text="")
+                | Q(answer_text__isnull=True)
+            )
+        ).count()
+
+    @property
+    def number_answers_found_but_not_accepted(self) -> int:
+        """Check if there are any answers found but not yet accepted for this assay."""
+        not_found_string = config.not_found_string
+        # Get all questions related to this assay
+        return (
+            Answer.objects.filter(
+                assay=self,
+                accepted=False,
+            )
+            .filter(
+                ~Q(
+                    Q(answer_text__icontains=not_found_string)
+                    | Q(answer_text="")
+                    | Q(answer_text__isnull=True)
+                )
+            )
+            .count()
+        )
 
     @property
     def is_saved(self) -> bool:
@@ -331,6 +369,7 @@ class Assay(AccessibleModel):
     def owner(self) -> Person:
         """Return the owner of this assay (i.e., the owner of the parent investigation)."""
         return self.study.investigation.owner
+
 
 # New model to track individual user's assay views
 class AssayView(models.Model):
@@ -451,6 +490,38 @@ class Question(AccessibleModel):
         return True
 
 
+class FileAsset(models.Model):
+    class Status(models.TextChoices):
+        AVAILABLE = "available", "Available"
+        DELETED = "deleted", "Deleted"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    bucket = models.CharField(max_length=255, blank=True)
+    object_key = models.CharField(max_length=1024, unique=True)
+
+    original_filename = models.CharField(max_length=512)
+    content_type = models.CharField(max_length=255, blank=True)
+    size_bytes = models.BigIntegerField(null=True, blank=True)
+
+    sha256 = models.CharField(max_length=64, blank=True)
+    status = models.CharField(
+        max_length=16, choices=Status.choices, default=Status.AVAILABLE
+    )
+
+    uploaded_by = models.ForeignKey(
+        Person,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="uploaded_files",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return self.original_filename
+
+
 # Answer Model (linked to Assay)
 class Answer(AccessibleModel):
     assay = models.ForeignKey(Assay, on_delete=models.CASCADE, related_name="answers")
@@ -465,7 +536,15 @@ class Answer(AccessibleModel):
         null=True,
         blank=True,
         help_text="Store list of Filenames used to answer this question.",
-    )  # chnage this to VectorField with for a real database.
+    )  # change this to VectorField with for a real database.
+    files = models.ManyToManyField(
+        FileAsset,
+        through="AnswerFile",
+        related_name="answers",
+        blank=True,
+        null=True,
+        help_text="Actual stored files (only present if user consented to storage).",
+    )
     answer_text = models.TextField(blank=True, default="")
     accepted = models.BooleanField(
         null=True, blank=True, help_text="Marked as final answer."
@@ -479,13 +558,56 @@ class Answer(AccessibleModel):
     def get_parent(self) -> Assay:
         """Return the parent Assay object."""
         return self.assay
-    
+
     @property
     def preview_text(self, max_length: int = 75) -> str:
         """Return a preview of the answer text, truncated to max_length."""
         if len(self.answer_text) <= max_length:
             return self.answer_text
-        return self.answer_text[:max_length].rsplit(' ', 1)[0] + '...'
+        return self.answer_text[:max_length].rsplit(" ", 1)[0] + "..."
+
+
+class AnswerFile(models.Model):
+    answer = models.ForeignKey(Answer, on_delete=models.CASCADE)
+    file = models.ForeignKey(FileAsset, on_delete=models.CASCADE)
+
+    # optional per-link metadata, useful later
+    label = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["answer", "file"], name="uq_answer_file"),
+        ]
+
+
+class FileDownloadLog(models.Model):
+    """Audit log for file downloads (staff/superuser only)."""
+
+    file = models.ForeignKey(
+        FileAsset,
+        on_delete=models.CASCADE,
+        related_name="download_logs",
+    )
+    user = models.ForeignKey(
+        Person,
+        on_delete=models.CASCADE,
+        related_name="file_download_logs",
+    )
+    ip_address = models.GenericIPAddressField(
+        null=True, blank=True, help_text="IP address of the download request"
+    )
+    downloaded_at = models.DateTimeField(auto_now_add=True)
+
+    history = HistoricalRecords()
+
+    class Meta:
+        ordering = ["-downloaded_at"]
+        verbose_name = "File Download Log"
+        verbose_name_plural = "File Download Logs"
+
+    def __str__(self):
+        return f"{self.user.email} downloaded {self.file.original_filename} on {self.downloaded_at.strftime('%Y-%m-%d %H:%M:%S')}"
 
 
 # Feedback Model
