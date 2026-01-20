@@ -2,6 +2,80 @@
 
 <!-- version list -->
 
+## v2.2.0 (2025-12-01)
+
+### Bug Fixes
+
+- **ci**: Prevent the lfs and throw away artifacts after a while
+  ([`e717cbe`](https://github.com/johannehouweling/ToxTempAssistant/commit/e717cbe383fcec6baeb7d4a5618334e35ffe4b9f))
+
+- **image**: Only extract image if extrac_images is True
+  ([`c969183`](https://github.com/johannehouweling/ToxTempAssistant/commit/c9691838aa400995a4664be004b0aee02c8509c7))
+
+### Chores
+
+- **evaluation**: Restructure evalation folder
+  ([`3b2c4f1`](https://github.com/johannehouweling/ToxTempAssistant/commit/3b2c4f14e252d896d79b3961b3a96daab7c57ff8))
+
+- **gitignore**: Added .venv
+  ([`4129966`](https://github.com/johannehouweling/ToxTempAssistant/commit/41299667360fcdf005caeadbbdfed06ae59d3a2d))
+
+### Documentation
+
+- **README**: Update terminology and improve clarity in evaluation pipeline documentation
+  ([`800b2e3`](https://github.com/johannehouweling/ToxTempAssistant/commit/800b2e32a7115b5d76edc27f2224c16b9ae34aa1))
+
+### Features
+
+- **ci**: Add GitHub Actions workflow for Docker cleanup
+  ([`4668ef3`](https://github.com/johannehouweling/ToxTempAssistant/commit/4668ef3f82bcece91965b3047373975aa76e07f6))
+
+- **ci**: Added manual action to investigate space issues on runner
+  ([`bf53812`](https://github.com/johannehouweling/ToxTempAssistant/commit/bf538122ce0b275768816c05af93c03bb68e67bc))
+
+- **evaluation**: Enable per-experiment image extraction and update configurations
+  ([`e1c16c7`](https://github.com/johannehouweling/ToxTempAssistant/commit/e1c16c7873d445bd721247376ebdfcf5e67f3b4b))
+
+- **image**: Add minimum dimensions for image processing to filter out artifacts
+  ([`099fea9`](https://github.com/johannehouweling/ToxTempAssistant/commit/099fea9202cfaea355313a195e596b0f6c4c4fc4))
+
+- **image**: Convert incompatible images to webp
+  ([`bf0f729`](https://github.com/johannehouweling/ToxTempAssistant/commit/bf0f7296918bdff46d9d78405b8f57ccfbb04b8b))
+
+### Refactoring
+
+- **ci**: Change file ending
+  ([`03495e7`](https://github.com/johannehouweling/ToxTempAssistant/commit/03495e7e15655d74d071e2ad3f37c498953f8fb7))
+
+- **ci**: Improve cleanup.yml with diagnostics and pruning
+  ([`347a794`](https://github.com/johannehouweling/ToxTempAssistant/commit/347a794eccee1a7df9d3c1709e515c712b4bbf6c))
+
+- **ci**: Put bertscore in speerate eval block for poetry
+  ([`6fff216`](https://github.com/johannehouweling/ToxTempAssistant/commit/6fff21639fc2019e7d2807ec2e70fe3ae99e8931))
+
+- **config**: Import default prompts from AppConfig for consistency
+  ([`48b285f`](https://github.com/johannehouweling/ToxTempAssistant/commit/48b285f6deccbbb8124a43127bcf48a9345827fa))
+
+- **data_analysis**: Streamline imports and adjust base directory paths in summary scripts
+  ([`4c7e23c`](https://github.com/johannehouweling/ToxTempAssistant/commit/4c7e23cae1424b51f695f1a0e8c7b0a262b6b1aa))
+
+- **evaluation**: Enhance experiment configuration summary and streamline output handling
+  ([`8cdd5d5`](https://github.com/johannehouweling/ToxTempAssistant/commit/8cdd5d5feb6a17dcee99d3a72994ce344cfc0183))
+
+- **evaluation**: Fixed run_evals cli
+  ([`09f8406`](https://github.com/johannehouweling/ToxTempAssistant/commit/09f8406fe85ec023145e4b501cbf63413f6f18cc))
+
+- **evaluation**: Refactor evaluation pipelines and management commands
+  ([`1980035`](https://github.com/johannehouweling/ToxTempAssistant/commit/198003581d735627a351b71cb4d9ec026a268327))
+
+- **evaluation**: Restructures folder structure and made run_eval a manage.py command. Provided raw
+  .pdf input files via git lfs.
+  ([`782c5de`](https://github.com/johannehouweling/ToxTempAssistant/commit/782c5de050ec7fce090688620925c823a662bcdc))
+
+- **tests**: Update image handling in PDF and DOCX tests to use actualy small PNG image
+  ([`ccd2d81`](https://github.com/johannehouweling/ToxTempAssistant/commit/ccd2d8147ad0bbbba50b22c63a47ed9524ed3439))
+
+
 ## v2.1.0 (2025-10-27)
 
 ### Features
