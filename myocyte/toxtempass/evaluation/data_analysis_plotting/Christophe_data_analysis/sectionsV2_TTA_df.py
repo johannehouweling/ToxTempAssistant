@@ -21,7 +21,6 @@ section_df = pd.DataFrame(data)
 
 # extracting the sections
 sections = section_df["sections"]
-subsections_q = section_df["subsections"] #this does not work
 
 #building the dataframe
 comb_df = []
