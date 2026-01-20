@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v2.11.1 (2026-01-20)
+
+### Bug Fixes
+
+- **forms**: Consent to upload files is no longer mandatory but actually optional with GDPR
+  compliant details page.
+  ([`036c613`](https://github.com/johannehouweling/ToxTempAssistant/commit/036c61336f44af82dbefda3083ac20dd1afc0eae))
+
+
 ## v2.11.0 (2026-01-19)
 
 ### Bug Fixes
