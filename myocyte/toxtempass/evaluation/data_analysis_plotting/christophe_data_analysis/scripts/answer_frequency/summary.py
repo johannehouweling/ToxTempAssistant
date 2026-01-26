@@ -13,7 +13,7 @@ OUTPUT_CSV = Path('myocyte/toxtempass/evaluation/data_analysis_plotting/christop
 QUESTION_PATH = Path('myocyte/toxtempass/evaluation/data_analysis_plotting/christophe_data_analysis/enriched/sections/dataframes/ToxTemp_v1_questions_short_section.csv')
 NOT_FOUND_STRING = "Answer not found in documents."
 CURRENT_LOC = Path('myocyte/toxtempass/evaluation/data_analysis_plotting/christophe_data_analysis/scripts/answer_frequency/summary.py')
-#
+
 #  read section DataFrame
 question_df = pd.read_csv(QUESTION_PATH)
 question_df.set_index('Question_ID', inplace=True)
@@ -55,8 +55,6 @@ average_df["answer_ability"] = pd.cut(
     include_lowest=True
 )
 
-# add column classifying cosine similarity, so we can compare answerability & cosine similarity
-
 # merge section & ouput DataFrames
 summary_df = question_df.merge(average_df, on=["question"]) #now there are 304 rows??
 
@@ -64,7 +62,58 @@ summary_df = question_df.merge(average_df, on=["question"]) #now there are 304 r
 summary_df = summary_df.reset_index(drop=True)
 summary_df.index = summary_df.index + 1
 
+# create average of answer frequency combining all models
+question_mean_df = summary_df.groupby(["question"]).mean('answer_given')
+question_mean_df = question_mean_df.sort_values('answer_given', ascending=True)
+
+# save mean question dataframe as csv
+output_average_summary_csv = OUTPUT_CSV.with_name(
+    f"average_{OUTPUT_CSV.stem}.csv"
+)
+output_average_summary_csv.parent.mkdir(parents=True, exist_ok=True)
+question_mean_df.to_csv(output_average_summary_csv)
+print(f"Saved average dataframe to:{output_average_summary_csv}")
+
+# calculating difference answering frequency per model per question compared to average
+mean_lookup = question_mean_df.set_index("Question_ID2")["answer_given"]
+summary_df["answer_freq_delta"] = (
+    summary_df["answer_given"] - summary_df["Question_ID2"].map(mean_lookup)
+)
+
 # save DataFrame as csv
 OUTPUT_CSV.parent.mkdir(parents=True, exist_ok=True)
 summary_df.to_csv(OUTPUT_CSV)
-print(f"Saved Analysis to: {output_csv}")
+print(f"Saved Analysis to: {OUTPUT_CSV}")
+
+# making a list of least answered questions per model
+o3_mini_list = summary_df.loc[summary_df["model"] == "o3-mini"].sort_values("answer_given", ascending=True)["Question_ID2"].tolist()
+gpt_4o_mini_list = summary_df.loc[summary_df["model"] == "gpt-4o-mini"].sort_values("answer_given", ascending=True)["Question_ID2"].tolist()
+gpt_41_nano_list = summary_df.loc[summary_df["model"] == "gpt-4.1-nano"].sort_values("answer_given", ascending=True)["Question_ID2"].tolist()
+gpt_5_mini_list = summary_df.loc[summary_df["model"] == "gpt-5-mini"].sort_values("answer_given", ascending=True)["Question_ID2"].tolist()
+
+#plots
+section_barplot = px.bar(
+    summary_df, 
+    x='section_short', 
+    y='answer_given',
+    color="model",
+    barmode = 'group'
+)
+section_barplot.show()
+
+answerability_cos_similarity_barplot = px.bar(
+    summary_df,
+    x='answer_ability', 
+    y='cos_similarity',
+    color="model",
+    barmode = 'group'
+)
+answerability_cos_similarity_barplot.show()
+
+delta_plot = px.scatter(
+    summary_df,
+    x='answer_freq_delta',
+    y='section',
+    color='model'
+)
+delta_plot.show()
