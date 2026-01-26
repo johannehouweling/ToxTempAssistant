@@ -31,6 +31,9 @@ df["section_short"] = df["section"].map(SECTION_SHORT_MAP)
 # set Question-ID as index
 df.set_index('Question_ID', inplace=True)
 
+# adding question-id as seperate column, so it is easier for further evaluation analysis
+df["Question_ID2"] = df.index
+
 #save DataFrame
 output_csv = QUESTION_PATH.with_name(
     f"{QUESTION_PATH.stem}_short_section.csv"
