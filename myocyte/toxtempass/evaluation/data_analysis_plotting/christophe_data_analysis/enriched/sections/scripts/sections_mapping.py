@@ -12,17 +12,17 @@ df = pd.read_csv(QUESTION_PATH)
 
 # create dictionary with short versions of sections
 SECTION_SHORT_MAP = {
-   "1. Overview": "Overview",
-    "2. General information": "General information",
-    "3. Description of general features of the test system source": "Test system source",
-    "4. Definition of the test system as used in the method": "Test system definition",
-    "5. Test method exposure scheme and endpoints": "Exposure & endpoints",
-    "6. Handling details of the test method": "Test method handling",
-    "7. Data management": "Data management",
-    "8. Prediction model and toxicological application": "Prediction & application",
-    "9. Publication/validation status": "Publication/validation status",
-    "10. Test method transferability": "Transferability",
-    "11. Safety, ethics and specific requirements": "Safety, ethics & requirements"
+   "1. Overview": "1. Overview",
+    "2. General information": "2. General information",
+    "3. Description of general features of the test system source": "3. Test system source",
+    "4. Definition of the test system as used in the method": "4. Test system definition",
+    "5. Test method exposure scheme and endpoints": "5. Exposure & endpoints",
+    "6. Handling details of the test method": "6. Test method handling",
+    "7. Data management": "7. Data management",
+    "8. Prediction model and toxicological application": "8. Prediction & application",
+    "9. Publication/validation status": "9. Publication/validation status",
+    "10. Test method transferability": "10. Transferability",
+    "11. Safety, ethics and specific requirements": "11. Safety, ethics & requirements"
 }
 
 # add section_short to question DataFrame
