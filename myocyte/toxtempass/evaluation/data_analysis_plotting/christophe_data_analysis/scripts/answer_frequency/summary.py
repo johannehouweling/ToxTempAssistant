@@ -10,7 +10,7 @@ import plotly.express as px
 # Paths and constants
 BASE_DIR = Path('myocyte/toxtempass/evaluation/positive_control/output')
 OUTPUT_CSV = Path('myocyte/toxtempass/evaluation/data_analysis_plotting/christophe_data_analysis/results/tables/answer_frequency_positive_controls/summary_answer_frequency.csv')
-QUESTION_PATH = Path('myocyte/toxtempass/evaluation/data_analysis_plotting/christophe_data_analysis/enriched/sections/dataframes/ToxTemp_v1_questions_short_section.csv')
+QUESTION_PATH = Path('myocyte/toxtempass/evaluation/data_analysis_plotting/christophe_data_analysis/enriched/sections/dataframes/ToxTemp_v1_questions_short_section_colour.csv')
 NOT_FOUND_STRING = "Answer not found in documents."
 CURRENT_LOC = Path('myocyte/toxtempass/evaluation/data_analysis_plotting/christophe_data_analysis/scripts/answer_frequency/summary.py')
 
@@ -101,19 +101,86 @@ section_barplot = px.bar(
 )
 section_barplot.show()
 
-answerability_cos_similarity_barplot = px.bar(
-    summary_df,
-    x='answer_ability', 
-    y='cos_similarity',
+colour_barplot = px.bar(
+    summary_df, 
+    x='colour', 
+    y='answer_given',
     color="model",
     barmode = 'group'
 )
-answerability_cos_similarity_barplot.show()
+colour_barplot.show()
 
-delta_plot = px.scatter(
-    summary_df,
-    x='answer_freq_delta',
-    y='section',
-    color='model'
+# section lineplot
+# Aggregate to section x model
+sec_model = (
+    summary_df.groupby(["section_short", "model"], as_index=False)
+      .agg(
+          mean_answer_given=("answer_given", "mean"),
+          std_answer_given=("answer_given", "std"),
+          mean_cos_similarity=("cos_similarity", "mean"),
+          mean_answer_freq_delta=("answer_freq_delta", "mean"),
+          n_questions=("Question_ID2", "nunique"),
+          n_rows=("Question_ID2", "size"),
+      )
 )
-delta_plot.show()
+
+#section order
+section_order = [
+    "1. Overview",
+    "2. General information",
+    "3. Test system source",
+    "4. Test system definition",
+    "5. Exposure & endpoints",
+    "6. Test method handling",
+    "7. Data management",
+    "8. Prediction & application",
+    "9. Publication/validation status",
+    "10. Transferability",
+    "11. Safety, ethics & requirements"
+]
+
+# order the dataframe
+sec_model["section_short"] = pd.Categorical(
+    sec_model["section_short"],
+    categories=section_order,
+    ordered=True
+)
+sec_model = sec_model.sort_values(["model", "section_short"])
+
+section_models_lineplot = px.line(
+    sec_model,
+    x='section_short',
+    y='mean_answer_given',
+    color='model',
+    category_orders={"section_short": section_order},
+    markers=True
+)
+section_models_lineplot.show()
+
+# heatmap section x model performance
+# Pivot sec_model for heatmap
+heat = sec_model.pivot(index="section_short", columns="model", values="mean_answer_given")
+
+# Optional: order sections by overall performance (hardest at top)
+section_order = (
+    sec_model.groupby("section_short")["mean_answer_given"]
+    .mean()
+    .sort_values(ascending=True)
+    .index
+)
+heat = heat.loc[section_order]
+
+fig_heat = px.imshow(
+    heat,
+    text_auto=".2f",
+    aspect="auto",
+    labels=dict(x="Model", y="Section", color="Mean answer_given"),
+    title="Section × Model performance (mean answer_given)",
+)
+
+fig_heat.update_layout(
+    xaxis_title="Model",
+    yaxis_title="Section",
+)
+
+fig_heat.show()
