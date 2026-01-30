@@ -9,10 +9,10 @@ import plotly.express as px
 
 # Paths and constants
 BASE_DIR = Path('myocyte/toxtempass/evaluation/positive_control/output')
-OUTPUT_CSV = Path('myocyte/toxtempass/evaluation/data_analysis_plotting/christophe_data_analysis/results/tables/answer_frequency_positive_controls/summary_answer_frequency.csv')
+OUTPUT_CSV = Path('myocyte/toxtempass/evaluation/data_analysis_plotting/christophe_data_analysis/results/tables/completeness_positive_controls/summary_completeness.csv')
 QUESTION_PATH = Path('myocyte/toxtempass/evaluation/data_analysis_plotting/christophe_data_analysis/enriched/sections/dataframes/ToxTemp_v1_questions_short_section_colour.csv')
 NOT_FOUND_STRING = "Answer not found in documents."
-CURRENT_LOC = Path('myocyte/toxtempass/evaluation/data_analysis_plotting/christophe_data_analysis/scripts/answer_frequency/summary.py')
+CURRENT_LOC = Path('myocyte/toxtempass/evaluation/data_analysis_plotting/christophe_data_analysis/scripts/completeness/summary.py')
 
 #  read section DataFrame
 question_df = pd.read_csv(QUESTION_PATH)
@@ -152,8 +152,13 @@ section_models_lineplot = px.line(
     x='section_short',
     y='mean_answer_given',
     color='model',
+    title='Completeness of ToxTemp of different models by section',
     category_orders={"section_short": section_order},
     markers=True
+)
+section_models_lineplot.update_layout(
+    xaxis_title="Section",
+    yaxis_title="Fraction of questions answered"
 )
 section_models_lineplot.show()
 
