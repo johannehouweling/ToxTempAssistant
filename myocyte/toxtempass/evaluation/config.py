@@ -167,6 +167,19 @@ class EvaluationConfig:
             "description": "To test if this workflow of Christophe works and test gpt-5-mini",
             "validation_metrics": ["cos_similarity"],
         },
+        "model_comparison_with_images": {
+             "models": [
+                {"name": "gpt-4o-mini", "temperature": 0},
+                {"name": "gpt-4.1-nano", "temperature": 0},
+                {"name": "o3-mini", "temperature": None},
+                {"name": "gpt-5-mini", "temperature": None},
+             ],
+             "description": "Comparing the cosine similarity and faithfullness of different models with images on",
+             "validation_metrics": [
+                "cos_similarity",
+                "faithfullness",
+             ]
+        }
     }
 
     # Evaluation Settings
