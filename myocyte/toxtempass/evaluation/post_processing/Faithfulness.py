@@ -6,21 +6,19 @@
 from openai import AsyncOpenAI
 from ragas.llms import llm_factory
 from ragas.metrics.collections import Faithfulness
-import sys
-repo_root = Path.cwd()  # adjust if you're not at repo root
-sys.path.insert(0, str(repo_root / "myocyte"))
-
+from pathlib import Path
+import glob
+import pandas as pd
 from toxtempass import LLM_API_KEY, config
 
-
 # Setup LLM
-client = AsyncOpenAI(LLM_API_KEY)
+client = AsyncOpenAI()
 llm = llm_factory("gpt-4o-mini", client=client)
 
 # Create metric
 scorer = Faithfulness(llm=llm)
 
-# Evaluate
+# Evaluate example
 result = await scorer.ascore(
     user_input="When was the first super bowl?",
     response="The first superbowl was held on Jan 15, 1967",
@@ -29,3 +27,34 @@ result = await scorer.ascore(
     ]
 )
 print(f"Faithfulness Score: {result.value}")
+
+# Evaluate try 2
+try_2_result = await scorer.ascore(
+    user_input="Which hazard(s) do(es) your test method (potentially) predict? (8.1; 8.6)",
+    response="The assay potentially predicts hazards related to adverse effects on cell migration and differentiation processes during neurodevelopment, which may lead to cognitive dysfunction (Source: NPC2-5.pdf).",
+    retrieved_contexts=[
+        "adverse effect on cell migration and differentiation."
+    ]
+)
+print(f"Faithfulness Score: {try_2_result.value}")
+
+# Evaluate try 3
+try_3_result = await scorer.ascore(
+    user_input="Which test system and readout(s) are used? (4.1; 5.2)",
+    response="The test system used in the assay is primary human neural progenitor cells (hNPCs) derived from human cortex (gestational weeks 16-19) (Source: NPC2-5.pdf). The readouts include migration distance, cell number (all cells), number of neurons/oligodendrocytes, neurite length, neurite area, and fluorescence intensity (Source: NPC2-5.pdf).",
+    retrieved_contexts=["Test system: primary human neural progenitor cells (hNPCs) from human cortex (Gestion week (GW)16-19). Readout(s): migration distance, cell number (all cells) number of neurons/oligodendrocytes, neurite length, neurite area, fluorescence intensity"
+    ]
+)
+print(f"Faithfulness Score: {try_3_result.value}")
+
+# create the funciont
+
+def faithfulness() -> float:
+    result = await scorer.ascore(
+        user_input="",
+        response="",
+        retrieved_contexts=[
+            ""
+        ]
+    )
+    print(f"Faithfulness Score: {result.value}")
