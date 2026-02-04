@@ -1,6 +1,8 @@
 from pathlib import Path
 import pandas as pd
 
+# from myocyte.toxtempass.evaluation.post_processing.groundedness import add_groundedness_columns
+
 
 
 #from myocyte.toxtempass.evaluation.post_processing.groundedness import add_groundedness_columns
@@ -17,7 +19,10 @@ add_groundedness_columns(
             output_path=Path.cwd() / "groundedness_demo_output.csv",
             judge_model="gpt-5-nano",
             faithfulness_threshold=0.5,
+            chunk_size=500,
+            chunk_overlap=200,
+            top_k=8,
             geval_threshold=0.5,
-            verbose=True
+            verbose=True,
             )
 
