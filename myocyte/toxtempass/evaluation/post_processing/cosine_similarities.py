@@ -14,8 +14,7 @@ embeddings = OpenAIEmbeddings(
 
 
 def cosine_similarity(text1: str, text2: str) -> float:
-    """Compute the cosine similarity between two texts using their embeddings.
-    """
+    """Compute the cosine similarity between two texts using their embeddings."""
     # embed both texts in one call for efficiency
     vec1, vec2 = embeddings.embed_documents([text1, text2])
     # compute cosine similarity
@@ -23,8 +22,7 @@ def cosine_similarity(text1: str, text2: str) -> float:
 
 
 def bert_score(text1: str, text2: str) -> tuple[float, float, float]:
-    """Compute the BERTScore F1 between two texts.
-    """
+    """Compute the BERTScore F1 between two texts."""
     # compute BERTScore (using rescaling to baseline)
     P, R, F1 = bert_score_score(
         [text1],
