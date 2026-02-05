@@ -92,25 +92,6 @@ gpt_4o_mini_list = summary_df.loc[summary_df["model"] == "gpt-4o-mini"].sort_val
 gpt_41_nano_list = summary_df.loc[summary_df["model"] == "gpt-4.1-nano"].sort_values("answer_given", ascending=True)["Question_ID2"].tolist()
 gpt_5_mini_list = summary_df.loc[summary_df["model"] == "gpt-5-mini"].sort_values("answer_given", ascending=True)["Question_ID2"].tolist()
 
-#plots
-section_barplot = px.bar(
-    summary_df, 
-    x='section_short', 
-    y='answer_given',
-    color="model",
-    barmode = 'group'
-)
-section_barplot.show()
-
-colour_barplot = px.bar(
-    summary_df, 
-    x='colour', 
-    y='answer_given',
-    color="model",
-    barmode = 'group'
-)
-colour_barplot.show()
-
 # section lineplot
 # Aggregate to section x model
 sec_model = (
@@ -148,6 +129,7 @@ sec_model["section_short"] = pd.Categorical(
 )
 sec_model = sec_model.sort_values(["model", "section_short"])
 
+# lineplot of x=sections and y= fraction of question answered
 section_models_lineplot = px.line(
     sec_model,
     x='section_short',
@@ -181,7 +163,7 @@ fig_heat = px.imshow(
     text_auto=".2f",
     aspect="auto",
     labels=dict(x="Model", y="Section", color="Mean answer_given"),
-    title="Section × Model performance (mean answer_given)",
+    title="Section × Model performance (mean completeness)",
 )
 
 fig_heat.update_layout(
@@ -190,3 +172,61 @@ fig_heat.update_layout(
 )
 
 fig_heat.show()
+
+# lineplot of x=sections and y= mean cosine similarity
+section_models_lineplot = px.line(
+    sec_model,
+    x='section_short',
+    y='mean_cos_similarity',
+    color='model',
+    title='Cosine similarity of answers given by different models per section',
+    category_orders={"section_short": section_order},
+    markers=True
+)
+section_models_lineplot.update_layout(
+    xaxis_title="Section",
+    yaxis_title="Mean of cosine similarity"
+)
+section_models_lineplot.show()
+
+# plotting delta completeness against section
+section_models_lineplot = px.line(
+    sec_model,
+    x='section_short',
+    y='mean_answer_freq_delta',
+    color='model',
+    title='Mean delta completeness of answers given by different models per section',
+    category_orders={"section_short": section_order},
+    markers=True
+)
+section_models_lineplot.update_layout(
+    xaxis_title="Section",
+    yaxis_title="delta completeness"
+)
+section_models_lineplot.show()
+
+# Comparing completeness with with_gtruth_output
+# DataFrame of positive control output: 'with_gtruth_output', 2182 rows
+# section DataFrame: 'question_df', 77 rows
+
+# merging dataframes
+all_datapoints_df = question_df.merge(with_gtruth_output, on=["question"]) #now there are 2176 rows?
+
+# create an avarage of answered/unanswered & cosine similarity per model
+gtruth_quality_summary_df = all_datapoints_df.groupby(["section","gtruth_answer_quality_score", "model"],as_index=False)[["answer_given", "cos_similarity"]].mean() 
+
+# plotting the answer quality against the questions / sections
+section_models_scatterplot = px.scatter(
+    all_datapoints_df,
+    x='Question_ID2',
+    y='gtruth_answer_quality_score',
+    color='model',
+    title='Mean delta completeness of answers given by different models per section',
+    #category_orders={"section_short": section_order},
+    #markers=True
+)
+section_models_scatterplot.update_layout(
+    xaxis_title="Question",
+    yaxis_title="Groundtruth answer quality"
+)
+section_models_scatterplot.show()
