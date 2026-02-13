@@ -100,6 +100,7 @@ sec_model = (
           mean_answer_given=("answer_given", "mean"),
           std_answer_given=("answer_given", "std"),
           mean_cos_similarity=("cos_similarity", "mean"),
+          std_cos_similarity=("cos_similarity", "std"),
           mean_answer_freq_delta=("answer_freq_delta", "mean"),
           n_questions=("Question_ID2", "nunique"),
           n_rows=("Question_ID2", "size"),
@@ -135,13 +136,15 @@ section_models_lineplot = px.line(
     x='section_short',
     y='mean_answer_given',
     color='model',
-    title='Completeness of ToxTemp of different models by section',
+    #error_y='std_answer_given',
+    title='Completeness of ToxTemp per section per model',
     category_orders={"section_short": section_order},
     markers=True
 )
 section_models_lineplot.update_layout(
     xaxis_title="Section",
-    yaxis_title="Fraction of questions answered"
+    yaxis_title="Fraction of questions answered",
+    yaxis_range=[0, 1.1]
 )
 section_models_lineplot.show()
 
@@ -179,29 +182,15 @@ section_models_lineplot = px.line(
     x='section_short',
     y='mean_cos_similarity',
     color='model',
-    title='Cosine similarity of answers given by different models per section',
+    #error_y='std_cos_similarity',
+    title='Cosine similarity of answers & groundtruth per section per model',
     category_orders={"section_short": section_order},
     markers=True
 )
 section_models_lineplot.update_layout(
     xaxis_title="Section",
-    yaxis_title="Mean of cosine similarity"
-)
-section_models_lineplot.show()
-
-# plotting delta completeness against section
-section_models_lineplot = px.line(
-    sec_model,
-    x='section_short',
-    y='mean_answer_freq_delta',
-    color='model',
-    title='Mean delta completeness of answers given by different models per section',
-    category_orders={"section_short": section_order},
-    markers=True
-)
-section_models_lineplot.update_layout(
-    xaxis_title="Section",
-    yaxis_title="delta completeness"
+    yaxis_title="Mean cosine similarity",
+    yaxis_range=[0, 1.1]
 )
 section_models_lineplot.show()
 
@@ -215,18 +204,3 @@ all_datapoints_df = question_df.merge(with_gtruth_output, on=["question"]) #now 
 # create an avarage of answered/unanswered & cosine similarity per model
 gtruth_quality_summary_df = all_datapoints_df.groupby(["section","gtruth_answer_quality_score", "model"],as_index=False)[["answer_given", "cos_similarity"]].mean() 
 
-# plotting the answer quality against the questions / sections
-section_models_scatterplot = px.scatter(
-    all_datapoints_df,
-    x='Question_ID2',
-    y='gtruth_answer_quality_score',
-    color='model',
-    title='Mean delta completeness of answers given by different models per section',
-    #category_orders={"section_short": section_order},
-    #markers=True
-)
-section_models_scatterplot.update_layout(
-    xaxis_title="Question",
-    yaxis_title="Groundtruth answer quality"
-)
-section_models_scatterplot.show()
