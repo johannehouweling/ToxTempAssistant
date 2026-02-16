@@ -70,8 +70,12 @@ class EvaluationConfig:
     )
     pcontrol_output = eval_root / "positive_control" / "output"
 
+    # Tier 3 Paths (realworld scenarios)
+    realworld_input = eval_root / "realworld_files" / "input_files"
+    realworld_output = eval_root / "realworld_files" / "output"
+
     # Mark sure input files exists:
-    for path in [ncontrol_input, pcontrol_input]:
+    for path in [ncontrol_input, pcontrol_input, realworld_input]:
         if path.is_dir() and any(path.glob("*.pdf")):
             pass
         else:
@@ -82,6 +86,7 @@ class EvaluationConfig:
         ncontrol_output,
         ncontrol_output_input_scores,
         pcontrol_output,
+        realworld_output
     ]:
         if not path.exists():
             path.mkdir(parents=True)
@@ -97,6 +102,7 @@ class EvaluationConfig:
     # Tier-specific model overrides (None means use default_models)
     tier1_models: list[ModelConfig] | None = None
     tier2_models: list[ModelConfig] | None = None
+    tier3_models: list[ModelConfig] | None = None
 
     # Pre-defined Experiments
     # Add new experiments here to easily run different configurations
@@ -168,17 +174,33 @@ class EvaluationConfig:
             "validation_metrics": ["cos_similarity"],
         },
         "model_comparison_with_images": {
-             "models": [
+            "models": [
                 {"name": "gpt-4o-mini", "temperature": 0},
                 {"name": "gpt-4.1-nano", "temperature": 0},
                 {"name": "o3-mini", "temperature": None},
                 {"name": "gpt-5-mini", "temperature": None},
-             ],
-             "description": "Comparing the cosine similarity and faithfullness of different models with images on",
-             "validation_metrics": [
+            ],
+            "description": "Comparing the cosine similarity and faithfullness of different models with images on",
+            "validation_metrics": [
                 "cos_similarity",
-                "faithfullness",
-             ]
+                "faithfulness"
+            ],
+            "extract_images": True,
+        },
+        "input_type_comparison": {
+            "models": [
+                {"name": "gpt-4o-mini", "temperature": 0},
+                {"name": "gpt-4.1-nano", "temperature": 0},
+                {"name": "o3-mini", "temperature": None},
+                {"name": "gpt-5-mini", "temperature": None},
+            ],
+            "description": "comparing different input document types (e.g., lab protocol, published paper, technical manual) with each other. Looking at how many questions can be answered per document type and model."
+            "validation_metrics": [
+                "cos_similarity",
+                "faithfulness"
+            ],
+            "extract_images": True,
+            "input": # still have to input the documents/ figure out how to change the input from the standard
         }
     }
 
@@ -201,7 +223,7 @@ class EvaluationConfig:
         """Get model configuration for a tier or experiment.
 
         Args:
-            tier: Tier number (1 or 2). If specified, checks for tier-specific overrides.
+            tier: Tier number (1, 2 or 3). If specified, checks for tier-specific overrides.
             experiment: Experiment name. If specified, uses experiment configuration.
 
         Returns:
@@ -227,6 +249,8 @@ class EvaluationConfig:
             return cls.tier1_models
         if tier == 2 and cls.tier2_models is not None:
             return cls.tier2_models
+        if tier == 3 and cls.tier2_models is not None:
+            return cls.tier3_models
 
         # Default models
         return cls.default_experiment
@@ -313,7 +337,7 @@ class EvaluationConfig:
 
         Args:
             experiment: Experiment name to summarize. If None, uses default config.
-            tier: Tier number (1 or 2) for displaying appropriate IO paths.
+            tier: Tier number (1, 2 or 3) for displaying appropriate IO paths.
             style: Optional Django style object (from self.style in management commands).
                    If provided, uses built-in styles like HTTP_INFO, WARNING, etc.
                    If not provided, returns unstyled output.
@@ -410,11 +434,17 @@ class EvaluationConfig:
         elif tier == 2:
             lines.append(f"  Input:  {style.HTTP_INFO(str(cls.ncontrol_input))}")
             lines.append(f"  Output: {style.HTTP_INFO(str(cls.ncontrol_output))}")
+        elif tier == 3:
+            lines.append(f"  Input: {style.HTTP_INFO(str(cls.realworld_input))}")
+            lines.append(f"  Output: {style.HTTP_INFO(str(cls.realworld_output))}")
         else:
             lines.append(f"  Tier 1 Input:  {style.HTTP_INFO(str(cls.pcontrol_input))}")
             lines.append(f"  Tier 1 Output: {style.HTTP_INFO(str(cls.pcontrol_output))}")
             lines.append(f"  Tier 2 Input:  {style.HTTP_INFO(str(cls.ncontrol_input))}")
             lines.append(f"  Tier 2 Output: {style.HTTP_INFO(str(cls.ncontrol_output))}")
+            lines.append(f"  Tier 3 Input: {style.HTTP_INFO(str(cls.realworld_input))}")
+            lines.append(f"  Tier 3 Output: {style.HTTP_INFO(str(cls.realworld_output))}")
+
 
         lines.append(style.HTTP_INFO(border))
         lines.append("")
