@@ -55,5 +55,3 @@ __queuestorage__/
 # evaluation outputs
 output/
 
-# real world robustness testing (all files for now)
-realworld_files/
