@@ -7,11 +7,14 @@ from toxtempass.evaluation.negative_control.ncontrol import (
 from toxtempass.evaluation.positive_control.pcontrol import (
     run as run_pcontrol,
 )
+from toxtempass.evaluation.realworld_files.realworld import (
+    run as run_realworld,
+)
 
 
 class Command(BaseCommand):
     help = (
-        "Run Tier1 (positive control) then Tier2 (negative control) evaluation pipelines. "
+        "Run Tier1 (positive control), Tier2 (negative control), and Tier3 (real world) evaluation pipelines. "
         "Use --list-experiments to see available experiment configurations."
     )
 
@@ -45,6 +48,11 @@ class Command(BaseCommand):
             action="store_true",
             help="Skip negative control run.",
         )
+        parser.add_argument(
+            "--skip-realworld",
+            action="store_true",
+            help="Skip real world evaluation run.",
+        )
 
     def handle(self, *args, **options):
         # List experiments and exit if requested
@@ -64,6 +72,7 @@ class Command(BaseCommand):
         repeat = options.get("repeat", False)
         skip_pcontrol = options.get("skip_pcontrol", False)
         skip_ncontrol = options.get("skip_ncontrol", False)
+        skip_realworld = options.get("skip_realworld", False)
 
         # Validate experiment if provided
         if experiment and experiment not in eval_config.experiments:
@@ -93,6 +102,15 @@ class Command(BaseCommand):
         if not skip_ncontrol:
             self.stdout.write(self.style.SUCCESS("Starting negative control..."))
             run_ncontrol(
+                question_set_label=question_set_label,
+                repeat=repeat,
+                experiment=experiment,
+                stdout=self.stdout,
+            )
+
+        if not skip_realworld:
+            self.stdout.write(self.style.SUCCESS("Starting real world evaluation..."))
+            run_realworld(
                 question_set_label=question_set_label,
                 repeat=repeat,
                 experiment=experiment,
