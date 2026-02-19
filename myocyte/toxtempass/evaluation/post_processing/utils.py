@@ -7,7 +7,7 @@ from langchain_openai import ChatOpenAI
 from tqdm.auto import tqdm
 from toxtempass import config
 from toxtempass.evaluation.config import config as eval_config
-from toxtempass.evaluation.post_processing.cosine_similarities import bert_score, cosine_similarity
+from toxtempass.evaluation.post_processing.cosine_similarities import cosine_similarity
 
 
 def has_answer_not_found(answer_text: str) -> bool:
