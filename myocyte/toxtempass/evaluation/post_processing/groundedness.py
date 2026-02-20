@@ -16,19 +16,34 @@ from transformers import AutoTokenizer
 
 from toxtempass import LLM_API_KEY, config
 
+from toxtempass.evaluation.post_processing.faithfulness_template import FaithfulnessTemplate
+
 
 def build_faithfulness_metric(
     *, model: str, threshold: float, verbose_mode: bool
 ) -> FaithfulnessMetric:
-    # FaithfulnessMetric expects retrieval_context in the LLMTestCase.  [oai_citation:4‡deepeval.com](https://deepeval.com/docs/metrics-faithfulness?utm_source=chatgpt.com)
+    """Build faithfulness metric WITH custom toxicology template (default behavior)."""
+    template = FaithfulnessTemplate()
     return FaithfulnessMetric(
         threshold=threshold,
         model=model,
         include_reason=True,
         verbose_mode=verbose_mode,
-        # evaluation_template=, # optional custom prompt template if you want to tweak the default one
+        evaluation_template=template,  # Uses custom template
     )
 
+
+def build_faithfulness_metric_default(
+    *, model: str, threshold: float, verbose_mode: bool
+) -> FaithfulnessMetric:
+    """Build faithfulness metric WITHOUT custom template (for comparison)."""
+    return FaithfulnessMetric(
+        threshold=threshold,
+        model=model,
+        include_reason=True,
+        verbose_mode=verbose_mode,
+        # No evaluation_template = uses deepeval's default
+    )
 
 def build_groundedness_policy_geval(
     *, model: str, threshold: float, verbose_mode: bool
