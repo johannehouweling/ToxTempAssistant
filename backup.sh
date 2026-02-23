@@ -96,6 +96,8 @@ PG_OUT="$OUTDIR/postgres_${POSTGRES_DB}.sql.gz"
 log "Backing up Postgres via pg_dump (service=$PG_SERVICE db=$POSTGRES_DB user=$POSTGRES_USER) ..."
 
 docker compose exec -T \
+  -e GIT_HASH="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')" \
+  -e GIT_TAG="$(git describe --tags --abrev=0 2>/dev/null || echo 'unknown')" \
   -e PGPASSWORD="$POSTGRES_PASSWORD" \
   "$PG_SERVICE" \
   pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" \
@@ -167,10 +169,17 @@ docker run --rm \
   --entrypoint /bin/sh \
   --network "$MINIO_NET" \
   -v "$(cd "$MINIO_DEST" && pwd)":/backup \
+  -e MINIO_ENDPOINT="$MINIO_ENDPOINT" \
+  -e MINIO_USER="$MINIO_ROOT_USER" \
+  -e MINIO_PASS="$MINIO_ROOT_PASSWORD" \
+  -e SRC_PATH="$SRC_PATH" \
+  -e DEST_PATH="$DEST_PATH" \
   minio/mc:latest \
   -lc '
-    mc alias set local '"$MINIO_ENDPOINT"' '"$MINIO_ROOT_USER"' '"$MINIO_ROOT_PASSWORD"' >/dev/null
-    mc mirror --overwrite --remove --preserve local/ /backup/all-buckets
+    set -euo pipefail
+    mc alias set local "$MINIO_ENDPOINT" "$MINIO_USER" "$MINIO_PASS" >/dev/null
+    mkdir -p "$DEST_PATH"
+    mc mirror --overwrite --remove --preserve "$SRC_PATH" "$DEST_PATH"
   '
 
 log "MinIO mirror written under: $MINIO_DEST"
