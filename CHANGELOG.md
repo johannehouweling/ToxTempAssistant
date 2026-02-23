@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v2.12.4 (2026-02-23)
+
+### Bug Fixes
+
+- **backup**: Enhance retention cleanup with safety checks for BACKUP_ROOT and timestamp validation
+  ([`39db889`](https://github.com/johannehouweling/ToxTempAssistant/commit/39db889d3f214f6470741f741ef87d125ed357e2))
+
+
 ## v2.12.3 (2026-02-23)
 
 ### Bug Fixes
