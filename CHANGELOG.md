@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v2.12.1 (2026-02-23)
+
+### Bug Fixes
+
+- **backup**: Update MinIO mirror command to use local alias and correct destination path [no-ci]
+  ([`813b14d`](https://github.com/johannehouweling/ToxTempAssistant/commit/813b14dbb6103ce089facf10874764c08172ee3a))
+
+
 ## v2.12.0 (2026-02-23)
 
 ### Chores
