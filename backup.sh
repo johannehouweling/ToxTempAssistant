@@ -205,8 +205,32 @@ log "Writing manifest ..."
 )
 
 # -------------------- Retention cleanup --------------------
-log "Applying retention: delete backup directories older than $RETENTION_DAYS days in $BACKUP_ROOT ..."
-find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d -mtime +"$RETENTION_DAYS" -print -exec rm -rf {} \;
+log "Applying retention: delete timestamped backup directories older than $RETENTION_DAYS days in $BACKUP_ROOT ..."
+
+# Safety fuse: refuse obviously dangerous roots
+case "$BACKUP_ROOT" in
+  ""|"/"|"$HOME"|"/home"|"/root"|"/tmp"|"/var"|"/var/backups" \
+  |"/bin"|"/boot"|"/data"|"/dev"|"/etc"|"/lib"|"/lib32"|"/lib64"|"/libx32" \
+  |"/lost+found"|"/media"|"/mnt"|"/opt"|"/proc"|"/run"|"/sbin"|"/snap" \
+  |"/srv"|"/sys"|"/usr")
+    echo "ERROR: Refusing retention cleanup because BACKUP_ROOT looks unsafe: '$BACKUP_ROOT'" >&2
+    exit 1
+    ;;
+esac
+
+# Extra guard: BACKUP_ROOT must exist and be a directory
+if [[ ! -d "$BACKUP_ROOT" ]]; then
+  echo "ERROR: BACKUP_ROOT is not a directory: '$BACKUP_ROOT'" >&2
+  exit 1
+fi
+
+# Only delete directories that match the script's timestamp naming: YYYY-MM-DD_HHMMSS
+find "$BACKUP_ROOT" \
+  -mindepth 1 -maxdepth 1 -type d \
+  -regextype posix-extended \
+  -regex '.*/[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{6}$' \
+  -mtime +"$RETENTION_DAYS" \
+  -print -exec rm -rf -- {} \;
 
 log "Backup completed OK."
 log "Output directory: $OUTDIR"
