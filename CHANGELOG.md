@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v2.12.2 (2026-02-23)
+
+### Bug Fixes
+
+- **env**: Correct BACKUP_ROOT path in .env.dummy [no-ci]
+  ([`dbdc8ef`](https://github.com/johannehouweling/ToxTempAssistant/commit/dbdc8efb0f0857353eea2bfb013716fa71e486de))
+
+
 ## v2.12.1 (2026-02-23)
 
 ### Bug Fixes
