@@ -2,6 +2,31 @@
 
 <!-- version list -->
 
+## v2.12.0 (2026-02-23)
+
+### Chores
+
+- **deps**: Bump aiohttp from 3.13.2 to 3.13.3
+  ([`577f20c`](https://github.com/johannehouweling/ToxTempAssistant/commit/577f20c7fe3e4b5b67fd099bb13e690e333a41ea))
+
+- **deps**: Bump cryptography from 46.0.3 to 46.0.5
+  ([`e89f888`](https://github.com/johannehouweling/ToxTempAssistant/commit/e89f8880f34fb6f923d9b7e05372faa0c23a1439))
+
+- **deps**: Bump django from 5.2.9 to 5.2.11
+  ([`088404d`](https://github.com/johannehouweling/ToxTempAssistant/commit/088404da1f6277fd2168173a25b8a449dfedfa04))
+
+- **deps**: Bump langchain-core from 0.3.80 to 0.3.81
+  ([`656471a`](https://github.com/johannehouweling/ToxTempAssistant/commit/656471ad5f78266fd847efe8ca3f07c8f0f82305))
+
+- **deps**: Bump urllib3 from 2.6.1 to 2.6.3
+  ([`6cb327d`](https://github.com/johannehouweling/ToxTempAssistant/commit/6cb327d1f80f3b354accb6e9f16e859266631f95))
+
+### Features
+
+- **backup**: Add backup script and update .env for backup configuration [no-ci]
+  ([`86b259e`](https://github.com/johannehouweling/ToxTempAssistant/commit/86b259e75357402889f2e8a89c734f4c22a6bde4))
+
+
 ## v2.11.1 (2026-01-20)
 
 ### Bug Fixes
