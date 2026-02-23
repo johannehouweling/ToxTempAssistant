@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v2.12.3 (2026-02-23)
+
+### Bug Fixes
+
+- **backup**: Enhance MinIO mirror command with environment variables for endpoint and credentials
+  ([`995c04c`](https://github.com/johannehouweling/ToxTempAssistant/commit/995c04c644b6db14c0712acdefd4f03ad8e7ee28))
+
+
 ## v2.12.2 (2026-02-23)
 
 ### Bug Fixes
