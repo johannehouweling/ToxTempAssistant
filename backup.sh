@@ -164,14 +164,14 @@ fi
 log "Mirroring: $MIRROR_LABEL"
 
 docker run --rm \
+  --entrypoint /bin/sh \
   --network "$MINIO_NET" \
   -v "$(cd "$MINIO_DEST" && pwd)":/backup \
   minio/mc:latest \
-  sh -lc "
-    set -euo pipefail
-    mc alias set $MC_ALIAS $MINIO_ENDPOINT $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD >/dev/null
-    mc mirror --overwrite --remove --preserve $SRC_PATH $DEST_PATH
-  "
+  -lc '
+    mc alias set local '"$MINIO_ENDPOINT"' '"$MINIO_ROOT_USER"' '"$MINIO_ROOT_PASSWORD"' >/dev/null
+    mc mirror --overwrite --remove --preserve local/ /backup/all-buckets
+  '
 
 log "MinIO mirror written under: $MINIO_DEST"
 
