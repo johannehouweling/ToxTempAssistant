@@ -64,6 +64,28 @@ services:
     entrypoint: /init.sh
     restart: "no"
 
+  backup_scheduler:
+    profiles: ["prod"]
+    depends_on:
+      - postgres_for_django
+      - minio
+    build:
+      context: .
+      dockerfile: myocyte/dockerfiles/backup-scheduler/Dockerfile
+    env_file:
+      - ./.env
+    environment:
+      TZ: Europe/Amsterdam
+      BACKUP_CMD: "/work/backup.sh"
+      CRON_LOG: "/logs/backup-cron.log"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/work:ro
+      - ./.env:/work/.env:ro
+      - ./backups:/work/backups
+      - ./myocyte/logs/backup:/logs
+    restart: unless-stopped
+
   # Django app
   djangoapp:
     profiles: ["test", "prod"]

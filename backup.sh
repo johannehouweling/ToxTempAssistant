@@ -48,9 +48,13 @@ fi
 
 # -------------------- Defaults (do NOT require new .env keys) --------------------
 BACKUP_ROOT="${BACKUP_ROOT:-$SCRIPT_DIR/backups}"
-RETENTION_DAYS="${RETENTION_DAYS:-14}"
-MEDIA_DIR="${MEDIA_DIR:-$SCRIPT_DIR/myocyte/media}"
+RETENTION_DAYS="${RETENTION_DAYS:-${BACKUP_RETENTION_DAYS:-14}}"
+MEDIA_DIR="${MEDIA_DIR:-${BACKUP_MEDIA_DIR:-$SCRIPT_DIR/myocyte/media}}"
 MINIO_BUCKET="${MINIO_BUCKET:-}"
+
+if [[ "$BACKUP_ROOT" != /* ]]; then
+  BACKUP_ROOT="$SCRIPT_DIR/$BACKUP_ROOT"
+fi
 
 # -------------------- Validate required existing .env keys --------------------
 : "${POSTGRES_USER:?Missing POSTGRES_USER in .env}"
@@ -97,7 +101,7 @@ log "Backing up Postgres via pg_dump (service=$PG_SERVICE db=$POSTGRES_DB user=$
 
 docker compose exec -T \
   -e GIT_HASH="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')" \
-  -e GIT_TAG="$(git describe --tags --abrev=0 2>/dev/null || echo 'unknown')" \
+  -e GIT_TAG="$(git describe --tags --abbrev=0 2>/dev/null || echo 'unknown')" \
   -e PGPASSWORD="$POSTGRES_PASSWORD" \
   "$PG_SERVICE" \
   pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" \
