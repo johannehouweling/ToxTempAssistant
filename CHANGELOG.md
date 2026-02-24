@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v2.13.0 (2026-02-24)
+
+### Bug Fixes
+
+- **.gitignore**: Add backups section
+  ([`a0f52ef`](https://github.com/johannehouweling/ToxTempAssistant/commit/a0f52ef17a74a8e7745afb724fe13715ff1e1797))
+
+### Features
+
+- **backup**: Implement backup scheduler with cron job and environment configuration
+  ([`dc46193`](https://github.com/johannehouweling/ToxTempAssistant/commit/dc46193016317318f98081ff3be008ff72ad218d))
+
+
 ## v2.12.4 (2026-02-23)
 
 ### Bug Fixes
