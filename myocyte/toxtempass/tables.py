@@ -1,7 +1,7 @@
 # ruff: noqa
 import django_tables2 as tables
 from django.utils.html import format_html
-from django.utils.safestring import SafeText
+from django.utils.safestring import SafeText, mark_safe
 
 from django.urls import reverse
 
@@ -147,7 +147,7 @@ class AssayTable(tables.Table):
             return ""
         viewed = AssayView.objects.filter(assay=record, user=request.user).exists()
         if not viewed:
-            return format_html(
+            return mark_safe(
                 '<i class="bi bi-dot text-primary fs-3"></i><span class="visually-hidden">New</span>'
             )
         return ""
@@ -163,7 +163,7 @@ class AssayTable(tables.Table):
         if latest:
             return latest.strftime("%d %b, %Y")
         else:
-            return format_html('<span class="text-muted">Never</span>')
+            return mark_safe('<span class="text-muted">Never</span>')
 
     def render_progress(self, value, record: Assay) -> SafeText:  # noqa: ANN001
         """Render the progress bar based on the number of answers."""
@@ -181,28 +181,35 @@ class AssayTable(tables.Table):
             "answer" if pct_draft_but_not_accepted == 1 else "answers"
         )
         return format_html(
-            (
-                '<div class="progress border bg-white">'
-                    '<div class="progress-bar bg-primary" '
-                        'role="progressbar" style="width: {}%;" aria-valuenow="{}"'
-                        'aria-valuemin="0" aria-valuemax="100" data-bs-toggle="tooltip"'
-                        ' title="{} {} accepted">'
-                    '</div>'
-                    '<div class="progress-bar-striped bg-primary opacity-50" '
-                        'role="progressbar" style="width: {}%;" aria-valuenow="{}"'
-                        'aria-valuemin="0" aria-valuemax="100" data-bs-toggle="tooltip"'
-                        ' title="{} unaccepted draft {}">'
-                    '</div>'
-                '</div>'
-            ),
-            pct_accepted,
-            pct_accepted,
-            accepted,
-            answers_accepted_string,
-            pct_draft_but_not_accepted,
-            pct_draft_but_not_accepted,
-            draft_but_not_accepted,
-            draft_but_not_accepted_string
+            """
+                <div class="progress border bg-white">
+                <div class="progress-bar bg-primary"
+                    role="progressbar"
+                    style="width: {pct_a}%;"
+                    aria-valuenow="{pct_a}"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    data-bs-toggle="tooltip"
+                    title="{acc} {acc_str} accepted">
+                </div>
+
+                <div class="progress-bar-striped bg-primary opacity-50"
+                    role="progressbar"
+                    style="width: {pct_d}%;"
+                    aria-valuenow="{pct_d}"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    data-bs-toggle="tooltip"
+                    title="{draft} unaccepted draft {draft_str}">
+                </div>
+                </div>
+            """,
+            pct_a=pct_accepted,
+            acc=accepted,
+            acc_str=answers_accepted_string,
+            pct_d=pct_draft_but_not_accepted,
+            draft=draft_but_not_accepted,
+            draft_str=draft_but_not_accepted_string,
         )
 
     def before_render(self, request):
