@@ -64,7 +64,7 @@ services:
     entrypoint: /init.sh
     restart: "no"
 
-  backup_scheduler:
+  backup:
     profiles: ["prod"]
     depends_on:
       - postgres_for_django

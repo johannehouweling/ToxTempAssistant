@@ -33,10 +33,10 @@ echo "Schedule (cron): ${BACKUP_SCHEDULE}"
 echo "Backup cmd:      ${BACKUP_CMD}"
 echo "Cron log:        ${CRON_LOG}"
 
-# Run from /work so `docker compose` finds the compose file in the repo root.
-printf "%s\n" "${BACKUP_SCHEDULE} cd /work && ${BACKUP_CMD} >> ${CRON_LOG} 2>&1" > /etc/crontabs/root
+CRONTAB_FILE=/etc/crontab
+printf "%s\n" "${BACKUP_SCHEDULE} cd /work && ${BACKUP_CMD} >> ${CRON_LOG} 2>&1" > "$CRONTAB_FILE"
 
 echo "Installed cron job:"
-cat /etc/crontabs/root
+cat "$CRONTAB_FILE"
 
-exec crond -f -l 2
+exec /usr/local/bin/supercronic "$CRONTAB_FILE"
