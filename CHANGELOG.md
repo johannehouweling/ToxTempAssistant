@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v2.13.3 (2026-02-24)
+
+### Bug Fixes
+
+- **docker**: Add missing ca-certificates and curl packages to Dockerfile
+  ([`d1215fe`](https://github.com/johannehouweling/ToxTempAssistant/commit/d1215fe2aea946eea1784e8c5e6cbfacd38a7e4e))
+
+
 ## v2.13.2 (2026-02-24)
 
 ### Bug Fixes
