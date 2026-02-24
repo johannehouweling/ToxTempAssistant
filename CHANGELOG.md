@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v2.13.1 (2026-02-24)
+
+### Bug Fixes
+
+- **docker**: Correct entrypoint.sh path in Dockerfile
+  ([`819cc53`](https://github.com/johannehouweling/ToxTempAssistant/commit/819cc53c0ddc85f02e2a9151e453e8f5f7353a50))
+
+
 ## v2.13.0 (2026-02-24)
 
 ### Bug Fixes
