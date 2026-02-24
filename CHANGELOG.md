@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v2.13.2 (2026-02-24)
+
+### Bug Fixes
+
+- **tables**: Depreciation of accessor path traversal via dot instead of __
+  ([`9273b94`](https://github.com/johannehouweling/ToxTempAssistant/commit/9273b94c6921ac24c942d08543145ee1b5919989))
+
+### Refactoring
+
+- **backup**: Rename backup_scheduler service to backup and update entrypoint script for supercronic
+  ([`472468c`](https://github.com/johannehouweling/ToxTempAssistant/commit/472468c566503bacc7dc66c8dea5519d9fdd300b))
+
+
 ## v2.13.1 (2026-02-24)
 
 ### Bug Fixes
