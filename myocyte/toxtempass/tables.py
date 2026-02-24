@@ -65,7 +65,7 @@ class AssayTable(tables.Table):
     )
 
     owner = tables.Column(
-        accessor="owner.get_full_name",
+        accessor="owner__get_full_name",
         verbose_name="Owner",
         orderable=True,
         linkify=False,
@@ -245,7 +245,7 @@ class BetaUserTable(tables.Table):
         accessor="num_assays", verbose_name="# Assays", orderable=False
     )
     comment = tables.Column(
-        accessor="preferences.beta_comment",
+        accessor="preferences__beta_comment",
         verbose_name="Comment",
         orderable=False,
         empty_values=(),
