@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v2.14.0 (2026-02-24)
+
+### Features
+
+- **maintenance**: Update dependencies and Python version in pyproject.toml
+  ([`d15bfec`](https://github.com/johannehouweling/ToxTempAssistant/commit/d15bfec43cae47ea7a470b7eb93c02ac0ba80573))
+
+
 ## v2.13.3 (2026-02-24)
 
 ### Bug Fixes
