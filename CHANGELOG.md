@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v2.14.1 (2026-02-24)
+
+### Bug Fixes
+
+- **tables**: Replace format_html with mark_safe for safe HTML rendering
+  ([`9b31bb0`](https://github.com/johannehouweling/ToxTempAssistant/commit/9b31bb060ef17b041892682bc4ea6d4c2628e2a3))
+
+
 ## v2.14.0 (2026-02-24)
 
 ### Features
