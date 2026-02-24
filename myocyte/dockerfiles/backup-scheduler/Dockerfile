@@ -11,7 +11,9 @@ RUN apk add --no-cache \
     git \
     tzdata \
     docker-cli \
-    docker-cli-compose
+    docker-cli-compose \
+    ca-certificates \
+    curl
 
 # Latest releases available at https://github.com/aptible/supercronic/releases
 ENV SUPERCRONIC_URL=https://github.com/aptible/supercronic/releases/download/v0.2.43/supercronic-linux-amd64 \
