@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v2.14.4 (2026-02-25)
+
+### Bug Fixes
+
+- **backup**: Enhance backup script documentation and clarify media directory handling
+  ([`cd10325`](https://github.com/johannehouweling/ToxTempAssistant/commit/cd10325840b8e98a68bdbec8f776cafede08cec5))
+
+
 ## v2.14.3 (2026-02-25)
 
 ### Bug Fixes
