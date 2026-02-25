@@ -75,6 +75,12 @@ require_cmd() {
   command -v "$1" >/dev/null 2>&1 || { echo "Missing required command: $1" >&2; exit 1; }
 }
 
+in_container() {
+  [[ -f /.dockerenv ]] && return 0
+  grep -qaE '(docker|containerd|kubepods|podman)' /proc/1/cgroup 2>/dev/null && return 0
+  return 1
+}
+
 mkdirp() { mkdir -p "$1"; }
 
 # -------------------- Pre-flight --------------------
@@ -169,22 +175,44 @@ fi
 
 log "Mirroring: $MIRROR_LABEL"
 
-docker run --rm \
-  --entrypoint /bin/sh \
-  --network "$MINIO_NET" \
-  -v "$(cd "$MINIO_DEST" && pwd)":/backup \
-  -e MINIO_ENDPOINT="$MINIO_ENDPOINT" \
-  -e MINIO_USER="$MINIO_ROOT_USER" \
-  -e MINIO_PASS="$MINIO_ROOT_PASSWORD" \
-  -e SRC_PATH="$SRC_PATH" \
-  -e DEST_PATH="$DEST_PATH" \
-  minio/mc:latest \
-  -lc '
-    set -euo pipefail
-    mc alias set local "$MINIO_ENDPOINT" "$MINIO_USER" "$MINIO_PASS" >/dev/null
-    mkdir -p "$DEST_PATH"
-    mc mirror --overwrite --remove --preserve "$SRC_PATH" "$DEST_PATH"
-  '
+if in_container; then
+  THIS_CID="$(cat /proc/self/cgroup | sed -n 's#.*/docker/\([0-9a-f]\{12,64\}\).*#\1#p' | head -n1 || true)"
+  THIS_CID="${THIS_CID:-$HOSTNAME}"
+
+  docker run --rm \
+    --entrypoint /bin/sh \
+    --network "$MINIO_NET" \
+    --volumes-from "$THIS_CID" \
+    -e MINIO_ENDPOINT="$MINIO_ENDPOINT" \
+    -e MINIO_USER="$MINIO_ROOT_USER" \
+    -e MINIO_PASS="$MINIO_ROOT_PASSWORD" \
+    -e SRC_PATH="$SRC_PATH" \
+    -e DEST_PATH="$DEST_PATH" \
+    minio/mc:latest \
+    -lc '
+      set -euo pipefail
+      mc alias set local "$MINIO_ENDPOINT" "$MINIO_USER" "$MINIO_PASS" >/dev/null
+      mkdir -p "$DEST_PATH"
+      mc mirror --overwrite --remove --preserve "$SRC_PATH" "$DEST_PATH"
+    '
+else
+  docker run --rm \
+    --entrypoint /bin/sh \
+    --network "$MINIO_NET" \
+    -v "$(cd "$MINIO_DEST" && pwd)":/backup \
+    -e MINIO_ENDPOINT="$MINIO_ENDPOINT" \
+    -e MINIO_USER="$MINIO_ROOT_USER" \
+    -e MINIO_PASS="$MINIO_ROOT_PASSWORD" \
+    -e SRC_PATH="$SRC_PATH" \
+    -e DEST_PATH="$DEST_PATH" \
+    minio/mc:latest \
+    -lc '
+      set -euo pipefail
+      mc alias set local "$MINIO_ENDPOINT" "$MINIO_USER" "$MINIO_PASS" >/dev/null
+      mkdir -p "$DEST_PATH"
+      mc mirror --overwrite --remove --preserve "$SRC_PATH" "$DEST_PATH"
+    '
+fi
 
 log "MinIO mirror written under: $MINIO_DEST"
 
