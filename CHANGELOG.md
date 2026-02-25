@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v2.14.3 (2026-02-25)
+
+### Bug Fixes
+
+- **backup**: Improve MinIO backup path handling for container and host execution
+  ([`ac50db7`](https://github.com/johannehouweling/ToxTempAssistant/commit/ac50db75a462bf73cff70d596a385db650d006e9))
+
+
 ## v2.14.2 (2026-02-25)
 
 ### Bug Fixes
