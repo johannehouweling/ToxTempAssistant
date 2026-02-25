@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v2.14.2 (2026-02-25)
+
+### Bug Fixes
+
+- **backup**: Add container detection for MinIO backup execution to export at backup location not
+  absolute
+  ([`391f793`](https://github.com/johannehouweling/ToxTempAssistant/commit/391f7939de6469a7f13614521a5661e421005b45))
+
+
 ## v2.14.1 (2026-02-24)
 
 ### Bug Fixes
