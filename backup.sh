@@ -23,12 +23,13 @@ set -euo pipefail
 #
 # What it does:
 # - Postgres: pg_dump (logical backup) from inside the postgres container
-# - Media: tar.gz of MEDIA_DIR on the host
+# - Media: tar.gz of MEDIA_DIR on the host (or inside backup container mount)
 # - MinIO: mc mirror (object-level backup) using minio/mc container
 #
-# Requirements:
-# - docker + docker compose
-# - tar, gzip, find, grep, sed
+# IMPORTANT:
+# - When this script runs INSIDE a container (your cron backup service),
+#   it uses --volumes-from to write MinIO backups directly into $MINIO_DEST
+#   (e.g. /work/backups/<stamp>/minio), so data is persistent via your bind mount.
 ###############################################################################
 
 # -------------------- Load .env (next to this script) --------------------
@@ -52,6 +53,7 @@ RETENTION_DAYS="${RETENTION_DAYS:-${BACKUP_RETENTION_DAYS:-14}}"
 MEDIA_DIR="${MEDIA_DIR:-${BACKUP_MEDIA_DIR:-$SCRIPT_DIR/myocyte/media}}"
 MINIO_BUCKET="${MINIO_BUCKET:-}"
 
+# If BACKUP_ROOT is relative, make it relative to the script directory
 if [[ "$BACKUP_ROOT" != /* ]]; then
   BACKUP_ROOT="$SCRIPT_DIR/$BACKUP_ROOT"
 fi
@@ -75,13 +77,13 @@ require_cmd() {
   command -v "$1" >/dev/null 2>&1 || { echo "Missing required command: $1" >&2; exit 1; }
 }
 
+mkdirp() { mkdir -p "$1"; }
+
 in_container() {
   [[ -f /.dockerenv ]] && return 0
   grep -qaE '(docker|containerd|kubepods|podman)' /proc/1/cgroup 2>/dev/null && return 0
   return 1
 }
-
-mkdirp() { mkdir -p "$1"; }
 
 # -------------------- Pre-flight --------------------
 require_cmd docker
@@ -116,7 +118,12 @@ docker compose exec -T \
 log "Postgres dump written: $PG_OUT"
 
 # -------------------- 2) Django media backup --------------------
-log "Backing up Django media directory (host): $MEDIA_DIR ..."
+log "Backing up Django media directory: $MEDIA_DIR ..."
+
+# Resolve MEDIA_DIR relative to SCRIPT_DIR if it is relative
+if [[ "$MEDIA_DIR" != /* ]]; then
+  MEDIA_DIR="$SCRIPT_DIR/$MEDIA_DIR"
+fi
 
 if [[ ! -d "$MEDIA_DIR" ]]; then
   echo "ERROR: MEDIA_DIR does not exist or is not a directory: $MEDIA_DIR" >&2
@@ -131,15 +138,12 @@ tar -C "$MEDIA_PARENT" -czf "$MEDIA_OUT" "$MEDIA_BASE"
 log "Media archive written: $MEDIA_OUT"
 
 # -------------------- 3) MinIO backup (mc mirror) --------------------
-# Uses AWS_S3_ENDPOINT_URL (e.g. http://minio:9000) and runs mc in a container
-# attached to the same network as the MinIO container.
 MINIO_ENDPOINT="$AWS_S3_ENDPOINT_URL"
 MC_ALIAS="local"
 
 log "Backing up MinIO via mc mirror (endpoint=$MINIO_ENDPOINT) ..."
 
 # Derive service name from endpoint host if possible (http(s)://<host>[:port])
-# This is used to find the container & network. If parsing fails, default to "minio".
 MINIO_HOST="$(printf "%s" "$MINIO_ENDPOINT" | sed -E 's#^https?://([^/:]+).*#\1#')"
 MINIO_SERVICE="${MINIO_HOST:-minio}"
 
@@ -163,26 +167,28 @@ log "MinIO network:  $MINIO_NET"
 MINIO_DEST="$OUTDIR/minio"
 mkdirp "$MINIO_DEST"
 
-# Decide source path (same for both modes)
+# Source path selection
 if [[ -z "$MINIO_BUCKET" ]]; then
-  SRC_PATH="${MC_ALIAS}/"          # all buckets
+  SRC_PATH="${MC_ALIAS}/"                 # all buckets
   MIRROR_LABEL="ALL buckets"
 else
-  SRC_PATH="${MC_ALIAS}/${MINIO_BUCKET}"
+  SRC_PATH="${MC_ALIAS}/${MINIO_BUCKET}"  # one bucket
   MIRROR_LABEL="bucket '$MINIO_BUCKET'"
 fi
 
 log "Mirroring: $MIRROR_LABEL"
+log "in_container: $(in_container && echo yes || echo no)"
 
 if in_container; then
-  # Write into the shared /work/backups/... mount
-  if [[ -z "$MINIO_BUCKET" ]]; then
-    DEST_PATH="$MINIO_DEST"                # e.g. /work/backups/<stamp>/minio
-  else
-    DEST_PATH="$MINIO_DEST/$MINIO_BUCKET"  # e.g. /work/backups/<stamp>/minio/<bucket>
-  fi
-
+  # Running inside backup container: share its mounts so writes to $MINIO_DEST persist
   THIS_CID="${HOSTNAME}"
+
+  # Write directly into /work/backups/<stamp>/minio (or /.../minio/<bucket>)
+  if [[ -z "$MINIO_BUCKET" ]]; then
+    DEST_PATH="$MINIO_DEST"
+  else
+    DEST_PATH="$MINIO_DEST/$MINIO_BUCKET"
+  fi
 
   docker run --rm \
     --entrypoint /bin/sh \
@@ -201,9 +207,9 @@ if in_container; then
       mc mirror --overwrite --remove --preserve "$SRC_PATH" "$DEST_PATH"
     '
 else
-  # Host run: mount $MINIO_DEST to /backup
+  # Running on host: mount MINIO_DEST to /backup and mirror into /backup (or /backup/<bucket>)
   if [[ -z "$MINIO_BUCKET" ]]; then
-    DEST_PATH="/backup"                    # buckets appear under /backup/<bucket>/...
+    DEST_PATH="/backup"
   else
     DEST_PATH="/backup/${MINIO_BUCKET}"
   fi
@@ -289,7 +295,8 @@ log "Output directory: $OUTDIR"
 #   tar -xzf backups/<STAMP>/media.tar.gz -C <parent-of-MEDIA_DIR>
 #
 # MinIO:
-#   Run mc mirror in reverse:
-#     - All buckets:  mc mirror /backup/all-buckets/ local/
-#     - One bucket:   mc mirror /backup/<bucket>/ local/<bucket>
+#   If you backed up ALL buckets:
+#     mc mirror <backup>/minio/ local/
+#   If you backed up ONE bucket:
+#     mc mirror <backup>/minio/<bucket>/ local/<bucket>
 ###############################################################################
