@@ -163,21 +163,26 @@ log "MinIO network:  $MINIO_NET"
 MINIO_DEST="$OUTDIR/minio"
 mkdirp "$MINIO_DEST"
 
+# Decide source path (same for both modes)
 if [[ -z "$MINIO_BUCKET" ]]; then
-  SRC_PATH="${MC_ALIAS}/"               # all buckets
-  DEST_PATH="/backup/all-buckets"
+  SRC_PATH="${MC_ALIAS}/"          # all buckets
   MIRROR_LABEL="ALL buckets"
 else
   SRC_PATH="${MC_ALIAS}/${MINIO_BUCKET}"
-  DEST_PATH="/backup/${MINIO_BUCKET}"
   MIRROR_LABEL="bucket '$MINIO_BUCKET'"
 fi
 
 log "Mirroring: $MIRROR_LABEL"
 
 if in_container; then
-  THIS_CID="$(cat /proc/self/cgroup | sed -n 's#.*/docker/\([0-9a-f]\{12,64\}\).*#\1#p' | head -n1 || true)"
-  THIS_CID="${THIS_CID:-$HOSTNAME}"
+  # Write into the shared /work/backups/... mount
+  if [[ -z "$MINIO_BUCKET" ]]; then
+    DEST_PATH="$MINIO_DEST"                # e.g. /work/backups/<stamp>/minio
+  else
+    DEST_PATH="$MINIO_DEST/$MINIO_BUCKET"  # e.g. /work/backups/<stamp>/minio/<bucket>
+  fi
+
+  THIS_CID="${HOSTNAME}"
 
   docker run --rm \
     --entrypoint /bin/sh \
@@ -196,6 +201,13 @@ if in_container; then
       mc mirror --overwrite --remove --preserve "$SRC_PATH" "$DEST_PATH"
     '
 else
+  # Host run: mount $MINIO_DEST to /backup
+  if [[ -z "$MINIO_BUCKET" ]]; then
+    DEST_PATH="/backup"                    # buckets appear under /backup/<bucket>/...
+  else
+    DEST_PATH="/backup/${MINIO_BUCKET}"
+  fi
+
   docker run --rm \
     --entrypoint /bin/sh \
     --network "$MINIO_NET" \
