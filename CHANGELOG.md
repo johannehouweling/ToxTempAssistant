@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v2.14.5 (2026-02-26)
+
+### Bug Fixes
+
+- **forms**: Correct spelling of "Modify" in button labels for StartingForm
+  ([`571da13`](https://github.com/johannehouweling/ToxTempAssistant/commit/571da13081b16d0732e3bf244e83b61575ed27bc))
+
+
 ## v2.14.4 (2026-02-25)
 
 ### Bug Fixes
