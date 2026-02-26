@@ -214,7 +214,7 @@ class StartingForm(forms.Form):
         help_text="Select the Investigation or create a new one.",
         widget=BootstrapSelectWithButtonsWidget(
             button_url_names=["create_investigation", "", ""],
-            button_labels=["Create", "Modifiy", "Delete"],
+            button_labels=["Create", "Modify", "Delete"],
             button_classes=[
                 "d-flex align-items-center btn btn-outline-secondary",
                 "d-flex align-items-center btn btn-outline-secondary disabled",
@@ -228,7 +228,7 @@ class StartingForm(forms.Form):
         help_text="Select the Study or create a new one.",
         widget=BootstrapSelectWithButtonsWidget(
             button_url_names=["create_study", "", ""],
-            button_labels=["Create", "Modifiy", "Delete"],
+            button_labels=["Create", "Modify", "Delete"],
             button_classes=[
                 "d-flex align-items-center btn btn-outline-secondary",
                 "d-flex align-items-center btn btn-outline-secondary disabled",
@@ -242,7 +242,7 @@ class StartingForm(forms.Form):
         help_text="Select the Assay or create a new one.",
         widget=BootstrapSelectWithButtonsWidget(
             button_url_names=["create_assay", "", ""],
-            button_labels=["Create", "Modifiy", "Delete"],
+            button_labels=["Create", "Modify", "Delete"],
             button_classes=[
                 "d-flex align-items-center btn btn-outline-secondary",
                 "d-flex align-items-center btn btn-outline-secondary disabled",
