@@ -6,53 +6,438 @@
 {% load django_bootstrap5 %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>My Groups</h2>
-        <a href="{% url 'create_group' %}" class="btn btn-primary">Create Group</a>
+        <h2><i class="bi bi-people"></i> My Groups</h2>
+        <div>
+            <button id="btnNewGroup" class="btn btn-outline-primary me-2">New Group</button>
+            <a href="{% url 'create_group' %}" class="btn btn-secondary">Full Create</a>
+        </div>
     </div>
 
-    {% if owned_groups or memberships %}
     <div class="row">
-        {% if owned_groups %}
         <div class="col-md-6">
             <div class="card mb-4">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">Groups I Own</h5>
                 </div>
-                <ul class="list-group list-group-flush">
-                    {% for gm in owned_groups %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <a href="{% url 'group_detail' gm.pk %}">{{ gm.name }}</a>
-                        <span class="badge bg-secondary">{{ gm.memberships.count }} members</span>
-                    </li>
-                    {% endfor %}
-                </ul>
+                <div class="card-body">
+                    <div id="ownedGroupsContainer">
+                        {% if owned_groups %}
+                            {% for gm in owned_groups %}
+                                <div class="list-group mb-3 group-list" data-group-id="{{ gm.pk }}" {% if gm.owner == request.user %}data-can-remove="1"{% else %}data-can-remove="0"{% endif %}>
+                                    <div class="list-group-item d-flex align-items-center justify-content-between active" role="button">
+                                        <div class="flex-grow-1">
+                                            <span class="group-name" contenteditable="false">{{ gm.name }}</span>
+                                        </div>
+                                        <div class="ms-3">
+                                            <button class="btn btn-sm btn-light btn-edit-name" title="Edit name">Edit</button>
+                                        </div>
+                                    </div>
+                                    {% for membership in gm.memberships.all %}
+                                        <div class="list-group-item d-flex justify-content-between align-items-center member-row" data-user-id="{{ membership.user.id }}">
+                                            <div>{{ membership.user.email }}</div>
+                                            {% if gm.owner == request.user and membership.user != request.user %}
+                                                <button class="btn btn-sm btn-outline-danger btn-remove-member"><i class="bi bi-dash-lg"></i></button>
+                                            {% endif %}
+                                        </div>
+                                    {% empty %}
+                                        <div class="list-group-item text-muted">No members yet</div>
+                                    {% endfor %}
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div class="text-muted small">Add members</div>
+                                        <button class="btn btn-sm btn-outline-primary btn-add-member"><i class="bi bi-plus-lg"></i></button>
+                                    </div>
+                                    <!-- Assays shared in this group -->
+                                    <div class="list-group-item bg-light text-muted">Shared assays</div>
+                                    {% for ga in gm.groupassay_set.all %}
+                                        <div class="list-group-item d-flex justify-content-between align-items-center assay-row" data-assay-id="{{ ga.assay.id }}">
+                                            <div>{{ ga.assay.title }}</div>
+                                            {% if gm.owner == request.user %}
+                                                <button class="btn btn-sm btn-outline-danger btn-remove-assay" data-assay-id="{{ ga.assay.id }}"><i class="bi bi-dash-lg"></i></button>
+                                            {% endif %}
+                                        </div>
+                                    {% empty %}
+                                        <div class="list-group-item text-muted">No assays shared</div>
+                                    {% endfor %}
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div class="text-muted small">Add assays</div>
+                                        <button class="btn btn-sm btn-outline-secondary btn-add-assay"><i class="bi bi-plus-lg"></i></button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-muted">You don't own any groups yet.</div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
-        {% endif %}
 
-        {% if memberships %}
         <div class="col-md-6">
             <div class="card mb-4">
                 <div class="card-header bg-secondary text-white">
                     <h5 class="mb-0">Groups I'm In</h5>
                 </div>
-                <ul class="list-group list-group-flush">
-                    {% for m in memberships %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <a href="{% url 'group_detail' m.group.pk %}">{{ m.group.name }}</a>
-                        <span class="badge bg-secondary">{{ m.role }}</span>
-                    </li>
-                    {% endfor %}
-                </ul>
+                <div class="card-body">
+                    <div id="memberGroupsContainer">
+                        {% if memberships %}
+                            {% for m in memberships %}
+                                <div class="list-group mb-3 group-list" data-group-id="{{ m.group.pk }}">
+                                    <div class="list-group-item d-flex align-items-center justify-content-between active">
+                                        <div class="flex-grow-1">{{ m.group.name }}</div>
+                                        <div class="ms-3 small text-muted">{{ m.role }}</div>
+                                    </div>
+                                    {% for mem in m.group.memberships.all %}
+                                        <div class="list-group-item">{{ mem.user.email }}{% if mem.user == request.user %} <small class="text-muted">(you)</small>{% endif %}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-muted">You are not a member of any groups.</div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
-        {% endif %}
     </div>
-    {% else %}
-    <div class="alert alert-info">
-        You haven't created or joined any groups yet.
-        <a href="{% url 'create_group' %}">Create your first group</a>
+
+    <!-- Modal: Add member by email -->
+    <div class="modal fade" id="addMemberModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Add member to group</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="memberEmail" class="form-label">User email</label>
+              <input type="email" class="form-control" id="memberEmail" placeholder="user@example.com">
+            </div>
+            <div class="mb-3">
+              <label for="memberRole" class="form-label">Role</label>
+              <select id="memberRole" class="form-select">
+                <option value="member">Member</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div id="addMemberError" class="text-danger small" style="display:none"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" id="confirmAddMember" class="btn btn-primary">Add member</button>
+          </div>
+        </div>
+      </div>
     </div>
-    {% endif %}
+
+    <!-- Modal: Create group inline -->
+    <div class="modal fade" id="createGroupModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Create new group</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="newGroupName" class="form-label">Group name</label>
+              <input type="text" class="form-control" id="newGroupName" placeholder="My research group">
+            </div>
+            <div class="mb-3">
+              <label for="newGroupDesc" class="form-label">Description (optional)</label>
+              <textarea id="newGroupDesc" class="form-control" rows="2"></textarea>
+            </div>
+            <div id="createGroupError" class="text-danger small" style="display:none"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" id="confirmCreateGroup" class="btn btn-primary">Create</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Add assay to group -->
+    <div class="modal fade" id="addAssayModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Add assay to group</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="selectAssay" class="form-label">Choose assay</label>
+              <select id="selectAssay" class="form-select">
+                <option value="">-- select --</option>
+                {% for a in accessible_assays %}
+                  <option value="{{ a.id }}">{{ a.title }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div id="addAssayError" class="text-danger small" style="display:none"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" id="confirmAddAssay" class="btn btn-primary">Add assay</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
 </div>
+
+{% block scripts %}
+{{ block.super }}
+<script>
+// Small helper to read csrftoken from cookie
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
+
+function insertGroupIntoDOM(data) {
+    // expect data.redirect_url like /group/123/
+    const m = data.redirect_url.match(/\/group\/(\d+)\//);
+    const pk = m ? m[1] : null;
+    const name = document.getElementById('newGroupName').value || 'New group';
+    if (!pk) return;
+
+    const container = document.getElementById('ownedGroupsContainer');
+    const el = document.createElement('div');
+    el.className = 'list-group mb-3 group-list';
+    el.setAttribute('data-group-id', pk);
+    el.innerHTML = `
+        <div class="list-group-item d-flex align-items-center justify-content-between active" role="button">
+            <div class="flex-grow-1"><span class="group-name" contenteditable="false">${name}</span></div>
+            <div class="ms-3">
+                <button class="btn btn-sm btn-light btn-edit-name" title="Edit name">Edit</button>
+                <a href="/group/${pk}/" class="btn btn-sm btn-outline-light ms-1">Manage</a>
+            </div>
+        </div>
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+            <div>Member slot 1</div>
+            <button class="btn btn-sm btn-outline-primary btn-add-member"><i class="bi bi-plus-lg"></i></button>
+        </div>
+    `;
+    container.prepend(el);
+}
+
+document.addEventListener('click', function(e) {
+    if (e.target.matches('#btnNewGroup')) {
+        const modal = new bootstrap.Modal(document.getElementById('createGroupModal'));
+        document.getElementById('createGroupError').style.display = 'none';
+        modal.show();
+    }
+
+    if (e.target.matches('#confirmCreateGroup')) {
+        const name = document.getElementById('newGroupName').value.trim();
+        const desc = document.getElementById('newGroupDesc').value.trim();
+        if (!name) {
+            const eEl = document.getElementById('createGroupError');
+            eEl.textContent = 'Please enter a group name.'; eEl.style.display = '';
+            return;
+        }
+        fetch('{% url "create_group" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({name: name, description: desc})
+        }).then(r => r.json()).then(data => {
+            if (data.success) {
+                insertGroupIntoDOM(data);
+                bootstrap.Modal.getInstance(document.getElementById('createGroupModal')).hide();
+            } else {
+                const eEl = document.getElementById('createGroupError');
+                eEl.textContent = JSON.stringify(data.errors || data.error || 'Unknown error'); eEl.style.display = '';
+            }
+        }).catch(err => {
+            const eEl = document.getElementById('createGroupError');
+            eEl.textContent = String(err); eEl.style.display = '';
+        });
+    }
+
+    // handle clicks on the add-member button or any child inside it (e.g. the icon)
+    const addBtn = e.target.closest && e.target.closest('.btn-add-member');
+    if (addBtn) {
+        // store group id on modal
+        const groupEl = addBtn.closest('.group-list');
+        if (!groupEl) return;
+        const gid = groupEl.getAttribute('data-group-id');
+        document.getElementById('addMemberModal').setAttribute('data-group-id', gid);
+        document.getElementById('memberEmail').value = '';
+        document.getElementById('addMemberError').style.display = 'none';
+        const modal = new bootstrap.Modal(document.getElementById('addMemberModal'));
+        modal.show();
+    }
+
+    // handle remove member clicks (works for dynamic buttons too)
+    const remBtn = e.target.closest && e.target.closest('.btn-remove-member');
+    if (remBtn) {
+        const parent = remBtn.closest('.group-list');
+        if (!parent) return;
+        const gid = parent.getAttribute('data-group-id');
+        const row = remBtn.closest('.member-row');
+        if (!row) return;
+        const email = (row.querySelector('div') && row.querySelector('div').textContent || '').trim();
+        if (!confirm(`Remove ${email} from group?`)) return;
+        fetch(`/group/${gid}/member/remove-email/`, {method: 'POST', headers: {'X-CSRFToken': csrftoken, 'Content-Type': 'application/x-www-form-urlencoded'}, body: new URLSearchParams({email: email})}).then(r=>r.json()).then(data=>{
+            if (data.success) {
+                row.remove();
+            } else {
+                alert(`Failed: ${data.error || JSON.stringify(data.errors || 'Unknown error')}`);
+            }
+        }).catch(err=>{ alert('Error: '+err); });
+    }
+
+    // handle add-assay button (open modal)
+    const addAssayBtn = e.target.closest && e.target.closest('.btn-add-assay');
+    if (addAssayBtn) {
+        const groupEl = addAssayBtn.closest('.group-list');
+        if (!groupEl) return;
+        const gid = groupEl.getAttribute('data-group-id');
+        document.getElementById('addAssayModal').setAttribute('data-group-id', gid);
+        document.getElementById('selectAssay').value = '';
+        document.getElementById('addAssayError').style.display = 'none';
+        const modal = new bootstrap.Modal(document.getElementById('addAssayModal'));
+        modal.show();
+    }
+
+    // confirm add assay in modal
+    if (e.target.matches('#confirmAddAssay')) {
+        const modalEl = document.getElementById('addAssayModal');
+        const gid = modalEl.getAttribute('data-group-id');
+        const assayId = document.getElementById('selectAssay').value;
+        if (!assayId) {
+            const err = document.getElementById('addAssayError'); err.textContent = 'Select an assay.'; err.style.display = ''; return;
+        }
+        fetch(`/group/${gid}/assay/add/`, {method: 'POST', headers: {'X-CSRFToken': csrftoken, 'Content-Type': 'application/x-www-form-urlencoded'}, body: new URLSearchParams({assay: assayId})}).then(r=>r.json()).then(data=>{
+            if (data.success) {
+                bootstrap.Modal.getInstance(modalEl).hide();
+                const groupEl = document.querySelector(`.group-list[data-group-id='${gid}']`);
+                if (groupEl) {
+                    // insert new assay row before the last 'Add assays' row
+                    const canRemove = groupEl.getAttribute('data-can-remove') === '1';
+                    const removeBtn = canRemove ? `<button class="btn btn-sm btn-outline-danger btn-remove-assay" data-assay-id="${assayId}"><i class="bi bi-dash-lg"></i></button>` : '';
+                    const newItem = document.createElement('div');
+                    newItem.className = 'list-group-item d-flex justify-content-between align-items-center assay-row';
+                    newItem.setAttribute('data-assay-id', assayId);
+                    const title = (document.getElementById('selectAssay').selectedOptions[0] || {}).text || 'Assay';
+                    newItem.innerHTML = `<div>${title}</div>${removeBtn}`;
+                    groupEl.insertBefore(newItem, groupEl.querySelector('.list-group-item:last-child'));
+                }
+            } else {
+                const err = document.getElementById('addAssayError'); err.textContent = data.error || JSON.stringify(data.errors || 'Unknown error'); err.style.display = '';
+            }
+        }).catch(err=>{ const errEl = document.getElementById('addAssayError'); errEl.textContent = String(err); errEl.style.display = ''; });
+    }
+
+    // handle remove-assay clicks
+    const remAssayBtn = e.target.closest && e.target.closest('.btn-remove-assay');
+    if (remAssayBtn) {
+        const groupEl = remAssayBtn.closest('.group-list');
+        if (!groupEl) return;
+        const gid = groupEl.getAttribute('data-group-id');
+        const assayId = remAssayBtn.getAttribute('data-assay-id') || remAssayBtn.dataset.assayId;
+        const row = remAssayBtn.closest('.assay-row');
+        if (!assayId || !row) return;
+        if (!confirm('Remove this assay from group?')) return;
+        fetch(`/group/${gid}/assay/${assayId}/remove/`, {method: 'POST', headers: {'X-CSRFToken': csrftoken, 'Content-Type': 'application/x-www-form-urlencoded'}}).then(r=>r.json()).then(data=>{
+            if (data.success) { row.remove(); } else { alert('Failed: '+(data.error||JSON.stringify(data.errors||'Unknown error'))); }
+        }).catch(err=>{ alert('Error: '+err); });
+    }
+
+    if (e.target.matches('#confirmAddMember')) {
+        const modalEl = document.getElementById('addMemberModal');
+        const gid = modalEl.getAttribute('data-group-id');
+        const email = document.getElementById('memberEmail').value.trim();
+        const role = document.getElementById('memberRole').value || '';
+        if (!email) {
+            const eEl = document.getElementById('addMemberError'); eEl.textContent = 'Enter an email.'; eEl.style.display = ''; return;
+        }
+        fetch(`/group/${gid}/member/add-email/`, {
+            method: 'POST', headers: {'X-CSRFToken': csrftoken, 'Content-Type': 'application/x-www-form-urlencoded'},
+            body: new URLSearchParams({email: email, role: role})
+        }).then(r => r.json()).then(data => {
+            if (data.success) {
+                // hide modal and update the DOM: place member in first empty slot or add a new slot
+                bootstrap.Modal.getInstance(modalEl).hide();
+                const groupEl = document.querySelector(`.group-list[data-group-id='${gid}']`);
+                if (groupEl) {
+                    // find first left-side <div> inside list-group-item that still shows a placeholder
+                    const divs = Array.from(groupEl.querySelectorAll('.list-group-item > div'));
+                    let slotDiv = divs.find(d => {
+                        const txt = (d.textContent || '').trim();
+                        return txt === '' || txt.startsWith('Member slot');
+                    });
+
+                    if (!slotDiv) {
+                        // no empty slot found → create a new slot item
+                        const canRemove = groupEl.getAttribute('data-can-remove') === '1';
+                        const removeBtn = canRemove ? `<button class="btn btn-sm btn-outline-danger btn-remove-member"><i class="bi bi-dash-lg"></i></button>` : '';
+                        const newItem = document.createElement('div');
+                        newItem.className = 'list-group-item d-flex justify-content-between align-items-center member-row';
+                        newItem.setAttribute('data-user-id', '');
+                        newItem.innerHTML = `<div>${data.member_email}</div>${removeBtn}`;
+                        groupEl.insertBefore(newItem, groupEl.querySelector('.list-group-item:last-child'));
+                    } else {
+                        slotDiv.textContent = data.member_email;
+                        // if slot had remove button area update that as well
+                        const parent = slotDiv.parentElement;
+                        if (parent && parent.querySelector('.btn-remove-member') === null) {
+                            const canRemove = groupEl.getAttribute('data-can-remove') === '1';
+                            if (canRemove) {
+                                const btn = document.createElement('button');
+                                btn.className = 'btn btn-sm btn-outline-danger btn-remove-member';
+                                btn.innerHTML = '<i class="bi bi-dash-lg"></i>';
+                                parent.appendChild(btn);
+                            }
+                        }
+                    }
+                }
+            } else {
+                const eEl = document.getElementById('addMemberError'); eEl.textContent = data.error || JSON.stringify(data.errors || 'Unknown error'); eEl.style.display = '';
+            }
+        }).catch(err => { const eEl = document.getElementById('addMemberError'); eEl.textContent = String(err); eEl.style.display = ''; });
+    }
+
+    if (e.target.matches('.btn-edit-name')) {
+        const groupEl = e.target.closest('.group-list');
+        if (!groupEl) return;
+        const nameEl = groupEl.querySelector('.group-name');
+        if (!nameEl) return;
+        const isEditing = nameEl.getAttribute('contenteditable') === 'true';
+        if (!isEditing) {
+            nameEl.setAttribute('contenteditable', 'true');
+            nameEl.focus();
+            e.target.textContent = 'Save';
+        } else {
+            nameEl.setAttribute('contenteditable', 'false');
+            e.target.textContent = 'Edit';
+            // persist change to server
+            const newName = nameEl.textContent.trim();
+            const gid = groupEl.getAttribute('data-group-id');
+            fetch(`/group/update/${gid}/`, {method: 'POST', headers: {'X-CSRFToken': csrftoken, 'Content-Type': 'application/x-www-form-urlencoded'}, body: new URLSearchParams({name: newName, description: ''})}).then(r=>r.json()).then(data=>{
+                if (!data.success) { alert('Failed to update: ' + JSON.stringify(data.errors || data.error)); }
+            }).catch(err=>{ alert('Error: '+err); });
+        }
+    }
+});
+</script>
+{% endblock %}
+
 {% endblock %}

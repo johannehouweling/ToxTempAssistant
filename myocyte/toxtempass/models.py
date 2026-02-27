@@ -646,6 +646,13 @@ class Group(AccessibleModel):
 
     def get_parent(self):
         return None
+    
+    def save(self, *args, **kwargs):
+        """Override save to ensure owner is always a member with OWNER role."""
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        if is_new:
+            GroupMember.objects.create(group=self, user=self.owner, role=GroupRole.OWNER)
 
 
 class GroupMember(models.Model):

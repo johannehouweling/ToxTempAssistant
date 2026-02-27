@@ -154,6 +154,16 @@ urlpatterns += [
     path("group/<int:pk>/", views.group_detail, name="group_detail"),
     path("group/<int:pk>/member/add/", views.add_group_member, name="add_group_member"),
     path(
+        "group/<int:pk>/member/add-email/",
+        views.add_group_member_by_email,
+        name="add_group_member_by_email",
+    ),
+    path(
+        "group/<int:pk>/member/remove-email/",
+        views.remove_group_member_by_email,
+        name="remove_group_member_by_email",
+    ),
+    path(
         "group/<int:pk>/member/<int:user_id>/remove/",
         views.remove_group_member,
         name="remove_group_member",

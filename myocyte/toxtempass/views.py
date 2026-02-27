@@ -70,6 +70,7 @@ from toxtempass.models import (
     Group,
     GroupAssay,
     GroupMember,
+    GroupRole,
     Investigation,
     LLMStatus,
     Person,
@@ -1712,12 +1713,18 @@ def group_list(request: HttpRequest) -> HttpResponse:
         "group", "group__owner"
     )
     owned_groups = Group.objects.filter(owner=request.user)
+    # Provide assays accessible to this user so the inline "Add assay" modal can show options
+    accessible_investigations = get_objects_for_user(
+        request.user, "toxtempass.view_investigation", klass=Investigation, use_groups=False, any_perm=False
+    )
+    accessible_assays = Assay.objects.filter(study__investigation__in=accessible_investigations)
     return render(
         request,
         "toxtempass/group_list.html",
         {
             "memberships": memberships,
             "owned_groups": owned_groups,
+            "accessible_assays": accessible_assays,
         },
     )
 
@@ -1743,9 +1750,6 @@ def create_or_update_group(
             if not group:
                 grp.owner = request.user
                 grp.save()
-                GroupMember.objects.create(
-                    group=grp, user=request.user, role=GroupMember.GroupRole.OWNER
-                )
             else:
                 grp.save()
             return JsonResponse(
@@ -1821,8 +1825,8 @@ def add_group_member(request: HttpRequest, pk: int) -> JsonResponse:
     membership = GroupMember.objects.filter(group=group, user=request.user).first()
 
     if not membership or membership.role not in [
-        GroupMember.GroupRole.OWNER,
-        GroupMember.GroupRole.ADMIN,
+        GroupRole.OWNER,
+        GroupRole.ADMIN,
     ]:
         return JsonResponse(
             {"success": False, "error": "You do not have permission"}, status=403
@@ -1845,6 +1849,51 @@ def add_group_member(request: HttpRequest, pk: int) -> JsonResponse:
 
 
 @user_passes_test(is_logged_in, login_url="/login/")
+def add_group_member_by_email(request: HttpRequest, pk: int) -> JsonResponse:
+    """Add a member to a group by email (AJAX friendly).
+
+    Accepts POST with form-encoded fields:
+      - email: user email address
+      - role: one of GroupRole values (optional, default MEMBER)
+
+    Returns JSON similar to add_group_member.
+    """
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "POST required"}, status=405)
+
+    group = get_object_or_404(Group, pk=pk)
+    membership = GroupMember.objects.filter(group=group, user=request.user).first()
+
+    if not membership or membership.role not in [
+        GroupRole.OWNER,
+        GroupRole.ADMIN,
+    ]:
+        return JsonResponse(
+            {"success": False, "error": "You do not have permission"}, status=403
+        )
+
+    email = request.POST.get("email", "").strip().lower()
+    role = request.POST.get("role", GroupRole.MEMBER)
+    if not email:
+        return JsonResponse({"success": False, "error": "email required"}, status=400)
+
+    try:
+        user = Person.objects.get(email__iexact=email)
+    except Person.DoesNotExist:
+        return JsonResponse({"success": False, "error": "User not found"}, status=404)
+
+    if GroupMember.objects.filter(group=group, user=user).exists():
+        return JsonResponse({"success": False, "error": "User is already a member"}, status=400)
+
+    # normalize role
+    if role not in dict(GroupRole.choices):
+        role = GroupRole.MEMBER
+
+    GroupMember.objects.create(group=group, user=user, role=role)
+    return JsonResponse({"success": True, "member_email": user.email})
+
+
+@user_passes_test(is_logged_in, login_url="/login/")
 def remove_group_member(request: HttpRequest, pk: int, user_id: int) -> JsonResponse:
     """Remove a member from a group."""
     if request.method != "POST":
@@ -1854,8 +1903,8 @@ def remove_group_member(request: HttpRequest, pk: int, user_id: int) -> JsonResp
     membership = GroupMember.objects.filter(group=group, user=request.user).first()
 
     if not membership or membership.role not in [
-        GroupMember.GroupRole.OWNER,
-        GroupMember.GroupRole.ADMIN,
+        GroupRole.OWNER,
+        GroupRole.ADMIN,
     ]:
         return JsonResponse(
             {"success": False, "error": "You do not have permission"}, status=403
@@ -1866,13 +1915,48 @@ def remove_group_member(request: HttpRequest, pk: int, user_id: int) -> JsonResp
     except GroupMember.DoesNotExist:
         return JsonResponse({"success": False, "error": "Member not found"}, status=404)
 
-    if member_to_remove.role == GroupMember.GroupRole.OWNER:
+    if member_to_remove.role == GroupRole.OWNER:
         return JsonResponse(
             {"success": False, "error": "Cannot remove the owner"}, status=400
         )
 
     member_to_remove.delete()
     return JsonResponse({"success": True, "errors": {}})
+
+
+@user_passes_test(is_logged_in, login_url="/login/")
+def remove_group_member_by_email(request: HttpRequest, pk: int) -> JsonResponse:
+    """AJAX endpoint to remove a member by email from a group.
+
+    Expects POST 'email' field. Only OWNER/ADMIN can remove members.
+    """
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "POST required"}, status=405)
+
+    group = get_object_or_404(Group, pk=pk)
+    membership = GroupMember.objects.filter(group=group, user=request.user).first()
+    if not membership or membership.role not in [GroupRole.OWNER, GroupRole.ADMIN]:
+        return JsonResponse({"success": False, "error": "You do not have permission"}, status=403)
+
+    email = request.POST.get("email", "").strip().lower()
+    if not email:
+        return JsonResponse({"success": False, "error": "email required"}, status=400)
+
+    try:
+        user = Person.objects.get(email__iexact=email)
+    except Person.DoesNotExist:
+        return JsonResponse({"success": False, "error": "User not found"}, status=404)
+
+    try:
+        gm = GroupMember.objects.get(group=group, user=user)
+    except GroupMember.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Not a member"}, status=404)
+
+    if gm.role == GroupRole.OWNER:
+        return JsonResponse({"success": False, "error": "Cannot remove the owner"}, status=400)
+
+    gm.delete()
+    return JsonResponse({"success": True})
 
 
 @user_passes_test(is_logged_in, login_url="/login/")
@@ -1885,8 +1969,8 @@ def add_group_assay(request: HttpRequest, pk: int) -> JsonResponse:
     membership = GroupMember.objects.filter(group=group, user=request.user).first()
 
     if not membership or membership.role not in [
-        GroupMember.GroupRole.OWNER,
-        GroupMember.GroupRole.ADMIN,
+        GroupRole.OWNER,
+        GroupRole.ADMIN,
     ]:
         return JsonResponse(
             {"success": False, "error": "You do not have permission"}, status=403
@@ -1925,8 +2009,8 @@ def remove_group_assay(request: HttpRequest, pk: int, assay_id: int) -> JsonResp
     membership = GroupMember.objects.filter(group=group, user=request.user).first()
 
     if not membership or membership.role not in [
-        GroupMember.GroupRole.OWNER,
-        GroupMember.GroupRole.ADMIN,
+        GroupRole.OWNER,
+        GroupRole.ADMIN,
     ]:
         return JsonResponse(
             {"success": False, "error": "You do not have permission"}, status=403
