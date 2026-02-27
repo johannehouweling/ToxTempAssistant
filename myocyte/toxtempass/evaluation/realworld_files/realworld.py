@@ -4,7 +4,7 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import TextIO
+from typing import TextIO, Iterable
 
 import pandas as pd
 from django.core.management.color import make_style
@@ -25,6 +25,18 @@ logger = logging.getLogger("llm")
 
 style = make_style()
 
+def _iter_realworld_files(input_dir: Path) -> list[Path]:
+    input_dir = Path(input_dir)
+    pdfs = list(input_dir.glob("*.pdf"))
+    docxs = list(input_dir.glob("*.docx"))
+    xlsx = list(input_dir.glob("*.xlsx"))
+    txt = list(input_dir.glob("*.txt"))
+
+    files = sorted(pdfs + docxs + xlsx + txt)
+    return files
+
+def _safe_stem(path: Path) -> str:
+    return path.stem
 
 def run(
     question_set_label: str | None = None,
@@ -39,7 +51,7 @@ def run(
     Args:
         question_set_label: Optional QuestionSet label to use
         repeat: Re-run even if output already exists for a model
-        input_dir: Tier3 input PDF directory
+        input_dir: Tier3 input PDF/DOCX directory
         output_base_dir: Tier3 output base directory
         experiment: Name of experiment configuration to use (from eval_config.experiments)
     """
@@ -48,6 +60,11 @@ def run(
     # Use config paths with optional overrides
     input_dir = input_dir or eval_config.realworld_input
     output_base_dir = output_base_dir or eval_config.realworld_output
+
+    files_tier3 = _iter_realworld_files(input_dir)
+    if not files_tier3:
+        stdout.write(style.ERROR(f"No input files found in {input_dir}"))
+        return
 
     # Get model configurations from centralized config
     models = eval_config.get_models(tier=3, experiment=experiment)
@@ -75,7 +92,6 @@ def run(
         else:
             stdout.write(style.ERROR("Required environment variables are missing"))
 
-        files_tier3 = list(input_dir.glob("*.pdf" or "*.docx"))
 
         # Create output directory name that includes temperature for experiments
         if temp is not None:
@@ -97,18 +113,19 @@ def run(
 
         records = []
 
-        for document_name in tqdm(
-            input_tier3_dict, desc="realworld documents", position=0, leave=True
-        ):
-            pdf_file = Path(document_name).name
-            input_pdf_dict = DocumentDictFactory(
-                document_filenames=[document_name],
+        for doc_path in tqdm(
+            input_tier3_dict, desc=f"realworld documents ({model_name})", position=0, leave=True):
+            doc_path = Path(doc_path)
+            doc_name = doc_path.name
+            doc_stem = _safe_stem(doc_path)
+            input_doc_dict = DocumentDictFactory(
+                document_filenames=[str(doc_path)],
                 num_bytes=0,
                 extract_images=eval_config.get_extract_images(experiment),
             )
             question_set = select_question_set(question_set_label)
             assay = AssayFactory(
-                title=pdf_file, description="", question_set=question_set
+                title=doc_name, description="", question_set=question_set
             )
             questions = Question.objects.filter(
                 subsection__section__question_set=question_set
@@ -117,19 +134,37 @@ def run(
                 Answer.objects.get_or_create(assay=assay, question=q)
             process_llm_async(
                 assay.id,
-                {
-                    key: value
-                    for key, value in input_tier3_dict.items()
-                    if document_name in key
-                },
+                input_doc_dict,
                 extract_images=eval_config.get_extract_images(experiment),
                 chatopenai=llm,
                 verbose=True
             )
-            answers = Answer.objects.filter(assay=assay)
-            total = answers.count()
-            passes = sum(1 for a in answers if has_answer_not_found(a.answer_text))
-            pass_rate = round(100 * passes / total, 2) if total else 0.0
+            answer_qs = Answer.objects.filter(assay=assay).select_related("question")
+            answers = list(answer_qs)
+
+            rows = []
+            for a in answers:
+                answer_text = a.answer_text or " "
+                rows.append(
+                    {
+                        "qID": a.question.id,
+                        "question": a.question.question_text,
+                        "llm_answer": answer_text,
+                        "is_empty": (not answer_text.strip()),
+                        "is_not_found": has_answer_not_found(answer_text) if answer_text else True,
+                        "answer_len": len(answer_text.strip()),
+                    }
+                )
+            df = pd.DataFrame(rows)
+            answer_csv = output_tier3 / f"tier3_answers_{doc_stem}.csv"
+            if repeat or not answer_csv.exists():
+                df.to_csv(answer_csv, index=False)
+
+            # tier 3 metrics (no ground truth)
+            n_questions = int(df.shape[0])
+            n_answered = int(((~df["is_empty"]) & (~df["is_not_found"])).sum())
+            n_not_found = int(df["is_not_found"].sum())
+            completeness = (n_answered / n_questions * 100.0) if n_questions else 0.0
             failures = [
                 {
                     "question_id": a.question.id,
@@ -137,18 +172,24 @@ def run(
                     "answer_text": a.answer_text,
                 }
                 for a in answers
-                if has_answer_not_found(a.answer_text)
+                if not a.answer_text or has_answer_not_found(a.answer_text)
             ]
-            records.append(
-                {
-                    "file": pdf_file,
-                    "passes": passes,
-                    "total": total,
-                    "pass_rate": pass_rate,
-                    "failures": failures,
-                }
-            )
-            stdout.write(style.SUCCESS(f"{pdf_file}: {pass_rate}%"))
+
+
+            record = {
+                "file": doc_name,
+                "file_type": doc_path.suffix.lower(),
+                "n_questions": n_questions,
+                "n_answered": n_answered,
+                "n_not_found": n_not_found,
+                "completeness": completeness,
+                "failures": failures,
+                "answer_len_mean": float(df["answer_len"].mean()) if n_questions else 0.0,
+                "answer_len_median": float(df["answer_len"].median()) if n_questions else 0.0,
+                "answer_csv": str(answer_csv),
+            }
+            records.append(record)
+            stdout.write(style.SUCCESS(f"{doc_name}: {completeness}%"))
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M")
         output_file = output_tier3 / f"tier3_summary_{timestamp}.json"
