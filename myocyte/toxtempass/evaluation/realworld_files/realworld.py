@@ -31,8 +31,9 @@ def _iter_realworld_files(input_dir: Path) -> list[Path]:
     docxs = list(input_dir.glob("*.docx"))
     xlsx = list(input_dir.glob("*.xlsx"))
     txt = list(input_dir.glob("*.txt"))
+    pptx = list(input.dir.glob("*.pptx"))
 
-    files = sorted(pdfs + docxs + xlsx + txt)
+    files = sorted(pdfs + docxs + xlsx + txt + pptx)
     return files
 
 def _safe_stem(path: Path) -> str:
