@@ -30,7 +30,7 @@ from django.utils.safestring import mark_safe
 from django.views import View
 from django_q.tasks import async_task
 from django_tables2 import SingleTableView
-from guardian.shortcuts import get_objects_for_user
+from guardian.shortcuts import assign_perm, get_objects_for_user
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from openai import RateLimitError
@@ -51,6 +51,9 @@ from toxtempass.filehandling import (
 from toxtempass.forms import (
     AssayAnswerForm,
     AssayForm,
+    GroupAssayForm,
+    GroupForm,
+    GroupMemberForm,
     InvestigationForm,
     LoginForm,
     SignupForm,
@@ -64,6 +67,9 @@ from toxtempass.models import (
     AnswerFile,
     Assay,
     Feedback,
+    Group,
+    GroupAssay,
+    GroupMember,
     Investigation,
     LLMStatus,
     Person,
@@ -1168,18 +1174,19 @@ def get_filtered_assays(request: HttpRequest, study_id: int) -> JsonResponse:
         return JsonResponse(assays_list, safe=False)
     return JsonResponse([], safe=False)
 
+
 @user_passes_test(is_logged_in, login_url="/login/")
-def get_assay_is_busy_or_scheduled(
-    request: HttpRequest, pk: int
-) -> JsonResponse:
+def get_assay_is_busy_or_scheduled(request: HttpRequest, pk: int) -> JsonResponse:
     """Check if the Assay is busy or scheduled."""
     if request.method == "POST":
         assay = get_object_or_404(Assay, pk=pk)
         if not assay.is_accessible_by(request.user, perm_prefix="view"):
             from django.core.exceptions import PermissionDenied
+
             raise PermissionDenied("You do not have permission to access this assay.")
         is_busy_or_scheduled = assay.status in {LLMStatus.BUSY, LLMStatus.SCHEDULED}
         return JsonResponse({"is_busy_or_scheduled": is_busy_or_scheduled})
+
 
 @user_passes_test(is_logged_in, login_url="/login/")
 def initial_gpt_allowed_for_assay(request: HttpRequest, pk: int) -> JsonResponse:
@@ -1696,3 +1703,249 @@ def assay_feedback(request: HttpRequest, assay_id: int) -> JsonResponse:
             if not usefulness_rating:
                 errors["usefulnessRating"] = ["Usefulness rating cannot be empty."]
             return JsonResponse({"success": False, "errors": errors})
+
+
+@user_passes_test(is_logged_in, login_url="/login/")
+def group_list(request: HttpRequest) -> HttpResponse:
+    """List all groups the user is a member of."""
+    memberships = GroupMember.objects.filter(user=request.user).select_related(
+        "group", "group__owner"
+    )
+    owned_groups = Group.objects.filter(owner=request.user)
+    return render(
+        request,
+        "toxtempass/group_list.html",
+        {
+            "memberships": memberships,
+            "owned_groups": owned_groups,
+        },
+    )
+
+
+@user_passes_test(is_logged_in, login_url="/login/")
+def create_or_update_group(
+    request: HttpRequest, pk: int | None = None
+) -> JsonResponse | HttpResponse:
+    """Create or update a Group."""
+    if pk:
+        group = get_object_or_404(Group, pk=pk)
+        if group.owner != request.user:
+            from django.core.exceptions import PermissionDenied
+
+            raise PermissionDenied("You do not own this group.")
+    else:
+        group = None
+
+    if request.method == "POST":
+        form = GroupForm(request.POST, instance=group)
+        if form.is_valid():
+            grp = form.save(commit=False)
+            if not group:
+                grp.owner = request.user
+                grp.save()
+                GroupMember.objects.create(
+                    group=grp, user=request.user, role=GroupMember.GroupRole.OWNER
+                )
+            else:
+                grp.save()
+            return JsonResponse(
+                {
+                    "success": True,
+                    "errors": form.errors,
+                    "redirect_url": reverse("group_detail", args=[grp.pk]),
+                }
+            )
+        else:
+            return JsonResponse({"success": False, "errors": form.errors})
+    else:
+        form = GroupForm(instance=group)
+    return render(
+        request,
+        "toxtempass/group_form.html",
+        {
+            "form": form,
+            "title": "Create Group" if not pk else "Edit Group",
+            "back_url": mark_safe(reverse("group_list")),
+        },
+    )
+
+
+@user_passes_test(is_logged_in, login_url="/login/")
+def delete_group(request: HttpRequest, pk: int) -> JsonResponse | HttpResponseRedirect:
+    """Delete a group if the user is the owner."""
+    if request.method == "GET":
+        group = get_object_or_404(Group, pk=pk)
+        if group.owner != request.user:
+            from django.core.exceptions import PermissionDenied
+
+            raise PermissionDenied("You do not own this group.")
+        group.delete()
+        return redirect("group_list")
+    return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
+
+
+@user_passes_test(is_logged_in, login_url="/login/")
+def group_detail(request: HttpRequest, pk: int) -> HttpResponse:
+    """Show group details with members and shared assays."""
+    group = get_object_or_404(Group, pk=pk)
+    membership = GroupMember.objects.filter(group=group, user=request.user).first()
+    if not membership and group.owner != request.user:
+        from django.core.exceptions import PermissionDenied
+
+        raise PermissionDenied("You are not a member of this group.")
+
+    members = GroupMember.objects.filter(group=group).select_related("user")
+    shared_assays = GroupAssay.objects.filter(group=group).select_related(
+        "assay", "added_by"
+    )
+
+    return render(
+        request,
+        "toxtempass/group_detail.html",
+        {
+            "group": group,
+            "membership": membership,
+            "members": members,
+            "shared_assays": shared_assays,
+        },
+    )
+
+
+@user_passes_test(is_logged_in, login_url="/login/")
+def add_group_member(request: HttpRequest, pk: int) -> JsonResponse:
+    """Add a member to a group."""
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "POST required"}, status=405)
+
+    group = get_object_or_404(Group, pk=pk)
+    membership = GroupMember.objects.filter(group=group, user=request.user).first()
+
+    if not membership or membership.role not in [
+        GroupMember.GroupRole.OWNER,
+        GroupMember.GroupRole.ADMIN,
+    ]:
+        return JsonResponse(
+            {"success": False, "error": "You do not have permission"}, status=403
+        )
+
+    form = GroupMemberForm(request.POST)
+    if form.is_valid():
+        user = form.cleaned_data["user"]
+        role = form.cleaned_data["role"]
+
+        if GroupMember.objects.filter(group=group, user=user).exists():
+            return JsonResponse(
+                {"success": False, "error": "User is already a member"}, status=400
+            )
+
+        GroupMember.objects.create(group=group, user=user, role=role)
+        return JsonResponse({"success": True, "errors": {}})
+    else:
+        return JsonResponse({"success": False, "errors": form.errors})
+
+
+@user_passes_test(is_logged_in, login_url="/login/")
+def remove_group_member(request: HttpRequest, pk: int, user_id: int) -> JsonResponse:
+    """Remove a member from a group."""
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "POST required"}, status=405)
+
+    group = get_object_or_404(Group, pk=pk)
+    membership = GroupMember.objects.filter(group=group, user=request.user).first()
+
+    if not membership or membership.role not in [
+        GroupMember.GroupRole.OWNER,
+        GroupMember.GroupRole.ADMIN,
+    ]:
+        return JsonResponse(
+            {"success": False, "error": "You do not have permission"}, status=403
+        )
+
+    try:
+        member_to_remove = GroupMember.objects.get(group=group, user_id=user_id)
+    except GroupMember.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Member not found"}, status=404)
+
+    if member_to_remove.role == GroupMember.GroupRole.OWNER:
+        return JsonResponse(
+            {"success": False, "error": "Cannot remove the owner"}, status=400
+        )
+
+    member_to_remove.delete()
+    return JsonResponse({"success": True, "errors": {}})
+
+
+@user_passes_test(is_logged_in, login_url="/login/")
+def add_group_assay(request: HttpRequest, pk: int) -> JsonResponse:
+    """Add an assay to a group."""
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "POST required"}, status=405)
+
+    group = get_object_or_404(Group, pk=pk)
+    membership = GroupMember.objects.filter(group=group, user=request.user).first()
+
+    if not membership or membership.role not in [
+        GroupMember.GroupRole.OWNER,
+        GroupMember.GroupRole.ADMIN,
+    ]:
+        return JsonResponse(
+            {"success": False, "error": "You do not have permission"}, status=403
+        )
+
+    form = GroupAssayForm(request.POST, user=request.user)
+    if form.is_valid():
+        assay = form.cleaned_data["assay"]
+
+        if GroupAssay.objects.filter(group=group, assay=assay).exists():
+            return JsonResponse(
+                {"success": False, "error": "Assay is already shared in this group"},
+                status=400,
+            )
+
+        group_assay = GroupAssay.objects.create(
+            group=group, assay=assay, added_by=request.user
+        )
+
+        members = GroupMember.objects.filter(group=group).select_related("user")
+        for member in members:
+            assign_perm("view_assay", member.user, assay)
+
+        return JsonResponse({"success": True, "errors": {}})
+    else:
+        return JsonResponse({"success": False, "errors": form.errors})
+
+
+@user_passes_test(is_logged_in, login_url="/login/")
+def remove_group_assay(request: HttpRequest, pk: int, assay_id: int) -> JsonResponse:
+    """Remove an assay from a group."""
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "POST required"}, status=405)
+
+    group = get_object_or_404(Group, pk=pk)
+    membership = GroupMember.objects.filter(group=group, user=request.user).first()
+
+    if not membership or membership.role not in [
+        GroupMember.GroupRole.OWNER,
+        GroupMember.GroupRole.ADMIN,
+    ]:
+        return JsonResponse(
+            {"success": False, "error": "You do not have permission"}, status=403
+        )
+
+    try:
+        group_assay = GroupAssay.objects.get(group=group, assay_id=assay_id)
+    except GroupAssay.DoesNotExist:
+        return JsonResponse(
+            {"success": False, "error": "Assay not found in group"}, status=404
+        )
+
+    assay = group_assay.assay
+    group_assay.delete()
+
+    members = GroupMember.objects.filter(group=group).select_related("user")
+    for member in members:
+        from guardian.shortcuts import remove_perm
+
+        remove_perm("view_assay", member.user, assay)
+
+    return JsonResponse({"success": True, "errors": {}})

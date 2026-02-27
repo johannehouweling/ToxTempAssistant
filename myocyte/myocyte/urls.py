@@ -145,4 +145,25 @@ urlpatterns += [
     ),
 ]
 
+# Group URLs
+urlpatterns += [
+    path("group/", views.group_list, name="group_list"),
+    path("group/create/", views.create_or_update_group, name="create_group"),
+    path("group/update/<int:pk>/", views.create_or_update_group, name="update_group"),
+    path("group/delete/<int:pk>/", views.delete_group, name="delete_group"),
+    path("group/<int:pk>/", views.group_detail, name="group_detail"),
+    path("group/<int:pk>/member/add/", views.add_group_member, name="add_group_member"),
+    path(
+        "group/<int:pk>/member/<int:user_id>/remove/",
+        views.remove_group_member,
+        name="remove_group_member",
+    ),
+    path("group/<int:pk>/assay/add/", views.add_group_assay, name="add_group_assay"),
+    path(
+        "group/<int:pk>/assay/<int:assay_id>/remove/",
+        views.remove_group_assay,
+        name="remove_group_assay",
+    ),
+]
+
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

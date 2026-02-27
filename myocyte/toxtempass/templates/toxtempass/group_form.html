@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+{% load django_bootstrap5 %}
+<div class="container mt-4">
+    <h2>{{ title }}</h2>
+    <form method="post" action="" novalidate>
+        {% csrf_token %}
+        {% bootstrap_form form layout='floating'%}
+        {% bootstrap_button button_type="submit" content="Save" button_class="btn-primary" %}
+        {% bootstrap_button button_type="link" content="Back" href=back_url button_class="btn-outline-danger" %}
+    </form>
+    {% include "error_handling.html" %}
+</div>
+{% endblock %}

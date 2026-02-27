@@ -327,14 +327,13 @@ class Assay(AccessibleModel):
         """Check if there are any answers processed for this assay."""
         not_found_string = config.not_found_string
         # Get all questions related to this assay
-        return Answer.objects.filter(
-            assay=self,
-        ).filter(
-            ~Q(
-                Q(answer_text="")
-                | Q(answer_text__isnull=True)
+        return (
+            Answer.objects.filter(
+                assay=self,
             )
-        ).count()
+            .filter(~Q(Q(answer_text="") | Q(answer_text__isnull=True)))
+            .count()
+        )
 
     @property
     def number_answers_found_but_not_accepted(self) -> int:
@@ -621,3 +620,57 @@ class Feedback(AccessibleModel):
     def __str__(self):
         """Represent as String."""
         return f"Feedback from {self.user} on {self.submission_date}"
+
+    def get_parent(self) -> Assay:
+        """Return the parent Assay object."""
+        return self.assay
+
+
+class GroupRole(models.TextChoices):
+    OWNER = "owner", "Owner"
+    ADMIN = "admin", "Admin"
+    MEMBER = "member", "Member"
+
+
+class Group(AccessibleModel):
+    name = models.CharField(max_length=255)
+    owner = models.ForeignKey(
+        Person, on_delete=models.CASCADE, related_name="owned_groups"
+    )
+    description = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    def get_parent(self):
+        return None
+
+
+class GroupMember(models.Model):
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="memberships")
+    user = models.ForeignKey(
+        Person, on_delete=models.CASCADE, related_name="group_memberships"
+    )
+    role = models.CharField(
+        max_length=20, choices=GroupRole.choices, default=GroupRole.MEMBER
+    )
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("group", "user")
+
+
+class GroupAssay(models.Model):
+    group = models.ForeignKey(
+        Group, on_delete=models.CASCADE, related_name="shared_assays"
+    )
+    assay = models.ForeignKey(
+        Assay, on_delete=models.CASCADE, related_name="shared_in_groups"
+    )
+    added_by = models.ForeignKey(Person, on_delete=models.SET_NULL, null=True, blank=True)
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("group", "assay")

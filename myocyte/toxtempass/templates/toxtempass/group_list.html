@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}My Groups{% endblock %}
+
+{% block content %}
+{% load django_bootstrap5 %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>My Groups</h2>
+        <a href="{% url 'create_group' %}" class="btn btn-primary">Create Group</a>
+    </div>
+
+    {% if owned_groups or memberships %}
+    <div class="row">
+        {% if owned_groups %}
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Groups I Own</h5>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for gm in owned_groups %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <a href="{% url 'group_detail' gm.pk %}">{{ gm.name }}</a>
+                        <span class="badge bg-secondary">{{ gm.memberships.count }} members</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if memberships %}
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Groups I'm In</h5>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for m in memberships %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <a href="{% url 'group_detail' m.group.pk %}">{{ m.group.name }}</a>
+                        <span class="badge bg-secondary">{{ m.role }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        You haven't created or joined any groups yet.
+        <a href="{% url 'create_group' %}">Create your first group</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

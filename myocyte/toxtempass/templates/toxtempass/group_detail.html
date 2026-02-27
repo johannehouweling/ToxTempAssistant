@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}{{ group.name }}{% endblock %}
+
+{% block content %}
+{% load django_bootstrap5 %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>{{ group.name }}</h2>
+        <div>
+            {% if membership.role == 'owner' or membership.role == 'admin' %}
+            <a href="{% url 'update_group' group.pk %}" class="btn btn-outline-primary">Edit</a>
+            <a href="{% url 'delete_group' group.pk %}" class="btn btn-outline-danger">Delete</a>
+            {% endif %}
+            <a href="{% url 'group_list' %}" class="btn btn-outline-secondary">Back to Groups</a>
+        </div>
+    </div>
+
+    {% if group.description %}
+    <p class="text-muted">{{ group.description }}</p>
+    {% endif %}
+    <p class="text-muted">Owner: {{ group.owner.email }}</p>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Members</h5>
+                    {% if membership.role == 'owner' or membership.role == 'admin' %}
+                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addMemberModal">
+                        Add Member
+                    </button>
+                    {% endif %}
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for member in members %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>
+                            {{ member.user.email }}
+                            {% if member.user == group.owner %}
+                            <span class="badge bg-warning">Owner</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ member.role }}</span>
+                            {% endif %}
+                        </span>
+                        {% if member.user != request.user and member.user != group.owner and membership.role == 'owner' %}
+                        <form method="post" action="{% url 'remove_group_member' group.pk member.user.pk %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                        </form>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Shared Assays</h5>
+                    {% if membership.role == 'owner' or membership.role == 'admin' %}
+                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addAssayModal">
+                        Add Assay
+                    </button>
+                    {% endif %}
+                </div>
+                {% if shared_assays %}
+                <ul class="list-group list-group-flush">
+                    {% for ga in shared_assays %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <a href="{% url 'answer_assay_questions' ga.assay.pk %}">{{ ga.assay.title }}</a>
+                        <small class="text-muted">by {{ ga.added_by.email }}</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="card-body text-muted">
+                    No assays shared in this group yet.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if membership.role == 'owner' or membership.role == 'admin' %}
+<!-- Add Member Modal -->
+<div class="modal fade" id="addMemberModal" tabindex="-1" aria-labelledby="addMemberModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addMemberModalLabel">Add Member</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'add_group_member' group.pk %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="user" class="form-label">User</label>
+                        <select name="user" id="user" class="form-select" required>
+                            <option value="">Select a user</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Role</label>
+                        <select name="role" id="role" class="form-select" required>
+                            <option value="member">Member</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Member</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Assay Modal -->
+<div class="modal fade" id="addAssayModal" tabindex="-1" aria-labelledby="addAssayModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addAssayModalLabel">Add Assay</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'add_group_assay' group.pk %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="assay" class="form-label">Assay</label>
+                        <select name="assay" id="assay" class="form-select" required>
+                            <option value="">Select an assay</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Assay</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const addMemberForm = document.querySelector('#addMemberModal form');
+    if (addMemberForm) {
+        addMemberForm.addEventListener('submit', handleAjaxForm);
+    }
+    
+    const addAssayForm = document.querySelector('#addAssayModal form');
+    if (addAssayForm) {
+        addAssayForm.addEventListener('submit', handleAjaxForm);
+    }
+});
+
+function handleAjaxForm(e) {
+    e.preventDefault();
+    const form = e.target;
+    const url = form.action;
+    const formData = new FormData(form);
+    
+    fetch(url, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + JSON.stringify(data.errors || data.error));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred');
+    });
+}
+</script>
+{% endblock %}
