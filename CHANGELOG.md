@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v2.15.0 (2026-02-27)
+
+### Features
+
+- **nginx**: 403 forbidden resource page
+  ([`685502c`](https://github.com/johannehouweling/ToxTempAssistant/commit/685502ccb2f906f5eb0071086585af314a60a1df))
+
+- **nginx**: Add custom HTML error pages for 400, 401, 404, and 500 responses
+  ([`83ce52e`](https://github.com/johannehouweling/ToxTempAssistant/commit/83ce52e6c3cbe8b378cb8bfb6b3672b7198edc83))
+
+
 ## v2.14.5 (2026-02-26)
 
 ### Bug Fixes
