@@ -307,6 +307,30 @@ class Assay(AccessibleModel):
         """Get Study."""
         return self.study
 
+    def is_accessible_by(self, user: "Person", perm_prefix: str = "view") -> bool:
+        """Check if this assay is accessible by the user.
+
+        Checks:
+        1. Direct permission on this assay
+        2. Group membership: user is in a group that has this assay shared
+        3. Parent permissions (Study -> Investigation)
+        """
+        codename = f"{perm_prefix}_{self._meta.model_name}"
+        full_permission = f"{self._meta.app_label}.{codename}"
+
+        if user.has_perm(full_permission, self):
+            return True
+
+        user_groups = GroupMember.objects.filter(user=user).values_list("group_id", flat=True)
+        if GroupAssay.objects.filter(assay=self, group_id__in=user_groups).exists():
+            return True
+
+        parent = self.get_parent()
+        if parent is not None:
+            return parent.is_accessible_by(user, perm_prefix=perm_prefix)
+
+        return False
+
     @property
     def has_feedback(self) -> bool:
         """Check if this assay has feedback."""
