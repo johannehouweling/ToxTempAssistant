@@ -35,6 +35,7 @@ docker-compose-MacOs.yml
 
 # Analysis files
 data_analysis/
+assays/
 
 # temp file
 change_toxtemp.md
