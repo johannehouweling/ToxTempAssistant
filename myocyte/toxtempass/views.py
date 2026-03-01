@@ -1712,7 +1712,7 @@ def group_list(request: HttpRequest) -> HttpResponse:
     memberships = GroupMember.objects.filter(user=request.user).select_related(
         "group", "group__owner"
     )
-    owned_groups = Group.objects.filter(owner=request.user)
+    owned_groups = Group.objects.filter(owner=request.user).order_by("-created_at")
     # Provide assays accessible to this user so the inline "Add assay" modal can show options
     accessible_investigations = get_objects_for_user(
         request.user, "toxtempass.view_investigation", klass=Investigation, use_groups=False, any_perm=False
@@ -1994,7 +1994,7 @@ def add_group_assay(request: HttpRequest, pk: int) -> JsonResponse:
         for member in members:
             assign_perm("view_assay", member.user, assay)
 
-        return JsonResponse({"success": True, "errors": {}})
+        return JsonResponse({"success": True, "group_assay_id": group_assay.id})
     else:
         return JsonResponse({"success": False, "errors": form.errors})
 
