@@ -9,8 +9,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from itertools import product
 
 import requests
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import user_passes_test
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.contrib.humanize.templatetags.humanize import naturaltime
 from django.db import transaction
@@ -30,7 +31,7 @@ from django.utils.safestring import mark_safe
 from django.views import View
 from django_q.tasks import async_task
 from django_tables2 import SingleTableView
-from guardian.shortcuts import assign_perm, get_objects_for_user
+from guardian.shortcuts import assign_perm, get_objects_for_user, remove_perm
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from openai import RateLimitError
@@ -51,9 +52,9 @@ from toxtempass.filehandling import (
 from toxtempass.forms import (
     AssayAnswerForm,
     AssayForm,
-    GroupAssayForm,
-    GroupForm,
-    GroupMemberForm,
+    WorkspaceForm,
+    WorkspaceInvestigationForm,
+    WorkspaceMemberForm,
     InvestigationForm,
     LoginForm,
     SignupForm,
@@ -67,10 +68,10 @@ from toxtempass.models import (
     AnswerFile,
     Assay,
     Feedback,
-    Group,
-    GroupAssay,
-    GroupMember,
-    GroupRole,
+    Workspace,
+    WorkspaceMember,
+    WorkspaceRole,
+    WorkspaceInvestigation,
     Investigation,
     LLMStatus,
     Person,
@@ -98,7 +99,7 @@ def is_admin(user: User) -> bool:
 # Custom test function to check if the user is a superuser (admin)
 def is_logged_in(user: Person | None) -> bool:
     """Check if user is logged in as a Person instance."""
-    return isinstance(user, Person)
+    return bool(user and user.is_authenticated)
 
 
 def is_beta_admitted(user: Person | None) -> bool:
@@ -307,7 +308,7 @@ class AdminBetaUserListView(SingleTableView):
         return ctx
 
 
-@user_passes_test(is_admin, login_url="/login/")
+@staff_member_required(login_url="/login/")
 def toggle_beta_admitted(request: HttpRequest) -> HttpResponse:
     """Toggle admit/revoke beta status for a Person.
 
@@ -611,7 +612,7 @@ def create_questionset_from_json(label: str, created_by: Person) -> QuestionSet:
     return qs
 
 
-@user_passes_test(is_admin)
+@staff_member_required()
 def init_db(request: HttpRequest, label: str) -> JsonResponse:
     """Create a brand-new QuestionSet each time you upload."""
     try:
@@ -963,14 +964,27 @@ class AssayListView(SingleTableView):
             use_groups=False,
             any_perm=False,
         )
-        base_qs = Assay.objects.filter(
-            study__investigation__in=accessible_investigations,
-            question_set__isnull=False,
+        accessible_assays = get_objects_for_user(
+            user,
+            "toxtempass.view_assay",
+            klass=Assay,
+            use_groups=False,
+            any_perm=False,
         )
-        real_qs = base_qs.filter(demo_lock=False)
+        # Assays accessible because the user can view the parent Investigation
+        via_investigation_qs = Assay.objects.filter(
+            study__investigation__in=accessible_investigations
+        )
+
+        # Combine assays the user has object-level view permission on (e.g., shared via workspace)
+        combined_qs = (via_investigation_qs | accessible_assays).distinct()
+
+        # Apply public filters (question_set exists) and prefer non-demo assays when available
+        filtered_qs = combined_qs.filter(question_set__isnull=False)
+        real_qs = filtered_qs.filter(demo_lock=False)
         if real_qs.exists():
             return real_qs.order_by("-submission_date")
-        return base_qs.order_by("-submission_date")
+        return filtered_qs.order_by("-submission_date")
 
     def get_context_data(self, **kwargs) -> dict:
         """Inject context."""
@@ -979,12 +993,13 @@ class AssayListView(SingleTableView):
         context["reload_busy_interval"] = config.reload_busy_interval_seconds
         context["reload_busy_max_retries"] = config.reload_busy_max_retries
         context["LLMStatus"] = LLMStatus
+        context.update(get_workspace_list(self.request))
         # Tour management is now handled by JavaScript localStorage
         # No backend flags needed
         return context
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
+@login_required(login_url="/login/")
 @user_passes_test(is_beta_admitted, login_url="/beta/wait/")
 def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
     """View to handle the starting form for new ToxTemp."""
@@ -1149,7 +1164,7 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
             return JsonResponse({"success": False, "errors": form.errors})
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
+@login_required(login_url="/login/")
 def get_filtered_studies(request: HttpRequest, investigation_id: int) -> JsonResponse:
     """Get filtered Studies based on the Investigation ID."""
     if investigation_id:
@@ -1160,7 +1175,7 @@ def get_filtered_studies(request: HttpRequest, investigation_id: int) -> JsonRes
     return JsonResponse([], safe=False)
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
+@login_required(login_url="/login/")
 def get_filtered_assays(request: HttpRequest, study_id: int) -> JsonResponse:
     """Get filtered Assays based on the Study ID."""
     if study_id:
@@ -1176,7 +1191,7 @@ def get_filtered_assays(request: HttpRequest, study_id: int) -> JsonResponse:
     return JsonResponse([], safe=False)
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
+@login_required(login_url="/login/")
 def get_assay_is_busy_or_scheduled(request: HttpRequest, pk: int) -> JsonResponse:
     """Check if the Assay is busy or scheduled."""
     if request.method == "POST":
@@ -1189,7 +1204,7 @@ def get_assay_is_busy_or_scheduled(request: HttpRequest, pk: int) -> JsonRespons
         return JsonResponse({"is_busy_or_scheduled": is_busy_or_scheduled})
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
+@login_required(login_url="/login/")
 def initial_gpt_allowed_for_assay(request: HttpRequest, pk: int) -> JsonResponse:
     """Check if GPT is allowed for the given Assay."""
     if request.method == "POST":
@@ -1204,7 +1219,7 @@ def initial_gpt_allowed_for_assay(request: HttpRequest, pk: int) -> JsonResponse
             return JsonResponse({"gpt_allowed": False})
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
+@login_required(login_url="/login/")
 def create_or_update_investigation(
     request: HttpRequest, pk: int | None = None
 ) -> JsonResponse | HttpResponse:
@@ -1247,7 +1262,7 @@ def create_or_update_investigation(
     )
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
+@login_required(login_url="/login/")
 def delete_investigation(
     request: HttpRequest, pk: int
 ) -> JsonResponse | HttpResponseRedirect:
@@ -1265,7 +1280,7 @@ def delete_investigation(
     return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
+@login_required(login_url="/login/")
 def create_or_update_study(
     request: HttpRequest, pk: int | None = None
 ) -> JsonResponse | HttpResponse:
@@ -1325,7 +1340,7 @@ def create_or_update_study(
         )
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
+@login_required(login_url="/login/")
 def delete_study(request: HttpRequest, pk: int) -> JsonResponse | HttpResponseRedirect:
     """Delete a study if the user has permission."""
     if request.method == "GET":
@@ -1339,7 +1354,7 @@ def delete_study(request: HttpRequest, pk: int) -> JsonResponse | HttpResponseRe
     return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
+@login_required(login_url="/login/")
 def create_or_update_assay(
     request: HttpRequest, pk: int | None = None
 ) -> JsonResponse | HttpResponse:
@@ -1408,7 +1423,7 @@ def create_or_update_assay(
         )
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
+@login_required(login_url="/login/")
 def delete_assay(request: HttpRequest, pk: int) -> JsonResponse | HttpResponseRedirect:
     """Delete an assay if the user has permission."""
     if request.method == "GET":
@@ -1434,7 +1449,7 @@ def delete_assay(request: HttpRequest, pk: int) -> JsonResponse | HttpResponseRe
     return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
+@login_required(login_url="/login/")
 def answer_assay_questions(
     request: HttpRequest, assay_id: int
 ) -> JsonResponse | HttpResponse:
@@ -1526,7 +1541,7 @@ def answer_assay_questions(
     )
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
+@login_required(login_url="/login/")
 def get_version_history(
     request: HttpRequest, assay_id: int, question_id: int
 ) -> HttpResponse:
@@ -1647,7 +1662,7 @@ def get_version_history(
     )
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
+@login_required(login_url="/login/")
 def export_assay(
     request: HttpRequest, assay_id: int, export_type: str
 ) -> FileResponse | JsonResponse:
@@ -1668,14 +1683,14 @@ def export_assay(
         )
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
+@login_required(login_url="/login/")
 def assay_hasfeedback(request: HttpRequest, assay_id: int) -> JsonResponse:
     """Check if an assay has feedback. Returns a JSON response."""
     assay = get_object_or_404(Assay, id=assay_id)
     return JsonResponse({"success": True, "has_feedback": assay.has_feedback})
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
+@login_required(login_url="/login/")
 def assay_feedback(request: HttpRequest, assay_id: int) -> JsonResponse:
     """Handle feedback submission for an assay."""
     assay = get_object_or_404(Assay, id=assay_id)
@@ -1706,48 +1721,46 @@ def assay_feedback(request: HttpRequest, assay_id: int) -> JsonResponse:
             return JsonResponse({"success": False, "errors": errors})
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
-def group_list(request: HttpRequest) -> HttpResponse:
-    """List all groups the user is a member of."""
-    memberships = GroupMember.objects.filter(user=request.user).select_related(
-        "group", "group__owner"
+@login_required(login_url="/login/")
+def get_workspace_list(request: HttpRequest) -> dict:
+    """List all workspaces the user is a member of."""
+    memberships = WorkspaceMember.objects.filter(user=request.user).select_related(
+        "workspace", "workspace__owner"
     )
-    owned_groups = Group.objects.filter(owner=request.user).order_by("-created_at")
-    # Provide assays accessible to this user so the inline "Add assay" modal can show options
+    owned_workspaces = Workspace.objects.filter(owner=request.user).order_by("-created_at")
+    # Provide investigations accessible to this user so the inline "Add investigation" modal can show options
     accessible_investigations = get_objects_for_user(
         request.user, "toxtempass.view_investigation", klass=Investigation, use_groups=False, any_perm=False
     )
-    accessible_assays = Assay.objects.filter(study__investigation__in=accessible_investigations)
-    return render(
-        request,
-        "toxtempass/group_list.html",
-        {
+    # Only show investigations owned by the current user in the Add modal to avoid allowing
+    # users to share investigations they do not own via the UI. Server-side check will also enforce ownership.
+    owned_investigations = Investigation.objects.filter(owner=request.user)
+    return {
             "memberships": memberships,
-            "owned_groups": owned_groups,
-            "accessible_assays": accessible_assays,
-        },
-    )
+            "owned_workspaces": owned_workspaces,
+            "accessible_investigations": owned_investigations,
+        }
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
-def create_or_update_group(
+@login_required(login_url="/login/")
+def create_or_update_workspace(
     request: HttpRequest, pk: int | None = None
 ) -> JsonResponse | HttpResponse:
-    """Create or update a Group."""
+    """Create or update a Workspace."""
     if pk:
-        group = get_object_or_404(Group, pk=pk)
-        if group.owner != request.user:
+        workspace = get_object_or_404(Workspace, pk=pk)
+        if workspace.owner != request.user:
             from django.core.exceptions import PermissionDenied
 
-            raise PermissionDenied("You do not own this group.")
+            raise PermissionDenied("You do not own this workspace.")
     else:
-        group = None
+        workspace = None
 
     if request.method == "POST":
-        form = GroupForm(request.POST, instance=group)
+        form = WorkspaceForm(request.POST, instance=workspace)
         if form.is_valid():
             grp = form.save(commit=False)
-            if not group:
+            if not workspace:  # only set owner on creation, not update
                 grp.owner = request.user
                 grp.save()
             else:
@@ -1756,124 +1769,141 @@ def create_or_update_group(
                 {
                     "success": True,
                     "errors": form.errors,
-                    "redirect_url": reverse("group_detail", args=[grp.pk]),
+                    "redirect_url": reverse("workspace_detail", args=[grp.pk]),
                 }
             )
         else:
             return JsonResponse({"success": False, "errors": form.errors})
     else:
-        form = GroupForm(instance=group)
+        form = WorkspaceForm(instance=workspace)
     return render(
         request,
-        "toxtempass/group_form.html",
+        "toxtempass/workspace_form.html",
         {
             "form": form,
-            "title": "Create Group" if not pk else "Edit Group",
-            "back_url": mark_safe(reverse("group_list")),
+            "title": "Create Workspace" if not pk else "Edit Workspace",
+            "back_url": mark_safe(reverse("workspace_list")),
         },
     )
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
-def delete_group(request: HttpRequest, pk: int) -> JsonResponse | HttpResponseRedirect:
-    """Delete a group if the user is the owner."""
+@login_required(login_url="/login/")
+def delete_workspace(request: HttpRequest, pk: int) -> JsonResponse | HttpResponseRedirect:
+    """Delete a workspace if the user is the owner."""
     if request.method == "GET":
-        group = get_object_or_404(Group, pk=pk)
-        if group.owner != request.user:
+        workspace = get_object_or_404(Workspace, pk=pk)
+        if workspace.owner != request.user:
             from django.core.exceptions import PermissionDenied
 
-            raise PermissionDenied("You do not own this group.")
-        group.delete()
-        return redirect("group_list")
+            raise PermissionDenied("You do not own this workspace.")
+        workspace.delete()
+        return redirect("overview")
     return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
-def group_detail(request: HttpRequest, pk: int) -> HttpResponse:
-    """Show group details with members and shared assays."""
-    group = get_object_or_404(Group, pk=pk)
-    membership = GroupMember.objects.filter(group=group, user=request.user).first()
-    if not membership and group.owner != request.user:
+@login_required(login_url="/login/")
+def workspace_detail(request: HttpRequest, pk: int) -> HttpResponse:
+    """Show workspace details with members and shared assays."""
+    workspace = get_object_or_404(Workspace, pk=pk)
+    membership = WorkspaceMember.objects.filter(workspace=workspace, user=request.user).first()
+    if not membership and workspace.owner != request.user:
         from django.core.exceptions import PermissionDenied
 
-        raise PermissionDenied("You are not a member of this group.")
+        raise PermissionDenied("You are not a member of this workspace.")
 
-    members = GroupMember.objects.filter(group=group).select_related("user")
-    shared_assays = GroupAssay.objects.filter(group=group).select_related(
-        "assay", "added_by"
+    members = WorkspaceMember.objects.filter(workspace=workspace).select_related("user")
+    # investigations shared into this workspace
+    shared_investigations = WorkspaceInvestigation.objects.filter(workspace=workspace).select_related(
+        "investigation", "added_by"
     )
+    # investigations the current user can share (owned by them)
+    owned_investigations = Investigation.objects.filter(owner=request.user)
 
     return render(
         request,
-        "toxtempass/group_detail.html",
+        "toxtempass/workspace_detail.html",
         {
-            "group": group,
+            "workspace": workspace,
             "membership": membership,
             "members": members,
-            "shared_assays": shared_assays,
+            "shared_investigations": shared_investigations,
+            "owned_investigations": owned_investigations,
         },
     )
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
-def add_group_member(request: HttpRequest, pk: int) -> JsonResponse:
-    """Add a member to a group."""
+@login_required(login_url="/login/")
+def add_workspace_member(request: HttpRequest, pk: int) -> JsonResponse:
+    """Add a member to a workspace."""
     if request.method != "POST":
         return JsonResponse({"success": False, "error": "POST required"}, status=405)
 
-    group = get_object_or_404(Group, pk=pk)
-    membership = GroupMember.objects.filter(group=group, user=request.user).first()
+    workspace = get_object_or_404(Workspace, pk=pk)
+    membership = WorkspaceMember.objects.filter(workspace=workspace, user=request.user).first()
 
     if not membership or membership.role not in [
-        GroupRole.OWNER,
-        GroupRole.ADMIN,
+        WorkspaceRole.OWNER,
+        WorkspaceRole.ADMIN,
     ]:
         return JsonResponse(
-            {"success": False, "error": "You do not have permission"}, status=403
+            {"success": False, "error": "You do not have permission"}, status=404
         )
 
-    form = GroupMemberForm(request.POST)
+    form = WorkspaceMemberForm(request.POST)
     if form.is_valid():
         user = form.cleaned_data["user"]
         role = form.cleaned_data["role"]
 
-        if GroupMember.objects.filter(group=group, user=user).exists():
+        if WorkspaceMember.objects.filter(workspace=workspace, user=user).exists():
             return JsonResponse(
                 {"success": False, "error": "User is already a member"}, status=400
             )
 
-        GroupMember.objects.create(group=group, user=user, role=role)
+        WorkspaceMember.objects.create(workspace=workspace, user=user, role=role)
+
+        # Ensure the newly added member receives object permissions for any
+        # Investigations already shared into this workspace.
+        shared_invs = WorkspaceInvestigation.objects.filter(workspace=workspace).select_related("investigation")
+        for winv in shared_invs:
+            try:
+                assign_perm("view_investigation", user, winv.investigation)
+            except Exception:
+                logger.exception(
+                    "Failed to assign view_investigation perm for user %s on investigation %s",
+                    getattr(user, "email", None), getattr(winv.investigation, "id", None),
+                )
+
         return JsonResponse({"success": True, "errors": {}})
     else:
         return JsonResponse({"success": False, "errors": form.errors})
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
-def add_group_member_by_email(request: HttpRequest, pk: int) -> JsonResponse:
-    """Add a member to a group by email (AJAX friendly).
+@login_required(login_url="/login/")
+def add_workspace_member_by_email(request: HttpRequest, pk: int) -> JsonResponse:
+    """Add a member to a workspace by email (AJAX friendly).
 
     Accepts POST with form-encoded fields:
       - email: user email address
-      - role: one of GroupRole values (optional, default MEMBER)
+      - role: one of WorkspaceRole values (optional, default MEMBER)
 
-    Returns JSON similar to add_group_member.
+    Returns JSON similar to add_workspace_member.
     """
     if request.method != "POST":
         return JsonResponse({"success": False, "error": "POST required"}, status=405)
 
-    group = get_object_or_404(Group, pk=pk)
-    membership = GroupMember.objects.filter(group=group, user=request.user).first()
+    workspace = get_object_or_404(Workspace, pk=pk)
+    membership = WorkspaceMember.objects.filter(workspace=workspace, user=request.user).first()
 
     if not membership or membership.role not in [
-        GroupRole.OWNER,
-        GroupRole.ADMIN,
+        WorkspaceRole.OWNER,
+        WorkspaceRole.ADMIN,
     ]:
         return JsonResponse(
-            {"success": False, "error": "You do not have permission"}, status=403
+            {"success": False, "error": "You do not have permission"}, status=404
         )
 
     email = request.POST.get("email", "").strip().lower()
-    role = request.POST.get("role", GroupRole.MEMBER)
+    role = request.POST.get("role", WorkspaceRole.MEMBER)
     if not email:
         return JsonResponse({"success": False, "error": "email required"}, status=400)
 
@@ -1882,61 +1912,87 @@ def add_group_member_by_email(request: HttpRequest, pk: int) -> JsonResponse:
     except Person.DoesNotExist:
         return JsonResponse({"success": False, "error": "User not found"}, status=404)
 
-    if GroupMember.objects.filter(group=group, user=user).exists():
+    if WorkspaceMember.objects.filter(workspace=workspace, user=user).exists():
         return JsonResponse({"success": False, "error": "User is already a member"}, status=400)
 
     # normalize role
-    if role not in dict(GroupRole.choices):
-        role = GroupRole.MEMBER
+    if role not in dict(WorkspaceRole.choices):
+        role = WorkspaceRole.MEMBER
 
-    GroupMember.objects.create(group=group, user=user, role=role)
+    WorkspaceMember.objects.create(workspace=workspace, user=user, role=role)
+
+    # Assign view permissions for all investigations already shared into this workspace
+    shared_invs = WorkspaceInvestigation.objects.filter(workspace=workspace).select_related("investigation")
+    for winv in shared_invs:
+        try:
+            assign_perm("view_investigation", user, winv.investigation)
+        except Exception:
+            logger.exception(
+                "Failed to assign view_investigation perm for user %s on investigation %s",
+                getattr(user, "email", None), getattr(winv.investigation, "id", None),
+            )
+
     return JsonResponse({"success": True, "member_email": user.email})
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
-def remove_group_member(request: HttpRequest, pk: int, user_id: int) -> JsonResponse:
-    """Remove a member from a group."""
+@login_required(login_url="/login/")
+def remove_workspace_member(request: HttpRequest, pk: int, user_id: int) -> JsonResponse:
+    """Remove a member from a workspace."""
     if request.method != "POST":
         return JsonResponse({"success": False, "error": "POST required"}, status=405)
 
-    group = get_object_or_404(Group, pk=pk)
-    membership = GroupMember.objects.filter(group=group, user=request.user).first()
+    workspace = get_object_or_404(Workspace, pk=pk)
+    membership = WorkspaceMember.objects.filter(workspace=workspace, user=request.user).first()
 
     if not membership or membership.role not in [
-        GroupRole.OWNER,
-        GroupRole.ADMIN,
+        WorkspaceRole.OWNER,
+        WorkspaceRole.ADMIN,
     ]:
         return JsonResponse(
-            {"success": False, "error": "You do not have permission"}, status=403
+            {"success": False, "error": "You do not have permission"}, status=404
         )
 
     try:
-        member_to_remove = GroupMember.objects.get(group=group, user_id=user_id)
-    except GroupMember.DoesNotExist:
+        member_to_remove = WorkspaceMember.objects.get(workspace=workspace, user_id=user_id)
+    except WorkspaceMember.DoesNotExist:
         return JsonResponse({"success": False, "error": "Member not found"}, status=404)
 
-    if member_to_remove.role == GroupRole.OWNER:
+    if member_to_remove.role == WorkspaceRole.OWNER:
         return JsonResponse(
             {"success": False, "error": "Cannot remove the owner"}, status=400
         )
+
+    # Revoke any object-level permissions the user received due to this workspace
+    try:
+        shared_invs = WorkspaceInvestigation.objects.filter(workspace=workspace).select_related("investigation")
+        for winv in shared_invs:
+            try:
+                remove_perm("view_investigation", member_to_remove.user, winv.investigation)
+            except Exception:
+                logger.exception(
+                    "Failed to remove view_investigation perm for user %s on investigation %s",
+                    getattr(member_to_remove.user, "email", None), getattr(winv.investigation, "id", None),
+                )
+    except Exception:
+        logger.exception("Failed while revoking workspace-based permissions for removed member %s", user_id)
 
     member_to_remove.delete()
     return JsonResponse({"success": True, "errors": {}})
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
-def remove_group_member_by_email(request: HttpRequest, pk: int) -> JsonResponse:
-    """AJAX endpoint to remove a member by email from a group.
+@login_required(login_url="/login/")
+def remove_workspace_member_by_email(request: HttpRequest, pk: int) -> JsonResponse:
+    """AJAX endpoint to remove a member by email from a workspace.
 
     Expects POST 'email' field. Only OWNER/ADMIN can remove members.
     """
     if request.method != "POST":
         return JsonResponse({"success": False, "error": "POST required"}, status=405)
 
-    group = get_object_or_404(Group, pk=pk)
-    membership = GroupMember.objects.filter(group=group, user=request.user).first()
-    if not membership or membership.role not in [GroupRole.OWNER, GroupRole.ADMIN]:
-        return JsonResponse({"success": False, "error": "You do not have permission"}, status=403)
+    workspace = get_object_or_404(Workspace, pk=pk)
+    membership = WorkspaceMember.objects.filter(workspace=workspace, user=request.user).first()
+    if not membership or membership.role not in [WorkspaceRole.OWNER, WorkspaceRole.ADMIN]:
+        return JsonResponse({"success": False, "error": "You do not have permission"}, status=404)
 
     email = request.POST.get("email", "").strip().lower()
     if not email:
@@ -1948,88 +2004,111 @@ def remove_group_member_by_email(request: HttpRequest, pk: int) -> JsonResponse:
         return JsonResponse({"success": False, "error": "User not found"}, status=404)
 
     try:
-        gm = GroupMember.objects.get(group=group, user=user)
-    except GroupMember.DoesNotExist:
+        gm = WorkspaceMember.objects.get(workspace=workspace, user=user)
+    except WorkspaceMember.DoesNotExist:
         return JsonResponse({"success": False, "error": "Not a member"}, status=404)
 
-    if gm.role == GroupRole.OWNER:
+    if gm.role == WorkspaceRole.OWNER:
         return JsonResponse({"success": False, "error": "Cannot remove the owner"}, status=400)
+
+    # Revoke permissions granted via this workspace for the removed user
+    try:
+        shared_invs = WorkspaceInvestigation.objects.filter(workspace=workspace).select_related("investigation")
+        for winv in shared_invs:
+            try:
+                remove_perm("view_investigation", user, winv.investigation)
+            except Exception:
+                logger.exception(
+                    "Failed to remove view_investigation perm for user %s on investigation %s",
+                    getattr(user, "email", None), getattr(winv.investigation, "id", None),
+                )
+    except Exception:
+        logger.exception("Failed while revoking workspace-based permissions for removed member %s", user.id)
 
     gm.delete()
     return JsonResponse({"success": True})
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
-def add_group_assay(request: HttpRequest, pk: int) -> JsonResponse:
-    """Add an assay to a group."""
+@login_required(login_url="/login/")
+def add_workspace_assay(request: HttpRequest, pk: int) -> JsonResponse:
+    """Add an assay to a workspace."""
     if request.method != "POST":
         return JsonResponse({"success": False, "error": "POST required"}, status=405)
 
-    group = get_object_or_404(Group, pk=pk)
-    membership = GroupMember.objects.filter(group=group, user=request.user).first()
+    workspace = get_object_or_404(Workspace, pk=pk)
+    membership = WorkspaceMember.objects.filter(workspace=workspace, user=request.user).first()
 
     if not membership or membership.role not in [
-        GroupRole.OWNER,
-        GroupRole.ADMIN,
+        WorkspaceRole.OWNER,
+        WorkspaceRole.ADMIN,
     ]:
         return JsonResponse(
-            {"success": False, "error": "You do not have permission"}, status=403
+            {"success": False, "error": "You do not have permission"}, status=404
         )
 
-    form = GroupAssayForm(request.POST, user=request.user)
+    # Accept either 'investigation' (preferred) or legacy 'assay' param containing an investigation id
+    form = WorkspaceInvestigationForm(request.POST, user=request.user)
     if form.is_valid():
-        assay = form.cleaned_data["assay"]
-
-        if GroupAssay.objects.filter(group=group, assay=assay).exists():
-            return JsonResponse(
-                {"success": False, "error": "Assay is already shared in this group"},
-                status=400,
-            )
-
-        group_assay = GroupAssay.objects.create(
-            group=group, assay=assay, added_by=request.user
-        )
-
-        members = GroupMember.objects.filter(group=group).select_related("user")
-        for member in members:
-            assign_perm("view_assay", member.user, assay)
-
-        return JsonResponse({"success": True, "group_assay_id": group_assay.id})
+        investigation = form.cleaned_data.get("investigation") or None
     else:
-        return JsonResponse({"success": False, "errors": form.errors})
+        # fallback: try to read legacy param
+        inv_id = request.POST.get("investigation") or request.POST.get("assay")
+        investigation = None
+        if inv_id:
+            try:
+                investigation = Investigation.objects.get(pk=int(inv_id))
+            except Exception:
+                investigation = None
+
+    if not investigation:
+        return JsonResponse({"success": False, "errors": form.errors or {"investigation": ["Missing investigation"]}}, status=400)
+
+    # Enforce owner-only sharing: only the owner of the investigation may add it to a workspace.
+    if investigation.owner != request.user:
+        return JsonResponse({"success": False, "error": "You do not own this investigation."}, status=403)
+
+    if WorkspaceInvestigation.objects.filter(workspace=workspace, investigation=investigation).exists():
+        return JsonResponse({"success": False, "error": "Investigation is already shared in this workspace"}, status=400)
+
+    workspace_inv = WorkspaceInvestigation.objects.create(workspace=workspace, investigation=investigation, added_by=request.user)
+
+    members = WorkspaceMember.objects.filter(workspace=workspace).select_related("user")
+    for member in members:
+        assign_perm("view_investigation", member.user, investigation)
+
+    return JsonResponse({"success": True, "workspace_investigation_id": workspace_inv.id})
 
 
-@user_passes_test(is_logged_in, login_url="/login/")
-def remove_group_assay(request: HttpRequest, pk: int, assay_id: int) -> JsonResponse:
-    """Remove an assay from a group."""
+@login_required(login_url="/login/")
+def remove_workspace_assay(request: HttpRequest, pk: int, assay_id: int) -> JsonResponse:
+    """Remove an assay from a workspace."""
     if request.method != "POST":
         return JsonResponse({"success": False, "error": "POST required"}, status=405)
 
-    group = get_object_or_404(Group, pk=pk)
-    membership = GroupMember.objects.filter(group=group, user=request.user).first()
+    workspace = get_object_or_404(Workspace, pk=pk)
+    membership = WorkspaceMember.objects.filter(workspace=workspace, user=request.user).first()
 
     if not membership or membership.role not in [
-        GroupRole.OWNER,
-        GroupRole.ADMIN,
+        WorkspaceRole.OWNER,
+        WorkspaceRole.ADMIN,
     ]:
         return JsonResponse(
-            {"success": False, "error": "You do not have permission"}, status=403
+            {"success": False, "error": "You do not have permission"}, status=404
         )
 
+    # Treat the provided assay_id as the investigation id for the new model
     try:
-        group_assay = GroupAssay.objects.get(group=group, assay_id=assay_id)
-    except GroupAssay.DoesNotExist:
-        return JsonResponse(
-            {"success": False, "error": "Assay not found in group"}, status=404
-        )
+        workspace_inv = WorkspaceInvestigation.objects.get(workspace=workspace, investigation_id=assay_id)
+    except WorkspaceInvestigation.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Investigation not found in workspace"}, status=404)
 
-    assay = group_assay.assay
-    group_assay.delete()
+    investigation = workspace_inv.investigation
+    workspace_inv.delete()
 
-    members = GroupMember.objects.filter(group=group).select_related("user")
+    members = WorkspaceMember.objects.filter(workspace=workspace).select_related("user")
     for member in members:
         from guardian.shortcuts import remove_perm
 
-        remove_perm("view_assay", member.user, assay)
+        remove_perm("view_investigation", member.user, investigation)
 
     return JsonResponse({"success": True, "errors": {}})

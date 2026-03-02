@@ -20,10 +20,10 @@ from toxtempass.filehandling import (
 from toxtempass.models import (
     Answer,
     Assay,
-    Group,
-    GroupAssay,
-    GroupMember,
-    GroupRole,
+    Workspace,
+    WorkspaceInvestigation,
+    WorkspaceMember,
+    WorkspaceRole,
     Investigation,
     LLMStatus,
     Person,
@@ -575,7 +575,7 @@ class AssayAnswerForm(forms.Form):
             doc_dict = {}
             logger.debug("No files uploaded.")
 
-        # Group fields by question ID.
+        # Grouping fields by question ID.
         questions_data = defaultdict(dict)
         for field_name, value in self.cleaned_data.items():
             if field_name.startswith("question_"):
@@ -668,22 +668,22 @@ class AssayAnswerForm(forms.Form):
         return self.async_enqueued
 
 
-class GroupForm(forms.ModelForm):
+class WorkspaceForm(forms.ModelForm):
     class Meta:
-        model = Group
+        model = Workspace
         fields = ["name", "description"]
         widgets = {
             "description": forms.Textarea(attrs={"rows": 3}),
         }
 
 
-class GroupMemberForm(forms.Form):
+class WorkspaceMemberForm(forms.Form):
     user = forms.ModelChoiceField(
         queryset=Person.objects.all(),
         widget=forms.Select(attrs={"class": "form-select"}),
     )
     role = forms.ChoiceField(
-        choices=GroupRole.choices,
+        choices=WorkspaceRole.choices,
         widget=forms.Select(attrs={"class": "form-select"}),
     )
 
@@ -692,9 +692,9 @@ class GroupMemberForm(forms.Form):
         self.fields["user"].label_from_instance = lambda obj: obj.email
 
 
-class GroupAssayForm(forms.Form):
-    assay = forms.ModelChoiceField(
-        queryset=Assay.objects.none(),
+class WorkspaceInvestigationForm(forms.Form):
+    investigation = forms.ModelChoiceField(
+        queryset=Investigation.objects.none(),
         widget=forms.Select(attrs={"class": "form-select"}),
     )
 
@@ -704,6 +704,6 @@ class GroupAssayForm(forms.Form):
             accessible_investigations = get_objects_for_user(
                 user, "toxtempass.view_investigation"
             )
-            self.fields["assay"].queryset = Assay.objects.filter(
-                study__investigation__in=accessible_investigations
+            self.fields["investigation"].queryset = Investigation.objects.filter(
+                id__in=[i.id for i in accessible_investigations]
             )

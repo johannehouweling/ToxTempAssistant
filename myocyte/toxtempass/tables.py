@@ -98,7 +98,7 @@ class AssayTable(tables.Table):
                 <div class="btn-group" role="group" data-assay-id="{{ record.id }}" data-assay-status="{{ record.status }}" data-bs-toggle="tooltip" title="Processing ongoing ({{record.number_processed_answers}}/{{record.get_n_answers}}). Refresh the page to see updates.">
                     <button class="btn btn-sm btn-outline-secondary" disabled>
                             <span class="spinner-grow spinner-grow-sm" aria-hidden="true"></span>
-                            <span role="status">Busy</span>
+                            <span role="status" class="d-lg-inline d-none">Busy</span>
                     </button>
                 </div>
             {% elif record.status == LLMStatus.ERROR.value %}
@@ -161,7 +161,7 @@ class AssayTable(tables.Table):
             if hist and (latest is None or hist.history_date > latest):
                 latest = hist.history_date
         if latest:
-            return latest.strftime("%d %b, %Y")
+            return naturaltime(latest)
         else:
             return mark_safe('<span class="text-muted">Never</span>')
 

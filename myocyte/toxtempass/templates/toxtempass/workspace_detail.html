@@ -1,25 +1,25 @@
 {% extends "base.html" %}
 
-{% block title %}{{ group.name }}{% endblock %}
+{% block title %}{{ workspace.name }}{% endblock %}
 
 {% block content %}
 {% load django_bootstrap5 %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>{{ group.name }}</h2>
+        <h2>{{ workspace.name }}</h2>
         <div>
             {% if membership.role == 'owner' or membership.role == 'admin' %}
-            <a href="{% url 'update_group' group.pk %}" class="btn btn-outline-primary">Edit</a>
-            <a href="{% url 'delete_group' group.pk %}" class="btn btn-outline-danger">Delete</a>
+            <a href="{% url 'update_workspace' workspace.pk %}" class="btn btn-outline-primary">Edit</a>
+            <a href="{% url 'delete_workspace' workspace.pk %}" class="btn btn-outline-danger">Delete</a>
             {% endif %}
-            <a href="{% url 'group_list' %}" class="btn btn-outline-secondary">Back to Groups</a>
+            <a href="{% url 'workspace_list' %}" class="btn btn-outline-secondary">Back to Workspaces</a>
         </div>
     </div>
 
-    {% if group.description %}
-    <p class="text-muted">{{ group.description }}</p>
+    {% if workspace.description %}
+    <p class="text-muted">{{ workspace.description }}</p>
     {% endif %}
-    <p class="text-muted">Owner: {{ group.owner.email }}</p>
+    <p class="text-muted">Owner: {{ workspace.owner.email }}</p>
 
     <div class="row mt-4">
         <div class="col-md-6">
@@ -32,19 +32,19 @@
                     </button>
                     {% endif %}
                 </div>
-                <ul class="list-group list-group-flush">
+                <ul class="list-workspace list-workspace-flush">
                     {% for member in members %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <li class="list-workspace-item d-flex justify-content-between align-items-center">
                         <span>
                             {{ member.user.email }}
-                            {% if member.user == group.owner %}
+                            {% if member.user == workspace.owner %}
                             <span class="badge bg-warning">Owner</span>
                             {% else %}
                             <span class="badge bg-secondary">{{ member.role }}</span>
                             {% endif %}
                         </span>
-                        {% if member.user != request.user and member.user != group.owner and membership.role == 'owner' %}
-                        <form method="post" action="{% url 'remove_group_member' group.pk member.user.pk %}" style="display:inline;">
+                        {% if member.user != request.user and member.user != workspace.owner and membership.role == 'owner' %}
+                        <form method="post" action="{% url 'remove_workspace_member' workspace.pk member.user.pk %}" style="display:inline;">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
                         </form>
@@ -58,25 +58,25 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Shared Assays</h5>
+                    <h5 class="mb-0">Shared Investigations</h5>
                     {% if membership.role == 'owner' or membership.role == 'admin' %}
                     <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addAssayModal">
-                        Add Assay
+                        Add Investigation
                     </button>
                     {% endif %}
                 </div>
-                {% if shared_assays %}
-                <ul class="list-group list-group-flush">
-                    {% for ga in shared_assays %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <a href="{% url 'answer_assay_questions' ga.assay.pk %}">{{ ga.assay.title }}</a>
-                        <small class="text-muted">by {{ ga.added_by.email }}</small>
+                {% if shared_investigations %}
+                <ul class="list-workspace list-workspace-flush">
+                    {% for gi in shared_investigations %}
+                    <li class="list-workspace-item d-flex justify-content-between align-items-center">
+                        {{ gi.investigation.title }}
+                        <small class="text-muted">by {{ gi.added_by.email }}</small>
                     </li>
                     {% endfor %}
                 </ul>
                 {% else %}
                 <div class="card-body text-muted">
-                    No assays shared in this group yet.
+                    No investigations shared in this workspace yet.
                 </div>
                 {% endif %}
             </div>
@@ -93,7 +93,7 @@
                 <h5 class="modal-title" id="addMemberModalLabel">Add Member</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form method="post" action="{% url 'add_group_member' group.pk %}">
+            <form method="post" action="{% url 'add_workspace_member' workspace.pk %}">
                 {% csrf_token %}
                 <div class="modal-body">
                     {% csrf_token %}
@@ -128,13 +128,16 @@
                 <h5 class="modal-title" id="addAssayModalLabel">Add Assay</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form method="post" action="{% url 'add_group_assay' group.pk %}">
+            <form method="post" action="{% url 'add_workspace_assay' workspace.pk %}">
                 {% csrf_token %}
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="assay" class="form-label">Assay</label>
-                        <select name="assay" id="assay" class="form-select" required>
-                            <option value="">Select an assay</option>
+                        <label for="investigation" class="form-label">Investigation</label>
+                        <select name="investigation" id="investigation" class="form-select" required>
+                            <option value="">Select an investigation</option>
+                            {% for inv in owned_investigations %}
+                                <option value="{{ inv.id }}">{{ inv.title }}</option>
+                            {% endfor %}
                         </select>
                     </div>
                 </div>

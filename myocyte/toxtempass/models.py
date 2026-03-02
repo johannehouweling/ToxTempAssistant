@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import uuid
 
 from django.contrib.auth.models import AbstractUser, BaseUserManager
@@ -312,7 +313,7 @@ class Assay(AccessibleModel):
 
         Checks:
         1. Direct permission on this assay
-        2. Group membership: user is in a group that has this assay shared
+        2. Workspace membership: user is in a workspace that has this assay shared
         3. Parent permissions (Study -> Investigation)
         """
         codename = f"{perm_prefix}_{self._meta.model_name}"
@@ -321,8 +322,14 @@ class Assay(AccessibleModel):
         if user.has_perm(full_permission, self):
             return True
 
-        user_groups = GroupMember.objects.filter(user=user).values_list("group_id", flat=True)
-        if GroupAssay.objects.filter(assay=self, group_id__in=user_groups).exists():
+        user_workspaces = WorkspaceMember.objects.filter(user=user).values_list("workspace_id", flat=True)
+        # If the parent Investigation is shared to any workspace the user is a member of,
+        # the assay should be accessible as well.
+        from toxtempass.models import WorkspaceInvestigation
+
+        if WorkspaceInvestigation.objects.filter(
+            investigation=self.study.investigation, workspace_id__in=user_workspaces
+        ).exists():
             return True
 
         parent = self.get_parent()
@@ -650,16 +657,16 @@ class Feedback(AccessibleModel):
         return self.assay
 
 
-class GroupRole(models.TextChoices):
+class WorkspaceRole(models.TextChoices):
     OWNER = "owner", "Owner"
     ADMIN = "admin", "Admin"
     MEMBER = "member", "Member"
 
 
-class Group(AccessibleModel):
+class Workspace(AccessibleModel):
     name = models.CharField(max_length=255)
     owner = models.ForeignKey(
-        Person, on_delete=models.CASCADE, related_name="owned_groups"
+        Person, on_delete=models.CASCADE, related_name="owned_workspaces"
     )
     description = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -676,32 +683,35 @@ class Group(AccessibleModel):
         is_new = self.pk is None
         super().save(*args, **kwargs)
         if is_new:
-            GroupMember.objects.create(group=self, user=self.owner, role=GroupRole.OWNER)
+            WorkspaceMember.objects.create(workspace=self, user=self.owner, role=WorkspaceRole.OWNER)
 
 
-class GroupMember(models.Model):
-    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="memberships")
+class WorkspaceMember(models.Model):
+    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name="memberships")
     user = models.ForeignKey(
-        Person, on_delete=models.CASCADE, related_name="group_memberships"
+        Person, on_delete=models.CASCADE, related_name="workspace_memberships"
     )
     role = models.CharField(
-        max_length=20, choices=GroupRole.choices, default=GroupRole.MEMBER
+        max_length=20, choices=WorkspaceRole.choices, default=WorkspaceRole.MEMBER
     )
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ("group", "user")
+        unique_together = ("workspace", "user")
 
 
-class GroupAssay(models.Model):
-    group = models.ForeignKey(
-        Group, on_delete=models.CASCADE, related_name="shared_assays"
+class WorkspaceInvestigation(models.Model):
+    workspace = models.ForeignKey(
+        Workspace, on_delete=models.CASCADE, related_name="shared_investigations"
     )
-    assay = models.ForeignKey(
-        Assay, on_delete=models.CASCADE, related_name="shared_in_groups"
+    investigation = models.ForeignKey(
+        Investigation, on_delete=models.CASCADE, related_name="shared_in_workspaces"
     )
     added_by = models.ForeignKey(Person, on_delete=models.SET_NULL, null=True, blank=True)
     added_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ("group", "assay")
+        unique_together = ("workspace", "investigation")
+
+
+

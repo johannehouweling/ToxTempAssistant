@@ -145,34 +145,33 @@ urlpatterns += [
     ),
 ]
 
-# Group URLs
+# workspace URLs
 urlpatterns += [
-    path("group/", views.group_list, name="group_list"),
-    path("group/create/", views.create_or_update_group, name="create_group"),
-    path("group/update/<int:pk>/", views.create_or_update_group, name="update_group"),
-    path("group/delete/<int:pk>/", views.delete_group, name="delete_group"),
-    path("group/<int:pk>/", views.group_detail, name="group_detail"),
-    path("group/<int:pk>/member/add/", views.add_group_member, name="add_group_member"),
+    path("workspace/create/", views.create_or_update_workspace, name="create_workspace"),
+    path("workspace/update/<int:pk>/", views.create_or_update_workspace, name="update_workspace"),
+    path("workspace/delete/<int:pk>/", views.delete_workspace, name="delete_workspace"),
+    path("workspace/<int:pk>/", views.workspace_detail, name="workspace_detail"),
+    path("workspace/<int:pk>/member/add/", views.add_workspace_member, name="add_workspace_member"),
     path(
-        "group/<int:pk>/member/add-email/",
-        views.add_group_member_by_email,
-        name="add_group_member_by_email",
+        "workspace/<int:pk>/member/add-email/",
+        views.add_workspace_member_by_email,
+        name="add_workspace_member_by_email",
     ),
     path(
-        "group/<int:pk>/member/remove-email/",
-        views.remove_group_member_by_email,
-        name="remove_group_member_by_email",
+        "workspace/<int:pk>/member/remove-email/",
+        views.remove_workspace_member_by_email,
+        name="remove_workspace_member_by_email",
     ),
     path(
-        "group/<int:pk>/member/<int:user_id>/remove/",
-        views.remove_group_member,
-        name="remove_group_member",
+        "workspace/<int:pk>/member/<int:user_id>/remove/",
+        views.remove_workspace_member,
+        name="remove_workspace_member",
     ),
-    path("group/<int:pk>/assay/add/", views.add_group_assay, name="add_group_assay"),
+    path("workspace/<int:pk>/assay/add/", views.add_workspace_assay, name="add_workspace_assay"),
     path(
-        "group/<int:pk>/assay/<int:assay_id>/remove/",
-        views.remove_group_assay,
-        name="remove_group_assay",
+        "workspace/<int:pk>/assay/<int:assay_id>/remove/",
+        views.remove_workspace_assay,
+        name="remove_workspace_assay",
     ),
 ]
 

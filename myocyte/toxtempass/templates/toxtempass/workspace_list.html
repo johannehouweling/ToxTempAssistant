@@ -1,46 +1,41 @@
-{% extends "base.html" %}
-{% load django_bootstrap5 %}
-
-{% block title %}User Groups{% endblock %}
-
 {% block content %}
-<div class="container py-4">
+<div class="container px-0">
 
-  <div class="mb-4">
-    <h1 class="h3 mb-1">User Groups</h1>
-    <div class="text-muted">Manage groups, members, and assay assignments</div>
+    <div class="mb-3">
+    <h5 class="mb-1">Workspaces</h5>
+    <div class="text-muted">Share Investigation with others via workspaces</div>
   </div>
 
-  <div class="d-flex gap-2 mb-4">
-    <button id="btnNewGroup" class="btn btn-outline-primary">New Group</button>
-    <a href="{% url 'create_group' %}" class="btn btn-secondary">Full Create</a>
+  <div class="d-flex gap-2 mb-2">
+    <button id="btnNewWorkspace" class="btn btn-outline-primary">New Workspace</button>
+    {% comment %} <a href="{% url 'create_workspace' %}" class="btn btn-secondary">Full Create</a> {% endcomment %}
   </div>
 
-  <div id="ownedGroupsContainer" class="row row-cols-1 row-cols-lg-2 g-4" data-current-user="{{ request.user.email }}">
+  <div id="ownedWorkspacesContainer" class="row row-cols-1 g-4" data-current-user="{{ request.user.email }}">
 
-    {% if owned_groups %}
-      {% for gm in owned_groups %}
+    {% if owned_workspaces %}
+      {% for gm in owned_workspaces %}
         <div class="col">
-          <div class="card border-0 h-100 group-card group-list"
-               data-group-id="{{ gm.pk }}"
+          <div class="card border-0 h-100 workspace-card workspace-list"
+               data-workspace-id="{{ gm.pk }}"
                {% if gm.owner == request.user %}data-can-remove="1"{% else %}data-can-remove="0"{% endif %}>
 
-            <div class="card-header d-flex align-items-center justify-content-between border-0 group-card-header">
-              <span class="fw-semibold group-name" style="font-size:.95rem;" contenteditable="false">{{ gm.name }}</span>
+            <div class="card-header d-flex align-items-center justify-content-between border-0 workspace-card-header">
+              <span class="fw-semibold form-control px-0 border-0 workspace-name" style="font-size:.95rem;" contenteditable="false">{{ gm.name }}</span>
 
               {% if gm.owner == request.user %}
                 <div class="d-flex align-items-center gap-2">
                   <button type="button"
-                          class="btn btn-sm btn-outline-danger border-0 group-delete-btn"
-                          title="Delete group"
-                          aria-label="Delete group {{ gm.name }}">
+                          class="btn btn-sm btn-outline-danger border-0 workspace-delete-btn"
+                          title="Delete workspace"
+                          aria-label="Delete workspace {{ gm.name }}">
                     <i class="bi bi-trash"></i>
                   </button>
                 </div>
               {% endif %}
             </div>
 
-            <div class="card-body group-card-body">
+            <div class="card-body workspace-card-body pt-0">
               <div class="mb-3">
                 <div class="text-uppercase fw-semibold mb-2 section-label">Members</div>
 
@@ -84,34 +79,34 @@
               </div>
 
               <div>
-                <div class="text-uppercase fw-semibold mb-2 section-label">Assays</div>
+              <div class="text-uppercase fw-semibold mb-2 section-label">Investigations</div>
 
                 <div class="d-flex flex-wrap align-items-center gap-2 assays-wrap">
-                  {% for ga in gm.shared_assays.all %}
+                  {% for gi in gm.shared_investigations.all %}
                     <span class="d-inline-flex align-items-center assay-row assay-pill"
-                          data-assay-id="{{ ga.assay.id }}"
-                          data-group-assay-id="{{ ga.id }}">
-                      <span class="assay-text">{{ ga.assay.title }}</span>
+                          data-assay-id="{{ gi.investigation.id }}"
+                          data-workspace-assay-id="{{ gi.id }}">
+                      <span class="assay-text">{{ gi.investigation.title }}</span>
 
                       {% if gm.owner == request.user %}
                         <button type="button"
                                 class="btn btn-link p-0 m-0 text-secondary btn-remove-assay"
-                                data-assay-id="{{ ga.assay.id }}"
-                                aria-label="Remove assay {{ ga.assay.title }}"
-                                title="Remove assay {{ ga.assay.title }}">
+                                data-assay-id="{{ gi.investigation.id }}"
+                                aria-label="Remove investigation {{ gi.investigation.title }}"
+                                title="Remove investigation {{ gi.investigation.title }}">
                           <i class="bi bi-x"></i>
                         </button>
                       {% endif %}
                     </span>
                   {% empty %}
-                    <span class="text-muted small empty-assays">No assays shared</span>
+                    <span class="text-muted small empty-assays">No investigations shared</span>
                   {% endfor %}
 
-                  {% if gm.owner == request.user %}
+                    {% if gm.owner == request.user %}
                     <button type="button"
                             class="btn btn-sm btn-outline-secondary btn-add-assay round-add-btn"
-                            title="Add assay"
-                            aria-label="Add assay">
+                            title="Add investigation"
+                            aria-label="Add investigation">
                       <i class="bi bi-plus-circle"></i>
                     </button>
                   {% endif %}
@@ -124,18 +119,18 @@
       {% endfor %}
     {% else %}
       <div class="col">
-        <div class="text-muted">You don't own any groups yet.</div>
+        <div class="text-muted">You don't own any workspace yet.</div>
       </div>
     {% endif %}
   </div>
 
 
   <!-- Modal: Add member by email -->
-  <div class="modal fade" id="addMemberModal" tabindex="-1" aria-hidden="true">
+  <div class="modal fade" id="addMemberModal" tabindex="-1" aria-hidden="true" style="z-index: 1200;">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Add member to group</h5>
+          <h5 class="modal-title">Add member to workspace</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
@@ -160,22 +155,22 @@
     </div>
   </div>
 
-  <!-- (createGroupModal removed; New Group now creates an inline card) -->
+  <!-- (createWorkspaceModal removed; New Workspace now creates an inline card) -->
 
-  <!-- Modal: Add assay to group -->
-  <div class="modal fade" id="addAssayModal" tabindex="-1" aria-hidden="true">
+  <!-- Modal: Add investigation to workspace -->
+  <div class="modal fade" id="addAssayModal" tabindex="-1" aria-hidden="true" style="z-index: 1200;">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Add assay to group</h5>
+            <div class="modal-header">
+          <h5 class="modal-title">Add investigation to workspace</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <div class="mb-3">
-            <label for="selectAssay" class="form-label">Choose assay</label>
+            <div class="mb-3">
+            <label for="selectAssay" class="form-label">Choose investigation</label>
             <select id="selectAssay" class="form-select">
               <option value="">-- select --</option>
-              {% for a in accessible_assays %}
+              {% for a in accessible_investigations %}
                 <option value="{{ a.id }}">{{ a.title }}</option>
               {% endfor %}
             </select>
@@ -184,7 +179,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" id="confirmAddAssay" class="btn btn-primary">Add assay</button>
+          <button type="button" id="confirmAddAssay" class="btn btn-primary">Add investigation</button>
         </div>
       </div>
     </div>
@@ -193,9 +188,9 @@
 </div>
 
 <style>
-  .group-card { border-radius: 12px; box-shadow: rgba(0,0,0,.08) 0 1px 4px, rgba(0,0,0,.04) 0 4px 16px; }
-  .group-card-header { background:#fff; border-radius:12px 12px 0 0; padding:.75rem 1rem; border-bottom:1px solid #f0f0f0; }
-  .group-card-body { padding:.875rem 1rem; background:#fff; border-radius:0 0 12px 12px; }
+  .workspace-card { border-radius: 12px; box-shadow: rgba(0,0,0,.08) 0 1px 4px, rgba(0,0,0,.04) 0 4px 16px; }
+  .workspace-card-header { background:#fff; border-radius:12px 12px 0 0; padding:.75rem 1rem; border-bottom:1px solid #f0f0f0; }
+  .workspace-card-body pt-0 { padding:.875rem 1rem; background:#fff; border-radius:0 0 12px 12px; }
 
   .section-label { font-size:.65rem; letter-spacing:.08em; color:#9ca3af; }
 
@@ -214,6 +209,74 @@
 </style>
 
 <script>
+function showModalFromOffcanvas(modalEl) {
+  // Show a Bootstrap modal that was rendered inside an offcanvas without closing the offcanvas.
+  // To avoid z-index/backdrop issues when a modal lives inside an open offcanvas, temporarily
+  // move the modal element to document.body, show it, then restore it after the modal hides.
+  if (!modalEl) return;
+
+  const originalParent = modalEl.parentNode;
+  const nextSibling = modalEl.nextSibling;
+
+  // Move modal to body so its backdrop and stacking are handled correctly
+  try {
+    document.body.appendChild(modalEl);
+  } catch (err) {
+    // If moving fails, still attempt to show modal in place
+  }
+
+  const modal = new bootstrap.Modal(modalEl);
+
+  // Ensure the modal and its backdrop render above the offcanvas
+  modalEl.addEventListener('shown.bs.modal', function () {
+    const backdrop = document.querySelector('.modal-backdrop');
+    // Give the modal and its backdrop a high z-index so they render above the offcanvas.
+    if (backdrop) backdrop.style.zIndex = '2000';
+    modalEl.style.zIndex = '2010';
+  }, { once: true });
+
+  modalEl.addEventListener('hidden.bs.modal', function () {
+    // cleanup inline styles
+    modalEl.style.zIndex = '';
+    const backdrop = document.querySelector('.modal-backdrop');
+    if (backdrop) backdrop.style.zIndex = '';
+
+    // restore original DOM position
+    try {
+      if (originalParent) {
+        if (nextSibling) originalParent.insertBefore(modalEl, nextSibling); else originalParent.appendChild(modalEl);
+      }
+    } catch (err) {
+      // ignore
+    }
+  }, { once: true });
+
+  modal.show();
+}
+
+function removeNoOwnedPlaceholder() {
+  const container = document.getElementById('ownedWorkspacesContainer');
+  if (!container) return;
+  const placeholders = Array.from(container.querySelectorAll('.col > .text-muted'));
+  for (const el of placeholders) {
+    if ((el.textContent || '').trim().includes("You don't own any workspace yet.")) {
+      const col = el.closest('.col');
+      if (col) col.remove();
+    }
+  }
+}
+
+function showNoOwnedPlaceholder() {
+  const container = document.getElementById('ownedWorkspacesContainer');
+  if (!container) return;
+  // If there are any workspace cards, don't show placeholder
+  if (container.querySelector('.col')) return;
+  const col = document.createElement('div');
+  col.className = 'col';
+  col.innerHTML = `<div class="text-muted">You don't own any workspace yet.</div>`;
+  container.appendChild(col);
+}
+
 function getCookie(name) {
   let cookieValue = null;
   if (document.cookie && document.cookie !== '') {
@@ -246,23 +309,23 @@ function ensureEmptyLabel(wrap, selectorRow, emptyClass, emptyText, insertBefore
   }
 }
 
-function createTempGroupCard() {
-  const container = document.getElementById('ownedGroupsContainer');
+function createTempWorkspaceCard() {
+  const container = document.getElementById('ownedWorkspacesContainer');
   if (!container) return;
   const col = document.createElement('div');
   col.className = 'col';
 
   col.innerHTML = `
-    <div class="card border-0 h-100 group-card group-list" data-group-id="0" data-can-remove="1">
-      <div class="card-header d-flex align-items-center justify-content-between border-0 group-card-header">
-        <span class="fw-semibold group-name" style="font-size:.95rem;" contenteditable="true">New group</span>
+    <div class="card border-0 h-100 workspace-card workspace-list" data-workspace-id="0" data-can-remove="1">
+      <div class="card-header d-flex align-items-center justify-content-between border-0 workspace-card-header">
+        <span class="fw-semibold form-control px-0 border-0 workspace-name" style="font-size:.95rem;" contenteditable="true">New workspace</span>
         <div class="d-flex align-items-center gap-2">
-          <button type="button" class="btn btn-sm btn-outline-danger border-0 group-delete-btn" title="Delete group" aria-label="Delete group">
+          <button type="button" class="btn btn-sm btn-outline-danger border-0 workspace-delete-btn" title="Delete workspace" aria-label="Delete workspace">
             <i class="bi bi-trash"></i>
           </button>
         </div>
       </div>
-      <div class="card-body group-card-body">
+      <div class="card-body workspace-card-body pt-0">
         <div class="mb-3">
           <div class="text-uppercase fw-semibold mb-2 section-label">Members</div>
           <div class="d-flex flex-wrap align-items-center gap-2 members-wrap">
@@ -277,9 +340,10 @@ function createTempGroupCard() {
           </div>
         </div>
         <div>
-          <div class="text-uppercase fw-semibold mb-2 section-label">Assays</div>
+
+              <div class="text-uppercase fw-semibold mb-2 section-label">Investigations</div>
           <div class="d-flex flex-wrap align-items-center gap-2 assays-wrap">
-            <span class="text-muted small empty-assays">No assays shared</span>
+            <span class="text-muted small empty-assays">No investigations shared</span>
             <button type="button" class="btn btn-sm btn-outline-secondary btn-add-assay round-add-btn" title="Add assay" aria-label="Add assay">
               <i class="bi bi-plus-circle"></i>
             </button>
@@ -290,7 +354,9 @@ function createTempGroupCard() {
   `;
 
   container.prepend(col);
-  const nameEl = col.querySelector('.group-name');
+  // if we added a card, remove the "no workspaces" placeholder
+  removeNoOwnedPlaceholder();
+  const nameEl = col.querySelector('.workspace-name');
   if (!nameEl) return;
   nameEl.focus();
   try {
@@ -303,18 +369,18 @@ function createTempGroupCard() {
   function onBlurSave() {
     const newName = nameEl.textContent.trim();
     if (!newName) { col.remove(); return; }
-    fetch('{% url "create_group" %}', {
+    fetch('{% url "create_workspace" %}', {
       method: 'POST',
       headers: {'X-CSRFToken': csrftoken, 'Content-Type': 'application/x-www-form-urlencoded'},
       body: new URLSearchParams({name: newName, description: ''})
     }).then(r=>r.json()).then(data=>{
       if (data.success && data.redirect_url) {
-        const m = (data.redirect_url||"").match(/\/group\/(\d+)\//);
+        const m = (data.redirect_url||"").match(/\/workspace\/(\d+)\//);
         const pk = m ? m[1] : '';
-        const card = col.querySelector('.group-list'); if (card && pk) card.setAttribute('data-group-id', pk);
+        const card = col.querySelector('.workspace-list'); if (card && pk) card.setAttribute('data-workspace-id', pk);
         nameEl.setAttribute('contenteditable','false');
       } else {
-        alert('Failed to create group: ' + JSON.stringify(data.errors || data.error || 'Unknown'));
+        alert('Failed to create workspace: ' + JSON.stringify(data.errors || data.error || 'Unknown'));
         col.remove();
       }
     }).catch(err=>{ alert('Error: '+err); col.remove(); });
@@ -324,27 +390,27 @@ function createTempGroupCard() {
   nameEl.addEventListener('blur', onBlurSave);
 }
 
-function insertGroupIntoDOM(data, name) {
-  const m = (data.redirect_url || "").match(/\/group\/(\d+)\//);
+function insertWorkspaceIntoDOM(data, name) {
+  const m = (data.redirect_url || "").match(/\/workspace\/(\d+)\//);
   const pk = m ? m[1] : null;
   if (!pk) return;
 
-  const container = document.getElementById('ownedGroupsContainer');
+  const container = document.getElementById('ownedWorkspacesContainer');
   const col = document.createElement('div');
   col.className = 'col';
 
   col.innerHTML = `
-    <div class="card border-0 h-100 group-card group-list" data-group-id="${pk}" data-can-remove="1">
-        <div class="card-header d-flex align-items-center justify-content-between border-0 group-card-header">
-        <span class="fw-semibold group-name" style="font-size:.95rem;" contenteditable="false">${escapeHtml(name || 'New group')}</span>
+    <div class="card border-0 h-100 workspace-card workspace-list" data-workspace-id="${pk}" data-can-remove="1">
+        <div class="card-header d-flex align-items-center justify-content-between border-0 workspace-card-header">
+        <span class="fw-semibold form-control px-0 border-0 workspace-name" style="font-size:.95rem;" contenteditable="false">${escapeHtml(name || 'New workspace')}</span>
         <div class="d-flex align-items-center gap-2">
-          <button type="button" class="btn btn-sm btn-outline-danger border-0 group-delete-btn" title="Delete group" aria-label="Delete group">
+          <button type="button" class="btn btn-sm btn-outline-danger border-0 workspace-delete-btn" title="Delete workspace" aria-label="Delete workspace">
             <i class="bi bi-trash"></i>
           </button>
         </div>
       </div>
 
-      <div class="card-body group-card-body">
+      <div class="card-body workspace-card-body pt-0">
         <div class="mb-3">
           <div class="text-uppercase fw-semibold mb-2 section-label">Members</div>
           <div class="d-flex flex-wrap align-items-center gap-2 members-wrap">
@@ -356,9 +422,9 @@ function insertGroupIntoDOM(data, name) {
         </div>
 
         <div>
-          <div class="text-uppercase fw-semibold mb-2 section-label">Assays</div>
+          <div class="text-uppercase fw-semibold mb-2 section-label">Investigations</div>
           <div class="d-flex flex-wrap align-items-center gap-2 assays-wrap">
-            <span class="text-muted small empty-assays">No assays shared</span>
+            <span class="text-muted small empty-assays">No investigations shared</span>
             <button type="button" class="btn btn-sm btn-outline-secondary btn-add-assay round-add-btn" title="Add assay" aria-label="Add assay">
               <i class="bi bi-plus-circle"></i>
             </button>
@@ -369,42 +435,44 @@ function insertGroupIntoDOM(data, name) {
   `;
 
   container.prepend(col);
+  // if we inserted a card, remove the "no workspaces" placeholder
+  removeNoOwnedPlaceholder();
 }
 
 document.addEventListener('click', function(e) {
 
-  if (e.target.closest('#btnNewGroup')) {
+  if (e.target.closest('#btnNewWorkspace')) {
     // create inline card instead of opening modal
-    createTempGroupCard();
+    createTempWorkspaceCard();
     return;
   }
 
-  if (e.target.closest('#confirmCreateGroup')) {
-    const name = document.getElementById('newGroupName').value.trim();
-    const desc = document.getElementById('newGroupDesc').value.trim();
+  if (e.target.closest('#confirmCreateWorkspace')) {
+    const name = document.getElementById('newWorkspaceName').value.trim();
+    const desc = document.getElementById('newWorkspaceDesc').value.trim();
 
     if (!name) {
-      const err = document.getElementById('createGroupError');
-      err.textContent = 'Please enter a group name.';
+      const err = document.getElementById('createWorkspaceError');
+      err.textContent = 'Please enter a workspace name.';
       err.style.display = '';
       return;
     }
 
-    fetch('{% url "create_group" %}', {
+    fetch('{% url "create_workspace" %}', {
       method: 'POST',
       headers: {'X-CSRFToken': csrftoken, 'Content-Type': 'application/x-www-form-urlencoded'},
       body: new URLSearchParams({name: name, description: desc})
     }).then(r => r.json()).then(data => {
       if (data.success) {
-        insertGroupIntoDOM(data, name);
-        bootstrap.Modal.getInstance(document.getElementById('createGroupModal')).hide();
+        insertWorkspaceIntoDOM(data, name);
+        bootstrap.Modal.getInstance(document.getElementById('createWorkspaceModal')).hide();
       } else {
-        const err = document.getElementById('createGroupError');
+        const err = document.getElementById('createWorkspaceError');
         err.textContent = JSON.stringify(data.errors || data.error || 'Unknown error');
         err.style.display = '';
       }
     }).catch(err => {
-      const errEl = document.getElementById('createGroupError');
+      const errEl = document.getElementById('createWorkspaceError');
       errEl.textContent = String(err);
       errEl.style.display = '';
     });
@@ -413,22 +481,22 @@ document.addEventListener('click', function(e) {
 
   const addMemberBtn = e.target.closest('.btn-add-member');
   if (addMemberBtn) {
-    const groupEl = addMemberBtn.closest('.group-list');
-    if (!groupEl) return;
+    const workspaceEl = addMemberBtn.closest('.workspace-list');
+    if (!workspaceEl) return;
 
-    const gid = groupEl.getAttribute('data-group-id');
+    const gid = workspaceEl.getAttribute('data-workspace-id');
     const modalEl = document.getElementById('addMemberModal');
-    modalEl.setAttribute('data-group-id', gid);
+    modalEl.setAttribute('data-workspace-id', gid);
     document.getElementById('memberEmail').value = '';
     document.getElementById('memberRole').value = 'member';
     document.getElementById('addMemberError').style.display = 'none';
-    new bootstrap.Modal(modalEl).show();
+    showModalFromOffcanvas(modalEl);
     return;
   }
 
   if (e.target.closest('#confirmAddMember')) {
     const modalEl = document.getElementById('addMemberModal');
-    const gid = modalEl.getAttribute('data-group-id');
+    const gid = modalEl.getAttribute('data-workspace-id');
     const email = document.getElementById('memberEmail').value.trim();
     const role = document.getElementById('memberRole').value || 'member';
 
@@ -439,7 +507,7 @@ document.addEventListener('click', function(e) {
       return;
     }
 
-    fetch(`/group/${gid}/member/add-email/`, {
+    fetch(`/workspace/${gid}/member/add-email/`, {
       method: 'POST',
       headers: {'X-CSRFToken': csrftoken, 'Content-Type': 'application/x-www-form-urlencoded'},
       body: new URLSearchParams({email: email, role: role})
@@ -453,17 +521,17 @@ document.addEventListener('click', function(e) {
 
       bootstrap.Modal.getInstance(modalEl).hide();
 
-      const groupEl = document.querySelector(`.group-list[data-group-id='${gid}']`);
-      if (!groupEl) return;
-      const wrap = groupEl.querySelector('.members-wrap');
+      const workspaceEl = document.querySelector(`.workspace-list[data-workspace-id='${gid}']`);
+      if (!workspaceEl) return;
+      const wrap = workspaceEl.querySelector('.members-wrap');
       if (!wrap) return;
 
       const empty = wrap.querySelector('.empty-members');
       if (empty) empty.remove();
 
-      const canRemove = groupEl.getAttribute('data-can-remove') === '1';
+      const canRemove = workspaceEl.getAttribute('data-can-remove') === '1';
       const memberEmailRaw = (data.member_email || email).trim();
-      const currentUserEmail = document.getElementById('ownedGroupsContainer')?.dataset.currentUser || '';
+      const currentUserEmail = document.getElementById('ownedWorkspacesContainer')?.dataset.currentUser || '';
       const initial = memberEmailRaw.slice(0,1).toUpperCase();
       const displayText = (memberEmailRaw.toLowerCase() === (currentUserEmail || '').toLowerCase()) ? 'You' : memberEmailRaw;
 
@@ -492,21 +560,21 @@ document.addEventListener('click', function(e) {
 
   const removeMemberBtn = e.target.closest('.btn-remove-member');
   if (removeMemberBtn) {
-    const groupEl = removeMemberBtn.closest('.group-list');
+    const workspaceEl = removeMemberBtn.closest('.workspace-list');
     const row = removeMemberBtn.closest('.member-row');
-    if (!groupEl || !row) return;
+    if (!workspaceEl || !row) return;
 
-    const gid = groupEl.getAttribute('data-group-id');
+    const gid = workspaceEl.getAttribute('data-workspace-id');
     const email = (row.querySelector('.member-text')?.textContent || '').trim();
-    if (!confirm(`Remove ${email} from group?`)) return;
+    if (!confirm(`Remove ${email} from workspace?`)) return;
 
-    fetch(`/group/${gid}/member/remove-email/`, {
+    fetch(`/workspace/${gid}/member/remove-email/`, {
       method: 'POST',
       headers: {'X-CSRFToken': csrftoken, 'Content-Type': 'application/x-www-form-urlencoded'},
       body: new URLSearchParams({email: email})
     }).then(r=>r.json()).then(data=>{
       if (data.success) {
-        const wrap = groupEl.querySelector('.members-wrap');
+        const wrap = workspaceEl.querySelector('.members-wrap');
         row.remove();
         ensureEmptyLabel(wrap, '.member-row', 'empty-members', 'No members yet', '.btn-add-member');
       } else {
@@ -518,34 +586,35 @@ document.addEventListener('click', function(e) {
 
   const addAssayBtn = e.target.closest('.btn-add-assay');
   if (addAssayBtn) {
-    const groupEl = addAssayBtn.closest('.group-list');
-    if (!groupEl) return;
+    const workspaceEl = addAssayBtn.closest('.workspace-list');
+    if (!workspaceEl) return;
 
-    const gid = groupEl.getAttribute('data-group-id');
+    const gid = workspaceEl.getAttribute('data-workspace-id');
     const modalEl = document.getElementById('addAssayModal');
-    modalEl.setAttribute('data-group-id', gid);
+    modalEl.setAttribute('data-workspace-id', gid);
     document.getElementById('selectAssay').value = '';
     document.getElementById('addAssayError').style.display = 'none';
-    new bootstrap.Modal(modalEl).show();
+    showModalFromOffcanvas(modalEl);
     return;
   }
 
   if (e.target.closest('#confirmAddAssay')) {
     const modalEl = document.getElementById('addAssayModal');
-    const gid = modalEl.getAttribute('data-group-id');
+    const gid = modalEl.getAttribute('data-workspace-id');
     const assayId = document.getElementById('selectAssay').value;
 
     if (!assayId) {
       const err = document.getElementById('addAssayError');
-      err.textContent = 'Select an assay.';
+      err.textContent = 'Select an investigation.';
       err.style.display = '';
       return;
     }
 
-    fetch(`/group/${gid}/assay/add/`, {
+    fetch(`/workspace/${gid}/assay/add/`, {
       method: 'POST',
       headers: {'X-CSRFToken': csrftoken, 'Content-Type': 'application/x-www-form-urlencoded'},
-      body: new URLSearchParams({assay: assayId})
+      // prefer the new 'investigation' param name
+      body: new URLSearchParams({investigation: assayId})
     }).then(r=>r.json()).then(data=>{
       if (!data.success) {
         const err = document.getElementById('addAssayError');
@@ -556,27 +625,27 @@ document.addEventListener('click', function(e) {
 
       bootstrap.Modal.getInstance(modalEl).hide();
 
-      const groupEl = document.querySelector(`.group-list[data-group-id='${gid}']`);
-      if (!groupEl) return;
-      const wrap = groupEl.querySelector('.assays-wrap');
+      const workspaceEl = document.querySelector(`.workspace-list[data-workspace-id='${gid}']`);
+      if (!workspaceEl) return;
+      const wrap = workspaceEl.querySelector('.assays-wrap');
       if (!wrap) return;
 
       const empty = wrap.querySelector('.empty-assays');
       if (empty) empty.remove();
 
-      const title = (document.getElementById('selectAssay').selectedOptions[0]?.text || 'Assay');
-      const canRemove = groupEl.getAttribute('data-can-remove') === '1';
+      const title = (document.getElementById('selectAssay').selectedOptions[0]?.text || 'Investigation');
+      const canRemove = workspaceEl.getAttribute('data-can-remove') === '1';
 
       const pill = document.createElement('span');
       pill.className = 'd-inline-flex align-items-center assay-row assay-pill';
       pill.setAttribute('data-assay-id', assayId);
-      pill.setAttribute('data-group-assay-id', data.group_assay_id || '');
+      pill.setAttribute('data-workspace-assay-id', data.workspace_assay_id || '');
 
       pill.innerHTML = `
         <span class="assay-text">${escapeHtml(title)}</span>
         ${canRemove ? `
           <button type="button" class="btn btn-link p-0 m-0 text-secondary btn-remove-assay" data-assay-id="${assayId}"
-                  aria-label="Remove assay ${escapeHtml(title)}" title="Remove assay ${escapeHtml(title)}">
+                  aria-label="Remove investigation ${escapeHtml(title)}" title="Remove investigation ${escapeHtml(title)}">
             <i class="bi bi-x"></i>
           </button>` : ``}
       `;
@@ -593,22 +662,22 @@ document.addEventListener('click', function(e) {
 
   const removeAssayBtn = e.target.closest('.btn-remove-assay');
   if (removeAssayBtn) {
-    const groupEl = removeAssayBtn.closest('.group-list');
+    const workspaceEl = removeAssayBtn.closest('.workspace-list');
     const row = removeAssayBtn.closest('.assay-row');
-    if (!groupEl || !row) return;
+    if (!workspaceEl || !row) return;
 
-    const gid = groupEl.getAttribute('data-group-id');
+    const gid = workspaceEl.getAttribute('data-workspace-id');
     const assayId = removeAssayBtn.getAttribute('data-assay-id') || removeAssayBtn.dataset.assayId;
-    if (!confirm('Remove this assay from group?')) return;
+    if (!confirm('Remove this investigation from workspace?')) return;
 
-    fetch(`/group/${gid}/assay/${assayId}/remove/`, {
+    fetch(`/workspace/${gid}/assay/${assayId}/remove/`, {
       method: 'POST',
       headers: {'X-CSRFToken': csrftoken, 'Content-Type': 'application/x-www-form-urlencoded'}
     }).then(r=>r.json()).then(data=>{
       if (data.success) {
-        const wrap = groupEl.querySelector('.assays-wrap');
+        const wrap = workspaceEl.querySelector('.assays-wrap');
         row.remove();
-        ensureEmptyLabel(wrap, '.assay-row', 'empty-assays', 'No assays shared', '.btn-add-assay');
+        ensureEmptyLabel(wrap, '.assay-row', 'empty-assays', 'No investigations shared', '.btn-add-assay');
       } else {
         alert('Failed: ' + (data.error || JSON.stringify(data.errors || 'Unknown error')));
       }
@@ -616,13 +685,13 @@ document.addEventListener('click', function(e) {
     return;
   }
 
-  // Inline editing: allow editing the group name directly by double-clicking it.
-  const nameElClicked = e.target.closest('.group-name');
+  // Inline editing: allow editing the workspace name directly by double-clicking it.
+  const nameElClicked = e.target.closest('.workspace-name');
   if (nameElClicked) {
-    const groupEl = nameElClicked.closest('.group-list');
-    if (!groupEl) return;
+    const workspaceEl = nameElClicked.closest('.workspace-list');
+    if (!workspaceEl) return;
     // only allow owners to edit (data-can-remove is set for owners)
-    if (groupEl.getAttribute('data-can-remove') !== '1') return;
+    if (workspaceEl.getAttribute('data-can-remove') !== '1') return;
 
     // If already editing, do nothing
     if (nameElClicked.getAttribute('contenteditable') === 'true') return;
@@ -655,8 +724,8 @@ document.addEventListener('click', function(e) {
       }
       const newName = nameElClicked.textContent.trim();
       if (newName === original) return;
-      const gid = groupEl.getAttribute('data-group-id');
-      fetch(`/group/update/${gid}/`, {
+      const gid = workspaceEl.getAttribute('data-workspace-id');
+      fetch(`/workspace/update/${gid}/`, {
         method: 'POST',
         headers: {'X-CSRFToken': csrftoken, 'Content-Type': 'application/x-www-form-urlencoded'},
         body: new URLSearchParams({name: newName, description: ''})
@@ -682,26 +751,28 @@ document.addEventListener('click', function(e) {
     return;
   }
 
-  const deleteBtn = e.target.closest('.group-delete-btn');
+  const deleteBtn = e.target.closest('.workspace-delete-btn');
   if (deleteBtn) {
-    const groupEl = deleteBtn.closest('.group-list');
-    if (!groupEl) return;
-    const gid = groupEl.getAttribute('data-group-id');
-    const name = groupEl.querySelector('.group-name')?.textContent.trim() || 'this group';
-    if (!confirm(`Delete group "${name}"? This cannot be undone.`)) return;
+    const workspaceEl = deleteBtn.closest('.workspace-list');
+    if (!workspaceEl) return;
+    const gid = workspaceEl.getAttribute('data-workspace-id');
+    const name = workspaceEl.querySelector('.workspace-name')?.textContent.trim() || 'this workspace';
+    if (!confirm(`Delete workspace "${name}"? This cannot be undone.`)) return;
 
     // Use GET endpoint which performs the deletion and redirects server-side.
-    fetch(`/group/delete/${gid}/`, {
+    fetch(`/workspace/delete/${gid}/`, {
       method: 'GET',
       headers: {'X-CSRFToken': csrftoken}
     }).then(r => {
       if (!r.ok) {
-        alert('Failed to delete group.');
+        alert('Failed to delete workspace.');
         return;
       }
-      // Remove the group card from the DOM to reflect deletion instantly.
-      const col = groupEl.closest('.col');
+      // Remove the workspace card from the DOM to reflect deletion instantly.
+      const col = workspaceEl.closest('.col');
       if (col) col.remove();
+      // if there are no more workspace cards, show placeholder
+      showNoOwnedPlaceholder();
     }).catch(err => alert('Error: ' + err));
     return;
   }

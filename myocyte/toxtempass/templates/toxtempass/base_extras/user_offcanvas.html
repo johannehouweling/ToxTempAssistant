@@ -6,11 +6,12 @@
     </div>
     <div class="offcanvas-body">
         <div class="mb-3">
+            <h5 class="mb-1">Account Info</h5>
             <p class="mb-1">You are logged in as <strong>{{ user.email }}</strong>.</p>
             {% if user.orcid_id %}
-            <p class="mb-0">Here you can log out, or cite this tool.</p>
+            <p class="mb-0 text-muted">Here you can manage your account.</p>
             {% else %}
-            <p class="mb-0">Here you can link your ORCID, log out, or cite this tool.</p>
+            <p class="mb-0 text-muted">Here you can link your ORCID and manage your account.</p>
             {% endif %}
         </div>
         {% if user.orcid_id %}
@@ -31,6 +32,9 @@
         <!-- Onboarding help trigger button -->
 
     </div>
+
+    <hr>
+    {% include "toxtempass/workspace_list.html" %}
 </div>
     <div class="text-center mb-2">
         <a href="{{config.reference_toxtempassistant_zenodo_code}}">
@@ -86,33 +90,40 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
+            // More robust: wait for the offcanvas "hidden" event before showing modal
             document.querySelectorAll("[data-bs-toggle='modal']").forEach((btn) => {
                 btn.addEventListener("click", function () {
-                    let offcanvasEl = document.querySelector(".offcanvas.show");
-                    let targetModal = document.querySelector(btn.getAttribute("data-bs-target"));
-        
+                    const offcanvasEl = document.querySelector(".offcanvas.show");
+                    const targetModal = document.querySelector(btn.getAttribute("data-bs-target"));
+
+                    if (!targetModal) return;
+
                     if (offcanvasEl) {
-                        let offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
-                        offcanvas.hide();
-        
-                        setTimeout(() => {
-                            let modal = new bootstrap.Modal(targetModal);
+                        // Ensure we have an Offcanvas instance
+                        const ocInstance = bootstrap.Offcanvas.getInstance(offcanvasEl) || new bootstrap.Offcanvas(offcanvasEl);
+
+                        // When the offcanvas is fully hidden, show the modal
+                        const onHidden = () => {
+                            const modal = new bootstrap.Modal(targetModal);
                             modal.show();
-                        }, 300); // Delay ensures offcanvas fully closes
-        
-                        targetModal.addEventListener("hidden.bs.modal", function () {
-                            // Wait until modal backdrop is removed before showing offcanvas
-                            const checkBackdrop = () => {
-                                const backdrop = document.querySelector('.modal-backdrop');
-                                if (!backdrop) {
-                                    let offcanvas = new bootstrap.Offcanvas(offcanvasEl);
-                                    offcanvas.show();
-                                } else {
-                                    setTimeout(checkBackdrop, 50);
-                                }
-                            };
-                            checkBackdrop();
-                        }, { once: true });
+
+                            // After the modal is hidden, restore the offcanvas once the backdrop is gone
+                            targetModal.addEventListener('hidden.bs.modal', function () {
+                                const tryRestore = () => {
+                                    const backdrop = document.querySelector('.modal-backdrop');
+                                    if (!backdrop) {
+                                        const oc = new bootstrap.Offcanvas(offcanvasEl);
+                                        oc.show();
+                                    } else {
+                                        setTimeout(tryRestore, 50);
+                                    }
+                                };
+                                tryRestore();
+                            }, { once: true });
+                        };
+
+                        offcanvasEl.addEventListener('hidden.bs.offcanvas', onHidden, { once: true });
+                        ocInstance.hide();
                     }
                 });
             });
