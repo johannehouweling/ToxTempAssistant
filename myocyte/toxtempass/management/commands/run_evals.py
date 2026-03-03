@@ -7,7 +7,7 @@ from toxtempass.evaluation.negative_control.ncontrol import (
 from toxtempass.evaluation.positive_control.pcontrol import (
     run as run_pcontrol,
 )
-from toxtempass.evaluation.realworld_files.realworld import (
+from toxtempass.evaluation.real_world_files.realworld import (
     run as run_realworld,
 )
 
