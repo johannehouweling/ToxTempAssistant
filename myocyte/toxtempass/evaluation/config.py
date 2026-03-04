@@ -168,10 +168,10 @@ class EvaluationConfig:
          "input_type_comparison": {
             "models": [
                 {"name": "gpt-4o-mini", "temperature": 0},
-                # {"name": "gpt-4.1-nano", "temperature": 0},
-                # {"name": "o3-mini", "temperature": None},
-                # {"name": "gpt-5-mini", "temperature": None},
-                # {"name": "gpt-5-nano", "temperature": None}
+                {"name": "gpt-4.1-nano", "temperature": 0},
+                {"name": "o3-mini", "temperature": None},
+                {"name": "gpt-5-mini", "temperature": None},
+                {"name": "gpt-5-nano", "temperature": None}
             ],
             "description": "comparing different input document types (e.g., lab protocol, published paper, technical manual) with each other. Looking at how many questions can be answered per document type and model.",
             # "validation_metrics": [
