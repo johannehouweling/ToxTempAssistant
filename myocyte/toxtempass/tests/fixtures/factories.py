@@ -19,6 +19,10 @@ from toxtempass.models import (
     Section,
     Study,
     Subsection,
+    Workspace,
+    WorkspaceInvestigation,
+    WorkspaceMember,
+    WorkspaceRole,
 )
 
 
@@ -195,3 +199,48 @@ class FileAssetFactory(DjangoModelFactory):
     sha256 = factory.LazyFunction(lambda: uuid.uuid4().hex)
     status = FileAsset.Status.AVAILABLE
     uploaded_by = factory.SubFactory(PersonFactory)
+
+
+class WorkspaceFactory(DjangoModelFactory):
+    """Factory for Workspace model.
+
+    NOTE: Workspace.save() auto-creates a WorkspaceMember with OWNER role.
+    Do NOT manually create an owner WorkspaceMember — use workspace.memberships.first().
+    """
+
+    class Meta:
+        model = Workspace
+
+    owner = factory.SubFactory(PersonFactory)
+    name = factory.Faker("company")
+    description = factory.Faker("sentence", locale="en_US", nb_words=10, variable_nb_words=True)
+
+
+class WorkspaceMemberFactory(DjangoModelFactory):
+    """Factory for WorkspaceMember (non-owner members only).
+
+    Do not use for the workspace owner — Workspace.save() creates that automatically.
+    Use this for ADMIN or MEMBER entries only.
+    """
+
+    class Meta:
+        model = WorkspaceMember
+
+    workspace = factory.SubFactory(WorkspaceFactory)
+    user = factory.SubFactory(PersonFactory)
+    role = WorkspaceRole.MEMBER
+
+
+class WorkspaceInvestigationFactory(DjangoModelFactory):
+    """Factory for WorkspaceInvestigation.
+
+    Does NOT grant guardian permissions — permission propagation is view-layer logic.
+    Use this factory only to set up pre-existing DB state.
+    """
+
+    class Meta:
+        model = WorkspaceInvestigation
+
+    workspace = factory.SubFactory(WorkspaceFactory)
+    investigation = factory.SubFactory(InvestigationFactory)
+    added_by = factory.LazyAttribute(lambda obj: obj.workspace.owner)

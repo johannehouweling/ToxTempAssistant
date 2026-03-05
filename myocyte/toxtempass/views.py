@@ -1989,10 +1989,19 @@ def remove_workspace_member(request: HttpRequest, pk: int, user_id: int) -> Json
             {"success": False, "error": "Cannot remove the owner"}, status=400
         )
 
-    # Revoke any object-level permissions the user received due to this workspace
+    # Revoke any object-level permissions the user received due to this workspace,
+    # but only if the user does not retain access via another workspace that also shares
+    # the same investigation.
     try:
+        other_workspace_ids = WorkspaceMember.objects.filter(
+            user=member_to_remove.user
+        ).exclude(workspace=workspace).values_list("workspace_id", flat=True)
         shared_invs = WorkspaceInvestigation.objects.filter(workspace=workspace).select_related("investigation")
         for winv in shared_invs:
+            if WorkspaceInvestigation.objects.filter(
+                investigation=winv.investigation, workspace_id__in=other_workspace_ids
+            ).exists():
+                continue  # user still has access via another workspace — keep the perm
             try:
                 remove_perm("view_investigation", member_to_remove.user, winv.investigation)
             except Exception:
@@ -2050,10 +2059,19 @@ def remove_workspace_member_by_email(request: HttpRequest, pk: int) -> JsonRespo
         if not membership or requester_role not in [WorkspaceRole.OWNER, WorkspaceRole.ADMIN]:
             return JsonResponse({"success": False, "error": "You do not have permission"}, status=404)
 
-    # Revoke permissions granted via this workspace for the removed user
+    # Revoke permissions granted via this workspace for the removed user,
+    # but only if the user does not retain access via another workspace that also shares
+    # the same investigation.
     try:
+        other_workspace_ids = WorkspaceMember.objects.filter(
+            user=user
+        ).exclude(workspace=workspace).values_list("workspace_id", flat=True)
         shared_invs = WorkspaceInvestigation.objects.filter(workspace=workspace).select_related("investigation")
         for winv in shared_invs:
+            if WorkspaceInvestigation.objects.filter(
+                investigation=winv.investigation, workspace_id__in=other_workspace_ids
+            ).exists():
+                continue  # user still has access via another workspace — keep the perm
             try:
                 remove_perm("view_investigation", user, winv.investigation)
             except Exception:
@@ -2144,10 +2162,17 @@ def remove_workspace_assay(request: HttpRequest, pk: int, assay_id: int) -> Json
     investigation = workspace_inv.investigation
     workspace_inv.delete()
 
+    # Revoke view_investigation perm from each member, but only if they do not
+    # retain access to the same investigation via another workspace.
     members = WorkspaceMember.objects.filter(workspace=workspace).select_related("user")
     for member in members:
-        from guardian.shortcuts import remove_perm
-
+        other_workspace_ids = WorkspaceMember.objects.filter(
+            user=member.user
+        ).exclude(workspace=workspace).values_list("workspace_id", flat=True)
+        if WorkspaceInvestigation.objects.filter(
+            investigation=investigation, workspace_id__in=other_workspace_ids
+        ).exists():
+            continue  # member still has access via another workspace — keep the perm
         remove_perm("view_investigation", member.user, investigation)
 
     return JsonResponse({"success": True, "errors": {}})
