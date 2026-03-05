@@ -52,15 +52,15 @@ from toxtempass.filehandling import (
 from toxtempass.forms import (
     AssayAnswerForm,
     AssayForm,
-    WorkspaceForm,
-    WorkspaceInvestigationForm,
-    WorkspaceMemberForm,
     InvestigationForm,
     LoginForm,
     SignupForm,
     SignupFormOrcid,
     StartingForm,
     StudyForm,
+    WorkspaceForm,
+    WorkspaceInvestigationForm,
+    WorkspaceMemberForm,
 )
 from toxtempass.llm import get_llm
 from toxtempass.models import (
@@ -68,10 +68,6 @@ from toxtempass.models import (
     AnswerFile,
     Assay,
     Feedback,
-    Workspace,
-    WorkspaceMember,
-    WorkspaceRole,
-    WorkspaceInvestigation,
     Investigation,
     LLMStatus,
     Person,
@@ -80,8 +76,13 @@ from toxtempass.models import (
     Section,
     Study,
     Subsection,
+    Workspace,
+    WorkspaceInvestigation,
+    WorkspaceMember,
+    WorkspaceRole,
 )
 from toxtempass.tables import AssayTable
+from toxtempass.utilities import provenance_label_for_item
 
 logger = logging.getLogger("views")
 
@@ -1168,10 +1169,16 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
 def get_filtered_studies(request: HttpRequest, investigation_id: int) -> JsonResponse:
     """Get filtered Studies based on the Investigation ID."""
     if investigation_id:
-        studies = Study.objects.filter(investigation_id=investigation_id).values(
-            "id", "title"
+        # include owner + creator provenance when appropriate
+        studies = (
+            Study.objects.filter(investigation_id=investigation_id)
+            .select_related("investigation__owner", "created_by")
         )
-        return JsonResponse(list(studies), safe=False)
+        out = []
+        for s in studies:
+            display = provenance_label_for_item(s, request.user)
+            out.append({"id": s.id, "title": s.title, "display": display})
+        return JsonResponse(out, safe=False)
     return JsonResponse([], safe=False)
 
 
@@ -1179,14 +1186,14 @@ def get_filtered_studies(request: HttpRequest, investigation_id: int) -> JsonRes
 def get_filtered_assays(request: HttpRequest, study_id: int) -> JsonResponse:
     """Get filtered Assays based on the Study ID."""
     if study_id:
-        assays = Assay.objects.filter(study_id=study_id)
-        assays_list = [
-            {
-                "id": assay.id,
-                "title": str(assay),
-            }
-            for assay in assays
-        ]
+        assays = (
+            Assay.objects.filter(study_id=study_id)
+            .select_related("study__investigation__owner", "created_by")
+        )
+        assays_list = []
+        for assay in assays:
+            display = provenance_label_for_item(assay, request.user)
+            assays_list.append({"id": assay.id, "title": assay.title, "display": display})
         return JsonResponse(assays_list, safe=False)
     return JsonResponse([], safe=False)
 
@@ -1235,10 +1242,13 @@ def create_or_update_investigation(
     else:
         investigation = None
     if request.method == "POST":
-        form = InvestigationForm(request.POST, instance=investigation)
+        # Bind posted data to the form
+        form = InvestigationForm(request.POST, user=request.user, instance=investigation)
         if form.is_valid():
             inv = form.save(commit=False)
-            inv.owner = request.user
+            # Only set the owner when creating a new Investigation; do not change owner on updates
+            if investigation is None:
+                inv.owner = request.user
             inv.save()
             return JsonResponse(
                 {
@@ -1250,7 +1260,8 @@ def create_or_update_investigation(
         else:
             return JsonResponse({"success": False, "errors": form.errors})
     else:
-        form = InvestigationForm(instance=investigation)
+        # GET: show form; pass instance but do not change owner here
+        form = InvestigationForm(user=request.user, instance=investigation)
     return render(
         request,
         "create.html",
@@ -1298,7 +1309,18 @@ def create_or_update_study(
     if request.method == "POST":
         form = StudyForm(request.POST, instance=study, user=request.user)
         if form.is_valid():
-            saved_study = form.save()
+            investigation = form.cleaned_data.get("investigation")
+            # Ensure the user actually has view access to the parent investigation
+            if not investigation.is_accessible_by(request.user, perm_prefix="view"):
+                from django.core.exceptions import PermissionDenied
+
+                raise PermissionDenied("You do not have permission to add a study to this investigation.")
+
+            saved_study = form.save(commit=False)
+            # record who created it when creating a new Study
+            if study is None:
+                saved_study.created_by = request.user
+            saved_study.save()
             inv_id = saved_study.investigation_id
             st_id = saved_study.id
 
@@ -1329,6 +1351,20 @@ def create_or_update_study(
         if inv_id:
             back_url += f"?investigation={inv_id}"
 
+        # If creating inside a workspace-shared investigation and the current user
+        # is not the investigation owner, present a warning banner in the UI.
+        warning = None
+        if study is None:
+            try:
+                inv = Investigation.objects.get(pk=int(inv_id)) if inv_id else None
+            except Exception:
+                inv = None
+            if inv and inv.owner != request.user and inv.is_accessible_by(request.user, perm_prefix="view"):
+                warning = (
+                    f"You are creating a Study inside an Investigation owned by {inv.owner.email}. "
+                    "If you leave the workspace or lose access, you lose editing access to this Study and all its associated Assays."
+                )
+
         return render(
             request,
             "create.html",
@@ -1336,6 +1372,7 @@ def create_or_update_study(
                 "form": form,
                 "title": pk and "Modify Study" or "Create Study",
                 "back_url": mark_safe(back_url),  # noqa: S308
+                "workspace_creation_warning": warning,
             },
         )
 
@@ -1372,7 +1409,11 @@ def create_or_update_assay(
     if request.method == "POST":
         form = AssayForm(request.POST, instance=assay, user=request.user)
         if form.is_valid():
-            saved_assay = form.save()
+            saved_assay = form.save(commit=False)
+            # record creator for new assays when created by workspace members
+            if assay is None:
+                saved_assay.created_by = request.user
+            saved_assay.save()
             st_id = saved_assay.study_id
             inv_id = saved_assay.study.investigation_id
             assay_id = saved_assay.id
@@ -1724,10 +1765,29 @@ def assay_feedback(request: HttpRequest, assay_id: int) -> JsonResponse:
 @login_required(login_url="/login/")
 def get_workspace_list(request: HttpRequest) -> dict:
     """List all workspaces the user is a member of."""
+    # memberships holds WorkspaceMember rows for the current user so we can
+    # present workspaces the user belongs to even when they are not the owner.
     memberships = WorkspaceMember.objects.filter(user=request.user).select_related(
         "workspace", "workspace__owner"
     )
-    owned_workspaces = Workspace.objects.filter(owner=request.user).order_by("-created_at")
+
+    # Workspaces owned by the user
+    owned_workspaces = list(Workspace.objects.filter(owner=request.user).order_by("-created_at"))
+    # Ensure owned workspaces have a role attribute so template logic can be unified
+    for ws in owned_workspaces:
+        setattr(ws, "current_user_role", WorkspaceRole.OWNER)
+
+    # Workspaces where the user is a member (but not the owner)
+    member_workspaces = []
+    for m in memberships:
+        ws = m.workspace
+        # skip owned ones (already included)
+        if ws.owner_id == request.user.id:
+            continue
+        # attach the current user's role for template checks (owner/admin/member)
+        setattr(ws, "current_user_role", m.role)
+        member_workspaces.append(ws)
+
     # Provide investigations accessible to this user so the inline "Add investigation" modal can show options
     accessible_investigations = get_objects_for_user(
         request.user, "toxtempass.view_investigation", klass=Investigation, use_groups=False, any_perm=False
@@ -1735,11 +1795,12 @@ def get_workspace_list(request: HttpRequest) -> dict:
     # Only show investigations owned by the current user in the Add modal to avoid allowing
     # users to share investigations they do not own via the UI. Server-side check will also enforce ownership.
     owned_investigations = Investigation.objects.filter(owner=request.user)
+
     return {
-            "memberships": memberships,
-            "owned_workspaces": owned_workspaces,
-            "accessible_investigations": owned_investigations,
-        }
+        "owned_workspaces": owned_workspaces,
+        "member_workspaces": member_workspaces,
+        "accessible_investigations": owned_investigations,
+    }
 
 
 @login_required(login_url="/login/")
@@ -1765,27 +1826,24 @@ def create_or_update_workspace(
                 grp.save()
             else:
                 grp.save()
+            # Return redirect_url containing the workspace id so client-side JS
+            # can extract the created/updated workspace primary key and
+            # update the DOM without a full page reload. The JS expects a
+            # URL matching /workspace/<pk>/ so return that form (it does not
+            # need to be a real routable view — it's only used to extract pk).
+            redirect_url = f"/workspace/{grp.pk}/"
             return JsonResponse(
                 {
                     "success": True,
                     "errors": form.errors,
-                    "redirect_url": reverse("workspace_detail", args=[grp.pk]),
+                    "redirect_url": redirect_url,
+                    "workspace_id": grp.pk,
                 }
             )
         else:
             return JsonResponse({"success": False, "errors": form.errors})
     else:
-        form = WorkspaceForm(instance=workspace)
-    return render(
-        request,
-        "toxtempass/workspace_form.html",
-        {
-            "form": form,
-            "title": "Create Workspace" if not pk else "Edit Workspace",
-            "back_url": mark_safe(reverse("workspace_list")),
-        },
-    )
-
+        return JsonResponse({"success": False, "error": "POST request required"}, status=405)
 
 @login_required(login_url="/login/")
 def delete_workspace(request: HttpRequest, pk: int) -> JsonResponse | HttpResponseRedirect:
@@ -1799,37 +1857,6 @@ def delete_workspace(request: HttpRequest, pk: int) -> JsonResponse | HttpRespon
         workspace.delete()
         return redirect("overview")
     return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
-
-
-@login_required(login_url="/login/")
-def workspace_detail(request: HttpRequest, pk: int) -> HttpResponse:
-    """Show workspace details with members and shared assays."""
-    workspace = get_object_or_404(Workspace, pk=pk)
-    membership = WorkspaceMember.objects.filter(workspace=workspace, user=request.user).first()
-    if not membership and workspace.owner != request.user:
-        from django.core.exceptions import PermissionDenied
-
-        raise PermissionDenied("You are not a member of this workspace.")
-
-    members = WorkspaceMember.objects.filter(workspace=workspace).select_related("user")
-    # investigations shared into this workspace
-    shared_investigations = WorkspaceInvestigation.objects.filter(workspace=workspace).select_related(
-        "investigation", "added_by"
-    )
-    # investigations the current user can share (owned by them)
-    owned_investigations = Investigation.objects.filter(owner=request.user)
-
-    return render(
-        request,
-        "toxtempass/workspace_detail.html",
-        {
-            "workspace": workspace,
-            "membership": membership,
-            "members": members,
-            "shared_investigations": shared_investigations,
-            "owned_investigations": owned_investigations,
-        },
-    )
 
 
 @login_required(login_url="/login/")
@@ -1990,9 +2017,11 @@ def remove_workspace_member_by_email(request: HttpRequest, pk: int) -> JsonRespo
         return JsonResponse({"success": False, "error": "POST required"}, status=405)
 
     workspace = get_object_or_404(Workspace, pk=pk)
+    # Allow three cases to remove a member by email:
+    # 1) requester is OWNER or ADMIN (can remove other members, but not the owner)
+    # 2) requester is removing themself (allowed as long as they are not the owner)
     membership = WorkspaceMember.objects.filter(workspace=workspace, user=request.user).first()
-    if not membership or membership.role not in [WorkspaceRole.OWNER, WorkspaceRole.ADMIN]:
-        return JsonResponse({"success": False, "error": "You do not have permission"}, status=404)
+    requester_role = membership.role if membership else None
 
     email = request.POST.get("email", "").strip().lower()
     if not email:
@@ -2008,8 +2037,18 @@ def remove_workspace_member_by_email(request: HttpRequest, pk: int) -> JsonRespo
     except WorkspaceMember.DoesNotExist:
         return JsonResponse({"success": False, "error": "Not a member"}, status=404)
 
+    # Prevent removal of the owner in all cases
     if gm.role == WorkspaceRole.OWNER:
         return JsonResponse({"success": False, "error": "Cannot remove the owner"}, status=400)
+
+    # If the requester is removing themself, allow it (unless owner)
+    if user.id == request.user.id:
+        # proceed to delete membership
+        pass
+    else:
+        # requester is removing someone else -> must be owner or admin
+        if not membership or requester_role not in [WorkspaceRole.OWNER, WorkspaceRole.ADMIN]:
+            return JsonResponse({"success": False, "error": "You do not have permission"}, status=404)
 
     # Revoke permissions granted via this workspace for the removed user
     try:

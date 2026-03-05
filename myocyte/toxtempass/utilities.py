@@ -1,8 +1,9 @@
 import hashlib
 import logging
 from pathlib import Path
+from django.db.models import Model
+from toxtempass.models import Assay, Person, Study, Investigation
 
-from toxtempass.models import Person
 
 logger = logging.getLogger(__name__)
 
@@ -131,4 +132,59 @@ def set_beta_admitted(person:Person, admitted: bool, comment: Optional[str] = No
         prefs["beta_comment"] = comment
     person.preferences = prefs
     person.save(update_fields=["preferences"])
+
+
+def provenance_label_for_item(
+    item: Model,
+    current_user: Person | None,
+) -> str:
+    """Return a provenance-aware display label for a Study/Assay title.
+
+    Rules:
+      - If creator is present and different from investigation_owner, show
+        "{title} (by creator.email on behalf of owner.email)".
+      - Else if creator is present and different from current_user, show
+        "{title} (by creator.email)".
+      - Else if investigation_owner is present and different from current_user,
+        show "{title} (by owner.email)".
+      - Otherwise, return the plain title.
+    """
+    # default
+    investigation_owner = None
+    creator = None
+    # Support Study, Assay and Investigation model instances
+    if isinstance(item, Study):
+        investigation_owner = item.investigation.owner if item.investigation else None
+        creator = getattr(item, "created_by", None)
+    elif isinstance(item, Assay):
+        investigation_owner = (
+            item.study.investigation.owner if item.study and item.study.investigation else None
+        )
+        creator = getattr(item, "created_by", None)
+    elif isinstance(item, Investigation):
+        investigation_owner = getattr(item, "owner", None)
+        creator = getattr(item, "created_by", None)
+    else:
+        # If some other object (or a raw title) was passed, try best-effort
+        creator = getattr(item, "created_by", None)
+    creator_str = creator.email if creator else "Unknown"
+    if creator == current_user:
+        creator_str = "You"
+    try:
+        if creator and investigation_owner and creator.id != investigation_owner.id:
+            return f"{item.title} (by {creator_str} on behalf of {investigation_owner.email})"
+        if creator and current_user and creator.id != current_user.id:
+            return f"{item.title} (by {creator_str})"
+        if investigation_owner and current_user and investigation_owner.id != current_user.id:
+            return f"{item.title} (by {investigation_owner.email})"
+        # Fallbacks: if creator exists and is not current_user
+        if creator and (not current_user or creator.id != current_user.id):
+            return f"{item.title} (by {creator_str})"
+        if investigation_owner and (not current_user or investigation_owner.id != current_user.id):
+            return f"{item.title} (by {investigation_owner.email})"
+    except Exception:
+        pass
+    return item.title
+
+
 

@@ -7,11 +7,10 @@
     <div class="offcanvas-body">
         <div class="mb-3">
             <h5 class="mb-1">Account Info</h5>
-            <p class="mb-1">You are logged in as <strong>{{ user.email }}</strong>.</p>
             {% if user.orcid_id %}
             <p class="mb-0 text-muted">Here you can manage your account.</p>
             {% else %}
-            <p class="mb-0 text-muted">Here you can link your ORCID and manage your account.</p>
+            <p class="mb-0 text-muted">Here you can manage your account. You have not linked your ORCID yet.</p>
             {% endif %}
         </div>
         {% if user.orcid_id %}
@@ -34,7 +33,7 @@
     </div>
 
     <hr>
-    {% include "toxtempass/workspace_list.html" %}
+    {% include "toxtempass/base_extras/workspaces/workspace_list_partial.html" %}
 </div>
     <div class="text-center mb-2">
         <a href="{{config.reference_toxtempassistant_zenodo_code}}">

@@ -173,6 +173,15 @@ class Study(AccessibleModel):
     title = models.CharField(max_length=255, blank=False, null=False)
     description = models.TextField(blank=True)
     submission_date = models.DateTimeField(auto_now_add=True)
+    # Track who created this Study (may be a workspace member who is not the investigation owner)
+    created_by = models.ForeignKey(
+        Person,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_studies",
+        help_text="The user who created this Study (may differ from the Investigation owner).",
+    )
 
     def __str__(self):
         """Study as string."""
@@ -245,6 +254,15 @@ class Assay(AccessibleModel):
     title = models.CharField(max_length=255, blank=False, null=False)
     description = models.TextField(blank=False, default="")
     submission_date = models.DateTimeField(auto_now_add=True)
+    # Track who created this Assay (may be a workspace member who is not the investigation owner)
+    created_by = models.ForeignKey(
+        Person,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_assays",
+        help_text="The user who created this Assay (may differ from the Investigation owner).",
+    )
     status = models.CharField(
         max_length=10,
         choices=LLMStatus.choices,
@@ -712,6 +730,7 @@ class WorkspaceInvestigation(models.Model):
 
     class Meta:
         unique_together = ("workspace", "investigation")
+
 
 
 

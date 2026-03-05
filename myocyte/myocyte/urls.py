@@ -150,7 +150,6 @@ urlpatterns += [
     path("workspace/create/", views.create_or_update_workspace, name="create_workspace"),
     path("workspace/update/<int:pk>/", views.create_or_update_workspace, name="update_workspace"),
     path("workspace/delete/<int:pk>/", views.delete_workspace, name="delete_workspace"),
-    path("workspace/<int:pk>/", views.workspace_detail, name="workspace_detail"),
     path("workspace/<int:pk>/member/add/", views.add_workspace_member, name="add_workspace_member"),
     path(
         "workspace/<int:pk>/member/add-email/",

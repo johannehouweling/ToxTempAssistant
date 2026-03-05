@@ -150,6 +150,8 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "toxtempass.context_processors.toxtempass_config",
                 "toxtempass.context_processors.current_url_name",
+                # Provide workspace data (owned/member) to templates globally
+                "toxtempass.context_processors.workspaces",
             ],
         },
     },

@@ -20,10 +20,6 @@ from toxtempass.filehandling import (
 from toxtempass.models import (
     Answer,
     Assay,
-    Workspace,
-    WorkspaceInvestigation,
-    WorkspaceMember,
-    WorkspaceRole,
     Investigation,
     LLMStatus,
     Person,
@@ -31,7 +27,11 @@ from toxtempass.models import (
     QuestionSet,
     Section,
     Study,
+    Workspace,
+    WorkspaceRole,
 )
+from toxtempass.utilities import provenance_label_for_item
+from functools import partial
 from toxtempass.widgets import (
     BootstrapSelectWithButtonsWidget,
 )  # Import the custom widget
@@ -328,11 +328,22 @@ class StartingForm(forms.Form):
                 user, "toxtempass.view_investigation"
             )
             self.fields["investigation"].queryset = accessible_investigations
+            # Bind the current_user into the provenance helper so Django will call
+            # the resulting function with a single 'instance' argument as expected.
+            self.fields["investigation"].label_from_instance = partial(
+                provenance_label_for_item, current_user=user
+            )
+            self.fields["study"].label_from_instance = partial(
+                provenance_label_for_item, current_user=user
+            )
             self.fields["study"].queryset = Study.objects.filter(
                 investigation__in=accessible_investigations
             )
             self.fields["assay"].queryset = Assay.objects.filter(
                 study__investigation__in=accessible_investigations
+            )
+            self.fields["assay"].label_from_instance = partial(
+                provenance_label_for_item, current_user=user
             )
 
     def clean(self) -> dict:
@@ -361,6 +372,13 @@ class InvestigationForm(forms.ModelForm):
         widgets = {
             "public_release_date": forms.DateTimeInput(attrs={"type": "datetime-local"}),
         }
+    def __init__(self, *args, user: Person, **kwargs):
+        """Add owner indication for users who are not the owner to mark provenance."""
+        super().__init__(*args, **kwargs)
+        if self.instance.pk and getattr(self.instance, "owner", None) != user:
+            # change __str__ for title into titel (<owner>)
+            original_str = self.instance.__str__
+            self.instance.__str__ = lambda: f"{original_str()} (by {self.instance.owner})"
 
 
 # Form to create a Study
@@ -379,6 +397,19 @@ class StudyForm(forms.ModelForm):
             self.fields["investigation"].queryset = get_objects_for_user(
                 user, "toxtempass.view_investigation"
             )
+            self.fields["investigation"].label_from_instance = partial(
+                provenance_label_for_item, current_user=user
+            )
+
+    def clean(self) -> dict:
+        """If the study is being created by a user who is not the investigation owner,
+        attach a warning flag into cleaned_data so the view can show the UI banner.
+        """
+        cleaned = super().clean()
+        inv = cleaned.get("investigation")
+        if inv and self.instance.pk is None:
+            cleaned["is_workspace_creation"] = getattr(inv, "owner", None) != None
+        return cleaned
 
 
 # Form to create an Assay
@@ -410,6 +441,25 @@ class AssayForm(forms.ModelForm):
             self.fields["study"].queryset = Study.objects.filter(
                 investigation__in=accessible_investigations
             )
+            # Show provenance for Study choices when the study's investigation owner differs
+            def _study_label_af(obj, current_user=user):
+                try:
+                    inv_owner = getattr(obj.investigation, "owner", None)
+                    creator = getattr(obj, "created_by", None)
+                    # Prefer showing the Investigation owner when different; otherwise show who created the Study
+                    if inv_owner and inv_owner != current_user and creator and creator != current_user:
+                        return f"{obj.title} (by {creator.email} on behalf of {inv_owner.email})"
+                    if inv_owner and inv_owner == current_user and creator and creator != current_user:
+                        return f"{obj.title} (by {creator.email})"
+                    if inv_owner and inv_owner != current_user:
+                        return f"{obj.title} (by {inv_owner.email})"
+                    if creator and creator != current_user:
+                        return f"{obj.title} (by {creator.email})"
+                except Exception:
+                    pass
+                return str(obj.title)
+
+            self.fields["study"].label_from_instance = _study_label_af
 
 
 class AssayAnswerForm(forms.Form):
@@ -707,3 +757,4 @@ class WorkspaceInvestigationForm(forms.Form):
             self.fields["investigation"].queryset = Investigation.objects.filter(
                 id__in=[i.id for i in accessible_investigations]
             )
+            self.fields["investigation"].label_from_instance = lambda x: provenance_label_for_item(x, user)

@@ -77,7 +77,7 @@
     </div>
 
     <script>
-        const csrftoken = "{{ csrf_token }}"; // This line uses Django's template tag
+        var csrftoken = "{{ csrf_token }}"; // This line uses Django's template tag
         // Deactivate the upload menu if gpt is not allowed anymore because answers exist already.
         var assay_select = document.getElementById('id_assay')
         
@@ -219,7 +219,7 @@
                     .then(data => {
                         studySelect.innerHTML = '<option value="" selected>---------</option>';
                         data.forEach(study => {
-                            const option = new Option(study.title, study.id);
+                            const option = new Option(study.display || study.title, study.id);
                             studySelect.appendChild(option);
                         });
                         studySelect.disabled = false;
@@ -236,7 +236,7 @@
                     .then(assays => {
                         assaySelect.innerHTML = '<option value="" selected>---------</option>';
                         assays.forEach(assay => {
-                            const opt = new Option(assay.title, assay.id);
+                            const opt = new Option(assay.display || assay.title, assay.id);
                             assaySelect.appendChild(opt);
                         });
                         assaySelect.disabled = false;
@@ -276,7 +276,7 @@
                             assaySelect.disabled = true;
 
                             data.forEach(study => {
-                                var option = new Option(study.title, study.id);
+                                var option = new Option(study.display || study.title, study.id);
                                 studySelect.appendChild(option);
                             });
                         })
@@ -301,7 +301,7 @@
                             assaySelect.disabled = false;
 
                             data.forEach(assay => {
-                                var option = new Option(assay.title, assay.id);
+                                var option = new Option(assay.display || assay.title, assay.id);
                                 assaySelect.appendChild(option);
                             });
                         })
