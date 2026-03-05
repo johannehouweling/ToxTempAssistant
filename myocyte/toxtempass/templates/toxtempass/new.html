@@ -98,17 +98,21 @@
                 return response.json();
             })
             .then(data => {
-                if (
+                var filesInput = document.getElementById('id_files');
+                var wasEnabled = !filesInput.disabled;
+                var allowed = (
                     (data.gpt_allowed || document.getElementById('id_overwrite').checked) &&
                     document.getElementById('id_study').value &&
                     document.getElementById('id_investigation').value
-                ) {
-                    document.getElementById('id_files').disabled = false;
-                    document.getElementById('id_files').value = '';
+                );
+                if (allowed) {
+                    filesInput.disabled = false;
+                    // Only clear files if transitioning from disabled (new assay context)
+                    if (!wasEnabled) { clearFileAccumulator(); }
                     document.getElementById('startButtonText').textContent = 'Create draft';
                 } else {
-                    document.getElementById('id_files').disabled = true;
-                    document.getElementById('id_files').value = '';
+                    filesInput.disabled = true;
+                    clearFileAccumulator();
                     document.getElementById('startButtonText').textContent = 'Edit draft';
                 }
             })
@@ -230,7 +234,55 @@
         document.addEventListener('DOMContentLoaded', initializeButtons);
         document.addEventListener('DOMContentLoaded', initializeUploadSelect);
 
-    </script>   
+    </script>
+
+    <script>
+        // ── File accumulator ─────────────────────────────────────────────────────
+        // Allows adding files across multiple dialog opens instead of replacing them.
+        var fileAccumulator = new DataTransfer();
+
+        function clearFileAccumulator() {
+            fileAccumulator = new DataTransfer();
+            var inp = document.getElementById('id_files');
+            if (inp) inp.files = fileAccumulator.files;
+            renderFileList();
+        }
+
+        function removeAccumulatedFile(name) {
+            var newDt = new DataTransfer();
+            Array.from(fileAccumulator.files)
+                .filter(function(f) { return f.name !== name; })
+                .forEach(function(f) { newDt.items.add(f); });
+            fileAccumulator = newDt;
+            document.getElementById('id_files').files = fileAccumulator.files;
+            renderFileList();
+        }
+
+        function renderFileList() {
+            var list = document.getElementById('accumulated-file-list');
+            if (!list) return;
+            list.innerHTML = '';
+            Array.from(fileAccumulator.files).forEach(function(f) {
+                var tag = document.createElement('span');
+                tag.className = 'badge bg-secondary me-1 mb-1 d-inline-flex align-items-center gap-1';
+                var safeName = f.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                tag.innerHTML = f.name +
+                    ' <button type="button" class="btn-close btn-close-white scale-75"' +
+                    ' onclick="removeAccumulatedFile(\'' + safeName + '\')"></button>';
+                list.appendChild(tag);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('id_files').addEventListener('change', function() {
+                Array.from(this.files).forEach(function(f) { fileAccumulator.items.add(f); });
+                this.files = fileAccumulator.files;
+                renderFileList();
+            });
+        });
+        // ─────────────────────────────────────────────────────────────────────────
+    </script>
+
     <script>
         // Filter Investigation and Study so that the hierachy is reflected in the menu
         document.addEventListener('DOMContentLoaded', function () {
@@ -334,8 +386,9 @@
                                 assaySelect.appendChild(option);
                             });
 
-                            // Re-evaluate the delete button now that assay options have changed
+                            // Re-evaluate button states now that assay options have changed
                             updateButtons('id_assay');
+                            updateGptAllowed();
                         })
                         .catch(error => console.error('Error fetching assays:', error));
                 } else {

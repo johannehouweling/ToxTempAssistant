@@ -129,18 +129,19 @@ class MultipleFileInput(forms.ClearableFileInput):
         inline_progress_html = mark_safe(
             """
             <div class="progress mt-2" style="height: 20px; display:none;" id="uploadProgressContainer">
-              <div 
-                class="progress-bar progress-bar-striped progress-bar-animated" 
-                role="progressbar" 
-                aria-valuemin="0" 
-                aria-valuemax="100" 
-                aria-valuenow="0" 
-                style="width: 0%;" 
+              <div
+                class="progress-bar progress-bar-striped progress-bar-animated"
+                role="progressbar"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="0"
+                style="width: 0%;"
                 id="uploadProgressBar">
                 0%
               </div>
             </div>
             <div id="uploadProgressFilename" class="small mt-1 text-truncate"></div>
+            <div id="accumulated-file-list" class="mt-1 d-flex flex-wrap gap-1"></div>
             """
         )
 
