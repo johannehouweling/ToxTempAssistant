@@ -342,12 +342,18 @@ class Assay(AccessibleModel):
 
         user_workspaces = WorkspaceMember.objects.filter(user=user).values_list("workspace_id", flat=True)
         # If the parent Investigation is shared to any workspace the user is a member of,
-        # the assay should be accessible as well.
+        # the assay should be accessible as well — but delete is restricted to the assay
+        # creator or the investigation owner to prevent members from deleting others' work.
         from toxtempass.models import WorkspaceInvestigation
 
         if WorkspaceInvestigation.objects.filter(
             investigation=self.study.investigation, workspace_id__in=user_workspaces
         ).exists():
+            if perm_prefix == "delete":
+                return (
+                    self.created_by_id == user.pk
+                    or self.study.investigation.owner_id == user.pk
+                )
             return True
 
         parent = self.get_parent()

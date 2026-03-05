@@ -14,7 +14,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.contrib.humanize.templatetags.humanize import naturaltime
-from django.db import transaction
+from django.db import models, transaction
 from django.db.models import QuerySet
 from django.http import (
     FileResponse,
@@ -1025,13 +1025,27 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
         # <select> fields stay pre-selected
         form = StartingForm(initial=initial, user=request.user)
 
+        # Compute the set of assay PKs the user is allowed to delete.
+        # An assay is deletable if the user owns its parent investigation OR created the assay.
+        deletable_assay_ids = list(
+            form.fields["assay"].queryset.filter(
+                models.Q(created_by=request.user)
+                | models.Q(study__investigation__owner=request.user)
+            ).values_list("pk", flat=True)
+        )
+
         # Check if user has seen the add_new tour before
         show_tour = not user_has_seen_tour_page("add_new", request.user)
 
         return render(
             request,
             "new.html",
-            {"form": form, "action": reverse("add_new"), "show_tour": show_tour},
+            {
+                "form": form,
+                "action": reverse("add_new"),
+                "show_tour": show_tour,
+                "deletable_assay_ids": deletable_assay_ids,
+            },
         )
 
     # --------------------------------

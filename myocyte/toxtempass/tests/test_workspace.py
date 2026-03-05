@@ -847,6 +847,46 @@ class TestWorkspaceMemberAccess:
         )
         assert resp.status_code == 403
 
+    def test_member_cannot_delete_assay_created_by_owner(
+        self, client, owner, workspace, investigation, member_user
+    ):
+        """MEMBER must not delete an assay they did not create (created by the investigation owner)."""
+        _give_member_access(workspace, investigation, owner, member_user)
+        study = StudyFactory.create(investigation=investigation, created_by=owner)
+        assay = AssayFactory.create(study=study, created_by=owner)
+
+        client.force_login(member_user)
+        resp = client.get(reverse("delete_assay", kwargs={"pk": assay.pk}))
+        assert resp.status_code == 403
+        assert Assay.objects.filter(pk=assay.pk).exists()
+
+    def test_member_can_delete_assay_they_created(
+        self, client, owner, workspace, investigation, member_user
+    ):
+        """MEMBER CAN delete an assay they created themselves."""
+        _give_member_access(workspace, investigation, owner, member_user)
+        study = StudyFactory.create(investigation=investigation, created_by=owner)
+        assay = AssayFactory.create(study=study, created_by=member_user)
+
+        client.force_login(member_user)
+        resp = client.get(reverse("delete_assay", kwargs={"pk": assay.pk}))
+        # Expect redirect (success) — assay is gone
+        assert resp.status_code == 302
+        assert not Assay.objects.filter(pk=assay.pk).exists()
+
+    def test_investigation_owner_can_delete_member_created_assay(
+        self, client, owner, workspace, investigation, member_user
+    ):
+        """Investigation owner can always delete any assay regardless of who created it."""
+        _give_member_access(workspace, investigation, owner, member_user)
+        study = StudyFactory.create(investigation=investigation, created_by=owner)
+        assay = AssayFactory.create(study=study, created_by=member_user)
+
+        client.force_login(owner)
+        resp = client.get(reverse("delete_assay", kwargs={"pk": assay.pk}))
+        assert resp.status_code == 302
+        assert not Assay.objects.filter(pk=assay.pk).exists()
+
 
 # ---------------------------------------------------------------------------
 # TestWorkspaceAccessRevocation
