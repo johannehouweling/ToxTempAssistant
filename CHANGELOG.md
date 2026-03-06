@@ -2,6 +2,40 @@
 
 <!-- version list -->
 
+## v2.16.0 (2026-03-06)
+
+### Bug Fixes
+
+- **groups**: Fix permission revocation logic for workspace members
+  ([`0260dad`](https://github.com/johannehouweling/ToxTempAssistant/commit/0260dad18d043dcf52d106dbed43af535d892840))
+
+- **workspaces**: Implement delete permissions for assays based on ownership
+  ([`6979f9f`](https://github.com/johannehouweling/ToxTempAssistant/commit/6979f9f5a27ead21c2e912aef846a4ee8f9fa201))
+
+### Features
+
+- **groups**: Add functionality to manage group members by email and enhance group list UI
+  ([`f5ce910`](https://github.com/johannehouweling/ToxTempAssistant/commit/f5ce9109a8ffcf0059e2f3ecdc5cd1e38ce18afd))
+
+- **groups**: Enhance group UI and add group assay response
+  ([`7ac9457`](https://github.com/johannehouweling/ToxTempAssistant/commit/7ac94577d1aef78e2ae5600fa8dca4be71ae9582))
+
+- **groups**: Switched to "workspace" instead of "group" - moved to offcanvas.
+  ([`d6e6f03`](https://github.com/johannehouweling/ToxTempAssistant/commit/d6e6f0344b320d1398354a613edcc74a9ba41f87))
+
+- **groups**: Update essay permission
+  ([`8928377`](https://github.com/johannehouweling/ToxTempAssistant/commit/892837753fa6a8e16340c6cdc3522ccaa98a1349))
+
+- **migrations**: Fix migration (actually compiled)
+  ([`2411d13`](https://github.com/johannehouweling/ToxTempAssistant/commit/2411d133957c5599526bfaf45eff44c4ad8547ab))
+
+- **upload**: Enhance file upload progress display and implement file accumulation
+  ([`c8eb1fc`](https://github.com/johannehouweling/ToxTempAssistant/commit/c8eb1fcf612a9f082f381d61c86b44091acbe14d))
+
+- **workspaces**: Workspace fine-tuning
+  ([`b85c8fe`](https://github.com/johannehouweling/ToxTempAssistant/commit/b85c8fe78c46af50ab05f545bd47d3a534aeff7d))
+
+
 ## v2.15.0 (2026-02-27)
 
 ### Features
