@@ -145,4 +145,33 @@ urlpatterns += [
     ),
 ]
 
+# workspace URLs
+urlpatterns += [
+    path("workspace/create/", views.create_or_update_workspace, name="create_workspace"),
+    path("workspace/update/<int:pk>/", views.create_or_update_workspace, name="update_workspace"),
+    path("workspace/delete/<int:pk>/", views.delete_workspace, name="delete_workspace"),
+    path("workspace/<int:pk>/member/add/", views.add_workspace_member, name="add_workspace_member"),
+    path(
+        "workspace/<int:pk>/member/add-email/",
+        views.add_workspace_member_by_email,
+        name="add_workspace_member_by_email",
+    ),
+    path(
+        "workspace/<int:pk>/member/remove-email/",
+        views.remove_workspace_member_by_email,
+        name="remove_workspace_member_by_email",
+    ),
+    path(
+        "workspace/<int:pk>/member/<int:user_id>/remove/",
+        views.remove_workspace_member,
+        name="remove_workspace_member",
+    ),
+    path("workspace/<int:pk>/assay/add/", views.add_workspace_assay, name="add_workspace_assay"),
+    path(
+        "workspace/<int:pk>/assay/<int:assay_id>/remove/",
+        views.remove_workspace_assay,
+        name="remove_workspace_assay",
+    ),
+]
+
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

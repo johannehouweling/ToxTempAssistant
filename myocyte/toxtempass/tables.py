@@ -1,6 +1,6 @@
 # ruff: noqa
 import django_tables2 as tables
-from django.utils.html import format_html
+from django.utils.html import escape, format_html
 from django.utils.safestring import SafeText, mark_safe
 
 from django.urls import reverse
@@ -98,7 +98,7 @@ class AssayTable(tables.Table):
                 <div class="btn-group" role="group" data-assay-id="{{ record.id }}" data-assay-status="{{ record.status }}" data-bs-toggle="tooltip" title="Processing ongoing ({{record.number_processed_answers}}/{{record.get_n_answers}}). Refresh the page to see updates.">
                     <button class="btn btn-sm btn-outline-secondary" disabled>
                             <span class="spinner-grow spinner-grow-sm" aria-hidden="true"></span>
-                            <span role="status">Busy</span>
+                            <span role="status" class="d-lg-inline d-none">Busy</span>
                     </button>
                 </div>
             {% elif record.status == LLMStatus.ERROR.value %}
@@ -140,6 +140,27 @@ class AssayTable(tables.Table):
         attrs={"th": {"class": "no-link-header"}, "td": {"class": "align-middle"}},
     )
 
+    def render_investigation(self, record) -> SafeText:
+        """If shared investigation, add share icon with tooltip."""
+        if record.study.investigation.shared_in_workspaces.exists():
+            return format_html(
+                """
+            <div class="position-relative d-inline-flex"> {}
+                <span type="button" data-bs-toggle="offcanvas" href="#offcanvasUser"> 
+                    <span class="position-absolute top-50 start-100 translate-middle-y p-2 " data-bs-toggle="tooltip" data-bs-placement="top" title="Shared in workspace: {}">
+                        <span class="bi pill px-1 rounded bg-secondary-subtle bi-share"></span>
+                    </span>
+                </span>
+            </div>""",
+                record.study.investigation.title,
+                ", ".join(
+                    record.study.investigation.shared_in_workspaces
+                    .filter(workspace__memberships__user_id=self.context["request"].user.id)
+                    .values_list("workspace__name", flat=True)
+                ),
+            )
+        return escape(record.study.investigation.title)
+
     def render_new(self, record) -> SafeText:
         """Render 'New' indicator if assay has not been viewed by current user."""
         request = self.context.get("request")
@@ -161,7 +182,7 @@ class AssayTable(tables.Table):
             if hist and (latest is None or hist.history_date > latest):
                 latest = hist.history_date
         if latest:
-            return latest.strftime("%d %b, %Y")
+            return naturaltime(latest)
         else:
             return mark_safe('<span class="text-muted">Never</span>')
 

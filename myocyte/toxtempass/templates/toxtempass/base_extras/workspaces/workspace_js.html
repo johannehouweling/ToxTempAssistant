@@ -1,0 +1,726 @@
+<script>
+  function showModalFromOffcanvas(modalEl) {
+    // Show a Bootstrap modal that was rendered inside an offcanvas without closing the offcanvas.
+    // To avoid z-index/backdrop issues when a modal lives inside an open offcanvas, temporarily
+    // move the modal element to document.body, show it, then restore it after the modal hides.
+    if (!modalEl) return;
+
+    const originalParent = modalEl.parentNode;
+    const nextSibling = modalEl.nextSibling;
+
+    // Move modal to body so its backdrop and stacking are handled correctly
+    try {
+      document.body.appendChild(modalEl);
+    } catch (err) {
+      // If moving fails, still attempt to show modal in place
+    }
+
+    const modal = new bootstrap.Modal(modalEl);
+
+    // Ensure the modal and its backdrop render above the offcanvas
+    modalEl.addEventListener(
+      "shown.bs.modal",
+      function () {
+        const backdrop = document.querySelector(".modal-backdrop");
+        // Give the modal and its backdrop a high z-index so they render above the offcanvas.
+        if (backdrop) backdrop.style.zIndex = "2000";
+        modalEl.style.zIndex = "2010";
+      },
+      { once: true },
+    );
+
+    modalEl.addEventListener(
+      "hidden.bs.modal",
+      function () {
+        // cleanup inline styles
+        modalEl.style.zIndex = "";
+        const backdrop = document.querySelector(".modal-backdrop");
+        if (backdrop) backdrop.style.zIndex = "";
+
+        // restore original DOM position
+        try {
+          if (originalParent) {
+            if (nextSibling) originalParent.insertBefore(modalEl, nextSibling);
+            else originalParent.appendChild(modalEl);
+          }
+        } catch (err) {
+          // ignore
+        }
+      },
+      { once: true },
+    );
+
+    modal.show();
+  }
+
+  function removeNoOwnedPlaceholder() {
+    const container = document.getElementById("ownedWorkspacesContainer");
+    if (!container) return;
+    const placeholders = Array.from(
+      container.querySelectorAll(".col > .text-muted"),
+    );
+    for (const el of placeholders) {
+      if (
+        (el.textContent || "")
+          .trim()
+          .includes("You don't own any workspace yet.")
+      ) {
+        const col = el.closest(".col");
+        if (col) col.remove();
+      }
+    }
+  }
+
+  function showNoOwnedPlaceholder() {
+    const container = document.getElementById("ownedWorkspacesContainer");
+    if (!container) return;
+    // If there are any workspace cards, don't show placeholder
+    if (container.querySelector(".col")) return;
+    const col = document.createElement("div");
+    col.className = "col";
+    col.innerHTML = `<div class="text-muted">You don't own any workspace yet.</div>`;
+    container.appendChild(col);
+  }
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+      const cookies = document.cookie.split(";");
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === name + "=") {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+  if (typeof csrftoken === 'undefined') {
+    var csrftoken = getCookie("csrftoken");
+  }
+  
+  function escapeHtml(s) {
+    return String(s).replace(
+      /[&<>"']/g,
+      (c) =>
+        ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        })[c],
+    );
+  }
+
+  function ensureEmptyLabel(
+    wrap,
+    selectorRow,
+    emptyClass,
+    emptyText,
+    insertBeforeBtnSelector,
+  ) {
+    if (!wrap) return;
+    const rows = wrap.querySelectorAll(selectorRow);
+    if (rows.length === 0 && !wrap.querySelector("." + emptyClass)) {
+      const empty = document.createElement("span");
+      empty.className = `text-muted small ${emptyClass}`;
+      empty.textContent = emptyText;
+      const btn = wrap.querySelector(insertBeforeBtnSelector);
+      if (btn) wrap.insertBefore(empty, btn);
+      else wrap.appendChild(empty);
+    }
+  }
+
+  function createTempWorkspaceCard() {
+    const container = document.getElementById("ownedWorkspacesContainer");
+    if (!container) return;
+    const col = document.createElement("div");
+    col.className = "col";
+
+    col.innerHTML = `
+      <div class="card border-0 h-100 workspace-card workspace-list" data-workspace-id="0" data-can-remove="1">
+        <div class="card-header d-flex align-items-center justify-content-between border-0 workspace-card-header">
+          <span class="fw-semibold form-control px-0 border-0 workspace-name" style="font-size:.95rem;" contenteditable="true">New workspace</span>
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-sm btn-outline-danger border-0 workspace-delete-btn" title="Delete workspace" aria-label="Delete workspace">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
+        <div class="card-body workspace-card-body pt-0">
+          <div class="mb-3">
+            <div class="text-uppercase fw-semibold mb-2 section-label">Members</div>
+            <div class="d-flex flex-wrap align-items-center gap-2 members-wrap">
+              <!-- show current user as member immediately -->
+              <span class="d-inline-flex align-items-center {% if request.user %}bg-success-subtle{% endif %} member-row member-chip" data-user-id="{{ request.user.id }}">
+                <span class="d-inline-flex align-items-center justify-content-center {% if request.user %}bg-success{% endif %} fw-bold text-white member-avatar">{% if r == "owner" or r == "admin"%}<i class="bi bi-key-fill"></i>{% else %}{{ u.email|slice:":1"|upper }}{% endif %}</span>
+                <span class="member-text" data-bs-email="{{ u.email }}">You</span>
+              </span>
+              <button type="button" class="btn btn-sm btn-outline-primary btn-add-member round-add-btn" title="Add member" aria-label="Add member">
+                <i class="bi bi-person-plus"></i>
+              </button>
+            </div>
+          </div>
+          <div>
+
+                <div class="text-uppercase fw-semibold mb-2 section-label">Investigations</div>
+            <div class="d-flex flex-wrap align-items-center gap-2 assays-wrap">
+              <span class="text-muted small empty-assays">No investigations shared</span>
+              <button type="button" class="btn btn-sm btn-outline-secondary btn-add-assay round-add-btn" title="Add assay" aria-label="Add assay">
+                <i class="bi bi-plus-circle"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    container.prepend(col);
+    // if we added a card, remove the "no workspaces" placeholder
+    removeNoOwnedPlaceholder();
+    const nameEl = col.querySelector(".workspace-name");
+    if (!nameEl) return;
+    nameEl.focus();
+    try {
+      const range = document.createRange();
+      range.selectNodeContents(nameEl);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } catch (err) {}
+
+    function onBlurSave() {
+      const newName = nameEl.textContent.trim();
+      if (!newName) {
+        col.remove();
+        return;
+      }
+      fetch('{% url "create_workspace" %}', {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrftoken,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({ name: newName, description: "" }),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success && data.redirect_url) {
+            const m = (data.redirect_url || "").match(/\/workspace\/(\d+)\//);
+            const pk = m ? m[1] : "";
+            const card = col.querySelector(".workspace-list");
+            if (card && pk) card.setAttribute("data-workspace-id", pk);
+            nameEl.setAttribute("contenteditable", "false");
+          } else {
+            alert(
+              "Failed to create workspace: " +
+                JSON.stringify(data.errors || data.error || "Unknown"),
+            );
+            col.remove();
+          }
+        })
+        .catch((err) => {
+          alert("Error: " + err);
+          col.remove();
+        });
+      nameEl.removeEventListener("blur", onBlurSave);
+    }
+
+    nameEl.addEventListener("blur", onBlurSave);
+  }
+
+  function insertWorkspaceIntoDOM(data, name) {
+    const m = (data.redirect_url || "").match(/\/workspace\/(\d+)\//);
+    const pk = m ? m[1] : null;
+    if (!pk) return;
+
+    const container = document.getElementById("ownedWorkspacesContainer");
+    const col = document.createElement("div");
+    col.className = "col";
+
+    col.innerHTML = `
+      <div class="card border-0 h-100 workspace-card workspace-list" data-workspace-id="${pk}" data-can-remove="1">
+          <div class="card-header d-flex align-items-center justify-content-between border-0 workspace-card-header">
+          <span class="fw-semibold form-control px-0 border-0 workspace-name" style="font-size:.95rem;" contenteditable="false">${escapeHtml(name || "New workspace")}</span>
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-sm btn-outline-danger border-0 workspace-delete-btn" title="Delete workspace" aria-label="Delete workspace">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="card-body workspace-card-body pt-0">
+          <div class="mb-3">
+            <div class="text-uppercase fw-semibold mb-2 section-label">Members</div>
+            <div class="d-flex flex-wrap align-items-center gap-2 members-wrap">
+              <span class="text-muted small empty-members">No members yet</span>
+              <button type="button" class="btn btn-sm btn-outline-primary btn-add-member round-add-btn" title="Add member" aria-label="Add member">
+                <i class="bi bi-person-plus"></i>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <div class="text-uppercase fw-semibold mb-2 section-label">Investigations</div>
+            <div class="d-flex flex-wrap align-items-center gap-2 assays-wrap">
+              <span class="text-muted small empty-assays">No investigations shared</span>
+              <button type="button" class="btn btn-sm btn-outline-secondary btn-add-assay round-add-btn" title="Add assay" aria-label="Add assay">
+                <i class="bi bi-plus-circle"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    container.prepend(col);
+    // if we inserted a card, remove the "no workspaces" placeholder
+    removeNoOwnedPlaceholder();
+  }
+
+  document.addEventListener("click", function (e) {
+    if (e.target.closest("#btnNewWorkspace")) {
+      // create inline card instead of opening modal
+      createTempWorkspaceCard();
+      return;
+    }
+
+    if (e.target.closest("#confirmCreateWorkspace")) {
+      const name = document.getElementById("newWorkspaceName").value.trim();
+      const desc = document.getElementById("newWorkspaceDesc").value.trim();
+
+      if (!name) {
+        const err = document.getElementById("createWorkspaceError");
+        err.textContent = "Please enter a workspace name.";
+        err.style.display = "";
+        return;
+      }
+
+      fetch('{% url "create_workspace" %}', {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrftoken,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({ name: name, description: desc }),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success) {
+            insertWorkspaceIntoDOM(data, name);
+            bootstrap.Modal.getInstance(
+              document.getElementById("createWorkspaceModal"),
+            ).hide();
+          } else {
+            const err = document.getElementById("createWorkspaceError");
+            err.textContent = JSON.stringify(
+              data.errors || data.error || "Unknown error",
+            );
+            err.style.display = "";
+          }
+        })
+        .catch((err) => {
+          const errEl = document.getElementById("createWorkspaceError");
+          errEl.textContent = String(err);
+          errEl.style.display = "";
+        });
+      return;
+    }
+
+    const addMemberBtn = e.target.closest(".btn-add-member");
+    if (addMemberBtn) {
+      const workspaceEl = addMemberBtn.closest(".workspace-list");
+      if (!workspaceEl) return;
+
+      const gid = workspaceEl.getAttribute("data-workspace-id");
+      const modalEl = document.getElementById("addMemberModal");
+      modalEl.setAttribute("data-workspace-id", gid);
+      document.getElementById("memberEmail").value = "";
+      document.getElementById("memberRole").value = "member";
+      document.getElementById("addMemberError").style.display = "none";
+      showModalFromOffcanvas(modalEl);
+      return;
+    }
+
+    if (e.target.closest("#confirmAddMember")) {
+      const modalEl = document.getElementById("addMemberModal");
+      const gid = modalEl.getAttribute("data-workspace-id");
+      const email = document.getElementById("memberEmail").value.trim();
+      const role = document.getElementById("memberRole").value || "member";
+
+      if (!email) {
+        const err = document.getElementById("addMemberError");
+        err.textContent = "Enter an email.";
+        err.style.display = "";
+        return;
+      }
+
+      fetch(`/workspace/${gid}/member/add-email/`, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrftoken,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({ email: email, role: role }),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (!data.success) {
+            const err = document.getElementById("addMemberError");
+            err.textContent =
+              data.error || JSON.stringify(data.errors || "Unknown error");
+            err.style.display = "";
+            return;
+          }
+
+          bootstrap.Modal.getInstance(modalEl).hide();
+
+          const workspaceEl = document.querySelector(
+            `.workspace-list[data-workspace-id='${gid}']`,
+          );
+          if (!workspaceEl) return;
+          const wrap = workspaceEl.querySelector(".members-wrap");
+          if (!wrap) return;
+
+          const empty = wrap.querySelector(".empty-members");
+          if (empty) empty.remove();
+
+          const canRemove = workspaceEl.getAttribute("data-can-remove") === "1";
+          const memberEmailRaw = (data.member_email || email).trim();
+          const currentUserEmail =
+            document.getElementById("ownedWorkspacesContainer")?.dataset
+              .currentUser || "";
+          const initial = memberEmailRaw.slice(0, 1).toUpperCase();
+          const displayText =
+            memberEmailRaw.toLowerCase() ===
+            (currentUserEmail || "").toLowerCase()
+              ? "You"
+              : memberEmailRaw;
+
+          const chip = document.createElement("span");
+          chip.className =
+            "d-inline-flex align-items-center member-row member-chip";
+          chip.setAttribute("data-user-id", data.user_id || "");
+
+          chip.innerHTML = `
+          <span class="d-inline-flex align-items-center justify-content-center fw-bold text-white member-avatar">${escapeHtml(initial)}</span>
+          <span class="member-text" data-bs-email="${escapeHtml(memberEmailRaw)}">${escapeHtml(displayText)}</span>
+          ${
+            canRemove
+              ? `
+            <button type="button" class="btn btn-link p-0 m-0 text-secondary btn-remove-member" aria-label="Remove ${escapeHtml(memberEmailRaw)}" title="Remove ${escapeHtml(memberEmailRaw)}">
+              <i class="bi bi-x"></i>
+            </button>`
+              : ``
+          }
+        `;
+
+          const addBtn = wrap.querySelector(".btn-add-member");
+          if (addBtn) wrap.insertBefore(chip, addBtn);
+          else wrap.appendChild(chip);
+        })
+        .catch((err) => {
+          const errEl = document.getElementById("addMemberError");
+          errEl.textContent = String(err);
+          errEl.style.display = "";
+        });
+      return;
+    }
+
+    const removeMemberBtn = e.target.closest(".btn-remove-member");
+    if (removeMemberBtn) {
+      const workspaceEl = removeMemberBtn.closest(".workspace-list");
+      const row = removeMemberBtn.closest(".member-row");
+      if (!workspaceEl || !row) return;
+
+      const gid = workspaceEl.getAttribute("data-workspace-id");
+      const email = (
+        row.querySelector(".member-text")?.dataset?.bsEmail || ""
+      ).trim();
+      if (!confirm(`Remove ${email} from workspace?`)) return;
+
+      fetch(`/workspace/${gid}/member/remove-email/`, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrftoken,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({ email: email }),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success) {
+            const wrap = workspaceEl.querySelector(".members-wrap");
+            row.remove();
+            ensureEmptyLabel(
+              wrap,
+              ".member-row",
+              "empty-members",
+              "No members yet",
+              ".btn-add-member",
+            );
+          } else {
+            alert(
+              `Failed: ${data.error || JSON.stringify(data.errors || "Unknown error")}`,
+            );
+          }
+        })
+        .catch((err) => alert("Error: " + err));
+      return;
+    }
+
+    const addAssayBtn = e.target.closest(".btn-add-assay");
+    if (addAssayBtn) {
+      const workspaceEl = addAssayBtn.closest(".workspace-list");
+      if (!workspaceEl) return;
+
+      const gid = workspaceEl.getAttribute("data-workspace-id");
+      const modalEl = document.getElementById("addAssayModal");
+      modalEl.setAttribute("data-workspace-id", gid);
+      document.getElementById("selectAssay").value = "";
+      document.getElementById("addAssayError").style.display = "none";
+      showModalFromOffcanvas(modalEl);
+      return;
+    }
+
+    if (e.target.closest("#confirmAddAssay")) {
+      const modalEl = document.getElementById("addAssayModal");
+      const gid = modalEl.getAttribute("data-workspace-id");
+      const assayId = document.getElementById("selectAssay").value;
+
+      if (!assayId) {
+        const err = document.getElementById("addAssayError");
+        err.textContent = "Select an investigation.";
+        err.style.display = "";
+        return;
+      }
+
+      fetch(`/workspace/${gid}/assay/add/`, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrftoken,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        // prefer the new 'investigation' param name
+        body: new URLSearchParams({ investigation: assayId }),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (!data.success) {
+            const err = document.getElementById("addAssayError");
+            err.textContent =
+              data.error || JSON.stringify(data.errors || "Unknown error");
+            err.style.display = "";
+            return;
+          }
+
+          bootstrap.Modal.getInstance(modalEl).hide();
+
+          const workspaceEl = document.querySelector(
+            `.workspace-list[data-workspace-id='${gid}']`,
+          );
+          if (!workspaceEl) return;
+          const wrap = workspaceEl.querySelector(".assays-wrap");
+          if (!wrap) return;
+
+          const empty = wrap.querySelector(".empty-assays");
+          if (empty) empty.remove();
+
+          const title =
+            document.getElementById("selectAssay").selectedOptions[0]?.text ||
+            "Investigation";
+          const canRemove = workspaceEl.getAttribute("data-can-remove") === "1";
+
+          const pill = document.createElement("span");
+          pill.className =
+            "d-inline-flex align-items-center assay-row assay-pill";
+          pill.setAttribute("data-assay-id", assayId);
+          pill.setAttribute(
+            "data-workspace-assay-id",
+            data.workspace_assay_id || "",
+          );
+
+          pill.innerHTML = `
+          <span class="assay-text">${escapeHtml(title)}</span>
+          ${
+            canRemove
+              ? `
+            <button type="button" class="btn btn-link p-0 m-0 text-secondary btn-remove-assay" data-assay-id="${assayId}"
+                    aria-label="Remove investigation ${escapeHtml(title)}" title="Remove investigation ${escapeHtml(title)}">
+              <i class="bi bi-x"></i>
+            </button>`
+              : ``
+          }
+        `;
+
+          const addBtn = wrap.querySelector(".btn-add-assay");
+          if (addBtn) wrap.insertBefore(pill, addBtn);
+          else wrap.appendChild(pill);
+        })
+        .catch((err) => {
+          const errEl = document.getElementById("addAssayError");
+          errEl.textContent = String(err);
+          errEl.style.display = "";
+        });
+      return;
+    }
+
+    const removeAssayBtn = e.target.closest(".btn-remove-assay");
+    if (removeAssayBtn) {
+      const workspaceEl = removeAssayBtn.closest(".workspace-list");
+      const row = removeAssayBtn.closest(".assay-row");
+      if (!workspaceEl || !row) return;
+
+      const gid = workspaceEl.getAttribute("data-workspace-id");
+      const assayId =
+        removeAssayBtn.getAttribute("data-assay-id") ||
+        removeAssayBtn.dataset.assayId;
+      if (!confirm("Remove this investigation from workspace?")) return;
+
+      fetch(`/workspace/${gid}/assay/${assayId}/remove/`, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrftoken,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success) {
+            const wrap = workspaceEl.querySelector(".assays-wrap");
+            row.remove();
+            ensureEmptyLabel(
+              wrap,
+              ".assay-row",
+              "empty-assays",
+              "No investigations shared",
+              ".btn-add-assay",
+            );
+          } else {
+            alert(
+              "Failed: " +
+                (data.error || JSON.stringify(data.errors || "Unknown error")),
+            );
+          }
+        })
+        .catch((err) => alert("Error: " + err));
+      return;
+    }
+
+    // Inline editing: allow editing the workspace name directly by double-clicking it.
+    const nameElClicked = e.target.closest(".workspace-name");
+    if (nameElClicked) {
+      const workspaceEl = nameElClicked.closest(".workspace-list");
+      if (!workspaceEl) return;
+      // only allow owners to edit (data-can-remove is set for owners)
+      if (workspaceEl.getAttribute("data-can-remove") !== "1") return;
+
+      // If already editing, do nothing
+      if (nameElClicked.getAttribute("contenteditable") === "true") return;
+
+      // Activate editing mode
+      nameElClicked.setAttribute("contenteditable", "true");
+      nameElClicked.focus();
+
+      // place caret at end
+      try {
+        const range = document.createRange();
+        range.selectNodeContents(nameElClicked);
+        range.collapse(false);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      } catch (err) {
+        // ignore selection errors
+      }
+
+      const original = nameElClicked.textContent.trim();
+
+      function finishEdit(save) {
+        nameElClicked.removeEventListener("blur", onBlur);
+        nameElClicked.removeEventListener("keydown", onKeydown);
+        nameElClicked.setAttribute("contenteditable", "false");
+        if (!save) {
+          nameElClicked.textContent = original;
+          return;
+        }
+        const newName = nameElClicked.textContent.trim();
+        if (newName === original) return;
+        const gid = workspaceEl.getAttribute("data-workspace-id");
+        fetch(`/workspace/update/${gid}/`, {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": csrftoken,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({ name: newName, description: "" }),
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            if (!data.success) {
+              alert(
+                "Failed to update: " +
+                  JSON.stringify(data.errors || data.error),
+              );
+              nameElClicked.textContent = original;
+            }
+          })
+          .catch((err) => {
+            alert("Error: " + err);
+            nameElClicked.textContent = original;
+          });
+      }
+
+      function onBlur() {
+        finishEdit(true);
+      }
+      function onKeydown(ev) {
+        if (ev.key === "Enter") {
+          ev.preventDefault();
+          nameElClicked.blur();
+        } else if (ev.key === "Escape") {
+          ev.preventDefault();
+          finishEdit(false);
+        }
+      }
+
+      nameElClicked.addEventListener("blur", onBlur);
+      nameElClicked.addEventListener("keydown", onKeydown);
+      return;
+    }
+
+    const deleteBtn = e.target.closest(".workspace-delete-btn");
+    if (deleteBtn) {
+      const workspaceEl = deleteBtn.closest(".workspace-list");
+      if (!workspaceEl) return;
+      const gid = workspaceEl.getAttribute("data-workspace-id");
+      const name =
+        workspaceEl.querySelector(".workspace-name")?.textContent.trim() ||
+        "this workspace";
+      if (!confirm(`Delete workspace "${name}"? This cannot be undone. Shared investigations will not be deleted but all members will lose access.`))
+        return;
+
+      // Use GET endpoint which performs the deletion and redirects server-side.
+      fetch(`/workspace/delete/${gid}/`, {
+        method: "GET",
+        headers: { "X-CSRFToken": csrftoken },
+      })
+        .then((r) => {
+          if (!r.ok) {
+            alert("Failed to delete workspace.");
+            return;
+          }
+          // Remove the workspace card from the DOM to reflect deletion instantly.
+          const col = workspaceEl.closest(".col");
+          if (col) col.remove();
+          // if there are no more workspace cards, show placeholder
+          showNoOwnedPlaceholder();
+        })
+        .catch((err) => alert("Error: " + err));
+      return;
+    }
+  });
+</script>

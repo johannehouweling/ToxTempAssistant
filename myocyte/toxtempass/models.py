@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import uuid
 
 from django.contrib.auth.models import AbstractUser, BaseUserManager
@@ -172,6 +173,15 @@ class Study(AccessibleModel):
     title = models.CharField(max_length=255, blank=False, null=False)
     description = models.TextField(blank=True)
     submission_date = models.DateTimeField(auto_now_add=True)
+    # Track who created this Study (may be a workspace member who is not the investigation owner)
+    created_by = models.ForeignKey(
+        Person,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_studies",
+        help_text="The user who created this Study (may differ from the Investigation owner).",
+    )
 
     def __str__(self):
         """Study as string."""
@@ -244,6 +254,15 @@ class Assay(AccessibleModel):
     title = models.CharField(max_length=255, blank=False, null=False)
     description = models.TextField(blank=False, default="")
     submission_date = models.DateTimeField(auto_now_add=True)
+    # Track who created this Assay (may be a workspace member who is not the investigation owner)
+    created_by = models.ForeignKey(
+        Person,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_assays",
+        help_text="The user who created this Assay (may differ from the Investigation owner).",
+    )
     status = models.CharField(
         max_length=10,
         choices=LLMStatus.choices,
@@ -307,6 +326,42 @@ class Assay(AccessibleModel):
         """Get Study."""
         return self.study
 
+    def is_accessible_by(self, user: "Person", perm_prefix: str = "view") -> bool:
+        """Check if this assay is accessible by the user.
+
+        Checks:
+        1. Direct permission on this assay
+        2. Workspace membership: user is in a workspace that has this assay shared
+        3. Parent permissions (Study -> Investigation)
+        """
+        codename = f"{perm_prefix}_{self._meta.model_name}"
+        full_permission = f"{self._meta.app_label}.{codename}"
+
+        if user.has_perm(full_permission, self):
+            return True
+
+        user_workspaces = WorkspaceMember.objects.filter(user=user).values_list("workspace_id", flat=True)
+        # If the parent Investigation is shared to any workspace the user is a member of,
+        # the assay should be accessible as well — but delete is restricted to the assay
+        # creator or the investigation owner to prevent members from deleting others' work.
+        from toxtempass.models import WorkspaceInvestigation
+
+        if WorkspaceInvestigation.objects.filter(
+            investigation=self.study.investigation, workspace_id__in=user_workspaces
+        ).exists():
+            if perm_prefix == "delete":
+                return (
+                    self.created_by_id == user.pk
+                    or self.study.investigation.owner_id == user.pk
+                )
+            return True
+
+        parent = self.get_parent()
+        if parent is not None:
+            return parent.is_accessible_by(user, perm_prefix=perm_prefix)
+
+        return False
+
     @property
     def has_feedback(self) -> bool:
         """Check if this assay has feedback."""
@@ -327,14 +382,13 @@ class Assay(AccessibleModel):
         """Check if there are any answers processed for this assay."""
         not_found_string = config.not_found_string
         # Get all questions related to this assay
-        return Answer.objects.filter(
-            assay=self,
-        ).filter(
-            ~Q(
-                Q(answer_text="")
-                | Q(answer_text__isnull=True)
+        return (
+            Answer.objects.filter(
+                assay=self,
             )
-        ).count()
+            .filter(~Q(Q(answer_text="") | Q(answer_text__isnull=True)))
+            .count()
+        )
 
     @property
     def number_answers_found_but_not_accepted(self) -> int:
@@ -621,3 +675,68 @@ class Feedback(AccessibleModel):
     def __str__(self):
         """Represent as String."""
         return f"Feedback from {self.user} on {self.submission_date}"
+
+    def get_parent(self) -> Assay:
+        """Return the parent Assay object."""
+        return self.assay
+
+
+class WorkspaceRole(models.TextChoices):
+    OWNER = "owner", "Owner"
+    ADMIN = "admin", "Admin"
+    MEMBER = "member", "Member"
+
+
+class Workspace(AccessibleModel):
+    name = models.CharField(max_length=255)
+    owner = models.ForeignKey(
+        Person, on_delete=models.CASCADE, related_name="owned_workspaces"
+    )
+    description = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    def get_parent(self):
+        return None
+    
+    def save(self, *args, **kwargs):
+        """Override save to ensure owner is always a member with OWNER role."""
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        if is_new:
+            WorkspaceMember.objects.create(workspace=self, user=self.owner, role=WorkspaceRole.OWNER)
+
+
+class WorkspaceMember(models.Model):
+    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name="memberships")
+    user = models.ForeignKey(
+        Person, on_delete=models.CASCADE, related_name="workspace_memberships"
+    )
+    role = models.CharField(
+        max_length=20, choices=WorkspaceRole.choices, default=WorkspaceRole.MEMBER
+    )
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("workspace", "user")
+
+
+class WorkspaceInvestigation(models.Model):
+    workspace = models.ForeignKey(
+        Workspace, on_delete=models.CASCADE, related_name="shared_investigations"
+    )
+    investigation = models.ForeignKey(
+        Investigation, on_delete=models.CASCADE, related_name="shared_in_workspaces"
+    )
+    added_by = models.ForeignKey(Person, on_delete=models.SET_NULL, null=True, blank=True)
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("workspace", "investigation")
+
+
+
+

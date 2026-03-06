@@ -27,7 +27,11 @@ from toxtempass.models import (
     QuestionSet,
     Section,
     Study,
+    Workspace,
+    WorkspaceRole,
 )
+from toxtempass.utilities import provenance_label_for_item
+from functools import partial
 from toxtempass.widgets import (
     BootstrapSelectWithButtonsWidget,
 )  # Import the custom widget
@@ -125,18 +129,19 @@ class MultipleFileInput(forms.ClearableFileInput):
         inline_progress_html = mark_safe(
             """
             <div class="progress mt-2" style="height: 20px; display:none;" id="uploadProgressContainer">
-              <div 
-                class="progress-bar progress-bar-striped progress-bar-animated" 
-                role="progressbar" 
-                aria-valuemin="0" 
-                aria-valuemax="100" 
-                aria-valuenow="0" 
-                style="width: 0%;" 
+              <div
+                class="progress-bar progress-bar-striped progress-bar-animated"
+                role="progressbar"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="0"
+                style="width: 0%;"
                 id="uploadProgressBar">
                 0%
               </div>
             </div>
             <div id="uploadProgressFilename" class="small mt-1 text-truncate"></div>
+            <div id="accumulated-file-list" class="mt-1 d-flex flex-wrap gap-1"></div>
             """
         )
 
@@ -280,7 +285,7 @@ class StartingForm(forms.Form):
         initial=False,
         label="Consent to share uploaded files for benchmarking and improvement",
         help_text=mark_safe(
-        """
+            """
         Optional: allow the development team to use your uploaded context files to
          benchmark and improve automated pre-population of ToxTemp questionnaires.
         <a class="link-secondary"
@@ -292,7 +297,8 @@ class StartingForm(forms.Form):
           Details
         </a>
         """
-    ))
+        ),
+    )
 
     def __init__(self, *args, user: Person = None, **kwargs):
         """Expect a 'user' keyword argument to filter the querysets.
@@ -323,11 +329,22 @@ class StartingForm(forms.Form):
                 user, "toxtempass.view_investigation"
             )
             self.fields["investigation"].queryset = accessible_investigations
+            # Bind the current_user into the provenance helper so Django will call
+            # the resulting function with a single 'instance' argument as expected.
+            self.fields["investigation"].label_from_instance = partial(
+                provenance_label_for_item, current_user=user
+            )
+            self.fields["study"].label_from_instance = partial(
+                provenance_label_for_item, current_user=user
+            )
             self.fields["study"].queryset = Study.objects.filter(
                 investigation__in=accessible_investigations
             )
             self.fields["assay"].queryset = Assay.objects.filter(
                 study__investigation__in=accessible_investigations
+            )
+            self.fields["assay"].label_from_instance = partial(
+                provenance_label_for_item, current_user=user
             )
 
     def clean(self) -> dict:
@@ -356,6 +373,13 @@ class InvestigationForm(forms.ModelForm):
         widgets = {
             "public_release_date": forms.DateTimeInput(attrs={"type": "datetime-local"}),
         }
+    def __init__(self, *args, user: Person, **kwargs):
+        """Add owner indication for users who are not the owner to mark provenance."""
+        super().__init__(*args, **kwargs)
+        if self.instance.pk and getattr(self.instance, "owner", None) != user:
+            # change __str__ for title into titel (<owner>)
+            original_str = self.instance.__str__
+            self.instance.__str__ = lambda: f"{original_str()} (by {self.instance.owner})"
 
 
 # Form to create a Study
@@ -374,6 +398,19 @@ class StudyForm(forms.ModelForm):
             self.fields["investigation"].queryset = get_objects_for_user(
                 user, "toxtempass.view_investigation"
             )
+            self.fields["investigation"].label_from_instance = partial(
+                provenance_label_for_item, current_user=user
+            )
+
+    def clean(self) -> dict:
+        """If the study is being created by a user who is not the investigation owner,
+        attach a warning flag into cleaned_data so the view can show the UI banner.
+        """
+        cleaned = super().clean()
+        inv = cleaned.get("investigation")
+        if inv and self.instance.pk is None:
+            cleaned["is_workspace_creation"] = getattr(inv, "owner", None) != None
+        return cleaned
 
 
 # Form to create an Assay
@@ -405,6 +442,25 @@ class AssayForm(forms.ModelForm):
             self.fields["study"].queryset = Study.objects.filter(
                 investigation__in=accessible_investigations
             )
+            # Show provenance for Study choices when the study's investigation owner differs
+            def _study_label_af(obj, current_user=user):
+                try:
+                    inv_owner = getattr(obj.investigation, "owner", None)
+                    creator = getattr(obj, "created_by", None)
+                    # Prefer showing the Investigation owner when different; otherwise show who created the Study
+                    if inv_owner and inv_owner != current_user and creator and creator != current_user:
+                        return f"{obj.title} (by {creator.email} on behalf of {inv_owner.email})"
+                    if inv_owner and inv_owner == current_user and creator and creator != current_user:
+                        return f"{obj.title} (by {creator.email})"
+                    if inv_owner and inv_owner != current_user:
+                        return f"{obj.title} (by {inv_owner.email})"
+                    if creator and creator != current_user:
+                        return f"{obj.title} (by {creator.email})"
+                except Exception:
+                    pass
+                return str(obj.title)
+
+            self.fields["study"].label_from_instance = _study_label_af
 
 
 class AssayAnswerForm(forms.Form):
@@ -570,7 +626,7 @@ class AssayAnswerForm(forms.Form):
             doc_dict = {}
             logger.debug("No files uploaded.")
 
-        # Group fields by question ID.
+        # Grouping fields by question ID.
         questions_data = defaultdict(dict)
         for field_name, value in self.cleaned_data.items():
             if field_name.startswith("question_"):
@@ -661,3 +717,45 @@ class AssayAnswerForm(forms.Form):
                 return False
 
         return self.async_enqueued
+
+
+class WorkspaceForm(forms.ModelForm):
+    class Meta:
+        model = Workspace
+        fields = ["name", "description"]
+        widgets = {
+            "description": forms.Textarea(attrs={"rows": 3}),
+        }
+
+
+class WorkspaceMemberForm(forms.Form):
+    user = forms.ModelChoiceField(
+        queryset=Person.objects.all(),
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    role = forms.ChoiceField(
+        choices=WorkspaceRole.choices,
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["user"].label_from_instance = lambda obj: obj.email
+
+
+class WorkspaceInvestigationForm(forms.Form):
+    investigation = forms.ModelChoiceField(
+        queryset=Investigation.objects.none(),
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if user is not None:
+            accessible_investigations = get_objects_for_user(
+                user, "toxtempass.view_investigation"
+            )
+            self.fields["investigation"].queryset = Investigation.objects.filter(
+                id__in=[i.id for i in accessible_investigations]
+            )
+            self.fields["investigation"].label_from_instance = lambda x: provenance_label_for_item(x, user)

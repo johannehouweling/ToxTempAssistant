@@ -68,38 +68,20 @@ document.addEventListener('DOMContentLoaded', function() {
             if (e.lengthComputable) {
                 const percentComplete = Math.round((e.loaded / e.total) * 100);
 
+                var fileNames = filesInForm.map(f => f.name).join(', ');
                 if (uploadModal) {
                     modalProgressBar.style.width = percentComplete + '%';
                     modalProgressBar.setAttribute('aria-valuenow', percentComplete);
-                    // Replace percentage text with file count text (e.g. "1/2")
-                    modalProgressBar.textContent = '1/' + filesInForm.length;
-
-                    // Keep showing the filenames below the progress bar
+                    modalProgressBar.textContent = percentComplete + '%';
                     if (filesInForm.length > 0) {
-                        let fileList = [];
-                        for (const file of filesInForm) {
-                            fileList.push(file.name);
-                        }
-                        if (fileList.length > 0) {
-                            modalProgressFilename.textContent = 'Uploading: ' + fileList.join(', ');
-                        }
+                        modalProgressFilename.textContent = 'Uploading: ' + fileNames;
                     }
                 } else if (progressContainer && progressBar) {
                     progressBar.style.width = percentComplete + '%';
                     progressBar.setAttribute('aria-valuenow', percentComplete);
-                    // Replace percentage text with file count text (e.g. "1/2")
-                    progressBar.textContent = '1/' + filesInForm.length;
-
-                    if (progressFilename) {
-                        if (filesInForm.length > 0) {
-                            let fileList = [];
-                            for (const file of filesInForm) {
-                                fileList.push(file.name);
-                            }
-                            if (fileList.length > 0) {
-                                progressFilename.textContent = 'Uploading: ' + fileList.join(', ');
-                            }
-                        }
+                    progressBar.textContent = percentComplete + '%';
+                    if (progressFilename && filesInForm.length > 0) {
+                        progressFilename.textContent = 'Uploading: ' + fileNames;
                     }
                 }
             }
@@ -125,13 +107,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Handle success (e.g., redirect, display a success message, etc.)
                     if (uploadModal) {
                         modalProgressBar.style.width = '100%';
-                        // Replace completion text with file count text
-                        modalProgressBar.textContent = '1/' + filesInForm.length + ' complete';
+                        modalProgressBar.textContent = '100%';
                         setTimeout(() => { hideModalAndMoveFocus(); }, 500);
                     } else if (progressContainer && progressBar) {
                         progressBar.style.width = '100%';
-                        // Replace completion text with file count text
-                        progressBar.textContent = '1/' + filesInForm.length + ' complete';
+                        progressBar.textContent = '100%';
                     }
                     if (filesInForm.length > 0) {
                         if (uploadModal) {
