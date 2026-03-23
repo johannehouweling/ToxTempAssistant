@@ -1,9 +1,9 @@
 # analyzing completness per document type (e.g. SOP, paper, etc.)
 
 #imports
-import pandas as pd
 from pathlib import Path
-import glob
+
+import pandas as pd
 import plotly.express as px
 
 # Paths and constants
@@ -108,26 +108,6 @@ doc_type_line.update_layout(
     yaxis_range=[0, 1.1]
 )
 doc_type_line.show()
-
-# ordering dataframe based on question
-ordered_doc_type = doc_type_completeness_df.sort_values("qID")
-
-# plot of doc_type x question (not usable, unreadable)
-doc_type_question_line = px.line(
-    ordered_doc_type,
-    x='qID',
-    y='answer_given',
-    color='doc_type',
-    title='Completeness of ToxTemp per question per document type',
-    markers=True
-)
-doc_type_question_line.update_layout(
-    xaxis_title="question",
-    yaxis_title="Fraction of questions answered",
-    yaxis_range=[0, 1.1]
-)
-doc_type_question_line.show()
-
 
 # completeness per Assay
 assay_completeness_df = merged_df.groupby(["section", "section_short","subsection","qID", "question", "assay", "colour"], as_index=False)["answer_given"].mean()
