@@ -222,104 +222,20 @@ doc_model_completeness_df = (
       )
 )
 
-# plot for abstract
-abstract_model_line = px.line(
-    doc_model_completeness_df[doc_model_completeness_df["doc_type"] == "abstract"],
-    x='section_short',
-    y='mean_answer_given',
-    color='model',
-    title='Completeness of ToxTemp per section per LLM model for abstracts',
-    category_orders={"section_short": section_order},
-    markers=True
-)
-abstract_model_line.update_layout(
-    xaxis_title="Section",
-    yaxis_title="Fraction of questions answered",
-    yaxis_range=[0, 1.1]
-)
-abstract_model_line.show()
-
-#plot for article
-article_model_line = px.line(
-    doc_model_completeness_df[doc_model_completeness_df["doc_type"] == "article"],
-    x='section_short',
-    y='mean_answer_given',
-    color='model',
-    title='Completeness of ToxTemp per section per LLM model for articles',
-    category_orders={"section_short": section_order},
-    markers=True
-)
-article_model_line.update_layout(
-    xaxis_title="Section",
-    yaxis_title="Fraction of questions answered",
-    yaxis_range=[0, 1.1]
-)
-article_model_line.show()
-
-#plot for SOP
-sop_model_line = px.line(
-    doc_model_completeness_df[doc_model_completeness_df["doc_type"] == "sop"],
-    x='section_short',
-    y='mean_answer_given',
-    color='model',
-    title='Completeness of ToxTemp per section per LLM model for SOPs',
-    category_orders={"section_short": section_order},
-    markers=True
-)
-sop_model_line.update_layout(
-    xaxis_title="Section",
-    yaxis_title="Fraction of questions answered",
-    yaxis_range=[0, 1.1]
-)
-sop_model_line.show()
-
-# plot for meta_data
-meta_data_model_line = px.line(
-    doc_model_completeness_df[doc_model_completeness_df["doc_type"] == "meta_data"],
-    x='section_short',
-    y='mean_answer_given',
-    color='model',
-    title='Completeness of ToxTemp per section per LLM model for meta data',
-    category_orders={"section_short": section_order},
-    markers=True
-)
-meta_data_model_line.update_layout(
-    xaxis_title="Section",
-    yaxis_title="Fraction of questions answered",
-    yaxis_range=[0, 1.1]
-)
-meta_data_model_line.show()
-
-# plot for readme
-readme_model_line = px.line(
-    doc_model_completeness_df[doc_model_completeness_df["doc_type"] == "readme"],
-    x='section_short',
-    y='mean_answer_given',
-    color='model',
-    title='Completeness of ToxTemp per section per LLM model for readmes',
-    category_orders={"section_short": section_order},
-    markers=True
-)
-readme_model_line.update_layout(
-    xaxis_title="Section",
-    yaxis_title="Fraction of questions answered",
-    yaxis_range=[0, 1.1]
-)
-readme_model_line.show()
-
-#plot for protocol
-protocol_model_line = px.line(
-    doc_model_completeness_df[doc_model_completeness_df["doc_type"] == "protocol"],
-    x='section_short',
-    y='mean_answer_given',
-    color='model',
-    title='Completeness of ToxTemp per section per LLM model for protocols',
-    category_orders={"section_short": section_order},
-    markers=True
-)
-protocol_model_line.update_layout(
-    xaxis_title="Section",
-    yaxis_title="Fraction of questions answered",
-    yaxis_range=[0, 1.1]
-)
-protocol_model_line.show()
+# plot model x section for each doc_type
+for doc_type in doc_model_completeness_df["doc_type"].unique():
+    globals()[f"{doc_type}_model_line"] = px.line(
+        doc_model_completeness_df[doc_model_completeness_df["doc_type"] == doc_type],
+        x='section_short',
+        y='mean_answer_given',
+        color='model',
+        title=f'Completeness of ToxTemp per section per LLM model for {doc_type}s',
+        category_orders={"section_short": section_order},
+        markers=True
+    )
+    globals()[f"{doc_type}_model_line"].update_layout(
+        xaxis_title="Section",
+        yaxis_title="Fraction of questions answered",
+        yaxis_range=[0, 1.1]
+    )
+    globals()[f"{doc_type}_model_line"].show()
