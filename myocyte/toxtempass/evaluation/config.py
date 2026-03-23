@@ -4,7 +4,6 @@ import hashlib
 from typing import TypedDict
 
 from myocyte.settings import BASE_DIR
-
 from toxtempass import Config as AppConfig
 
 
@@ -24,6 +23,7 @@ class PromptConfig(TypedDict):
 
 class ExperimentConfig(TypedDict, total=False):
     """Configuration for an experiment.
+
     Required fields:
         models: List of model configurations to use
         description: Human-readable description of the experiment
@@ -44,6 +44,7 @@ class ExperimentConfig(TypedDict, total=False):
 
 class EvaluationConfig:
     """Centralized configuration for evaluation pipelines.
+
     This class provides a single source of truth for:
     - File paths for input/output
     - Model configurations
@@ -165,13 +166,15 @@ class EvaluationConfig:
             ],
             "description": "Full model suite evaluation",
         },
-         "input_type_comparison": {
+        "input_type_comparison": {
             "models": [
                 {"name": "gpt-4o-mini", "temperature": 0},
-                {"name": "gpt-4.1-nano", "temperature": 0},
+                # {"name": "gpt-4.1-nano", "temperature": 0},
                 {"name": "o3-mini", "temperature": None},
                 {"name": "gpt-5-mini", "temperature": None},
-                {"name": "gpt-5-nano", "temperature": None}
+                {"name": "gpt-5-nano", "temperature": None},
+                {"name": "gpt-5.4-nano", "temperature": None},
+                {"name": "gpt-5.4-mini", "temperature": None},
             ],
             "description": "comparing different input document types (e.g., lab protocol, published paper, technical manual) with each other. Looking at how many questions can be answered per document type and model.",
             # "validation_metrics": [
@@ -179,8 +182,8 @@ class EvaluationConfig:
             #     "faithfulness"
             # ],
             "extract_images": True,
-        #     "input": None # still have to input the documents/ figure out how to change the input from the standard
-        }
+            #     "input": None # still have to input the documents/ figure out how to change the input from the standard
+        },
     }
 
     # Evaluation Settings
@@ -200,15 +203,18 @@ class EvaluationConfig:
         cls, tier: int | None = None, experiment: str | None = None
     ) -> list[ModelConfig]:
         """Get model configuration for a tier or experiment.
+
         Args:
             tier: Tier number (1 or 2). If specified, checks for tier-specific overrides.
             experiment: Experiment name. If specified, uses experiment configuration.
+
         Returns:
             List of model configurations to use.
         Priority order:
             1. Experiment configuration (if specified)
             2. Tier-specific override (if specified and available)
             3. Default models
+
         """
         # Experiment configuration takes priority
         if experiment:
@@ -238,13 +244,16 @@ class EvaluationConfig:
     @classmethod
     def get_prompts(cls, experiment: str | None = None) -> PromptConfig:
         """Get prompt configuration for an experiment.
+
         Args:
             experiment: Experiment name. If specified, checks for experiment-specific prompts.
+
         Returns:
             PromptConfig with base_prompt and image_prompt.
         Priority order:
             1. Experiment-specific prompt (if specified in experiment config)
             2. Default prompts
+
         """
         base_prompt = cls.default_base_prompt
         image_prompt = cls.default_image_prompt
@@ -273,13 +282,16 @@ class EvaluationConfig:
     @classmethod
     def get_extract_images(cls, experiment: str | None = None) -> bool:
         """Get the extract_images setting for an experiment.
+
         Args:
             experiment: Experiment name. If specified, checks for experiment-specific setting.
+
         Returns:
             Boolean indicating whether to extract images from PDFs.
         Priority order:
             1. Experiment-specific setting (if specified in experiment config)
             2. Default: False (images not extracted unless explicitly enabled in experiment)
+
         """
         if experiment and experiment in cls.experiments:
             exp_config = cls.experiments[experiment]
@@ -301,12 +313,14 @@ class EvaluationConfig:
         cls, experiment: str | None = None, tier: int | None = None, style=None
     ) -> str:
         """Generate a styled summary of experiment configuration for console output.
+
         Args:
             experiment: Experiment name to summarize. If None, uses default config.
             tier: Tier number (1 or 2) for displaying appropriate IO paths.
             style: Optional Django style object (from self.style in management commands).
                    If provided, uses built-in styles like HTTP_INFO, WARNING, etc.
                    If not provided, returns unstyled output.
+
         Returns:
             Formatted string with styled output suitable for stdout.write() or print().
         Example usage in a Django management command:
@@ -316,6 +330,7 @@ class EvaluationConfig:
                 style=self.style
             )
             self.stdout.write(output)
+
         """
         if style is None:
             # Fallback: create a simple style object that doesn't apply styling
