@@ -7,11 +7,18 @@ import pandas as pd
 import plotly.express as px
 
 # Paths and constants
-BASE_DIR = Path('myocyte/toxtempass/evaluation/real_world_files/output')
-OUTPUT_CSV = Path('myocyte/toxtempass/evaluation/data_analysis_plotting/christophe_data_analysis/results/tables/completeness_tier3/summary_completeness.csv')
-QUESTION_PATH = Path('myocyte/toxtempass/evaluation/data_analysis_plotting/christophe_data_analysis/enriched/sections/dataframes/ToxTemp_v1_questions_short_section_colour.csv')
+ROOT = Path(r'C:\TTA\VScode\ToxTempAssistant')
+BASE_DIR = ROOT / 'myocyte' / 'toxtempass' / 'evaluation' / 'real_world_files' / 'output'
+OUTPUT_CSV = ROOT / 'myocyte' / 'toxtempass' / 'evaluation' / 'data_analysis_plotting' / 'christophe_data_analysis' / 'results' / 'tables' / 'completeness_tier3' / 'summary_completeness.csv'
+QUESTION_PATH = ROOT / 'myocyte' / 'toxtempass' / 'evaluation' / 'data_analysis_plotting' / 'christophe_data_analysis' / 'enriched' / 'sections' / 'dataframes' / 'ToxTemp_v1_questions_short_section_colour.csv'
 NOT_FOUND_STRING = "Answer not found in documents."
-CURRENT_LOC = Path('myocyte/toxtempass/evaluation/data_analysis_plotting/christophe_data_analysis/scripts/tier3/completeness/summary.py')
+CURRENT_LOC = ROOT / 'myocyte' / 'toxtempass' / 'evaluation' / 'data_analysis_plotting' / 'christophe_data_analysis' / 'scripts' / 'tier3' / 'completeness' / 'summary.py'
+
+# Debug prints
+print(f"BASE_DIR: {BASE_DIR}")
+print(f"BASE_DIR exists: {BASE_DIR.exists()}")
+print(f"OUTPUT_CSV parent exists: {OUTPUT_CSV.parent.exists()}")
+print(f"QUESTION_PATH exists: {QUESTION_PATH.exists()}")
 
 # read question DataFrame
 question_df = pd.read_csv(QUESTION_PATH)
@@ -19,6 +26,7 @@ question_df.set_index('Question_ID', inplace=True)
 
 #read csv & create Dataframe of tier 3 output
 csv_files = sorted(BASE_DIR.rglob("*.csv"))
+print(f"Found {len(csv_files)} CSV files in {BASE_DIR}")
 if not csv_files:
     raise FileNotFoundError(f"No CSV files found in: {BASE_DIR}")
 
