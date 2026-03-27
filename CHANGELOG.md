@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v2.16.2 (2026-03-27)
+
+### Bug Fixes
+
+- **.gitignore**: Add .claude to backups exclusion
+  ([`6e4fb89`](https://github.com/johannehouweling/ToxTempAssistant/commit/6e4fb898b711133b1ee50137ba665b2dd4fe2a60))
+
+- **deploy**: Suppress error when connecting to docker network
+  ([`58f6651`](https://github.com/johannehouweling/ToxTempAssistant/commit/58f6651434f96ed3151e8fd4145134b9ea5ba3e8))
+
+
 ## v2.16.1 (2026-03-27)
 
 ### Bug Fixes
