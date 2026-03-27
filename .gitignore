@@ -57,3 +57,4 @@ output/
 
 #backups
 backups/
+.claude/
