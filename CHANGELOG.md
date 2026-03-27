@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v2.16.1 (2026-03-27)
+
+### Bug Fixes
+
+- **migrations**: Remove stale django-q schedule for cleanup_orphaned_files
+  ([`eabfc45`](https://github.com/johannehouweling/ToxTempAssistant/commit/eabfc4538b39bc79e2047ad8e615ccb91f79d937))
+
+### Chores
+
+- **deps**: Bump django from 6.0.2 to 6.0.3
+  ([`0244168`](https://github.com/johannehouweling/ToxTempAssistant/commit/024416820e27fb29db7bfba1351ec02ee2983588))
+
+- **deps-dev**: Bump tornado from 6.5.4 to 6.5.5
+  ([`ca518eb`](https://github.com/johannehouweling/ToxTempAssistant/commit/ca518eb9777dbabd1cd354294b785d568558e202))
+
+
 ## v2.16.0 (2026-03-06)
 
 ### Bug Fixes
