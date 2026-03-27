@@ -198,6 +198,29 @@ Results are organized within the evaluation directory, separated by tier and mod
 
 ```
 evaluation/
+```
+
+## Evaluation-only Assay Description File Behavior
+
+The real-world evaluation pipeline (Tier 3) supports assay description files in:
+
+`evaluation/real_world_files/input_files/<assay_name>/description/*.txt`
+
+For each assay folder, if a description file is present, the runner sets:
+
+- `assay.description_file` to the TXT path
+- `assay.use_description_file` to `True`
+
+Then `process_llm_async` uses this file content as `ASSAY DESCRIPTION` in the LLM system prompt.
+
+This behavior is only used during evaluation and does not affect regular app workflows.
+
+## Output Structure
+
+Results are organized within the evaluation directory, separated by tier and model:
+
+```
+evaluation/
 ├── positive_control/
 │   └── output/
 │       ├── gpt-4o-mini/

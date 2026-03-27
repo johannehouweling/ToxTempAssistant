@@ -64,6 +64,24 @@ class AssayFactory(DjangoModelFactory):
     description = factory.Faker(
         "sentence", locale="en_US", nb_words=20, variable_nb_words=True
     )
+    description_file = None
+    use_description_file = False
+    status = LLMStatus.NONE
+
+
+class RealWorldAssayFactory(DjangoModelFactory):
+    """Factory for creating assays that reference description files."""
+
+    class Meta:
+        model = Assay
+
+    study = factory.SubFactory(StudyFactory)
+    title = factory.Faker("sentence", locale="en_US", nb_words=6, variable_nb_words=True)
+    description = factory.Faker(
+        "sentence", locale="en_US", nb_words=20, variable_nb_words=True
+    )
+    description_file = None
+    use_description_file = False
     status = LLMStatus.NONE
 
 

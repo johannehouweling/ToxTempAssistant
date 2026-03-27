@@ -7,6 +7,7 @@ from collections import defaultdict
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from itertools import product
+from pathlib import Path
 
 import requests
 from django.contrib.auth import authenticate, login, logout
@@ -704,10 +705,19 @@ def generate_answer(
         sys_msgs = [SystemMessage(content=q.additional_llm_instruction)]
     else:
         # base + question‐specific appended
+        assay_description = assay.description
+        if assay.use_description_file and assay.description_file:
+            try:
+                description_file_path = Path(assay.description_file)
+                if description_file_path.exists():
+                    assay_description = description_file_path.read_text(encoding='utf-8').strip()
+            except Exception as e:
+                logger.warning(f"Failed to read description file {assay.description_file}: {e}")
+
         sys_msgs = [
             SystemMessage(content=config.base_prompt),
             SystemMessage(content=f"ASSAY NAME: {assay.title}"),
-            SystemMessage(content=f"ASSAY DESCRIPTION: {assay.description}"),
+            SystemMessage(content=f"ASSAY DESCRIPTION: {assay_description}"),
         ]
         if q.additional_llm_instruction:
             sys_msgs.append(SystemMessage(content=q.additional_llm_instruction))
@@ -781,7 +791,7 @@ def generate_answer(
             )
             time.sleep(wait)
 
-        except Exception as exc:
+        except Exception:
             logger.exception(
                 f"LLM error for answer {ans.id} [{max_ans_id - ans.id} "
                 "of {delta_ans}]: {exc}"

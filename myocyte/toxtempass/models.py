@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import uuid
 
 from django.contrib.auth.models import AbstractUser, BaseUserManager
@@ -243,6 +244,8 @@ class Assay(AccessibleModel):
     study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name="assays")
     title = models.CharField(max_length=255, blank=False, null=False)
     description = models.TextField(blank=False, default="")
+    description_file = models.CharField(max_length=500, blank=True, null=True, help_text="Path to the description file for this assay")
+    use_description_file = models.BooleanField(default=False, help_text="Whether to use the description file content instead of the description field")
     submission_date = models.DateTimeField(auto_now_add=True)
     status = models.CharField(
         max_length=10,

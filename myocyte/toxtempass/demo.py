@@ -49,6 +49,8 @@ def seed_demo_assay_for_user(user:Person) -> Assay|None:
             study=study,
             title=f"{template.title} (Demo)",
             description=template.description,
+            description_file=template.description_file,
+            use_description_file=template.use_description_file,
             question_set=template.question_set,
             status=LLMStatus.DONE,
             status_context=template.status_context,

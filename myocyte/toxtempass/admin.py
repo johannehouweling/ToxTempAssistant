@@ -9,6 +9,7 @@ from toxtempass.models import (
     Answer,
     Assay,
     Feedback,
+    FileAsset,
     Investigation,
     Person,
     Question,
@@ -16,7 +17,6 @@ from toxtempass.models import (
     Section,
     Study,
     Subsection,
-    FileAsset
 )
 
 logger = logging.getLogger(__name__)
@@ -47,6 +47,7 @@ class AssayAdmin(admin.ModelAdmin):
         "title",
         "study",
         "submission_date",
+        "use_description_file",
         "feedback__feedback_text",
         "number_answers_not_found",
     )

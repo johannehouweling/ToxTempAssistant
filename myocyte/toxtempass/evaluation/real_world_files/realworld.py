@@ -9,6 +9,8 @@ from typing import TextIO
 import pandas as pd
 from django.core.management.color import make_style
 from langchain_openai import ChatOpenAI
+from tqdm.auto import tqdm
+
 from toxtempass import LLM_API_KEY, LLM_ENDPOINT, config
 from toxtempass.evaluation.config import config as eval_config
 from toxtempass.evaluation.post_processing.utils import has_answer_not_found
@@ -16,7 +18,6 @@ from toxtempass.evaluation.utils import select_question_set
 from toxtempass.models import Answer, Question
 from toxtempass.tests.fixtures.factories import AssayFactory, DocumentDictFactory
 from toxtempass.views import process_llm_async
-from tqdm.auto import tqdm
 
 logger = logging.getLogger("llm")
 
@@ -69,7 +70,29 @@ def _infer(
         extract_images=eval_config.get_extract_images(experiment),
     )
     question_set = select_question_set(question_set_label)
-    assay = AssayFactory(title=assay_title, description="", question_set=question_set)
+
+    # For evaluation, try to find and use description file
+    assay_kwargs = {"title": assay_title, "description": "", "question_set": question_set}
+
+    # For tier3 paths this can be `<assay>/description/*.txt' so resolve the root assay directory.
+    assay_root = Path(assay_title).parts[0]
+    assay_dir = eval_config.realworld_input / assay_root
+    description_dir = assay_dir / "description"
+    if description_dir.exists():
+        txt_files = sorted(description_dir.glob("*.txt"))
+        if txt_files:
+            description_file_path = str(txt_files[0])
+            assay_kwargs.update({
+                "description_file": description_file_path,
+                "use_description_file": True,
+            })
+            # store the file text as the assay description by default
+            try:
+                assay_kwargs["description"] = Path(description_file_path).read_text(encoding="utf-8").strip()
+            except Exception:
+                assay_kwargs["description"] = ""
+
+    assay = AssayFactory(**assay_kwargs)
     questions = Question.objects.filter(
         subsection__section__question_set=question_set
     ).order_by("answering_round", "id")
@@ -87,6 +110,9 @@ def _infer(
 
 def _process_answers(answers: list) -> tuple[pd.DataFrame, list[dict]]:
     """Build a DataFrame and failures list from Answer objects."""
+    # Get description file usage from the first answer's assay (all answers belong to the same assay)
+    used_description_file = bool(answers and answers[0].assay.use_description_file)
+
     rows = []
     for a in answers:
         answer_text = a.answer_text or " "
@@ -97,6 +123,7 @@ def _process_answers(answers: list) -> tuple[pd.DataFrame, list[dict]]:
             "is_empty": (not answer_text.strip()),
             "is_not_found": has_answer_not_found(answer_text) if answer_text else True,
             "answer_len": len(answer_text.strip()),
+            "used_description_file": used_description_file,
         })
     failures = [
         {"question_id": a.question.id, "question_text": a.question.question_text,
@@ -239,6 +266,7 @@ def run(
     stdout: TextIO | None = None,
 ) -> None:
     """Run Tier3 pipeline for all configured models.
+
     Args:
         question_set_label: Optional QuestionSet label to use
         repeat: Re-run even if output already exists
@@ -248,6 +276,7 @@ def run(
         mode: "single" (one doc at a time), "combined" (all assay docs together),
               or "both" (run single then combined)
         stdout: Output stream for progress and status messages.
+
     """
     stdout.write(eval_config.summarize_experiment_config(experiment=experiment))
 
