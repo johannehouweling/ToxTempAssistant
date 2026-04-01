@@ -50,6 +50,13 @@ combined_output["answer_given"] = (
 # merge question and output DataFrame
 merged_df = question_df.merge(combined_output, on=["question"])
 
+# drop rows without an assay description (msldt and th_uptake)
+# merged_df = merged_df.loc[merged_df['used_description_file'] == True]
+
+# drop rows which the llm_answer is empty
+merged_df = merged_df.loc[merged_df['is_empty'] == False]
+
+
 #section order
 section_order = [
     "1. Overview",
