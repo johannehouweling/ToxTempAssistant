@@ -33,7 +33,6 @@ merged_df = question_df.merge(summary_df, on=["question"])
 
 # drop the rows without an assay description (msldt and th_uptake)
 merged_df = merged_df.loc[merged_df['assay'] != "msldt"]
-merged_df = merged_df.loc[merged_df['assay'] != "th_uptake"]
 merged_df = merged_df.loc[merged_df['assay'] != "ldh_shy5y"]
 merged_df = merged_df.loc[merged_df['is_empty'] == False]
 
