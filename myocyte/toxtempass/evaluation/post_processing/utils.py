@@ -12,6 +12,8 @@ from toxtempass.evaluation.post_processing.cosine_similarities import cosine_sim
 
 def has_answer_not_found(answer_text: str) -> bool:
     """Check if LLM was not able to find an Answer from the context in document."""
+    if not isinstance(answer_text, str):
+        return False
     return config.not_found_string in answer_text
 
 
