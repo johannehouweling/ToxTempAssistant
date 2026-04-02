@@ -5,9 +5,9 @@ from pathlib import Path
 from typing import TextIO
 
 import pandas as pd
+from django.core.management.color import make_style
 from langchain_openai import ChatOpenAI
 from tqdm.auto import tqdm
-from django.core.management.color import make_style
 
 from toxtempass import LLM_API_KEY, LLM_ENDPOINT, config
 from toxtempass.evaluation.config import config as eval_config
@@ -35,6 +35,7 @@ def run(
     stdout: TextIO | None = None,
 ) -> None:
     """Run Tier1 pipeline for all configured models.
+
     Args:
         question_set_label: Optional QuestionSet label to use
         repeat: Re-run even if output already exists for a model
@@ -42,6 +43,7 @@ def run(
         raw_dir: Tier1 raw PDF directory
         output_base_dir: Tier1 output base directory
         experiment: Name of experiment configuration to use (from eval_config.experiments)
+
     """
     stdout.write(eval_config.summarize_experiment_config(experiment=experiment))
     llm = None
