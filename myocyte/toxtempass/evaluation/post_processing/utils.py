@@ -1,10 +1,12 @@
 import json
 import warnings
 from pathlib import Path
+
 import pandas as pd
 from django.db.models.query import QuerySet
 from langchain_openai import ChatOpenAI
 from tqdm.auto import tqdm
+
 from toxtempass import config
 from toxtempass.evaluation.config import config as eval_config
 from toxtempass.evaluation.post_processing.cosine_similarities import cosine_similarity
@@ -38,20 +40,20 @@ def generate_comparison_csv(
     try:
         with json_file.open("r", encoding="utf-8") as f:
             data = json.load(f)
-    
+
     except json.JSONDecodeError as e:
         raise ValueError(f"Failed to parse JSON from {json_file}: {e}") from e
-    
+
     # output file path
     if model:
         model_name = model.model_name if hasattr(model, 'model_name') else str(model)
         output_file = output_dir / f"tier1_comparison_{Path(pdf_file).stem}_{model_name}.csv"
     output_file = output_dir / f"tier1_comparison_{Path(pdf_file).stem}.csv"
-    
+
     if output_file.exists() and not overwrite:
         df = pd.read_csv(output_file)
         print(f"Comparison CSV already exists at {output_file}, skipping generation.")
-        return df 
+        return df
     # 1. Build a mapping from question → ground-truth answer
     qa_list = extract_qa(data)
     gtruth_map = {item["question"]: item["answer"] for item in qa_list}
