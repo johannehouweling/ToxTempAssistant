@@ -35,7 +35,6 @@ def run(
     stdout: TextIO | None = None,
 ) -> None:
     """Run Tier1 pipeline for all configured models.
-
     Args:
         question_set_label: Optional QuestionSet label to use
         repeat: Re-run even if output already exists for a model
@@ -61,19 +60,22 @@ def run(
     for model_config in models:
         model_name = model_config["name"]
         temp = model_config["temperature"]
-        if LLM_API_KEY and LLM_ENDPOINT:
-            llm = ChatOpenAI(
-                api_key=LLM_API_KEY,
-                base_url=config.url,
-                temperature=temp,
-                model=model_name,
-                default_headers=config.extra_headers,
-            )
-            stdout.write(style.SUCCESS(
-                f"Using ({model_name}) at {LLM_ENDPOINT} with temperature={temp}."
+        if not (LLM_API_KEY and LLM_ENDPOINT):
+            stdout.write(style.ERROR(
+                "Required environment variables are missing, "
+                "skipping model."
             ))
-        else:
-            stdout.write(style.ERROR("Required environment variables are missing"))
+            continue
+        llm = ChatOpenAI(
+            api_key=LLM_API_KEY,
+            base_url=config.url,
+            temperature=temp,
+            model=model_name,
+            default_headers=config.extra_headers,
+        )
+        stdout.write(style.SUCCESS(
+            f"Using ({model_name}) at {LLM_ENDPOINT} with temperature={temp}."
+        ))
 
         gtruth_jsons = processed_scored_dir.glob("*.json")
         gtruth_pdfs = raw_dir.glob("*.pdf")
@@ -86,10 +88,6 @@ def run(
         output_tier1 = output_base_dir / output_dir_name
         if not output_tier1.exists():
             output_tier1.mkdir(parents=True)
-        output_summary = list(output_tier1.glob("tier1_summary*.json"))
-        if output_summary and not repeat:
-            continue
-
         pdf_by_stem = {pdf.stem: pdf for pdf in gtruth_pdfs}
 
         json_pdf_dict = {
@@ -104,40 +102,49 @@ def run(
             json_pdf_dict.items(), desc="Processing positive control files"
         ):
             pdf_file = pdf_file_path.name
-            input_pdf_dict = DocumentDictFactory(
-                document_filenames=[pdf_file_path],
-                num_bytes=0,
-                extract_images=eval_config.get_extract_images(experiment),
-            )
             question_set = select_question_set(question_set_label)
-            assay = AssayFactory(
-                title=pdf_file, description="", question_set=question_set
-            )
-            questions = Question.objects.filter(
-                subsection__section__question_set=question_set
-            ).order_by("answering_round", "id")
-            for q in questions:
-                Answer.objects.get_or_create(assay=assay, question=q)
 
-            process_llm_async(
-                assay.id,
-                input_pdf_dict,
-                extract_images=eval_config.get_extract_images(experiment),
-                chatopenai=llm,
-                verbose=True
-            )
-            answers = Answer.objects.filter(assay=assay)
-            df = generate_comparison_csv(
-                json_file,
-                answers,
-                output_tier1,
-                pdf_file,
-                model=llm,
-                overwrite=repeat,
-                experiment=experiment,
-            )
+            # Skip LLM calls if comparison CSV already exists
+            csv_file = output_tier1 / f"tier1_comparison_{pdf_file_path.stem}.csv"
+            if csv_file.exists() and not repeat:
+                df = pd.read_csv(csv_file)
+            else:
+                input_pdf_dict = DocumentDictFactory(
+                    document_filenames=[pdf_file_path],
+                    num_bytes=0,
+                    extract_images=eval_config.get_extract_images(experiment),
+                )
+                assay = AssayFactory(
+                    title=pdf_file, description="", question_set=question_set
+                )
+                questions = Question.objects.filter(
+                    subsection__section__question_set=question_set
+                ).order_by("answering_round", "id")
+                for q in questions:
+                    Answer.objects.get_or_create(assay=assay, question=q)
 
-            total = int(df[df["gtruth_answer"] != ""].dropna().shape[0])
+                process_llm_async(
+                    assay.id,
+                    input_pdf_dict,
+                    extract_images=eval_config.get_extract_images(experiment),
+                    chatopenai=llm,
+                    verbose=True
+                )
+                answers = Answer.objects.filter(assay=assay)
+                df = generate_comparison_csv(
+                    json_file,
+                    answers,
+                    output_tier1,
+                    pdf_file,
+                    overwrite=repeat,
+                    experiment=experiment,
+                )
+
+            total = int(
+                df[df["gtruth_answer"] != ""]
+                .dropna(subset=["gtruth_answer"])
+                .shape[0]
+            )
             passed_mask = (
                 (df["gtruth_answer"] != "").astype(bool)
                 & df["gtruth_answer"].notna()
@@ -145,28 +152,20 @@ def run(
                 & df["llm_answer"].astype(bool)
                 & ~df["llm_answer"].apply(has_answer_not_found)
             )
-            df_passed = df[passed_mask]
+            df_passed = df[passed_mask].copy()
             df_passed["db_qid"] = df_passed["question"].apply(
-                lambda x: str(
-                    Question.objects.get(
-                        question_text=x, subsection__section__question_set=question_set
-                    ).id
-                )
-                if Question.objects.filter(
-                    question_text=x, subsection__section__question_set=question_set
-                ).exists()
+                lambda x: str(q.id)
+                if (q := Question.objects.filter(
+                    question_text=x,
+                    subsection__section__question_set=question_set,
+                ).first())
                 else pd.NA
             )
             passes = df_passed.shape[0]
             pass_rate = float(passes) / total * 100 if total > 0 else 0.0
             failures = [
-                {
-                    "question_id": a.question.id,
-                    "question_text": a.question.question_text,
-                    "answer_text": a.answer_text,
-                }
-                for a in answers
-                if not a.answer_text or has_answer_not_found(a.answer_text)
+                row.to_dict()
+                for _, row in df[~passed_mask].iterrows()
             ]
             metrics = eval_config.validation_metrics
             agg_stats = (
