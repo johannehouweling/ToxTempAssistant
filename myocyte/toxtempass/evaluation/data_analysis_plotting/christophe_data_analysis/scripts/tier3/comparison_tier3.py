@@ -28,12 +28,9 @@ v1_df = v1_df.drop(columns=['Unnamed: 0', 'Unnamed: 0.1'])
 v2_df = v2_df.loc[v2_df['is_empty'] == False]
 v2_df = v2_df.drop(columns=['Unnamed: 0', 'Unnamed: 0.1'])
 
-# exclude msldt and th_uptake assays as they don't have description files
-# also exclude ldh_shy5y as it doesn't have a description file yet
+# exclude msldt assays as it does not have description files
 v1_df = v1_df.loc[v1_df['assay'] != "msldt"]
-v1_df = v1_df.loc[v1_df['assay'] != "ldh_shy5y"]
 v2_df = v2_df.loc[v2_df['assay'] != "msldt"]
-v2_df = v2_df.loc[v2_df['assay'] != "ldh_shy5y"]
 
 # calculate average and standarddeviation answer_given for each question, model and document type
 v1_summary = v1_df.groupby(['section', 'subsection', 'section_short', 'qID',  'question', 'model', 'doc_type', 'eval_version', 'used_description_file'])['answer_given'].mean().reset_index()
