@@ -7,6 +7,7 @@
 from pathlib import Path
 
 import pandas as pd
+import plotly.express as px
 
 # Paths and constants
 ROOT = Path(r'C:\TTA\VScode\ToxTempAssistant')
@@ -47,3 +48,59 @@ OUTPUT_CSV.parent.mkdir(parents=True, exist_ok=True)
 merged_df.to_csv(OUTPUT_CSV)
 print(f"Saved Analysis to: {OUTPUT_CSV}")
 
+# calculate average cosine similarity per question per model
+question_cos_sim_summary = merged_df.groupby(['section#', 'section', 'subsection', 'section_short', 'Question_ID2', 'question', 'model'])['cos_similarity'].mean().reset_index()
+
+# save question summary DataFrame as csv
+question_summary_csv = OUTPUT_CSV.with_name("question_summary_pc_cos_sim.csv")
+question_summary_csv.parent.mkdir(parents=True, exist_ok=True)
+question_cos_sim_summary.to_csv(question_summary_csv, index=False)
+print(f"Saved question Summary to: {question_summary_csv}")
+
+# calculate average cosine similarity per section per model
+section_cos_sim_summary = merged_df.groupby(['section#', 'section', 'section_short', 'model'])['cos_similarity'].mean().reset_index()
+
+# save question summary DataFrame as csv
+section_summary_csv = OUTPUT_CSV.with_name("section_summary_pc_cos_sim.csv")
+section_summary_csv.parent.mkdir(parents=True, exist_ok=True)
+section_cos_sim_summary.to_csv(section_summary_csv, index=False)
+print(f"Saved Section Summary to: {section_summary_csv}")
+
+
+#section order
+section_order = [
+    "1. Overview",
+    "2. General information",
+    "3. Test system source",
+    "4. Test system definition",
+    "5. Exposure & endpoints",
+    "6. Test method handling",
+    "7. Data management",
+    "8. Prediction & application",
+    "9. Publication/validation status",
+    "10. Transferability",
+    "11. Safety, ethics & requirements"
+]
+# order dataframe by section order
+section_cos_sim_summary["section_short"] = pd.Categorical(
+    section_cos_sim_summary["section_short"],
+    categories=section_order,
+    ordered=True
+)
+
+# plot cosine similarity per section per model
+cos_sim_line = px.line(
+    section_cos_sim_summary,
+    x='section_short',
+    y='cos_similarity',
+    color='model',
+    title='Cosine similarity of ToxTemp per section per model',
+    category_orders={"section_short": section_order},
+    markers=True
+)
+cos_sim_line.update_layout(
+    xaxis_title="Section",
+    yaxis_title="Cosine similarity",
+    yaxis_range=[0, 1.1]
+)
+cos_sim_line.show()

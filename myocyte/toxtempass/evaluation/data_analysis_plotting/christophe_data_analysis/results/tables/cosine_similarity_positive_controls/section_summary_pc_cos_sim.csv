@@ -1,0 +1,89 @@
+section#,section,section_short,model,cos_similarity
+1.0,1. Overview,1. Overview,gpt-4.1-nano,0.5513836390458814
+1.0,1. Overview,1. Overview,gpt-4o-mini,0.5687778945411295
+1.0,1. Overview,1. Overview,gpt-4o-mini_temp0,0.5906506150694046
+1.0,1. Overview,1. Overview,gpt-5-mini,0.5667679398996761
+1.0,1. Overview,1. Overview,gpt-5-nano,0.5660841618696505
+1.0,1. Overview,1. Overview,gpt-5.4-mini,0.6050414329325601
+1.0,1. Overview,1. Overview,gpt-5.4-nano,0.5391926307531171
+1.0,1. Overview,1. Overview,o3-mini,0.6045612666848146
+2.0,2. General information,2. General information,gpt-4.1-nano,0.3963141484369652
+2.0,2. General information,2. General information,gpt-4o-mini,0.518507312851316
+2.0,2. General information,2. General information,gpt-4o-mini_temp0,0.47826910074948814
+2.0,2. General information,2. General information,gpt-5-mini,0.5042631902291427
+2.0,2. General information,2. General information,gpt-5-nano,0.5234601991285339
+2.0,2. General information,2. General information,gpt-5.4-mini,0.500977311472062
+2.0,2. General information,2. General information,gpt-5.4-nano,0.3736251467889668
+2.0,2. General information,2. General information,o3-mini,0.5547154962700771
+3.0,3. Description of general features of the test system source,3. Test system source,gpt-4.1-nano,0.4532295025793802
+3.0,3. Description of general features of the test system source,3. Test system source,gpt-4o-mini,0.5416746756462965
+3.0,3. Description of general features of the test system source,3. Test system source,gpt-4o-mini_temp0,0.5549837902075884
+3.0,3. Description of general features of the test system source,3. Test system source,gpt-5-mini,0.6524374527537887
+3.0,3. Description of general features of the test system source,3. Test system source,gpt-5-nano,0.6383496905406582
+3.0,3. Description of general features of the test system source,3. Test system source,gpt-5.4-mini,0.7205362322640083
+3.0,3. Description of general features of the test system source,3. Test system source,gpt-5.4-nano,0.6017952589682594
+3.0,3. Description of general features of the test system source,3. Test system source,o3-mini,0.7513175389998328
+4.0,4. Definition of the test system as used in the method,4. Test system definition,gpt-4.1-nano,0.35554503476956706
+4.0,4. Definition of the test system as used in the method,4. Test system definition,gpt-4o-mini,0.5348351138149416
+4.0,4. Definition of the test system as used in the method,4. Test system definition,gpt-4o-mini_temp0,0.5198041573729744
+4.0,4. Definition of the test system as used in the method,4. Test system definition,gpt-5-mini,0.5806738088620382
+4.0,4. Definition of the test system as used in the method,4. Test system definition,gpt-5-nano,0.5407462601053361
+4.0,4. Definition of the test system as used in the method,4. Test system definition,gpt-5.4-mini,0.5988692074496079
+4.0,4. Definition of the test system as used in the method,4. Test system definition,gpt-5.4-nano,0.5098509009406385
+4.0,4. Definition of the test system as used in the method,4. Test system definition,o3-mini,0.6666223733612855
+5.0,5. Test method exposure scheme and endpoints,5. Exposure & endpoints,gpt-4.1-nano,0.576696944883111
+5.0,5. Test method exposure scheme and endpoints,5. Exposure & endpoints,gpt-4o-mini,0.5061808920276072
+5.0,5. Test method exposure scheme and endpoints,5. Exposure & endpoints,gpt-4o-mini_temp0,0.544802766969244
+5.0,5. Test method exposure scheme and endpoints,5. Exposure & endpoints,gpt-5-mini,0.6544196472268266
+5.0,5. Test method exposure scheme and endpoints,5. Exposure & endpoints,gpt-5-nano,0.6319599642103594
+5.0,5. Test method exposure scheme and endpoints,5. Exposure & endpoints,gpt-5.4-mini,0.6779819619452603
+5.0,5. Test method exposure scheme and endpoints,5. Exposure & endpoints,gpt-5.4-nano,0.5714157684568265
+5.0,5. Test method exposure scheme and endpoints,5. Exposure & endpoints,o3-mini,0.722777054934674
+6.0,6. Handling details of the test method,6. Test method handling,gpt-4.1-nano,0.34730389815710927
+6.0,6. Handling details of the test method,6. Test method handling,gpt-4o-mini,0.4868568578480969
+6.0,6. Handling details of the test method,6. Test method handling,gpt-4o-mini_temp0,0.4900919579835555
+6.0,6. Handling details of the test method,6. Test method handling,gpt-5-mini,0.6548375393646976
+6.0,6. Handling details of the test method,6. Test method handling,gpt-5-nano,0.6227977617008714
+6.0,6. Handling details of the test method,6. Test method handling,gpt-5.4-mini,0.6945925720009951
+6.0,6. Handling details of the test method,6. Test method handling,gpt-5.4-nano,0.5704376898342911
+6.0,6. Handling details of the test method,6. Test method handling,o3-mini,0.7493126001900076
+7.0,7. Data management,7. Data management,gpt-4.1-nano,0.43629517018443614
+7.0,7. Data management,7. Data management,gpt-4o-mini,0.45412200683615517
+7.0,7. Data management,7. Data management,gpt-4o-mini_temp0,0.40211039471406734
+7.0,7. Data management,7. Data management,gpt-5-mini,0.6051245273440636
+7.0,7. Data management,7. Data management,gpt-5-nano,0.5939926665917193
+7.0,7. Data management,7. Data management,gpt-5.4-mini,0.6927574952552041
+7.0,7. Data management,7. Data management,gpt-5.4-nano,0.58643098077878
+7.0,7. Data management,7. Data management,o3-mini,0.7311342815714992
+8.0,8. Prediction model and toxicological application,8. Prediction & application,gpt-4.1-nano,0.32232011010870126
+8.0,8. Prediction model and toxicological application,8. Prediction & application,gpt-4o-mini,0.5086491568636942
+8.0,8. Prediction model and toxicological application,8. Prediction & application,gpt-4o-mini_temp0,0.49287867709710725
+8.0,8. Prediction model and toxicological application,8. Prediction & application,gpt-5-mini,0.646194772694229
+8.0,8. Prediction model and toxicological application,8. Prediction & application,gpt-5-nano,0.6299747808333245
+8.0,8. Prediction model and toxicological application,8. Prediction & application,gpt-5.4-mini,0.6713229131660858
+8.0,8. Prediction model and toxicological application,8. Prediction & application,gpt-5.4-nano,0.5963703878789761
+8.0,8. Prediction model and toxicological application,8. Prediction & application,o3-mini,0.7343704872047033
+9.0,9. Publication/validation status,9. Publication/validation status,gpt-4.1-nano,0.2684174523142202
+9.0,9. Publication/validation status,9. Publication/validation status,gpt-4o-mini,0.678138706977647
+9.0,9. Publication/validation status,9. Publication/validation status,gpt-4o-mini_temp0,0.5997463502508131
+9.0,9. Publication/validation status,9. Publication/validation status,gpt-5-mini,0.6128451629373848
+9.0,9. Publication/validation status,9. Publication/validation status,gpt-5-nano,0.6043644876200174
+9.0,9. Publication/validation status,9. Publication/validation status,gpt-5.4-mini,0.6412619865770991
+9.0,9. Publication/validation status,9. Publication/validation status,gpt-5.4-nano,0.5659788008687923
+9.0,9. Publication/validation status,9. Publication/validation status,o3-mini,0.6897788617347278
+10.0,10. Test method transferability,10. Transferability,gpt-4.1-nano,0.6341509902943252
+10.0,10. Test method transferability,10. Transferability,gpt-4o-mini,0.8178931264639203
+10.0,10. Test method transferability,10. Transferability,gpt-4o-mini_temp0,0.8096941890610098
+10.0,10. Test method transferability,10. Transferability,gpt-5-mini,0.7008790978402687
+10.0,10. Test method transferability,10. Transferability,gpt-5-nano,0.6671733370570325
+10.0,10. Test method transferability,10. Transferability,gpt-5.4-mini,0.7755349472701152
+10.0,10. Test method transferability,10. Transferability,gpt-5.4-nano,0.7335048383117247
+10.0,10. Test method transferability,10. Transferability,o3-mini,0.8114482309733938
+11.0,"11. Safety, ethics and specific requirements","11. Safety, ethics & requirements",gpt-4.1-nano,0.1831292471985971
+11.0,"11. Safety, ethics and specific requirements","11. Safety, ethics & requirements",gpt-4o-mini,0.3533066991089175
+11.0,"11. Safety, ethics and specific requirements","11. Safety, ethics & requirements",gpt-4o-mini_temp0,0.31363744785025
+11.0,"11. Safety, ethics and specific requirements","11. Safety, ethics & requirements",gpt-5-mini,0.5190451426689546
+11.0,"11. Safety, ethics and specific requirements","11. Safety, ethics & requirements",gpt-5-nano,0.4935199130875034
+11.0,"11. Safety, ethics and specific requirements","11. Safety, ethics & requirements",gpt-5.4-mini,0.49514522776162684
+11.0,"11. Safety, ethics and specific requirements","11. Safety, ethics & requirements",gpt-5.4-nano,0.37960981566392576
+11.0,"11. Safety, ethics and specific requirements","11. Safety, ethics & requirements",o3-mini,0.5639627478944648
