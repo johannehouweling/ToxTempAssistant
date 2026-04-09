@@ -1,8 +1,9 @@
 # completeness comparison between tier 3 evaluation
 # comparison between question, model and document type
 from pathlib import Path
-import plotly.express as px
+
 import pandas as pd
+import plotly.express as px
 
 # Paths and constants
 ROOT = Path(r'C:\TTA\VScode\ToxTempAssistant')
