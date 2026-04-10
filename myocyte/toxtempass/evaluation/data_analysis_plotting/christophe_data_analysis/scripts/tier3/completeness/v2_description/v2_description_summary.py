@@ -254,3 +254,23 @@ for doc_type in doc_model_completeness_df["doc_type"].unique():
         yaxis_range=[0, 1.1],
     )
     globals()[f"{doc_type}_model_line"].show()
+
+# create dataframe average completeness per question irrespective of model based only on doc_type combined
+question_completeness_df = (
+    merged_df.groupby(["section", "section_short","subsection","qID", "question", "doc_type", "colour"], as_index=False)
+    .agg(
+        mean_answer_given=("answer_given", "mean"),
+        std_answer_given=("answer_given", "std"),
+    )
+)
+
+# drop all doc_types except for combined
+question_completeness_df = question_completeness_df.loc[question_completeness_df["doc_type"] == "combined"]
+
+# save dataframe
+question_completeness_csv = OUTPUT_CSV.with_name(
+    f"question_{OUTPUT_CSV.stem}.csv"
+)
+question_completeness_csv.parent.mkdir(parents=True, exist_ok=True)
+question_completeness_df.to_csv(question_completeness_csv)
+print(f"Saved average dataframe to:{question_completeness_csv}")
