@@ -32,8 +32,8 @@ summary_df = pd.read_csv(OUTPUT_CSV)
 merged_df = question_df.merge(summary_df, on=["question"])
 
 # drop the rows without an assay description (msldt and th_uptake)
-merged_df = merged_df.loc[merged_df['assay'] != "msldt"]
-merged_df = merged_df.loc[merged_df['assay'] != "ldh_shy5y"]
+# merged_df = merged_df.loc[merged_df['assay'] != "msldt"]
+# merged_df = merged_df.loc[merged_df['assay'] != "ldh_shy5y"]
 merged_df = merged_df.loc[merged_df['is_empty'] == False]
 
 # drop double columns
@@ -255,6 +255,18 @@ for doc_type in doc_model_completeness_df["doc_type"].unique():
     )
     globals()[f"{doc_type}_model_line"].show()
 
+# create dataframe with all llm question answers for only combined as document type
+combined_df = merged_df.loc[merged_df["doc_type"] == "combined"]
+
+# save combined dataframe
+# combined_csv = OUTPUT_CSV.with_name(
+#     f"combined_doctype_{OUTPUT_CSV.stem}.csv"
+# )
+# combined_csv.parent.mkdir(parents=True, exist_ok=True)
+# combined_df.to_csv(combined_csv)
+# print(f"Saved combined dataframe to:{combined_csv}")
+
+
 # create dataframe average completeness per question irrespective of model based only on doc_type combined
 question_completeness_df = (
     merged_df.groupby(["section", "section_short","subsection","qID", "question", "doc_type", "colour"], as_index=False)
@@ -267,10 +279,10 @@ question_completeness_df = (
 # drop all doc_types except for combined
 question_completeness_df = question_completeness_df.loc[question_completeness_df["doc_type"] == "combined"]
 
-# save dataframe
-question_completeness_csv = OUTPUT_CSV.with_name(
-    f"question_{OUTPUT_CSV.stem}.csv"
-)
-question_completeness_csv.parent.mkdir(parents=True, exist_ok=True)
-question_completeness_df.to_csv(question_completeness_csv)
-print(f"Saved average dataframe to:{question_completeness_csv}")
+# # save dataframe
+# question_completeness_csv = OUTPUT_CSV.with_name(
+#     f"question_{OUTPUT_CSV.stem}.csv"
+# )
+# question_completeness_csv.parent.mkdir(parents=True, exist_ok=True)
+# question_completeness_df.to_csv(question_completeness_csv)
+# print(f"Saved average dataframe to:{question_completeness_csv}")
