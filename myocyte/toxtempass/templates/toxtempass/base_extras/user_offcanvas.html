@@ -32,6 +32,90 @@
 
     </div>
 
+    {% if llm_choices %}
+    <hr>
+    <div class="mb-3">
+        <h5 class="mb-1">Model Choice</h5>
+        <p class="mb-2 text-muted">Choose the large language model used to draft answers. Leave on system default if unsure.</p>
+        <select id="llm-model-select" class="form-select form-select-sm" aria-label="LLM model">
+            <option value="">— use system default —</option>
+            {% for value, label in llm_choices %}
+            <option value="{{ value }}" {% if value == llm_current %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <div id="llm-model-alert" class="alert mt-2 py-2 px-3 small d-none" role="alert"></div>
+    </div>
+    <script>
+    (function () {
+      const sel = document.getElementById('llm-model-select');
+      const alertBox = document.getElementById('llm-model-alert');
+      if (!sel) return;
+
+      function showAlert(variant, html) {
+        alertBox.className = 'alert alert-' + variant + ' mt-2 py-2 px-3 small d-flex align-items-center';
+        alertBox.innerHTML = html;
+      }
+
+      function htmlEscape(s) {
+        return String(s || '').replace(/[&<>"']/g, c => (
+          {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
+        ));
+      }
+
+      function updateBadge(sig) {
+        const badge = document.getElementById('llm-signature-badge');
+        if (!badge || !sig) return;
+        const label = badge.querySelector('[data-llm-badge-label]');
+        if (label) label.textContent = sig.model_id;
+        const parts = [
+          'Model: ' + htmlEscape(sig.model_id),
+          'Model by: ' + htmlEscape(sig.model_by || '—'),
+          'Hosted on: ' + htmlEscape(sig.hosted_on || ''),
+        ];
+        if (sig.version) parts.push('Version: ' + htmlEscape(sig.version));
+        parts.push('Data handling: ' + htmlEscape(sig.privacy_short || ''));
+        if (sig.retirement_date) parts.push('Retires: ' + htmlEscape(sig.retirement_date));
+        const title = parts.join('<br>');
+        badge.setAttribute('data-bs-original-title', title);
+        badge.setAttribute('title', title);
+        // Re-instantiate the Bootstrap tooltip so the new content is picked up.
+        if (window.bootstrap && bootstrap.Tooltip) {
+          const existing = bootstrap.Tooltip.getInstance(badge);
+          if (existing) existing.dispose();
+          new bootstrap.Tooltip(badge);
+        }
+      }
+
+      function hideAlert() {
+        alertBox.className = 'alert mt-2 py-2 px-3 small d-none';
+        alertBox.innerHTML = '';
+      }
+
+      sel.addEventListener('change', async () => {
+        hideAlert();
+        const fd = new FormData();
+        fd.append('llm_model', sel.value);
+        fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        try {
+          const r = await fetch('{% url "set_llm_preference" %}', { method: 'POST', body: fd });
+          const data = await r.json();
+          if (data.success) {
+            updateBadge(data.signature);
+          } else {
+            showAlert('danger',
+              '<i class="bi bi-exclamation-triangle me-2"></i>'
+              + '<div>' + htmlEscape(data.error || 'Unknown error') + '</div>');
+          }
+        } catch (e) {
+          showAlert('danger',
+            '<i class="bi bi-exclamation-triangle me-2"></i>'
+            + '<div>Network error.</div>');
+        }
+      });
+    })();
+    </script>
+    {% endif %}
+
     <hr>
     {% include "toxtempass/base_extras/workspaces/workspace_list_partial.html" %}
 </div>
@@ -51,10 +135,22 @@
             <a class="btn btn-sm btn-outline-primary" type="button" href="mailto:{{config.maintainer_email}}?subject=%5BToxTempAssistant%5D%20%3CEnter%20Subject%20Here%3E"> <i class="bi bi-envelope-paper-heart"></i></a>
             <button class="btn btn-sm btn-outline-primary" type="button" data-bs-target="#copyrightModal" data-bs-toggle="modal"> <i class="bi bi-c-circle"></i></button>
             <button class="btn btn-sm btn-outline-primary" type="button" data-bs-target="#termsModal" data-bs-toggle="modal" href="#"> <i class="bi bi-book"></i> </button>
-            <a class="btn btn-sm btn-outline-primary d-flex align-items-center" type="button" href="{{ config.model_info_url}}">
-                <i class="bi bi-openai"></i>
-                <span class="ms-1 small text-muted">{{config.model}}</span>
-            </a>
+            {% if llm_signature %}
+            <span id="llm-signature-badge"
+                  class="btn btn-sm btn-outline-primary d-flex align-items-center"
+                  style="cursor: default;"
+                  data-bs-toggle="tooltip"
+                  data-bs-html="true"
+                  title="Model: {{ llm_signature.model_id }}<br>
+                         Model by: {{ llm_signature.model_by|default:'—' }}<br>
+                         Hosted on: {{ llm_signature.hosted_on }}<br>
+                         {% if llm_signature.version %}Version: {{ llm_signature.version }}<br>{% endif %}
+                         Data handling: {{ llm_signature.privacy_short }}
+                         {% if llm_signature.retirement_date %}<br>Retires: {{ llm_signature.retirement_date }}{% endif %}">
+                <i class="bi bi-robot"></i>
+                <span class="ms-1 small" data-llm-badge-label>{{ llm_signature.model_id }}</span>
+            </span>
+            {% endif %}
         </div>
     </div>
 </div>

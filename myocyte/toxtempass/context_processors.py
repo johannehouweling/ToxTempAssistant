@@ -1,8 +1,11 @@
+import logging
 from typing import Dict
 
 from .views import get_workspace_list
 from django.utils.functional import SimpleLazyObject
 from toxtempass import config
+
+logger = logging.getLogger(__name__)
 
 
 def toxtempass_config(request) -> dict:
@@ -61,4 +64,110 @@ def workspaces(request) -> Dict[str, object]:
         "owned_workspaces": SimpleLazyObject(_owned_workspaces),
         "member_workspaces": SimpleLazyObject(_member_workspaces),
         "accessible_investigations": SimpleLazyObject(_accessible_investigations),
+    }
+
+
+def llm_info(request) -> dict:
+    """Expose LLM selector + signature context for the offcanvas.
+
+    * ``llm_signature`` — dict with icon/model_id/provider/version/privacy for the
+      currently-resolved deployment, or ``None`` if nothing is configured.
+    * ``llm_choices``   — ``(value, label)`` list the user may pick from.
+    * ``llm_current``   — the user's persisted preference (empty if none).
+    """
+    user = getattr(request, "user", None)
+    if not user or not getattr(user, "is_authenticated", False):
+        return {"llm_signature": None, "llm_choices": [], "llm_current": ""}
+
+    try:
+        from toxtempass.azure_registry import (
+            badge_color,
+            badge_icon,
+            badge_short,
+            find_by_model_id,
+            get_model,
+            get_registry,
+        )
+        from toxtempass.models import LLMConfig
+    except Exception as exc:
+        logger.debug("llm_info context unavailable: %s", exc)
+        return {"llm_signature": None, "llm_choices": [], "llm_current": ""}
+
+    try:
+        cfg = LLMConfig.load()
+    except Exception:
+        cfg = None
+
+    allowed = set(cfg.allowed_models) if cfg and cfg.allowed_models else None
+    is_superuser = bool(getattr(user, "is_superuser", False))
+    # Build user-facing choices: just model_id as the label (no privacy/version cruft).
+    # Superusers also see admin-only models (not in allowed list), marked "(admin-only)".
+    choices = []
+    for ep in get_registry():
+        for m in ep.models:
+            if m.retirement_status == "retired":
+                continue
+            key = f"{ep.index}:{m.tag}"
+            in_allowed = not allowed or key in allowed
+            if not in_allowed and not is_superuser:
+                continue
+            label = m.model_id if in_allowed else f"{m.model_id} (admin-only)"
+            choices.append((key, label))
+
+    current = ""
+    prefs = getattr(user, "preferences", None) or {}
+    if isinstance(prefs, dict):
+        current = prefs.get("llm_model", "") or ""
+
+    # Resolve the effective deployment (user pref > admin default).
+    effective_key = current or (cfg.default_model if cfg else "")
+    resolved = None
+    if effective_key and ":" in effective_key:
+        try:
+            idx_s, tag = effective_key.split(":", 1)
+            resolved = get_model(int(idx_s), tag)
+        except (ValueError, TypeError):
+            resolved = None
+    if resolved is None:
+        # Legacy path (OpenAI/OpenRouter env creds, no Azure registry)
+        try:
+            resolved = find_by_model_id(config.model)
+        except Exception:
+            resolved = None
+
+    signature = None
+    if resolved is not None:
+        ep, m = resolved
+        direct = (m.tags.get("direct-from-azure") or "").lower() == "true"
+        # Who built the model vs. who hosts/serves it.
+        model_by = (m.tags.get("provider") or "").title()
+        if direct:
+            hosted_on = "Azure (direct)"
+        else:
+            # Azure hosts the infra, but the model is served through a
+            # third-party MaaS passthrough (e.g. Anthropic on Foundry).
+            hosted_on = f"Azure (MaaS via {model_by or 'third-party'})"
+        signature = {
+            "icon": badge_icon(m.badge),
+            "color": badge_color(m.badge),
+            "privacy_short": badge_short(m.badge),
+            "model_id": m.model_id,
+            "deployment_name": m.deployment_name,
+            "model_by": model_by,
+            "hosted_on": hosted_on,
+            "version": m.tags.get("version", ""),
+            "api": m.api,
+            "endpoint_index": ep.index,
+            "tag": m.tag,
+            "retirement_date": (
+                m.retirement_date.isoformat() if m.retirement_date else ""
+            ),
+            "retirement_status": m.retirement_status,
+            "source": "user" if current else "admin_default",
+        }
+
+    return {
+        "llm_signature": signature,
+        "llm_choices": choices,
+        "llm_current": current,
     }

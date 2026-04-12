@@ -9,22 +9,33 @@ logger = logging.getLogger("llm")
 LLM_ENDPOINT = None
 LLM_API_KEY = None
 
-# Endpoints
+# ── Azure AI Foundry (preferred) ──────────────────────────────────────────────
+# Auto-discovered from AZURE_E{n}_* env vars; see azure_registry.py for the
+# naming convention.  The registry is built lazily so import-time cost is zero.
+from toxtempass.azure_registry import get_registry as _get_azure_registry  # noqa: E402
+
+_azure_endpoints = _get_azure_registry()
+if _azure_endpoints:
+    # Pick the first endpoint's first model as the boot-time default.
+    # The admin can override this via the LLMConfig model at runtime.
+    _default_ep = _azure_endpoints[0]
+    LLM_ENDPOINT = _default_ep.endpoint
+    LLM_API_KEY = _default_ep.api_key
+
+# ── Legacy fallbacks (OpenAI / OpenRouter) ─────────────────────────────────────
 BASEURL_OPENAI = "https://api.openai.com/v1"
 BASEURL_OPENROUTER = "https://openrouter.ai/api/v1"
 
-# Access environment variables (.env file defined in settings.py)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
-# Use
-if OPENAI_API_KEY and BASEURL_OPENAI:
-    LLM_ENDPOINT = BASEURL_OPENAI
-    LLM_API_KEY = OPENAI_API_KEY
-
-elif OPENROUTER_API_KEY and BASEURL_OPENROUTER:
-    LLM_ENDPOINT = BASEURL_OPENROUTER
-    LLM_API_KEY = OPENROUTER_API_KEY
+if not LLM_ENDPOINT:
+    if OPENAI_API_KEY and BASEURL_OPENAI:
+        LLM_ENDPOINT = BASEURL_OPENAI
+        LLM_API_KEY = OPENAI_API_KEY
+    elif OPENROUTER_API_KEY and BASEURL_OPENROUTER:
+        LLM_ENDPOINT = BASEURL_OPENROUTER
+        LLM_API_KEY = OPENROUTER_API_KEY
 
 logging.basicConfig(
     level=logging.WARNING, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -37,14 +48,21 @@ class Config:
     debug = settings.DEBUG
     # degbug = settings.DEBUG
     ## IMPORTANT ALL PARAMETERS ARE DUMPED INTO THE METADATA OF THE USER EXPORT, UNLESS MARKED WITH _ or __ (underscore or double underscore) ##
-    # See https://openrouter.ai/models for available models.
-    # Make sure to pick a model with multimodal capabilities if you want to not break image inputs.
-    model = "gpt-4o-mini" if OPENAI_API_KEY == LLM_API_KEY else "openai/gpt-4o-mini"
-    model_info_url = (
-        f"https://platform.openai.com/docs/models/{model}"
-        if OPENAI_API_KEY
-        else f"https://openrouter.ai/{model}"
-    )
+
+    # Model defaults — resolved at import time from the Azure registry or
+    # legacy OpenAI/OpenRouter env vars.  The admin can override the active
+    # endpoint+model at runtime via the LLMConfig singleton.
+    if _azure_endpoints:
+        _default_model_entry = (
+            _azure_endpoints[0].models[0] if _azure_endpoints[0].models else None
+        )
+        model = _default_model_entry.model_id if _default_model_entry else "gpt-4o-mini"
+        _deployment_name = _default_model_entry.deployment_name if _default_model_entry else None
+    else:
+        model = "gpt-4o-mini" if OPENAI_API_KEY == LLM_API_KEY else "openai/gpt-4o-mini"
+        _deployment_name = None
+
+    model_info_url = ""
     # openrouter allows us to identify the site and title for rankings so that in billing we see which app
     extra_headers = (
         {
