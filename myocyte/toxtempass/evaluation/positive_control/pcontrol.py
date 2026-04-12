@@ -10,7 +10,9 @@ from tqdm.auto import tqdm
 from django.core.management.color import make_style
 
 from toxtempass import LLM_API_KEY, LLM_ENDPOINT, config
+from toxtempass.azure_registry import find_by_model_id, get_registry
 from toxtempass.evaluation.config import config as eval_config
+from toxtempass.llm import get_llm_for_endpoint
 from toxtempass.evaluation.post_processing.utils import (
     generate_comparison_csv,
     has_answer_not_found,
@@ -61,7 +63,19 @@ def run(
     for model_config in models:
         model_name = model_config["name"]
         temp = model_config["temperature"]
-        if LLM_API_KEY and LLM_ENDPOINT:
+
+        # Prefer the Azure registry when configured; fall back to legacy creds.
+        resolved = find_by_model_id(model_name) if get_registry() else None
+        if resolved is not None:
+            ep, model_entry = resolved
+            llm = get_llm_for_endpoint(
+                ep.index, model_entry.tag, temperature=temp if temp is not None else 0,
+            )
+            stdout.write(style.SUCCESS(
+                f"Using ({model_name}) via E{ep.index}:{model_entry.tag} "
+                f"[{model_entry.api}] with temperature={temp}."
+            ))
+        elif LLM_API_KEY and LLM_ENDPOINT:
             llm = ChatOpenAI(
                 api_key=LLM_API_KEY,
                 base_url=config.url,
@@ -73,7 +87,11 @@ def run(
                 f"Using ({model_name}) at {LLM_ENDPOINT} with temperature={temp}."
             ))
         else:
-            stdout.write(style.ERROR("Required environment variables are missing"))
+            stdout.write(style.ERROR(
+                f"Model {model_name!r} not found in Azure registry and no legacy "
+                "OPENAI_API_KEY/OPENROUTER_API_KEY configured — skipping."
+            ))
+            continue
 
         gtruth_jsons = processed_scored_dir.glob("*.json")
         gtruth_pdfs = raw_dir.glob("*.pdf")

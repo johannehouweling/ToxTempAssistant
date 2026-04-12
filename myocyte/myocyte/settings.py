@@ -92,6 +92,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.humanize",
     "django_bootstrap5",
     "toxtempass",
     "simple_history",
@@ -152,6 +153,8 @@ TEMPLATES = [
                 "toxtempass.context_processors.current_url_name",
                 # Provide workspace data (owned/member) to templates globally
                 "toxtempass.context_processors.workspaces",
+                # LLM selector + signature pill for the offcanvas
+                "toxtempass.context_processors.llm_info",
             ],
         },
     },

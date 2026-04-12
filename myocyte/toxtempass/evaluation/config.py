@@ -91,7 +91,7 @@ class EvaluationConfig:
     default_experiment: list[ModelConfig] = [
         {"name": "gpt-4o-mini", "temperature": 0},
         {"name": "gpt-4.1-nano", "temperature": 0},
-        {"name": "o3-mini", "temperature": None},
+        {"name": "o4-mini", "temperature": None},
     ]
 
     # Tier-specific model overrides (None means use default_models)
@@ -109,7 +109,7 @@ class EvaluationConfig:
             "models": [
                 {"name": "gpt-4o-mini", "temperature": 0},
                 {"name": "gpt-4.1-nano", "temperature": 0},
-                {"name": "o3-mini", "temperature": None},
+                {"name": "o4-mini", "temperature": None},
             ],
             "description": "Baseline experiment with 3 models (TTA paper 1) temp=0)",
         },
@@ -117,7 +117,7 @@ class EvaluationConfig:
             "models": [
                 {"name": "gpt-4o-mini", "temperature": 0},
                 {"name": "gpt-4.1-nano", "temperature": 0},
-                {"name": "o3-mini", "temperature": None},
+                {"name": "o4-mini", "temperature": None},
             ],
             "description": "Baseline experiment with 3 models (TTA paper 1) temp=0)",
             "validation_metrics": [
@@ -131,7 +131,7 @@ class EvaluationConfig:
             "models": [
                 {"name": "gpt-4o-mini", "temperature": 0},
                 {"name": "gpt-4.1-nano", "temperature": 0},
-                {"name": "o3-mini", "temperature": None},
+                {"name": "o4-mini", "temperature": None},
             ],
             "description": "Baseline with image extraction enabled (3 models, temp=0)",
             "extract_images": True,
@@ -158,7 +158,7 @@ class EvaluationConfig:
                 {"name": "gpt-4o", "temperature": 0},
                 {"name": "gpt-4o-mini", "temperature": 0},
                 {"name": "gpt-4.1-nano", "temperature": 0},
-                {"name": "o3-mini", "temperature": None},
+                {"name": "o4-mini", "temperature": None},
             ],
             "description": "Full model suite evaluation",
         },

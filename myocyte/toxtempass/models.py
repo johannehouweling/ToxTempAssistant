@@ -596,7 +596,6 @@ class Answer(AccessibleModel):
         through="AnswerFile",
         related_name="answers",
         blank=True,
-        null=True,
         help_text="Actual stored files (only present if user consented to storage).",
     )
     answer_text = models.TextField(blank=True, default="")
@@ -736,6 +735,82 @@ class WorkspaceInvestigation(models.Model):
 
     class Meta:
         unique_together = ("workspace", "investigation")
+
+
+class LLMConfig(models.Model):
+    """Singleton admin-managed configuration for Azure AI Foundry LLM endpoints.
+
+    Only one row should ever exist (enforced by the ``save`` override).
+    Stores which deployment is the default and which deployments users may choose.
+    """
+
+    default_model = models.CharField(
+        max_length=128,
+        default="",
+        blank=True,
+        help_text=(
+            'Default deployment as "endpoint_index:tag" (e.g. "1:GPT4O"). '
+            "Endpoint is derived from the selection. Empty = use first discovered model."
+        ),
+    )
+    allowed_models = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=(
+            'List of "endpoint_index:tag" strings users may choose from. '
+            "Empty list = all discovered models are allowed."
+        ),
+    )
+    last_health_check = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text=(
+            'Per-deployment smoke-test results keyed by "index:tag". Populated by '
+            "the 'Run health check now' admin action."
+        ),
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        Person,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        verbose_name = "LLM Configuration"
+        verbose_name_plural = "LLM Configuration"
+
+    def save(self, *args, **kwargs):
+        """Persist the singleton row (always pk=1)."""
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls) -> "LLMConfig":
+        """Return the singleton row, creating it with defaults if needed."""
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    @property
+    def default_endpoint_index(self) -> int | None:
+        """Parse the endpoint index from ``default_model`` (``"idx:tag"``)."""
+        if ":" in self.default_model:
+            try:
+                return int(self.default_model.split(":", 1)[0])
+            except ValueError:
+                return None
+        return None
+
+    @property
+    def default_model_tag(self) -> str:
+        """Parse the model tag from ``default_model`` (``"idx:tag"``)."""
+        if ":" in self.default_model:
+            return self.default_model.split(":", 1)[1]
+        return ""
+
+    def __str__(self):
+        return f"LLM Config (default={self.default_model or 'auto'})"
 
 
 

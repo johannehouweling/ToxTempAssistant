@@ -51,6 +51,12 @@ urlpatterns += [
         "beta/users/", views.AdminBetaUserListView.as_view(), name="admin_beta_user_list"
     ),
     path("beta/toggle-beta/", views.toggle_beta_admitted, name="toggle_beta_admitted"),
+    # User preferences
+    path(
+        "settings/llm-model/",
+        views.set_llm_preference,
+        name="set_llm_preference",
+    ),
     # Investigation URLs
     path(
         "investigation/create/",

@@ -62,7 +62,12 @@ from toxtempass.forms import (
     WorkspaceInvestigationForm,
     WorkspaceMemberForm,
 )
-from toxtempass.llm import get_llm
+from toxtempass.llm import (
+    current_llm_key,
+    get_llm,
+    get_llm_for_endpoint,
+    resolve_user_llm,
+)
 from toxtempass.models import (
     Answer,
     AnswerFile,
@@ -805,6 +810,8 @@ def process_llm_async(
     answer_ids: list[int] | None = None,
     chatopenai: ChatOpenAI | None = None,
     verbose: bool = False,
+    user_id: int | None = None,
+    llm_model: str | None = None,
 ) -> None:
     """Process llm answer async.
 
@@ -827,7 +834,28 @@ def process_llm_async(
         assay.status = LLMStatus.BUSY
         assay.save()
 
-        chatopenai = chatopenai or get_llm()
+        if chatopenai is None:
+            # Prefer the snapshotted deployment captured at queue time — ensures
+            # the worker uses the model the user had selected *then*, not what
+            # they may have switched to while the task was waiting.
+            if llm_model and ":" in llm_model:
+                try:
+                    idx_s, tag = llm_model.split(":", 1)
+                    chatopenai = get_llm_for_endpoint(int(idx_s), tag, temperature=0)
+                except Exception as exc:
+                    logger.warning(
+                        "Queued llm_model=%r unusable (%s); falling back to live resolution.",
+                        llm_model, exc,
+                    )
+                    chatopenai = None
+            if chatopenai is None:
+                user = None
+                if user_id is not None:
+                    try:
+                        user = Person.objects.get(pk=user_id)
+                    except Person.DoesNotExist:
+                        user = None
+                chatopenai, _source, _replaced = resolve_user_llm(user)
 
         payload = dict(doc_dict or {})
         if extract_images and payload:
@@ -860,7 +888,19 @@ def process_llm_async(
         for ans in all_answers:
             answers_by_round[ans.question.answering_round].append(ans)
 
+        def _assay_still_exists() -> bool:
+            """Fast existence check used to short-circuit deleted assays."""
+            return Assay.objects.filter(pk=assay_id).exists()
+
         for rnd in rounds:
+            # Gate every round on the assay still existing. Prevents round N+1
+            # from firing LLM calls after the user deleted mid-run.
+            if not _assay_still_exists():
+                logger.info(
+                    "Assay %s deleted before round %s; stopping.", assay_id, rnd,
+                )
+                return
+
             round_answers = answers_by_round[rnd]
             if requested_ids:
                 round_answers = [a for a in round_answers if a.id in requested_ids]
@@ -879,6 +919,7 @@ def process_llm_async(
                     ): a
                     for a in round_answers
                 }
+                assay_gone = False
 
                 with tqdm(
                     total=len(futures), disable=not verbose, desc="Answers"
@@ -899,16 +940,22 @@ def process_llm_async(
                         finally:
                             pbar.update(1)
 
-                        try:
-                            # check assay existence before saving
-                            try:
-                                assay.refresh_from_db()
-                            except Assay.DoesNotExist:
+                        # Detect mid-round deletion; cancel anything not yet started.
+                        if not _assay_still_exists():
+                            if not assay_gone:
                                 logger.info(
-                                    f"Assay with id {assay_id} deleted during processing; stopping."
+                                    "Assay %s deleted during round %s; "
+                                    "cancelling %d pending future(s).",
+                                    assay_id, rnd,
+                                    sum(1 for f in futures if not f.done()),
                                 )
-                                return
+                                for f in futures:
+                                    if not f.done():
+                                        f.cancel()
+                                assay_gone = True
+                            continue  # discard this completed future's result
 
+                        try:
                             Answer.objects.filter(pk=aid).update(
                                 answer_text=text,
                                 answer_documents=source_documents,
@@ -918,6 +965,10 @@ def process_llm_async(
                             assay.status = LLMStatus.ERROR
                             assay.save()
                             continue
+
+            # If the assay went away mid-round, stop the whole task.
+            if assay_gone:
+                return
 
         assay.status = LLMStatus.DONE
         assay.save()
@@ -1140,6 +1191,10 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                         assay.id,
                         doc_dict,
                         extract_images,
+                        user_id=request.user.pk,
+                        # Snapshot the user's current model choice so a later
+                        # preference change doesn't affect this already-queued job.
+                        llm_model=current_llm_key(request.user),
                     )
 
                 except Exception as e:
@@ -2190,3 +2245,106 @@ def remove_workspace_assay(request: HttpRequest, pk: int, assay_id: int) -> Json
         remove_perm("view_investigation", member.user, investigation)
 
     return JsonResponse({"success": True, "errors": {}})
+
+
+@login_required
+def set_llm_preference(request: HttpRequest) -> JsonResponse:
+    """Persist the user's preferred LLM deployment on ``Person.preferences``.
+
+    POST body: ``llm_model=<idx:tag>`` or empty string to clear.
+    Validates against the current registry, admin allowlist, and retirement status.
+    """
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "POST required"}, status=405)
+
+    from toxtempass.azure_registry import get_model
+    from toxtempass.models import LLMConfig
+
+    raw = (request.POST.get("llm_model") or "").strip()
+    prefs = dict(request.user.preferences or {})
+
+    if not raw:
+        prefs.pop("llm_model", None)
+        request.user.preferences = prefs
+        request.user.save(update_fields=["preferences"])
+        # Return the admin-default's signature so the badge updates in place.
+        from toxtempass.azure_registry import badge_icon, badge_short, get_model
+        from toxtempass.models import LLMConfig as _LLMConfig
+        cfg = _LLMConfig.load()
+        sig = None
+        if cfg.default_model and ":" in cfg.default_model:
+            try:
+                idx_s, tag = cfg.default_model.split(":", 1)
+                resolved = get_model(int(idx_s), tag)
+            except (ValueError, TypeError):
+                resolved = None
+            if resolved is not None:
+                _, m = resolved
+                direct = (m.tags.get("direct-from-azure") or "").lower() == "true"
+                model_by = (m.tags.get("provider") or "").title()
+                sig = {
+                    "model_id": m.model_id,
+                    "model_by": model_by,
+                    "hosted_on": "Azure (direct)" if direct else (
+                        f"Azure (MaaS via {model_by or 'third-party'})"
+                    ),
+                    "version": m.tags.get("version", ""),
+                    "privacy_short": badge_short(m.badge),
+                    "privacy_icon": badge_icon(m.badge),
+                    "retirement_date": (
+                        m.retirement_date.isoformat() if m.retirement_date else ""
+                    ),
+                }
+        return JsonResponse({"success": True, "llm_model": None, "signature": sig})
+
+    if ":" not in raw:
+        return JsonResponse({"success": False, "error": "Invalid format"}, status=400)
+    try:
+        idx_s, tag = raw.split(":", 1)
+        idx = int(idx_s)
+    except ValueError:
+        return JsonResponse({"success": False, "error": "Invalid format"}, status=400)
+
+    resolved = get_model(idx, tag)
+    if resolved is None:
+        return JsonResponse({"success": False, "error": "Unknown deployment"}, status=400)
+
+    ep, m = resolved
+    if m.retirement_status == "retired":
+        return JsonResponse({"success": False, "error": "Deployment retired"}, status=400)
+
+    cfg = LLMConfig.load()
+    if (
+        cfg.allowed_models
+        and raw not in cfg.allowed_models
+        and not request.user.is_superuser
+    ):
+        return JsonResponse({"success": False, "error": "Not in allowed list"}, status=403)
+
+    prefs["llm_model"] = raw
+    request.user.preferences = prefs
+    request.user.save(update_fields=["preferences"])
+
+    from toxtempass.azure_registry import badge_icon, badge_short
+    direct = (m.tags.get("direct-from-azure") or "").lower() == "true"
+    model_by = (m.tags.get("provider") or "").title()
+    if direct:
+        hosted_on = "Azure (direct)"
+    else:
+        hosted_on = f"Azure (MaaS via {model_by or 'third-party'})"
+
+    return JsonResponse({
+        "success": True,
+        "llm_model": raw,
+        "signature": {
+            "model_id": m.model_id,
+            "model_by": model_by,
+            "hosted_on": hosted_on,
+            "version": m.tags.get("version", ""),
+            "privacy_short": badge_short(m.badge),
+            "privacy_icon": badge_icon(m.badge),
+            "retirement_date": (
+                m.retirement_date.isoformat() if m.retirement_date else ""
+            ),
+        },
+    })

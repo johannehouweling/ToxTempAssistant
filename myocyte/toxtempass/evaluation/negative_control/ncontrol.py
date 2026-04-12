@@ -9,7 +9,9 @@ from django.core.management.color import make_style
 from tqdm.auto import tqdm
 
 from toxtempass import LLM_API_KEY, LLM_ENDPOINT, config
+from toxtempass.azure_registry import find_by_model_id, get_registry
 from toxtempass.evaluation.config import config as eval_config
+from toxtempass.llm import get_llm_for_endpoint
 from toxtempass.evaluation.post_processing.utils import has_answer_not_found
 from toxtempass.evaluation.utils import select_question_set
 from toxtempass.models import Answer, Question
@@ -60,7 +62,19 @@ def run(
     for model_config in models:
         model_name = model_config["name"]
         temp = model_config["temperature"]
-        if LLM_API_KEY and LLM_ENDPOINT:
+
+        # Prefer the Azure registry when configured; fall back to legacy creds.
+        resolved = find_by_model_id(model_name) if get_registry() else None
+        if resolved is not None:
+            ep, model_entry = resolved
+            llm = get_llm_for_endpoint(
+                ep.index, model_entry.tag, temperature=temp if temp is not None else 0,
+            )
+            stdout.write(style.SUCCESS(
+                f"Using ({model_name}) via E{ep.index}:{model_entry.tag} "
+                f"[{model_entry.api}] with temperature={temp}."
+            ))
+        elif LLM_API_KEY and LLM_ENDPOINT:
             llm = ChatOpenAI(
                 api_key=LLM_API_KEY,
                 base_url=config.url,
