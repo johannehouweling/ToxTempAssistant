@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v3.0.0 (2026-04-12)
+
+### Chores
+
+- **deps**: Bump langchain-core from 1.2.15 to 1.2.22
+  ([`1b439eb`](https://github.com/johannehouweling/ToxTempAssistant/commit/1b439ebedb1cc677ac7dc8ceb50d2541fd12c628))
+
+- **deps**: Bump pypdf from 6.7.3 to 6.9.2
+  ([`e6fb716`](https://github.com/johannehouweling/ToxTempAssistant/commit/e6fb716c90917785e42e164ca3ce6da1e7373f58))
+
+### Features
+
+- **azure**: Add Azure AI Foundry integration and health check command
+  ([`7178047`](https://github.com/johannehouweling/ToxTempAssistant/commit/71780472b2c25bcbeac6f336e0289b11793d34d6))
+
+
 ## v2.16.2 (2026-03-27)
 
 ### Bug Fixes
