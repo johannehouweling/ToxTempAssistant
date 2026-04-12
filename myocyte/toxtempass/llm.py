@@ -124,7 +124,7 @@ def get_llm():
             "LLM API key missing. Set AZURE_E1_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY."
         )
 
-    logger.info("LLM configured: model=%s, base_url=%s", model, base_url)
+    logger.info("LLM configured")
     return ChatOpenAI(
         api_key=api_key,
         base_url=base_url,  # fine if None
