@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.0.1 (2026-04-13)
+
+### Bug Fixes
+
+- **admin**: Use mark_safe for static env-default badge
+  ([`9dbe5ff`](https://github.com/johannehouweling/ToxTempAssistant/commit/9dbe5ffc58b7b8d45ca8260d7f9fed52bcb4b009))
+
+
 ## v3.0.0 (2026-04-12)
 
 ### Chores
