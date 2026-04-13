@@ -232,7 +232,7 @@ def _render_deployments_table(
             retirement_html = mark_safe("")
             # Env-default badge — shows which model bootstraps on a fresh install.
             env_default_html = (
-                format_html(
+                mark_safe(
                     '<br><span style="color:#0f62fe;font-size:90%" '
                     'title="Selected by default:true in AZURE_E*_TAGS_*">'
                     "★ env-default</span>"
