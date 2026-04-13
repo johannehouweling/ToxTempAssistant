@@ -8,6 +8,7 @@ ToxTemp "was developed (i) to fulfill all requirements of GD211, (ii) to guide t
   - [TOC](#toc)
   - [Spin up server with docker](#spin-up-server-with-docker)
     - [Get OpenAI API credentials](#get-openai-api-credentials)
+    - [Azure AI Foundry — add a model](#azure-ai-foundry--add-a-model)
     - [Get ORCID iD credentials](#get-orcid-id-credentials)
     - [Create Certificate](#create-certificate)
     - [MinIO setup](#minio-setup)
@@ -47,6 +48,107 @@ docker compose -f docker-compose.yml up
 
 ### Get OpenAI API credentials
 https://platform.openai.com/api-keys
+
+### Azure AI Foundry — add a model
+
+ToxTempAssistant can serve models from Azure AI Foundry (Azure OpenAI, Mistral,
+Anthropic, Moonshot/Kimi, etc.) in parallel to (or instead of) the direct OpenAI
+/ OpenRouter paths. Models are auto-discovered from the `.env` file at startup —
+no code changes are required to add, remove, or retire a deployment.
+
+#### Env-var convention
+
+Each endpoint is numbered `E1`, `E2`, ... and carries three parts:
+
+1. **Endpoint address + key** (once per endpoint):
+   ```
+   AZURE_E<n>_ENDPOINT=<base URL of the Azure resource>
+   AZURE_E<n>_KEY=<API key>
+   AZURE_E<n>_API_VERSION=<only for Azure OpenAI resources>
+   ```
+2. **Model deployment** (one triple per model on the endpoint):
+   ```
+   AZURE_E<n>_DEPLOY_<TAG>=<Azure deployment name>
+   AZURE_E<n>_MODEL_<TAG>=<underlying model id>
+   AZURE_E<n>_TAGS_<TAG>=<comma-separated key:value metadata>
+   ```
+3. **Metadata tags** are written as `key:value` pairs separated by commas. The
+   following keys are recognised:
+
+   | key | purpose | example |
+   |---|---|---|
+   | `tier` | Azure deployment tier | `regional` · `datazone` · `global` · `batch` |
+   | `residency` | where data is actually processed | `eu` · `us` · `global` |
+   | `provider` | who built the model | `openai` · `anthropic` · `mistral` · `moonshot` |
+   | `direct-from-azure` | `true` = Microsoft-operated; `false` = third-party MaaS | `true` · `false` |
+   | `version` | model version string | `2024-07-18` |
+   | `api` | wire protocol | `openai` · `azure-openai` · `anthropic` · `foundry` |
+   | `retirement-date` | ISO date when Azure deprecates the deployment | `2026-10-01` |
+   | `default` | marks the bootstrap default used when no admin choice exists | `true` |
+
+   The admin UI at `/admin/toxtempass/llmconfig/` uses these tags to render
+   privacy badges, retirement warnings, and health-check results.
+
+#### Picking the right `api:` tag
+
+Azure Foundry serves different model families at different URL shapes:
+
+| URL shape you see in the Azure portal | `api:` value |
+|---|---|
+| `…services.ai.azure.com/openai/v1/` | `openai` |
+| `…cognitiveservices.azure.com/openai/deployments/<dep>/…?api-version=…` | `azure-openai` (needs `AZURE_E<n>_API_VERSION`) |
+| `…services.ai.azure.com/models/chat/completions?api-version=…` | `openai` (OpenAI-compatible passthrough; the `?api-version=…` goes in the endpoint URL) |
+| `…services.ai.azure.com/anthropic/…` | `anthropic` (strip the trailing `/v1/messages`) |
+
+#### Example: add Azure OpenAI `gpt-4o-mini`
+
+From Azure OpenAI Studio → Deployments → your deployment, copy the endpoint URL:
+
+```
+https://toxtempass-foundry.cognitiveservices.azure.com/openai/deployments/gpt-4o-mini/chat/completions?api-version=2025-01-01-preview
+```
+
+Then in `.env`:
+
+```
+AZURE_E1_ENDPOINT=https://toxtempass-foundry.cognitiveservices.azure.com/
+AZURE_E1_API_VERSION=2025-01-01-preview
+AZURE_E1_KEY=<your-key>
+
+AZURE_E1_DEPLOY_GPT4OMINI=gpt-4o-mini
+AZURE_E1_MODEL_GPT4OMINI=gpt-4o-mini
+AZURE_E1_TAGS_GPT4OMINI=tier:datazone,residency:eu,provider:openai,direct-from-azure:true,version:2024-07-18,api:azure-openai,retirement-date:2026-10-01,default:true
+```
+
+`default:true` makes this deployment the fallback the app boots with when no
+`LLMConfig` DB row exists yet (e.g. fresh deploys and CI). If more than one
+model carries `default:true`, the first one wins and a warning is logged.
+
+#### Verifying the wiring
+
+The `test_llm_endpoints` management command pings every discovered deployment
+with a trivial prompt and reports latency / errors. Add `--save` to persist the
+results to `LLMConfig.last_health_check` so they show up in the admin panel.
+
+```bash
+docker compose exec djangoapp python manage.py test_llm_endpoints
+docker compose exec djangoapp python manage.py test_llm_endpoints --only GPT4OMINI
+docker compose exec djangoapp python manage.py test_llm_endpoints --save
+```
+
+The admin panel at `/admin/toxtempass/llmconfig/` also has a **Run health check
+now** button that triggers the same checks synchronously and renders results in
+a table alongside the data-handling (privacy) badges.
+
+#### Removing / retiring a model
+
+- **Soft retire**: add `retirement-date:YYYY-MM-DD` to the tag list. The admin
+  table shows a countdown (⏳) when within 30 days, then marks the row greyed
+  out and unselectable (☠️) once the date has passed. The model is also hidden
+  from the user-facing picker automatically.
+- **Hard remove**: delete the three `AZURE_E<n>_DEPLOY_<TAG>` /
+  `AZURE_E<n>_MODEL_<TAG>` / `AZURE_E<n>_TAGS_<TAG>` lines from `.env` and
+  restart the container.
 
 ### Get ORCID iD credentials
 To obtain ORCID iD and secret perform the following steps:
