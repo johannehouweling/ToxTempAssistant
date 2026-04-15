@@ -286,3 +286,45 @@ question_completeness_df = question_completeness_df.loc[question_completeness_df
 # question_completeness_csv.parent.mkdir(parents=True, exist_ok=True)
 # question_completeness_df.to_csv(question_completeness_csv)
 # print(f"Saved average dataframe to:{question_completeness_csv}")
+
+# create dataframe average per document type per question per model
+doc_model_question_completeness_df = (
+    merged_df.groupby(["section", "section_short","subsection","qID", "question", "doc_type", "model", "colour"], as_index=False)
+    .agg(
+        mean_answer_given=("answer_given", "mean"),
+        std_answer_given=("answer_given", "std"),
+    )
+)
+# save dataframe
+doc_model_question_completeness_csv = OUTPUT_CSV.with_name(
+    f"doc_model_question_{OUTPUT_CSV.stem}.csv"
+)
+doc_model_question_completeness_csv.parent.mkdir(parents=True, exist_ok=True)
+doc_model_question_completeness_df.to_csv(doc_model_question_completeness_csv)
+print(f"Saved document-type and model-specific dataframe to:{doc_model_question_completeness_csv}")
+
+# create a dataframe with a suggestion of context documents per question, create a column per model with all possible doc_types
+not_zero_doc_model_question_completeness_df = doc_model_question_completeness_df.loc[doc_model_question_completeness_df["mean_answer_given"] > 0]
+context_suggestion_df = not_zero_doc_model_question_completeness_df.groupby(["section", "section_short","subsection","qID", "question", "model", "colour"], as_index=False)["doc_type"].apply(lambda x: ", ".join(x.unique()))
+
+# save dataframe
+context_suggestion_csv = OUTPUT_CSV.with_name(
+    f"context_suggestion_{OUTPUT_CSV.stem}.csv"
+)
+context_suggestion_csv.parent.mkdir(parents=True, exist_ok=True)
+context_suggestion_df.to_csv(context_suggestion_csv)
+print(f"Saved context suggestion dataframe to:{context_suggestion_csv}")
+
+
+# create a dataframe with a suggestion of context documents per question, create a column per model with the doc_type that has the highest completeness for that question
+not_combined_merged_df = merged_df.loc[merged_df["doc_type"] != "combined"]
+not_combined_merged_df = not_combined_merged_df.loc[not_combined_merged_df["doc_type"] != "toxtemp"]
+best_context_suggestion_df = not_combined_merged_df.groupby(["section", "section_short","subsection","qID", "question", "model", "colour"], as_index=False).apply(lambda x: x.loc[x["answer_given"].idxmax()]["doc_type"])
+
+# save dataframe
+best_context_suggestion_csv = OUTPUT_CSV.with_name(
+    f"best_context_suggestion_{OUTPUT_CSV.stem}.csv"
+)
+best_context_suggestion_csv.parent.mkdir(parents=True, exist_ok=True)
+best_context_suggestion_df.to_csv(best_context_suggestion_csv)
+print(f"Saved best context suggestion dataframe to:{best_context_suggestion_csv}")
