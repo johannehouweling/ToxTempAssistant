@@ -75,8 +75,7 @@ def save_results(df: pd.DataFrame, output_csv: Path, summary_csv: Path) -> None:
     print(f'Saved cosine similarity comparison to: {output_csv}')
     print(f'Saved per-model summary to:           {summary_csv}')
 
-
-# if __name__ == '__main__':
+if __name__ == '__main__':
     df = load_input_data(INPUT_CSV)
     df_embedded = enrich_with_embeddings(df, 'llm_answer')
     pairs_df = pairwise_embeddings_by_model(df_embedded)
