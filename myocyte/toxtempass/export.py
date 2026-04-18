@@ -277,34 +277,31 @@ def export_assay_to_file(
     export_mapping = {
         "json": {
             "pandoc_opts": [],
-            "ext": "json"
         },
         "md": {
             "pandoc_opts": ["--to=gfm+smart"],
-            "ext": "md"
         },
         "pdf": {
             "pandoc_opts": ["--pdf-engine=lualatex", "--standalone"],
-            "ext": "pdf"
         },
         "docx": {
             "pandoc_opts": ["--to=docx+auto_identifiers"],
-            "ext": "docx"
         },
         "html": {
             "pandoc_opts": ["--embed-resources", "--standalone", "--to=html5+smart"],
-            "ext": "html"
         },
         "xml": {
             "pandoc_opts": ["--to=docbook"],
-            "ext": "xml"
         },
     }
-    # Only use mapped extension
-    if export_type not in export_mapping:
+    # Only use export types with both trusted options and known MIME/suffix metadata
+    if (
+        export_type not in export_mapping
+        or export_type not in mime_type_suffix_dict
+    ):
         return JsonResponse({"error": "Invalid export type"}, status=400)
-    mapped_ext = export_mapping[export_type]["ext"]
-    file_name = f"toxtemp_{slugify(assay.title)}.{mapped_ext}"
+    mapped_suffix = mime_type_suffix_dict[export_type]["suffix"]
+    file_name = f"toxtemp_{slugify(assay.title)}.{mapped_suffix}"
     file_path = Path(settings.MEDIA_ROOT) / "toxtempass" / file_name  # Use pathlib.Path
     if not file_path.parent.exists():
         file_path.parent.mkdir(parents=True)
