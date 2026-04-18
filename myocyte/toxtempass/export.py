@@ -2,7 +2,7 @@ import json
 import re
 import subprocess
 from pathlib import Path
-from typing import Final
+from typing import Final, Mapping
 
 import yaml
 from django.core.serializers import serialize
@@ -64,14 +64,19 @@ mime_type_suffix_dict = {
 
 # Module-level mapping of allowed export types to trusted Pandoc options.
 # Extensions are derived from mime_type_suffix_dict to keep a single source of truth.
-EXPORT_MAPPING: Final[dict[str, list[str]]] = {
-    "json": [],
-    "md": ["--to=gfm+smart"],
-    "pdf": ["--pdf-engine=lualatex", "--standalone"],
-    "docx": ["--to=docx+auto_identifiers"],
-    "html": ["--embed-resources", "--standalone", "--to=html5+smart"],
-    "xml": ["--to=docbook"],
+# Immutable containers (tuples + Mapping) prevent accidental runtime mutation.
+EXPORT_MAPPING: Final[Mapping[str, tuple[str, ...]]] = {
+    "json": (),
+    "md": ("--to=gfm+smart",),
+    "pdf": ("--pdf-engine=lualatex", "--standalone"),
+    "docx": ("--to=docx+auto_identifiers",),
+    "html": ("--embed-resources", "--standalone", "--to=html5+smart"),
+    "xml": ("--to=docbook",),
 }
+
+# Subset of EXPORT_MAPPING types that require Pandoc conversion.
+# Derived from the mapping so adding a new Pandoc format is a one-place change.
+PANDOC_EXPORT_TYPES: Final[frozenset[str]] = frozenset(EXPORT_MAPPING) - {"json"}
 
 
 def generate_json_from_assay(assay: Assay) -> dict | None:
@@ -305,7 +310,7 @@ def export_assay_to_file(
     #     with file_path.open("w", encoding="utf-8") as md_file:
     #         md_file.write(export_data)
 
-    elif export_type in ["md", "pdf", "html", "docx", "xml"]:
+    elif export_type in PANDOC_EXPORT_TYPES:
         # Generate the markdown file
         export_data = generate_markdown_from_assay(assay)
         md_file_path = (file_path.with_name(f"{file_path.stem}_md")).with_suffix(".md")
