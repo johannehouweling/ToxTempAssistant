@@ -2,6 +2,7 @@ import json
 import re
 import subprocess
 from pathlib import Path
+from typing import Final
 
 import yaml
 from django.core.serializers import serialize
@@ -59,6 +60,17 @@ mime_type_suffix_dict = {
     },
     "json": {"mime_type": "application/json", "suffix": ".json"},
     "md": {"mime_type": "text/markdown", "suffix": ".md"},
+}
+
+# Module-level mapping of allowed export types to trusted Pandoc options.
+# Extensions are derived from mime_type_suffix_dict to keep a single source of truth.
+EXPORT_MAPPING: Final[dict[str, list[str]]] = {
+    "json": [],
+    "md": ["--to=gfm+smart"],
+    "pdf": ["--pdf-engine=lualatex", "--standalone"],
+    "docx": ["--to=docx+auto_identifiers"],
+    "html": ["--embed-resources", "--standalone", "--to=html5+smart"],
+    "xml": ["--to=docbook"],
 }
 
 
@@ -273,35 +285,11 @@ def export_assay_to_file(
     """Export assay to file."""
     if export_type not in getattr(Config, "allowed_export_types", []):
         return JsonResponse({"error": "Invalid export type"}, status=400)
-    # Use explicit mapping for allowed export types
-    export_mapping = {
-        "json": {
-            "pandoc_opts": [],
-        },
-        "md": {
-            "pandoc_opts": ["--to=gfm+smart"],
-        },
-        "pdf": {
-            "pandoc_opts": ["--pdf-engine=lualatex", "--standalone"],
-        },
-        "docx": {
-            "pandoc_opts": ["--to=docx+auto_identifiers"],
-        },
-        "html": {
-            "pandoc_opts": ["--embed-resources", "--standalone", "--to=html5+smart"],
-        },
-        "xml": {
-            "pandoc_opts": ["--to=docbook"],
-        },
-    }
     # Only use export types with both trusted options and known MIME/suffix metadata
-    if (
-        export_type not in export_mapping
-        or export_type not in mime_type_suffix_dict
-    ):
+    if export_type not in EXPORT_MAPPING or export_type not in mime_type_suffix_dict:
         return JsonResponse({"error": "Invalid export type"}, status=400)
     mapped_suffix = mime_type_suffix_dict[export_type]["suffix"]
-    file_name = f"toxtemp_{slugify(assay.title)}.{mapped_suffix}"
+    file_name = f"toxtemp_{slugify(assay.title)}{mapped_suffix}"
     file_path = Path(settings.MEDIA_ROOT) / "toxtempass" / file_name  # Use pathlib.Path
     if not file_path.parent.exists():
         file_path.parent.mkdir(parents=True)
@@ -335,7 +323,7 @@ def export_assay_to_file(
             "--toc",
         ]
         # Add ONLY safe mapped Pandoc options
-        pandoc_command.extend(export_mapping[export_type]["pandoc_opts"])
+        pandoc_command.extend(EXPORT_MAPPING[export_type])
         pandoc_command.extend(["-o", str(file_path)])
 
         try:
