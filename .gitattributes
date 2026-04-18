@@ -1,1 +1,2 @@
 *.sh text eol=lf
+myocyte/toxtempass/evaluation/data_analysis_plotting/christophe_data_analysis/results/tables/tier3_cos_sim/tier3_cos_sim_v2_all_models.csv filter=lfs diff=lfs merge=lfs -text
