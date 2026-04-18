@@ -273,7 +273,38 @@ def export_assay_to_file(
     """Export assay to file."""
     if export_type not in getattr(Config, "allowed_export_types", []):
         return JsonResponse({"error": "Invalid export type"}, status=400)
-    file_name = f"toxtemp_{slugify(assay.title)}.{export_type}"
+    # Use explicit mapping for allowed export types
+    export_mapping = {
+        "json": {
+            "pandoc_opts": [],
+            "ext": "json"
+        },
+        "md": {
+            "pandoc_opts": ["--to=gfm+smart"],
+            "ext": "md"
+        },
+        "pdf": {
+            "pandoc_opts": ["--pdf-engine=lualatex", "--standalone"],
+            "ext": "pdf"
+        },
+        "docx": {
+            "pandoc_opts": ["--to=docx+auto_identifiers"],
+            "ext": "docx"
+        },
+        "html": {
+            "pandoc_opts": ["--embed-resources", "--standalone", "--to=html5+smart"],
+            "ext": "html"
+        },
+        "xml": {
+            "pandoc_opts": ["--to=docbook"],
+            "ext": "xml"
+        },
+    }
+    # Only use mapped extension
+    if export_type not in export_mapping:
+        return JsonResponse({"error": "Invalid export type"}, status=400)
+    mapped_ext = export_mapping[export_type]["ext"]
+    file_name = f"toxtemp_{slugify(assay.title)}.{mapped_ext}"
     file_path = Path(settings.MEDIA_ROOT) / "toxtempass" / file_name  # Use pathlib.Path
     if not file_path.parent.exists():
         file_path.parent.mkdir(parents=True)
@@ -303,27 +334,11 @@ def export_assay_to_file(
             "pandoc",
             str(md_file_path),
             "--from=markdown+tex_math_dollars+tex_math_single_backslash+tex_math_double_backslash",
-            # Add standalone option for HTML and PDF
-            # also defines latex packages
             f"--metadata-file={str(yaml_metadata_file_path)}",
             "--toc",
         ]
-
-        # Add specific options based on the export type
-        if export_type == "pdf":
-            # Specify PDF engine if needed
-            pandoc_command.extend(["--pdf-engine=lualatex", "--standalone"])
-        if export_type == "md":
-            pandoc_command.append("--to=gfm+smart")
-        if export_type == "docx":
-            pandoc_command.append("--to=docx+auto_identifiers")
-        elif export_type == "html":
-            pandoc_command.extend(
-                ["--embed-resources", "--standalone", "--to=html5+smart"]
-            )
-        # Add any additional HTML-specific options if needed
-        # pandoc_command.append("--self-contained")  # Optionally make it self-contained
-
+        # Add ONLY safe mapped Pandoc options
+        pandoc_command.extend(export_mapping[export_type]["pandoc_opts"])
         pandoc_command.extend(["-o", str(file_path)])
 
         try:
