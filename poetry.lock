@@ -209,14 +209,14 @@ files = [
 
 [[package]]
 name = "anthropic"
-version = "0.94.1"
+version = "0.96.0"
 description = "The official Python library for the anthropic API"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "anthropic-0.94.1-py3-none-any.whl", hash = "sha256:58fb20dc60f35e75a5a82a1c73a3e196ac3b18ff2ed4826cba345f4adb78919d"},
-    {file = "anthropic-0.94.1.tar.gz", hash = "sha256:96c7033069c16074f90638dff8bf1f1616f9eefeb8ef7d1b0df4a0393ab34685"},
+    {file = "anthropic-0.96.0-py3-none-any.whl", hash = "sha256:9a6e335a354602a521cd9e777e92bfd46ba6e115bf9bbfe6135311e8fb2015b2"},
+    {file = "anthropic-0.96.0.tar.gz", hash = "sha256:9de947b737f39452f68aa520f1c2239d44119c9b73b0fb6d4e6ca80f00279ee6"},
 ]
 
 [package.dependencies]
@@ -405,14 +405,14 @@ files = [
 
 [[package]]
 name = "attrs"
-version = "25.4.0"
+version = "26.1.0"
 description = "Classes Without Boilerplate"
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "dev"]
 files = [
-    {file = "attrs-25.4.0-py3-none-any.whl", hash = "sha256:adcf7e2a1fb3b36ac48d97835bb6d8ade15b8dcce26aba8bf1d14847b57a3373"},
-    {file = "attrs-25.4.0.tar.gz", hash = "sha256:16d5969b87f0859ef33a48b35d55ac1be6e42ae49d5e853b597db70c35c57e11"},
+    {file = "attrs-26.1.0-py3-none-any.whl", hash = "sha256:c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309"},
+    {file = "attrs-26.1.0.tar.gz", hash = "sha256:d03ceb89cb322a8fd706d4fb91940737b6642aa36998fe130a9bc96c985eff32"},
 ]
 
 [[package]]
@@ -1937,14 +1937,14 @@ sftp = ["paramiko (>=1.15)"]
 
 [[package]]
 name = "django-tables2"
-version = "2.8.0"
+version = "3.0.0"
 description = "Table/data-grid framework for Django"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "django_tables2-2.8.0-py3-none-any.whl", hash = "sha256:860633b0f448216af73fca6005c7e38dc9b46931dc36c08a9281a71ee250b1ee"},
-    {file = "django_tables2-2.8.0.tar.gz", hash = "sha256:0dea3401bb99a0164ba09e20d59a7d90856fdc05e5ae2da9a14d0fa14d99257c"},
+    {file = "django_tables2-3.0.0-py3-none-any.whl", hash = "sha256:2a5b5447f10d7a8cfb7a2e8f0b139d969c7eb2e675079a4b8ba0107956345bfa"},
+    {file = "django_tables2-3.0.0.tar.gz", hash = "sha256:3c5343f72663b0d6684e8e6cbcb16caae10d7621a51c1cf3c581f57ce605f8ee"},
 ]
 
 [package.dependencies]
@@ -3598,19 +3598,19 @@ xai = ["langchain-xai"]
 
 [[package]]
 name = "langchain-anthropic"
-version = "1.4.0"
+version = "1.4.1"
 description = "Integration package connecting Claude (Anthropic) APIs and LangChain"
 optional = false
 python-versions = "<4.0.0,>=3.10.0"
 groups = ["main"]
 files = [
-    {file = "langchain_anthropic-1.4.0-py3-none-any.whl", hash = "sha256:c84f55722336935f7574d5771598e674f3959fdca0b51de14c9788dbf52761be"},
-    {file = "langchain_anthropic-1.4.0.tar.gz", hash = "sha256:bbf64e99f9149a34ba67813e9582b2160a0968de9e9f54f7ba8d1658f253c2e5"},
+    {file = "langchain_anthropic-1.4.1-py3-none-any.whl", hash = "sha256:5a48afbb2b1bad9c46badaccc8e23b0dd7ae07b7583f76bac21ddb3dac831efd"},
+    {file = "langchain_anthropic-1.4.1.tar.gz", hash = "sha256:e17d027091438620e35ff2f06aefdfd63c8dcdf6abc606009ddfe3c764f2bc2e"},
 ]
 
 [package.dependencies]
-anthropic = ">=0.85.0,<1.0.0"
-langchain-core = ">=1.2.19,<2.0.0"
+anthropic = ">=0.96.0,<1.0.0"
+langchain-core = ">=1.2.31,<2.0.0"
 pydantic = ">=2.7.4,<3.0.0"
 
 [[package]]
@@ -8796,14 +8796,14 @@ typing-extensions = ">=4.12.0"
 
 [[package]]
 name = "tzdata"
-version = "2025.3"
+version = "2026.1"
 description = "Provider of IANA time zone data"
 optional = false
 python-versions = ">=2"
 groups = ["main", "dev", "eval"]
 files = [
-    {file = "tzdata-2025.3-py2.py3-none-any.whl", hash = "sha256:06a47e5700f3081aab02b2e513160914ff0694bce9947d6b76ebd6bf57cfc5d1"},
-    {file = "tzdata-2025.3.tar.gz", hash = "sha256:de39c2ca5dc7b0344f2eba86f49d614019d29f060fc4ebc8a417896a620b56a7"},
+    {file = "tzdata-2026.1-py2.py3-none-any.whl", hash = "sha256:4b1d2be7ac37ceafd7327b961aa3a54e467efbdb563a23655fbfe0d39cfc42a9"},
+    {file = "tzdata-2026.1.tar.gz", hash = "sha256:67658a1903c75917309e753fdc349ac0efd8c27db7a0cb406a25be4840f87f98"},
 ]
 markers = {eval = "sys_platform == \"win32\" or sys_platform == \"emscripten\""}
 
@@ -9668,4 +9668,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<4.0"
-content-hash = "8b7a21576aa086ad08bfbc34a828edaf21d69431a984918e2f3380c0f820e122"
+content-hash = "5edd46795a18ae6a8f008ad1c6d7f6a5186b69cc6f29af330edae14c86129796"
