@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.1.1 (2026-04-25)
+
+### Bug Fixes
+
+- **ci**: Enable BuildKit caching for Docker builds to improve CI performance
+  ([`f111714`](https://github.com/johannehouweling/ToxTempAssistant/commit/f11171411ac5e6cdb9d17bc8bcc4140553c46c37))
+
+
 ## v3.1.0 (2026-04-25)
 
 ### Documentation
