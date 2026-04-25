@@ -231,9 +231,10 @@ def resolve_user_llm(user, temperature: float | int = 0):
             if user is not None:
                 from toxtempass.utilities import update_prefs_atomic
 
+                missing = object()
                 update_prefs_atomic(
                     user,
-                    lambda p: p.pop("llm_model", None) is not None,
+                    lambda p: p.pop("llm_model", missing) is not missing,
                 )
 
     if user_pref is not None:
