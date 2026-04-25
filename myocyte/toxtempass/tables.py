@@ -126,6 +126,10 @@ class AssayTable(tables.Table):
                     <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='xml' %}">XML</a></li>
                     <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='docx' %}">DOCX</a></li>
                     <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='html' %}">HTML</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li class="dropdown-header">FAIR Exports</li>
+                    <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='jsonld' %}">JSON-LD <small class="text-muted">(schema.org)</small></a></li>
+                    <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='zip' %}">FAIR ZIP <small class="text-muted">(JSON-LD + README + LICENSE + PROVENANCE)</small></a></li>
                 </ul>
             </div>
             <a class="btn btn-sm btn-outline-danger js-delete-link"

@@ -1,8 +1,10 @@
+import io
 import json
 import logging
 import re
 import subprocess
 import uuid
+import zipfile
 from pathlib import Path
 
 import yaml
@@ -70,9 +72,20 @@ def generate_json_from_assay(assay: Assay) -> dict | None:
             amsterdam_tz
         )  # Current time in Amsterdam timezone
 
+        # Build author info from the assay owner; include ORCID when available.
+        owner = assay.owner
+        author_info: dict = {
+            "name": owner.get_full_name() or owner.email,
+            "email": owner.email,
+        }
+        if getattr(owner, "orcid_id", None):
+            author_info["orcid"] = f"https://orcid.org/{owner.orcid_id}"
+
         # Prepare the data structure
         export_data = {
             "metadata": {
+                # Persistent identifier for this assay (FAIR: Findable)
+                "identifier": f"urn:uuid:{assay.uid}",
                 # Current date and time in ISO format
                 "creation_date": current_time.isoformat(),
                 # Filename for the export
@@ -80,7 +93,19 @@ def generate_json_from_assay(assay: Assay) -> dict | None:
                 # Replace with your actual website name
                 "reference_toxtemp": getattr(Config, "reference_toxtemp", None),
                 "website": "toxtempassistant.vhp4safety.nl",
-                # Trimmed config for reproducibility (PII and developer-only fields omitted)
+                # Author information (FAIR: Reusable / attributable)
+                "author": author_info,
+                # Keywords for discovery (FAIR: Findable)
+                "keywords": [
+                    "metadata template",
+                    "cell-based toxicological test methods",
+                    "New Approach Methodologies",
+                    "ToxTemp",
+                ],
+                # License for reuse (FAIR: Reusable)
+                "license": getattr(Config, "license_url", None),
+                # Trimmed config for reproducibility
+                # (PII and developer-only fields omitted)
                 "config": {
                     "model": getattr(Config, "model", None),
                     "model_info_url": getattr(Config, "model_info_url", None),
@@ -89,9 +114,6 @@ def generate_json_from_assay(assay: Assay) -> dict | None:
                     ),
                     "reference_toxtemp": getattr(Config, "reference_toxtemp", None),
                     "website": "toxtempassistant.vhp4safety.nl",
-                    "reference_toxtempassistant": getattr(
-                        Config, "reference_toxtempassistant", None
-                    ),
                     "version": getattr(Config, "version", None),
                     "github_repo_url": getattr(Config, "github_repo_url", None),
                     "git_hash": getattr(Config, "git_hash", None),
@@ -240,8 +262,10 @@ def get_create_meta_data_yaml(
     current_date = current_time.date()
 
     metadata_dict = {
-        "author": f"{request.user.first_name} {request.user.last_name}",  # Example author; replace as needed
-        "date": str(current_date),  # Current date;
+        "author": (
+            f"{request.user.first_name} {request.user.last_name}"
+        ),
+        "date": str(current_date),
         "keywords": (
             "metadata template, "
             "cell-based toxicological test methods, "
@@ -264,6 +288,234 @@ def get_create_meta_data_yaml(
     return yaml_file_path
 
 
+def generate_provenance_dict(assay: Assay, export_timestamp: str) -> dict:
+    """Build a W3C PROV-JSON-inspired provenance record for an assay export.
+
+    Args:
+        assay: The assay being exported.
+        export_timestamp: ISO-8601 timestamp of the export action.
+
+    Returns:
+        A dict that can be serialised to PROVENANCE.json inside a FAIR ZIP.
+
+    """
+    owner = assay.owner
+    agent: dict = {
+        "prov:type": "prov:Person",
+        "foaf:name": owner.get_full_name() or owner.email,
+        "foaf:mbox": owner.email,
+    }
+    if getattr(owner, "orcid_id", None):
+        agent["schema:identifier"] = f"https://orcid.org/{owner.orcid_id}"
+
+    return {
+        "@context": {
+            "prov": "http://www.w3.org/ns/prov#",
+            "foaf": "http://xmlns.com/foaf/0.1/",
+            "schema": "https://schema.org/",
+            "dc": "http://purl.org/dc/terms/",
+        },
+        "prov:entity": {
+            "@id": f"urn:uuid:{assay.uid}",
+            "prov:type": "schema:Dataset",
+            "dc:title": assay.title,
+            "dc:created": assay.submission_date.isoformat(),
+        },
+        "prov:activity": {
+            "prov:type": "toxtempassistant:export",
+            "prov:endTime": export_timestamp,
+            "prov:used": {
+                "@id": getattr(Config, "reference_toxtempassistant_zenodo_code", ""),
+                "prov:type": "prov:SoftwareAgent",
+                "dc:title": "ToxTempAssistant",
+                "schema:version": getattr(Config, "version", ""),
+                "schema:url": getattr(Config, "github_repo_url", ""),
+            },
+        },
+        "prov:wasAttributedTo": agent,
+        "prov:wasGeneratedBy": f"urn:uuid:{assay.uid}",
+    }
+
+
+def generate_jsonld_from_assay(assay: Assay) -> dict:
+    """Generate a JSON-LD document for an assay following schema.org vocabulary.
+
+    The returned dict is ready to be serialised with ``json.dumps``.  It uses
+    the schema.org Dataset type and embeds the structured Q&A as
+    PropertyValue items so that downstream tools can parse the content without
+    knowing ToxTemp internals.
+
+    Args:
+        assay: The assay to serialise.
+
+    Returns:
+        A JSON-LD dict with ``@context``, ``@type``, ``@id`` and standard
+        schema.org / Dublin Core fields.
+
+    """
+    amsterdam_tz = timezone.get_fixed_timezone(1)
+    export_timestamp = timezone.now().astimezone(amsterdam_tz).isoformat()
+
+    owner = assay.owner
+    creator: dict = {
+        "@type": "Person",
+        "name": owner.get_full_name() or owner.email,
+        "email": owner.email,
+    }
+    if getattr(owner, "orcid_id", None):
+        creator["identifier"] = f"https://orcid.org/{owner.orcid_id}"
+
+    # Build structured Q&A as schema:PropertyValue items
+    has_part = []
+    for section in Section.objects.filter(
+        question_set=assay.question_set
+    ).prefetch_related("subsections__questions"):
+        for subsection in section.subsections.all():
+            for question in subsection.questions.all():
+                answer_obj = assay.answers.filter(question=question).first()
+                answer_text = answer_obj.answer_text if answer_obj else ""
+                has_part.append(
+                    {
+                        "@type": "PropertyValue",
+                        "name": question.question_text,
+                        "description": f"[{section.title} / {subsection.title}]",
+                        "value": answer_text,
+                    }
+                )
+
+    return {
+        "@context": {
+            "@vocab": "https://schema.org/",
+            "toxtemp": "https://doi.org/10.14573/altex.1909271#",
+            "dc": "http://purl.org/dc/terms/",
+            "prov": "http://www.w3.org/ns/prov#",
+        },
+        "@type": "Dataset",
+        "@id": f"urn:uuid:{assay.uid}",
+        "identifier": f"urn:uuid:{assay.uid}",
+        "name": assay.title,
+        "description": assay.description,
+        "dateCreated": assay.submission_date.isoformat(),
+        "dateModified": export_timestamp,
+        "creator": creator,
+        "publisher": {
+            "@type": "Organization",
+            "name": "VHP4Safety",
+            "url": "https://toxtempassistant.vhp4safety.nl",
+        },
+        "license": getattr(Config, "license_url", ""),
+        "keywords": [
+            "metadata template",
+            "cell-based toxicological test methods",
+            "New Approach Methodologies",
+            "ToxTemp",
+        ],
+        "citation": getattr(Config, "reference_toxtemp", ""),
+        "isPartOf": {
+            "@type": "Study",
+            "name": assay.study.title,
+            "isPartOf": {
+                "@type": "ResearchProject",
+                "name": assay.study.investigation.title,
+            },
+        },
+        "hasPart": has_part,
+        "prov:wasAttributedTo": creator,
+        "prov:generatedAtTime": export_timestamp,
+        "toxtemp:questionSetVersion": (
+            assay.question_set.display_name if assay.question_set else None
+        ),
+    }
+
+
+def generate_fair_zip_bytes(assay: Assay) -> bytes:
+    """Build a FAIR ZIP package for an assay.
+
+    The archive contains:
+    - ``<slug>.jsonld``     — JSON-LD main data (machine-readable)
+    - ``PROVENANCE.json``  — W3C PROV-JSON provenance record
+    - ``LICENSE.txt``      — The project's AGPL-3 licence
+    - ``README.md``        — Access instructions and citation guidance
+
+    Args:
+        assay: The assay to package.
+
+    Returns:
+        Raw bytes of the in-memory ZIP archive.
+
+    """
+    amsterdam_tz = timezone.get_fixed_timezone(1)
+    export_timestamp = timezone.now().astimezone(amsterdam_tz).isoformat()
+    slug = slugify(assay.title)
+
+    jsonld_data = generate_jsonld_from_assay(assay)
+    provenance_data = generate_provenance_dict(assay, export_timestamp)
+
+    license_text = (
+        "This export is released under the GNU Affero General Public License v3.0.\n"
+        f"Full text: {getattr(Config, 'license_url', 'https://www.gnu.org/licenses/agpl-3.0.html')}\n"
+    )
+
+    owner = assay.owner
+    author_name = owner.get_full_name() or owner.email
+    orcid_line = ""
+    if getattr(owner, "orcid_id", None):
+        orcid_line = f"\nAuthor ORCID: https://orcid.org/{owner.orcid_id}"
+    api_url = f"/api/assay/{assay.uid}/metadata/"
+    zenodo_doi = getattr(Config, "reference_toxtempassistant_zenodo_code", "")
+    toxtemp_ref = getattr(
+        Config, "reference_toxtemp", "https://doi.org/10.14573/altex.1909271"
+    )
+    accessible_line = (
+        f"- **Accessible**: Available via RESTful API endpoint: `{api_url}`"
+        " (authentication required)"
+    )
+    findable_line = (
+        f"- **Findable**: Each export carries a UUID persistent identifier"
+        f" (`urn:uuid:{assay.uid}`)"
+    )
+    readme_text = (
+        "# ToxTemp FAIR Export Package\n\n"
+        "## Assay\n"
+        f"**Title:** {assay.title}\n"
+        f"**Identifier:** urn:uuid:{assay.uid}\n"
+        f"**Created:** {assay.submission_date.isoformat()}\n"
+        f"**Author:** {author_name}{orcid_line}\n\n"
+        "## Contents\n"
+        f"- `{slug}.jsonld` — Main ToxTemp data in JSON-LD format"
+        " (machine-readable, schema.org)\n"
+        "- `PROVENANCE.json` — W3C PROV-JSON provenance record\n"
+        "- `LICENSE.txt` — Data use licence\n"
+        "- `README.md` — This file\n\n"
+        "## FAIR Data Principles\n"
+        "This package is designed to support FAIR data principles:\n"
+        f"{findable_line}\n"
+        f"{accessible_line}\n"
+        "- **Interoperable**: JSON-LD format with schema.org and Dublin Core"
+        " vocabularies\n"
+        "- **Reusable**: Includes AGPL-3 licence and W3C PROV provenance"
+        " information\n\n"
+        "## Citation\n"
+        "If you use this export, please cite ToxTempAssistant:\n"
+        f"{zenodo_doi}\n\n"
+        "And the ToxTemp method template:\n"
+        f"{toxtemp_ref}\n\n"
+        "## Programmatic Access\n"
+        "The JSON-LD metadata for this assay is also available via the API:\n"
+        f"  GET {api_url}\n"
+        "  Content-Type: application/ld+json\n"
+        "  (Requires authentication)\n"
+    )
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr(f"{slug}.jsonld", json.dumps(jsonld_data, indent=2))
+        zf.writestr("PROVENANCE.json", json.dumps(provenance_data, indent=2))
+        zf.writestr("LICENSE.txt", license_text)
+        zf.writestr("README.md", readme_text)
+    return buf.getvalue()
+
+
 def export_assay_to_file(
     request: HttpRequest, assay: Assay, export_type: str
 ) -> FileResponse:
@@ -284,6 +536,16 @@ def export_assay_to_file(
         export_data = generate_json_from_assay(assay)
         with file_path.open("w", encoding="utf-8") as json_file:
             json.dump(export_data, json_file, indent=4)
+
+    elif export_type == "jsonld":
+        export_data = generate_jsonld_from_assay(assay)
+        with file_path.open("w", encoding="utf-8") as jsonld_file:
+            json.dump(export_data, jsonld_file, indent=2)
+
+    elif export_type == "zip":
+        zip_bytes = generate_fair_zip_bytes(assay)
+        file_path.write_bytes(zip_bytes)
+        export_data = zip_bytes  # truthy sentinel so the None-check below passes
 
     # elif export_type == "md":
     #     export_data = generate_markdown_from_assay(assay)

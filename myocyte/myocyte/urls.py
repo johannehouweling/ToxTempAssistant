@@ -134,6 +134,15 @@ urlpatterns += [
     ),
 ]
 
+# FAIR API endpoints
+urlpatterns += [
+    path(
+        "api/assay/<uuid:assay_uid>/metadata/",
+        views.api_assay_metadata,
+        name="api_assay_metadata",
+    ),
+]
+
 # Filter Investigation and Study for the first menu on new.html
 # (so we only show hierachical options and not all)
 
