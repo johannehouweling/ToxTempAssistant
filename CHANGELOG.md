@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v3.3.0 (2026-04-25)
+
+### Bug Fixes
+
+- Noreferrer
+  ([`6c0b618`](https://github.com/johannehouweling/ToxTempAssistant/commit/6c0b618e566a49ed85d016580e6a49c40abdbe65))
+
+### Features
+
+- **llm**: Add context-window tag support in model entry and update .env.dummy
+  ([`6f0a310`](https://github.com/johannehouweling/ToxTempAssistant/commit/6f0a3109749bd78b861c21f97c8a167047005c59))
+
+- **llm**: Add context_window to LLM info and user offcanvas display
+  ([`bc5c331`](https://github.com/johannehouweling/ToxTempAssistant/commit/bc5c331e5e97f89f3389a569bfca9c6694b4f35d))
+
+
 ## v3.2.0 (2026-04-25)
 
 ### Features
