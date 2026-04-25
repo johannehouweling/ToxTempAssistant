@@ -218,26 +218,17 @@ def test_process_llm_async_uses_model_context_window_tag():
         patch("toxtempass.views.config.context_window_headroom_tokens", new=50),
         patch("toxtempass.views.config.context_window_fallback_tokens", new=1_000_000),
         patch(
-            "toxtempass.views._get_model",
+            "toxtempass.views.get_azure_model",
             return_value=(mock_ep, mock_model_entry),
-            create=True,
         ),
     ):
-        # We use a real llm_model key so the resolution branch is entered.
-        # The patch above overrides _get_model inside the scope of the test.
-        # Because the import inside the guard uses a local alias, we patch at
-        # the azure_registry level instead.
-        with patch(
-            "toxtempass.azure_registry.get_model",
-            return_value=(mock_ep, mock_model_entry),
-        ):
-            process_llm_async(
-                assay.id,
-                doc_dict=doc_dict,
-                extract_images=False,
-                chatopenai=fake_llm,
-                llm_model="1:FAKE",
-            )
+        process_llm_async(
+            assay.id,
+            doc_dict=doc_dict,
+            extract_images=False,
+            chatopenai=fake_llm,
+            llm_model="1:FAKE",
+        )
 
     assay.refresh_from_db()
 

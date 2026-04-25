@@ -42,6 +42,7 @@ from tqdm.auto import tqdm
 from myocyte import settings
 from toxtempass import config
 from toxtempass import utilities as beta_util
+from toxtempass.azure_registry import get_model as get_azure_model
 from toxtempass.export import export_assay_to_file
 from toxtempass.filehandling import (
     collect_source_documents,
@@ -892,10 +893,8 @@ def process_llm_async(
         )
         if llm_model and ":" in llm_model:
             try:
-                from toxtempass.azure_registry import get_model as _get_model
-
                 _idx_s, _mtag = llm_model.split(":", 1)
-                _result = _get_model(int(_idx_s), _mtag)
+                _result = get_azure_model(int(_idx_s), _mtag)
                 if _result is not None:
                     _ep, _model_entry = _result
                     if _model_entry.context_window is not None:
