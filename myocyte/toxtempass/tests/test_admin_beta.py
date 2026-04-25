@@ -46,3 +46,17 @@ class AdminBetaTests(TestCase):
         self.assertTrue(data2.get("success"))
         self.requester.refresh_from_db()
         self.assertFalse(self.requester.preferences.get("beta_admitted"))
+
+    def test_beta_wait_shows_page_for_pending_user(self):
+        """Unadmitted users see the waiting page."""
+        self.client.force_login(self.requester)
+        resp = self.client.get(reverse("beta_wait"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Beta access pending")
+
+    def test_beta_wait_redirects_admitted_user_to_overview(self):
+        """Admitted users who visit the wait page are redirected to overview."""
+        utilities.set_beta_admitted(self.requester, True, comment="approved")
+        self.client.force_login(self.requester)
+        resp = self.client.get(reverse("beta_wait"))
+        self.assertRedirects(resp, reverse("overview"))
