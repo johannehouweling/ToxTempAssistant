@@ -271,8 +271,11 @@ class ExportAssayToFileJsonldTests(SimpleTestCase):
                 patch("toxtempass.export.Section") as mock_section_cls,
             ):
                 mock_settings.MEDIA_ROOT = tmp_dir
-                mock_section_cls.objects.filter.return_value\
-                    .prefetch_related.return_value = []
+                sections_qs = (
+                    mock_section_cls.objects.filter.return_value
+                    .prefetch_related.return_value
+                )
+                sections_qs.__iter__ = lambda self: iter([])
                 response = export_assay_to_file(request, assay, "jsonld")
             self.assertIsInstance(response, FileResponse)
             content_disp = response.headers.get("Content-Disposition", "")
@@ -295,8 +298,11 @@ class ExportAssayToFileJsonldTests(SimpleTestCase):
                 patch("toxtempass.export.Section") as mock_section_cls,
             ):
                 mock_settings.MEDIA_ROOT = tmp_dir
-                mock_section_cls.objects.filter.return_value\
-                    .prefetch_related.return_value = []
+                sections_qs = (
+                    mock_section_cls.objects.filter.return_value
+                    .prefetch_related.return_value
+                )
+                sections_qs.__iter__ = lambda self: iter([])
                 response = export_assay_to_file(request, assay, "zip")
             self.assertIsInstance(response, FileResponse)
             content_disp = response.headers.get("Content-Disposition", "")
