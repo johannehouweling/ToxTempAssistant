@@ -10,8 +10,14 @@ from django.utils import timezone  # Import timezone utilities
 from django.utils.text import slugify
 
 from myocyte import settings
-from toxtempass import Config  # Import your configuration module
+from toxtempass import Config
 from toxtempass.models import Assay, Section
+
+# Export control surface lives on Config (see toxtempass/__init__.py). These
+# module-level aliases keep call sites terse and let tests patch them.
+EXPORT_MIME_SUFFIX = Config.EXPORT_MIME_SUFFIX
+EXPORT_MAPPING = Config.EXPORT_MAPPING
+PANDOC_EXPORT_TYPES = Config.PANDOC_EXPORT_TYPES
 
 # simple regexes to catch display‐math delimiters
 
@@ -46,20 +52,6 @@ def quote_answer(text: str) -> str:
         out.append(f"> {line}" if line.strip() else ">")  # keep blank lines too
 
     return "\n".join(out) + "\n\n"
-
-
-mime_type_str = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-mime_type_suffix_dict = {
-    "html": {"mime_type": "text/html", "suffix": ".html"},
-    "xml": {"mime_type": "application/xml", "suffix": ".xml"},
-    "pdf": {"mime_type": "application/pdf", "suffix": ".pdf"},
-    "docx": {
-        "mime_type": mime_type_str,
-        "suffix": ".docx",
-    },
-    "json": {"mime_type": "application/json", "suffix": ".json"},
-    "md": {"mime_type": "text/markdown", "suffix": ".md"},
-}
 
 
 def generate_json_from_assay(assay: Assay) -> dict | None:
@@ -271,9 +263,13 @@ def export_assay_to_file(
     request: HttpRequest, assay: Assay, export_type: str
 ) -> FileResponse:
     """Export assay to file."""
-    if export_type not in getattr(Config, "allowed_export_types", []):
+    # EXPORT_MAPPING (defined in toxtempass/__init__.py) is the single security
+    # gate: only types with both trusted Pandoc options and known MIME/suffix
+    # metadata are permitted.
+    if export_type not in EXPORT_MAPPING or export_type not in EXPORT_MIME_SUFFIX:
         return JsonResponse({"error": "Invalid export type"}, status=400)
-    file_name = f"toxtemp_{slugify(assay.title)}.{export_type}"
+    mapped_suffix = EXPORT_MIME_SUFFIX[export_type]["suffix"]
+    file_name = f"toxtemp_{slugify(assay.title)}{mapped_suffix}"
     file_path = Path(settings.MEDIA_ROOT) / "toxtempass" / file_name  # Use pathlib.Path
     if not file_path.parent.exists():
         file_path.parent.mkdir(parents=True)
@@ -289,7 +285,7 @@ def export_assay_to_file(
     #     with file_path.open("w", encoding="utf-8") as md_file:
     #         md_file.write(export_data)
 
-    elif export_type in ["md", "pdf", "html", "docx", "xml"]:
+    elif export_type in PANDOC_EXPORT_TYPES:
         # Generate the markdown file
         export_data = generate_markdown_from_assay(assay)
         md_file_path = (file_path.with_name(f"{file_path.stem}_md")).with_suffix(".md")
@@ -303,27 +299,11 @@ def export_assay_to_file(
             "pandoc",
             str(md_file_path),
             "--from=markdown+tex_math_dollars+tex_math_single_backslash+tex_math_double_backslash",
-            # Add standalone option for HTML and PDF
-            # also defines latex packages
             f"--metadata-file={str(yaml_metadata_file_path)}",
             "--toc",
         ]
-
-        # Add specific options based on the export type
-        if export_type == "pdf":
-            # Specify PDF engine if needed
-            pandoc_command.extend(["--pdf-engine=lualatex", "--standalone"])
-        if export_type == "md":
-            pandoc_command.append("--to=gfm+smart")
-        if export_type == "docx":
-            pandoc_command.append("--to=docx+auto_identifiers")
-        elif export_type == "html":
-            pandoc_command.extend(
-                ["--embed-resources", "--standalone", "--to=html5+smart"]
-            )
-        # Add any additional HTML-specific options if needed
-        # pandoc_command.append("--self-contained")  # Optionally make it self-contained
-
+        # Add ONLY safe mapped Pandoc options
+        pandoc_command.extend(EXPORT_MAPPING[export_type])
         pandoc_command.extend(["-o", str(file_path)])
 
         try:
@@ -354,7 +334,7 @@ def export_assay_to_file(
             file_path.open("rb"),
             as_attachment=True,
             filename=file_name,
-            content_type=mime_type_suffix_dict[export_type]["mime_type"],
+            content_type=EXPORT_MIME_SUFFIX[export_type]["mime_type"],
         )
         return response
     except Exception:
