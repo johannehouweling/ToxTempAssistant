@@ -19,8 +19,8 @@ def add_status_context(
     Total field length is capped at config.status_error_max_len by dropping the
     oldest entries; full tracebacks live in the persistent log file.
     """
-    preamble = "Error occured" if is_error else "Info"
-    new_entry = f"{preamble}: {msg}"
+    preamble = "Error occurred: " if is_error else "Info: "
+    new_entry = f"{preamble}{msg}"
     if clear_first:
         combined = new_entry
     else:
@@ -28,11 +28,13 @@ def add_status_context(
         combined = prev_context + ("\n" if prev_context else "") + new_entry
 
     if len(combined) > config.status_error_max_len:
-        # Drop oldest lines until we're under the cap.
+        # Drop oldest lines first, but always preserve the most recent entry.
         lines = combined.splitlines()
-        while lines and len("\n".join(lines)) > config.status_error_max_len:
+        while len(lines) > 1 and len("\n".join(lines)) > config.status_error_max_len:
             lines.pop(0)
         combined = "\n".join(lines)
+        if len(combined) > config.status_error_max_len:
+            combined = combined[-config.status_error_max_len:]
 
     setattr(assay, "status_context", combined)
 
