@@ -1154,8 +1154,8 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                                     "Please contact support if the issue persists."
                                 ],
                             },
-                            "status": 500,
-                        }
+                        },
+                        status=500,
                     )
 
             # If files were uploaded and there are no existing answers,
@@ -1219,14 +1219,14 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                     return JsonResponse(
                         {
                             "success": False,
-                            "status": 500,
                             "errors": {
                                 "__all__": [
                                     f"Processing failed (ref {corr_id}). "
                                     "Please contact support if the issue persists."
                                 ]
                             },
-                        }
+                        },
+                        status=500,
                     )
 
             # On success, return JSON with a redirect to 'answer_assay_questions'
@@ -1364,7 +1364,11 @@ def delete_investigation(
             )
         investigation.delete()
         return redirect("add_new")
-    return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
+    return JsonResponse(
+        {"status": "error", "message": "Only GET allowed"},
+        status=405,
+        headers={"Allow": "GET"},
+    )
 
 
 @login_required(login_url="/login/")
@@ -1470,7 +1474,11 @@ def delete_study(request: HttpRequest, pk: int) -> JsonResponse | HttpResponseRe
             raise PermissionDenied("You do not have permission to delete this study.")
         study.delete()
         return redirect("add_new")
-    return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
+    return JsonResponse(
+        {"status": "error", "message": "Only GET allowed"},
+        status=405,
+        headers={"Allow": "GET"},
+    )
 
 
 @login_required(login_url="/login/")
@@ -1569,7 +1577,11 @@ def delete_assay(request: HttpRequest, pk: int) -> JsonResponse | HttpResponseRe
         if source_page == "overview":
             return redirect("overview")
         return redirect("add_new")
-    return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
+    return JsonResponse(
+        {"status": "error", "message": "Only GET allowed"},
+        status=405,
+        headers={"Allow": "GET"},
+    )
 
 
 @login_required(login_url="/login/")
@@ -1949,7 +1961,11 @@ def delete_workspace(
             raise PermissionDenied("You do not own this workspace.")
         workspace.delete()
         return redirect("overview")
-    return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
+    return JsonResponse(
+        {"status": "error", "message": "Only GET allowed"},
+        status=405,
+        headers={"Allow": "GET"},
+    )
 
 
 @login_required(login_url="/login/")
