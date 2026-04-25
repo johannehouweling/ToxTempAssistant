@@ -95,6 +95,14 @@ services:
       args:
         GIT_HASH: ${GIT_HASH}
         GIT_TAG: ${GIT_TAG}
+      # Cross-build cache backed by GitHub Actions cache (no-op locally —
+      # `type=gha` is only honoured when the GH Actions cache server is
+      # reachable, e.g. inside `docker/setup-buildx-action`). mode=max also
+      # caches intermediate layers (deps, apt, etc.), not just the final image.
+      cache_from:
+        - type=gha
+      cache_to:
+        - type=gha,mode=max
     labels:
       org.opencontainers.image.revision: ${GIT_HASH}
       org.opencontainers.image.version: ${GIT_TAG}
