@@ -19,7 +19,7 @@ def add_status_context(
     Total field length is capped at config.status_error_max_len by dropping the
     oldest entries; full tracebacks live in the persistent log file.
     """
-    preamble = "Error occured: " if is_error else "Info: "
+    preamble = "Error occured" if is_error else "Info"
     new_entry = f"{preamble}: {msg}"
     if clear_first:
         combined = new_entry
