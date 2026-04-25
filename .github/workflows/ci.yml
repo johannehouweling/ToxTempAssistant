@@ -37,6 +37,11 @@ jobs:
           --build-arg ENV_FILE=.env.dummy
         env:
           POSTGRES_HOST: postgres_test_for_django
+          # Make `docker compose build` delegate to `docker buildx bake`, which
+          # actually honours `cache_from`/`cache_to: type=gha` from compose.
+          # Without this, plain `compose build` ignores the BuildKit cache
+          # exporters and every CI run rebuilds from scratch.
+          COMPOSE_BAKE: "true"
 
       - name: Test in Docker
         run: |
