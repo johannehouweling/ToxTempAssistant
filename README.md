@@ -49,8 +49,12 @@ docker compose -f docker-compose.yml up
 > **Note — BuildKit required.** The `djangoapp` image uses BuildKit-only
 > features (cache mounts, `# syntax=` frontend pin) for faster rebuilds.
 > BuildKit is the default in Docker 23.0+ / Compose v2. On older engines,
-> enable it explicitly with `export DOCKER_BUILDKIT=1
-> COMPOSE_DOCKER_CLI_BUILD=1` before running `docker compose build/up`.
+> enable it explicitly before running `docker compose build/up`:
+>
+> ```bash
+> export DOCKER_BUILDKIT=1
+> export COMPOSE_DOCKER_CLI_BUILD=1
+> ```
 
 ### Get OpenAI API credentials
 https://platform.openai.com/api-keys
