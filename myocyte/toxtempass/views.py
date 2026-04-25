@@ -791,7 +791,8 @@ def generate_answer(
         except BadRequestError as exc:
             # Surface context-length (and other 400-level) errors explicitly
             # so they are never silently swallowed as empty answers.
-            logger.error(
+            # logger.exception includes the full traceback for diagnostics.
+            logger.exception(
                 "BadRequest from LLM for answer %s [%s of %s]: %s",
                 ans.id,
                 max_ans_id - ans.id,

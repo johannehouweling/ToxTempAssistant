@@ -422,8 +422,22 @@ def estimate_token_count(text: str) -> int:
 
         enc = tiktoken.get_encoding("cl100k_base")
         return len(enc.encode(text))
-    except Exception:
+    except ImportError:
+        logger.debug("tiktoken not available; using char-based token estimate.")
         return max(1, len(text) // 4)
+    except Exception:
+        logger.debug(
+            "tiktoken encoding failed; using char-based token estimate.",
+            exc_info=True,
+        )
+        return max(1, len(text) // 4)
+
+
+# Safety margin applied when computing the character budget from the token
+# limit.  A value of 0.95 means we keep 95 % of the proportionally-computed
+# length, leaving a 5 % buffer to compensate for imprecision in the
+# character-to-token ratio.
+_TRUNCATION_SAFETY_MARGIN = 0.95
 
 
 def truncate_context_to_token_limit(
@@ -443,7 +457,7 @@ def truncate_context_to_token_limit(
         return text, False
     # Proportional cut with a small safety margin to stay under the limit.
     ratio = max_tokens / token_count
-    approx_chars = int(len(text) * ratio * 0.95)
+    approx_chars = int(len(text) * ratio * _TRUNCATION_SAFETY_MARGIN)
     truncated = text[:approx_chars].rstrip()
     marker = (
         "\n\n[... context truncated: uploaded documents exceeded the "
