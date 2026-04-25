@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.2.0 (2026-04-25)
+
+### Features
+
+- Add pytest-cov coverage reporting to PRs via GitHub Actions
+  ([`ebabb44`](https://github.com/johannehouweling/ToxTempAssistant/commit/ebabb444f599b1377e4d9a583a50becc310f7e58))
+
+
 ## v3.1.4 (2026-04-25)
 
 ### Bug Fixes
