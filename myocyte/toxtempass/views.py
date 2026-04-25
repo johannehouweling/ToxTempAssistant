@@ -2460,6 +2460,7 @@ def set_llm_preference(request: HttpRequest) -> JsonResponse:
                     "retirement_date": (
                         m.retirement_date.isoformat() if m.retirement_date else ""
                     ),
+                    "context_window": m.context_window,
                 }
         return JsonResponse({"success": True, "llm_model": None, "signature": sig})
 
@@ -2518,6 +2519,7 @@ def set_llm_preference(request: HttpRequest) -> JsonResponse:
                 "retirement_date": (
                     m.retirement_date.isoformat() if m.retirement_date else ""
                 ),
+                "context_window": m.context_window,
             },
         }
     )

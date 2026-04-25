@@ -1,6 +1,6 @@
 [project]
 name = "toxtempassistant"
-version = "3.1.4"
+version = "3.3.0"
 description = "LLM-based web-app to assist users in drafting ToxTemp, a template for describing in-vitro toxicity test methods in compliance with GD211."
 readme = "README.md"
 requires-python = ">=3.12,<4.0"
@@ -239,3 +239,15 @@ build-backend = "poetry.core.masonry.api"
 DJANGO_SETTINGS_MODULE = "toxtempass.myocyte.settings"
 # which test file patterns to collect
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
+
+[tool.coverage.run]
+source = ["toxtempass"]
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+    "*/evaluation/*",
+    "manage.py",
+]
+
+[tool.coverage.report]
+show_missing = true
