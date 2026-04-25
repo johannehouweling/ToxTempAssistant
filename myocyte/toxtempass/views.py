@@ -878,26 +878,65 @@ def process_llm_async(
 
         # --- Context-window guard -----------------------------------------
         # Proactively truncate the document context so it stays within the
-        # configured token budget.  Without this guard, an oversized context
-        # would either cause the LLM API to raise a BadRequestError (which the
-        # generic exception handler silently turns into empty answers) or, for
-        # APIs that enforce their own truncation, silently crop the input.
+        # token budget available to the active model.  Without this guard, an
+        # oversized context would either cause the LLM API to raise a
+        # BadRequestError (silently turned into empty answers) or, for APIs
+        # that do their own truncation, silently crop the input.
+        #
+        # Budget = model's context_window tag - headroom (prompts/output).
+        # When the model has no context-window tag we use a conservative
+        # fallback so the guard is always active.
+        _context_budget: int = (
+            config.context_window_fallback_tokens
+            - config.context_window_headroom_tokens
+        )
+        if llm_model and ":" in llm_model:
+            try:
+                from toxtempass.azure_registry import get_model as _get_model
+
+                _idx_s, _mtag = llm_model.split(":", 1)
+                _result = _get_model(int(_idx_s), _mtag)
+                if _result is not None:
+                    _ep, _model_entry = _result
+                    if _model_entry.context_window is not None:
+                        _context_budget = (
+                            _model_entry.context_window
+                            - config.context_window_headroom_tokens
+                        )
+                        logger.debug(
+                            "Context budget for assay %s: %d tokens "
+                            "(model=%s context_window=%d, headroom=%d)",
+                            assay_id,
+                            _context_budget,
+                            _model_entry.model_id,
+                            _model_entry.context_window,
+                            config.context_window_headroom_tokens,
+                        )
+            except Exception as exc:
+                logger.warning(
+                    "Could not resolve context-window for model %r; "
+                    "using fallback budget of %d tokens. Error: %s",
+                    llm_model,
+                    _context_budget,
+                    exc,
+                )
+
         full_pdf_context, context_was_truncated = truncate_context_to_token_limit(
-            full_pdf_context, config.context_window_max_tokens
+            full_pdf_context, _context_budget
         )
         if context_was_truncated:
             logger.warning(
                 "Context for assay %s was truncated to fit within the "
-                "%d-token context-window limit. "
+                "%d-token context budget. "
                 "Consider uploading fewer or shorter documents.",
                 assay_id,
-                config.context_window_max_tokens,
+                _context_budget,
             )
             add_status_context(
                 assay,
                 (
-                    "Uploaded documents exceeded the context-window limit "
-                    f"({config.context_window_max_tokens:,} tokens). "
+                    "Uploaded documents exceeded the available context-window budget "
+                    f"({_context_budget:,} tokens). "
                     "The context was automatically truncated; some document "
                     "content may not have been used when generating answers. "
                     "Consider uploading fewer or shorter files."

@@ -89,7 +89,9 @@ class _SimpleFakeLLM:
 @pytest.mark.django_db
 def test_process_llm_async_warns_when_context_truncated():
     """process_llm_async should write a truncation warning into status_context
-    when the document context exceeds the configured token limit.
+    when the document context exceeds the available token budget.
+    The budget is derived from the model's context_window minus headroom, or
+    fallback - headroom when no context_window tag is set.
     """
     assay = AssayFactory()
     qs = QuestionSet.objects.create(
@@ -112,7 +114,11 @@ def test_process_llm_async_warns_when_context_truncated():
 
     fake_llm = _SimpleFakeLLM()
 
-    with patch("toxtempass.views.config.context_window_max_tokens", new=10):
+    # Drive the fallback budget very low (headroom=10, fallback=20 → budget=10)
+    with (
+        patch("toxtempass.views.config.context_window_headroom_tokens", new=10),
+        patch("toxtempass.views.config.context_window_fallback_tokens", new=20),
+    ):
         process_llm_async(
             assay.id,
             doc_dict=doc_dict,
@@ -131,7 +137,7 @@ def test_process_llm_async_warns_when_context_truncated():
 @pytest.mark.django_db
 def test_process_llm_async_no_warning_when_context_fits():
     """process_llm_async should NOT modify status_context when the context
-    fits within the token limit.
+    fits within the available token budget.
     """
     assay = AssayFactory()
     qs = QuestionSet.objects.create(
@@ -152,8 +158,11 @@ def test_process_llm_async_no_warning_when_context_fits():
 
     fake_llm = _SimpleFakeLLM()
 
-    # Use a large enough limit so no truncation occurs
-    with patch("toxtempass.views.config.context_window_max_tokens", new=100_000):
+    # Use a generous fallback so short text is never truncated
+    with (
+        patch("toxtempass.views.config.context_window_headroom_tokens", new=1_000),
+        patch("toxtempass.views.config.context_window_fallback_tokens", new=1_000_000),
+    ):
         process_llm_async(
             assay.id,
             doc_dict=doc_dict,
@@ -168,3 +177,70 @@ def test_process_llm_async_no_warning_when_context_fits():
     assert "truncated" not in ctx.lower(), (
         "Unexpected truncation warning in status_context: " + ctx
     )
+
+
+@pytest.mark.django_db
+def test_process_llm_async_uses_model_context_window_tag():
+    """When llm_model resolves to a ModelEntry with a context_window tag,
+    the budget is computed as context_window - headroom (not the fallback).
+    """
+    from unittest.mock import MagicMock
+
+    assay = AssayFactory()
+    qs = QuestionSet.objects.create(
+        display_name="qs", created_by=assay.study.investigation.owner
+    )
+    section = Section.objects.create(question_set=qs, title="S1")
+    subsection = Subsection.objects.create(section=section, title="Sub1")
+    q = Question.objects.create(subsection=subsection, question_text="What is this?")
+    Answer.objects.create(assay=assay, question=q)
+
+    # Build a large context that would exceed a 100-token budget but fit 200 k
+    large_text = "word " * 500  # well over 100 tokens
+    doc_dict = {
+        "doc.txt": {
+            "text": large_text,
+            "source_document": "doc.txt",
+            "origin": "document",
+        }
+    }
+
+    fake_llm = _SimpleFakeLLM()
+
+    # Fabricate a ModelEntry-like mock whose context_window is 150 tokens
+    mock_model_entry = MagicMock()
+    mock_model_entry.context_window = 150  # tiny, so truncation kicks in
+    mock_model_entry.model_id = "fake-model"
+
+    mock_ep = MagicMock()
+
+    with (
+        patch("toxtempass.views.config.context_window_headroom_tokens", new=50),
+        patch("toxtempass.views.config.context_window_fallback_tokens", new=1_000_000),
+        patch(
+            "toxtempass.views._get_model",
+            return_value=(mock_ep, mock_model_entry),
+            create=True,
+        ),
+    ):
+        # We use a real llm_model key so the resolution branch is entered.
+        # The patch above overrides _get_model inside the scope of the test.
+        # Because the import inside the guard uses a local alias, we patch at
+        # the azure_registry level instead.
+        with patch(
+            "toxtempass.azure_registry.get_model",
+            return_value=(mock_ep, mock_model_entry),
+        ):
+            process_llm_async(
+                assay.id,
+                doc_dict=doc_dict,
+                extract_images=False,
+                chatopenai=fake_llm,
+                llm_model="1:FAKE",
+            )
+
+    assay.refresh_from_db()
+
+    # Budget was 150 - 50 = 100 tokens; large_text is ~500 tokens → truncated
+    assert assay.status_context, "Expected a truncation warning in status_context"
+    assert "truncated" in assay.status_context.lower()

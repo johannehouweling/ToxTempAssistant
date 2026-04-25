@@ -216,11 +216,17 @@ class Config:
     max_size_mb = 30
     single_answer_timeout = 60  # seconds
     max_workers_threading = 4
-    # Max tokens budgeted for the combined document context passed to the LLM
-    # on each generate_answer call.  This leaves headroom for system messages,
-    # the question text, and the generated answer inside the model's context
-    # window.  Adjust downward if you use smaller models (e.g. 8 k-token ones).
-    context_window_max_tokens = 100_000
+    # Tokens reserved for system messages, per-question instructions, and the
+    # model's generated answer.  This headroom is subtracted from the model's
+    # advertised context-window (``context-window`` tag) to derive the token
+    # budget available for the PDF/document context.
+    # When the model has no ``context-window`` tag, the fallback budget is
+    # ``context_window_fallback_tokens - context_window_headroom_tokens``.
+    context_window_headroom_tokens = 10_000
+    # Conservative fallback context-window size used when the active model has
+    # no ``context-window`` tag.  Most modern LLMs support at least 128 k tokens,
+    # so 128,000 is a safe lower bound.
+    context_window_fallback_tokens = 128_000
     max_workers_django_q = settings.Q_CLUSTER[
         "workers"
     ]  # 1 worker for django_q, we use threading for parallelism
