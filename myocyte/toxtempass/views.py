@@ -2382,9 +2382,10 @@ def set_llm_preference(request: HttpRequest) -> JsonResponse:
     raw = (request.POST.get("llm_model") or "").strip()
 
     if not raw:
+        sentinel = object()
         update_prefs_atomic(
             request.user,
-            lambda prefs: prefs.pop("llm_model", None) is not None,
+            lambda prefs: prefs.pop("llm_model", sentinel) is not sentinel,
         )
         # Return the admin-default's signature so the badge updates in place.
         from toxtempass.azure_registry import badge_icon, badge_short, get_model
