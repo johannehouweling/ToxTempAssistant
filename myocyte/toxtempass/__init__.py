@@ -216,6 +216,11 @@ class Config:
     max_size_mb = 30
     single_answer_timeout = 60  # seconds
     max_workers_threading = 4
+    # Max tokens budgeted for the combined document context passed to the LLM
+    # on each generate_answer call.  This leaves headroom for system messages,
+    # the question text, and the generated answer inside the model's context
+    # window.  Adjust downward if you use smaller models (e.g. 8 k-token ones).
+    context_window_max_tokens = 100_000
     max_workers_django_q = settings.Q_CLUSTER[
         "workers"
     ]  # 1 worker for django_q, we use threading for parallelism

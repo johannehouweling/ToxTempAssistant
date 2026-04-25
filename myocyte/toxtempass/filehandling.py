@@ -409,6 +409,49 @@ def stringyfy_text_dict(text_dict: dict[str, dict[str, str]]) -> str:
     )
 
 
+def estimate_token_count(text: str) -> int:
+    """Estimate the number of tokens in *text* using tiktoken (cl100k_base).
+
+    Falls back to a simple character-based approximation (1 token ≈ 4 chars)
+    when tiktoken is unavailable or its encoding cannot be loaded.
+    """
+    if not text:
+        return 0
+    try:
+        import tiktoken
+
+        enc = tiktoken.get_encoding("cl100k_base")
+        return len(enc.encode(text))
+    except Exception:
+        return max(1, len(text) // 4)
+
+
+def truncate_context_to_token_limit(
+    text: str,
+    max_tokens: int,
+) -> tuple[str, bool]:
+    """Truncate *text* so it fits within *max_tokens*.
+
+    Returns a ``(possibly_truncated_text, was_truncated)`` tuple.  When
+    truncation is needed the returned string ends with a visible marker so
+    downstream readers know that content was dropped.
+    """
+    if not text:
+        return text, False
+    token_count = estimate_token_count(text)
+    if token_count <= max_tokens:
+        return text, False
+    # Proportional cut with a small safety margin to stay under the limit.
+    ratio = max_tokens / token_count
+    approx_chars = int(len(text) * ratio * 0.95)
+    truncated = text[:approx_chars].rstrip()
+    marker = (
+        "\n\n[... context truncated: uploaded documents exceeded the "
+        "configured context-window limit ...]"
+    )
+    return truncated + marker, True
+
+
 def get_text_or_bytes_perfile_dict(
     document_filenames: list[str | Path], unlink: bool = True, extract_images: bool = True
 ) -> dict[str, dict[str, str]]:

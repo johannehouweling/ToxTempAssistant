@@ -36,7 +36,7 @@ from django_tables2 import SingleTableView
 from guardian.shortcuts import assign_perm, get_objects_for_user, remove_perm
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
-from openai import RateLimitError
+from openai import BadRequestError, RateLimitError
 from tqdm.auto import tqdm
 
 from myocyte import settings
@@ -50,6 +50,7 @@ from toxtempass.filehandling import (
     store_files_to_storage,
     stringyfy_text_dict,
     summarize_image_entries,
+    truncate_context_to_token_limit,
 )
 from toxtempass.forms import (
     AssayAnswerForm,
@@ -787,6 +788,18 @@ def generate_answer(
             )
             time.sleep(wait)
 
+        except BadRequestError as exc:
+            # Surface context-length (and other 400-level) errors explicitly
+            # so they are never silently swallowed as empty answers.
+            logger.error(
+                "BadRequest from LLM for answer %s [%s of %s]: %s",
+                ans.id,
+                max_ans_id - ans.id,
+                delta_ans,
+                exc,
+            )
+            return ans.id, ""
+
         except Exception as exc:
             logger.exception(
                 f"LLM error for answer {ans.id} [{max_ans_id - ans.id} "
@@ -861,6 +874,37 @@ def process_llm_async(
         source_documents = collect_source_documents(payload)
         text_dict, _ = split_doc_dict_by_type(payload, decode=False)
         full_pdf_context = stringyfy_text_dict(text_dict)
+
+        # --- Context-window guard -----------------------------------------
+        # Proactively truncate the document context so it stays within the
+        # configured token budget.  Without this guard, an oversized context
+        # would either cause the LLM API to raise a BadRequestError (which the
+        # generic exception handler silently turns into empty answers) or, for
+        # APIs that enforce their own truncation, silently crop the input.
+        full_pdf_context, context_was_truncated = truncate_context_to_token_limit(
+            full_pdf_context, config.context_window_max_tokens
+        )
+        if context_was_truncated:
+            logger.warning(
+                "Context for assay %s was truncated to fit within the "
+                "%d-token context-window limit. "
+                "Consider uploading fewer or shorter documents.",
+                assay_id,
+                config.context_window_max_tokens,
+            )
+            add_status_context(
+                assay,
+                (
+                    "Uploaded documents exceeded the context-window limit "
+                    f"({config.context_window_max_tokens:,} tokens). "
+                    "The context was automatically truncated; some document "
+                    "content may not have been used when generating answers. "
+                    "Consider uploading fewer or shorter files."
+                ),
+                is_error=False,
+            )
+            assay.save()
+        # ------------------------------------------------------------------
 
         all_answers = list(
             assay.answers.select_related("question__subsection__section__question_set")
