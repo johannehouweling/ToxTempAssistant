@@ -3,6 +3,7 @@ import json
 import logging
 import re
 import time
+import uuid
 from collections import defaultdict
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -29,6 +30,7 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
 from django.views import View
+from django.views.decorators.http import require_POST
 from django_q.tasks import async_task
 from django_tables2 import SingleTableView
 from guardian.shortcuts import assign_perm, get_objects_for_user, remove_perm
@@ -87,7 +89,7 @@ from toxtempass.models import (
     WorkspaceRole,
 )
 from toxtempass.tables import AssayTable
-from toxtempass.utilities import provenance_label_for_item
+from toxtempass.utilities import add_status_context, provenance_label_for_item
 
 logger = logging.getLogger("views")
 
@@ -638,26 +640,6 @@ def init_db(request: HttpRequest, label: str) -> JsonResponse:
     )
 
 
-def add_status_context(
-    assay: Assay, msg: str, clear_first: bool = False, is_error: bool = True
-) -> None:
-    """Add an error message to the assay's status_context field.
-
-    If clear_first is True, overwrite the field; otherwise, append.
-    """
-    preamble = "Error occured: " if is_error else "Info: "
-    new_entry = f"{preamble}: {msg}"
-    if clear_first:
-        setattr(assay, "status_context", new_entry)
-    else:
-        prev_context = getattr(assay, "status_context", "") or ""
-        setattr(
-            assay,
-            "status_context",
-            prev_context + ("\n" if prev_context else "") + new_entry,
-        )
-
-
 def user_has_seen_tour_page(page: str, user: Person) -> bool:
     """Register onboarding in user preferences per page.
 
@@ -845,7 +827,8 @@ def process_llm_async(
                 except Exception as exc:
                     logger.warning(
                         "Queued llm_model=%r unusable (%s); falling back to live resolution.",
-                        llm_model, exc,
+                        llm_model,
+                        exc,
                     )
                     chatopenai = None
             if chatopenai is None:
@@ -897,7 +880,9 @@ def process_llm_async(
             # from firing LLM calls after the user deleted mid-run.
             if not _assay_still_exists():
                 logger.info(
-                    "Assay %s deleted before round %s; stopping.", assay_id, rnd,
+                    "Assay %s deleted before round %s; stopping.",
+                    assay_id,
+                    rnd,
                 )
                 return
 
@@ -946,7 +931,8 @@ def process_llm_async(
                                 logger.info(
                                     "Assay %s deleted during round %s; "
                                     "cancelling %d pending future(s).",
-                                    assay_id, rnd,
+                                    assay_id,
+                                    rnd,
                                     sum(1 for f in futures if not f.done()),
                                 )
                                 for f in futures:
@@ -1079,10 +1065,12 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
         # Compute the set of assay PKs the user is allowed to delete.
         # An assay is deletable if the user owns its parent investigation OR created the assay.
         deletable_assay_ids = list(
-            form.fields["assay"].queryset.filter(
+            form.fields["assay"]
+            .queryset.filter(
                 models.Q(created_by=request.user)
                 | models.Q(study__investigation__owner=request.user)
-            ).values_list("pk", flat=True)
+            )
+            .values_list("pk", flat=True)
         )
 
         # Check if user has seen the add_new tour before
@@ -1152,12 +1140,23 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                         assay.id,
                     )
                 except Exception as e:
-                    logger.exception("Failed to store files: %s", e)
+                    corr_id = uuid.uuid4().hex[:8]
+                    logger.exception(
+                        "File storage failed [corr=%s] for assay %s", corr_id, assay.id
+                    )
+                    add_status_context(assay, f"[{corr_id}] {type(e).__name__}: {e}")
+                    assay.save()
                     return JsonResponse(
                         {
                             "success": False,
-                            "errors": {"__all__": [f"File storage failed: {str(e)}"]},
-                        }
+                            "errors": {
+                                "__all__": [
+                                    f"File storage failed (ref {corr_id}). "
+                                    "Please contact support if the issue persists."
+                                ],
+                            },
+                        },
+                        status=500,
                     )
 
             # If files were uploaded and there are no existing answers,
@@ -1198,7 +1197,10 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                     )
 
                 except Exception as e:
-                    logger.exception("LLM processing failed: %s", e)
+                    corr_id = uuid.uuid4().hex[:8]
+                    logger.exception(
+                        "LLM processing failed [corr=%s] for assay %s", corr_id, assay.id
+                    )
                     # Cleanup orphaned files if LLM fails
                     if stored_file_assets:
                         for asset in stored_file_assets:
@@ -1213,11 +1215,19 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                                 logger.exception(
                                     "Failed to cleanup file asset: %s", cleanup_error
                                 )
+                    add_status_context(assay, f"[{corr_id}] {type(e).__name__}: {e}")
+                    assay.save()
                     return JsonResponse(
                         {
                             "success": False,
-                            "errors": {"__all__": [str(e)]},
-                        }
+                            "errors": {
+                                "__all__": [
+                                    f"Processing failed (ref {corr_id}). "
+                                    "Please contact support if the issue persists."
+                                ]
+                            },
+                        },
+                        status=500,
                     )
 
             # On success, return JSON with a redirect to 'answer_assay_questions'
@@ -1239,9 +1249,8 @@ def get_filtered_studies(request: HttpRequest, investigation_id: int) -> JsonRes
     """Get filtered Studies based on the Investigation ID."""
     if investigation_id:
         # include owner + creator provenance when appropriate
-        studies = (
-            Study.objects.filter(investigation_id=investigation_id)
-            .select_related("investigation__owner", "created_by")
+        studies = Study.objects.filter(investigation_id=investigation_id).select_related(
+            "investigation__owner", "created_by"
         )
         out = []
         for s in studies:
@@ -1255,9 +1264,8 @@ def get_filtered_studies(request: HttpRequest, investigation_id: int) -> JsonRes
 def get_filtered_assays(request: HttpRequest, study_id: int) -> JsonResponse:
     """Get filtered Assays based on the Study ID."""
     if study_id:
-        assays = (
-            Assay.objects.filter(study_id=study_id)
-            .select_related("study__investigation__owner", "created_by")
+        assays = Assay.objects.filter(study_id=study_id).select_related(
+            "study__investigation__owner", "created_by"
         )
         assays_list = []
         for assay in assays:
@@ -1343,21 +1351,22 @@ def create_or_update_investigation(
 
 
 @login_required(login_url="/login/")
-def delete_investigation(
-    request: HttpRequest, pk: int
-) -> JsonResponse | HttpResponseRedirect:
-    """Delete an investigation if the user has permission."""
-    if request.method == "GET":
-        investigation = get_object_or_404(Investigation, pk=pk)
-        if not investigation.is_accessible_by(request.user, perm_prefix="delete"):
-            from django.core.exceptions import PermissionDenied
+@require_POST
+def delete_investigation(request: HttpRequest, pk: int) -> HttpResponseRedirect:
+    """Delete an investigation if the user has permission.
 
-            raise PermissionDenied(
-                "You do not have permission to delete this investigation."
-            )
-        investigation.delete()
-        return redirect("add_new")
-    return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
+    POST-only and CSRF-protected: GET would be triggerable by browser
+    prefetchers, link scanners, or cross-site image/link tags.
+    """
+    investigation = get_object_or_404(Investigation, pk=pk)
+    if not investigation.is_accessible_by(request.user, perm_prefix="delete"):
+        from django.core.exceptions import PermissionDenied
+
+        raise PermissionDenied(
+            "You do not have permission to delete this investigation."
+        )
+    investigation.delete()
+    return redirect("add_new")
 
 
 @login_required(login_url="/login/")
@@ -1383,7 +1392,9 @@ def create_or_update_study(
             if not investigation.is_accessible_by(request.user, perm_prefix="view"):
                 from django.core.exceptions import PermissionDenied
 
-                raise PermissionDenied("You do not have permission to add a study to this investigation.")
+                raise PermissionDenied(
+                    "You do not have permission to add a study to this investigation."
+                )
 
             saved_study = form.save(commit=False)
             # record who created it when creating a new Study
@@ -1428,7 +1439,11 @@ def create_or_update_study(
                 inv = Investigation.objects.get(pk=int(inv_id)) if inv_id else None
             except Exception:
                 inv = None
-            if inv and inv.owner != request.user and inv.is_accessible_by(request.user, perm_prefix="view"):
+            if (
+                inv
+                and inv.owner != request.user
+                and inv.is_accessible_by(request.user, perm_prefix="view")
+            ):
                 warning = (
                     f"You are creating a Study inside an Investigation owned by {inv.owner.email}. "
                     "If you leave the workspace or lose access, you lose editing access to this Study and all its associated Assays."
@@ -1447,17 +1462,20 @@ def create_or_update_study(
 
 
 @login_required(login_url="/login/")
-def delete_study(request: HttpRequest, pk: int) -> JsonResponse | HttpResponseRedirect:
-    """Delete a study if the user has permission."""
-    if request.method == "GET":
-        study = get_object_or_404(Study, pk=pk)
-        if not study.is_accessible_by(request.user, perm_prefix="delete"):
-            from django.core.exceptions import PermissionDenied
+@require_POST
+def delete_study(request: HttpRequest, pk: int) -> HttpResponseRedirect:
+    """Delete a study if the user has permission.
 
-            raise PermissionDenied("You do not have permission to delete this study.")
-        study.delete()
-        return redirect("add_new")
-    return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
+    POST-only and CSRF-protected: GET would be triggerable by browser
+    prefetchers, link scanners, or cross-site image/link tags.
+    """
+    study = get_object_or_404(Study, pk=pk)
+    if not study.is_accessible_by(request.user, perm_prefix="delete"):
+        from django.core.exceptions import PermissionDenied
+
+        raise PermissionDenied("You do not have permission to delete this study.")
+    study.delete()
+    return redirect("add_new")
 
 
 @login_required(login_url="/login/")
@@ -1534,29 +1552,36 @@ def create_or_update_assay(
 
 
 @login_required(login_url="/login/")
-def delete_assay(request: HttpRequest, pk: int) -> JsonResponse | HttpResponseRedirect:
-    """Delete an assay if the user has permission."""
-    if request.method == "GET":
-        # allows to distuigish between deleting from overview tables
-        source_page = request.GET.get("from")
-        assay = get_object_or_404(Assay, pk=pk)
-        if not assay.is_accessible_by(request.user, perm_prefix="delete"):
-            from django.core.exceptions import PermissionDenied
+@require_POST
+def delete_assay(
+    request: HttpRequest, pk: int
+) -> JsonResponse | HttpResponseRedirect:
+    """Delete an assay if the user has permission.
 
-            raise PermissionDenied("You do not have permission to delete this assay.")
-        if assay.demo_lock:
-            return JsonResponse(
-                {
-                    "status": "error",
-                    "message": "Demo assays cannot be deleted.",
-                },
-                status=400,
-            )
-        assay.delete()
-        if source_page == "overview":
-            return redirect("overview")
-        return redirect("add_new")
-    return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
+    POST-only and CSRF-protected: GET would be triggerable by browser
+    prefetchers, link scanners, or cross-site image/link tags. The
+    `?from=overview` query parameter is still accepted (querystrings work
+    on POST too) so the redirect target depends on the originating page.
+    """
+    # allows to distinguish between deleting from overview tables
+    source_page = request.GET.get("from")
+    assay = get_object_or_404(Assay, pk=pk)
+    if not assay.is_accessible_by(request.user, perm_prefix="delete"):
+        from django.core.exceptions import PermissionDenied
+
+        raise PermissionDenied("You do not have permission to delete this assay.")
+    if assay.demo_lock:
+        return JsonResponse(
+            {
+                "status": "error",
+                "message": "Demo assays cannot be deleted.",
+            },
+            status=400,
+        )
+    assay.delete()
+    if source_page == "overview":
+        return redirect("overview")
+    return redirect("add_new")
 
 
 @login_required(login_url="/login/")
@@ -1841,7 +1866,9 @@ def get_workspace_list(request: HttpRequest) -> dict:
     )
 
     # Workspaces owned by the user
-    owned_workspaces = list(Workspace.objects.filter(owner=request.user).order_by("-created_at"))
+    owned_workspaces = list(
+        Workspace.objects.filter(owner=request.user).order_by("-created_at")
+    )
     # Ensure owned workspaces have a role attribute so template logic can be unified
     for ws in owned_workspaces:
         setattr(ws, "current_user_role", WorkspaceRole.OWNER)
@@ -1859,7 +1886,11 @@ def get_workspace_list(request: HttpRequest) -> dict:
 
     # Provide investigations accessible to this user so the inline "Add investigation" modal can show options
     accessible_investigations = get_objects_for_user(
-        request.user, "toxtempass.view_investigation", klass=Investigation, use_groups=False, any_perm=False
+        request.user,
+        "toxtempass.view_investigation",
+        klass=Investigation,
+        use_groups=False,
+        any_perm=False,
     )
     # Only show investigations owned by the current user in the Add modal to avoid allowing
     # users to share investigations they do not own via the UI. Server-side check will also enforce ownership.
@@ -1912,20 +1943,26 @@ def create_or_update_workspace(
         else:
             return JsonResponse({"success": False, "errors": form.errors})
     else:
-        return JsonResponse({"success": False, "error": "POST request required"}, status=405)
+        return JsonResponse(
+            {"success": False, "error": "POST request required"}, status=405
+        )
+
 
 @login_required(login_url="/login/")
-def delete_workspace(request: HttpRequest, pk: int) -> JsonResponse | HttpResponseRedirect:
-    """Delete a workspace if the user is the owner."""
-    if request.method == "GET":
-        workspace = get_object_or_404(Workspace, pk=pk)
-        if workspace.owner != request.user:
-            from django.core.exceptions import PermissionDenied
+@require_POST
+def delete_workspace(request: HttpRequest, pk: int) -> HttpResponseRedirect:
+    """Delete a workspace if the user is the owner.
 
-            raise PermissionDenied("You do not own this workspace.")
-        workspace.delete()
-        return redirect("overview")
-    return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
+    POST-only and CSRF-protected: GET would be triggerable by browser
+    prefetchers, link scanners, or cross-site image/link tags.
+    """
+    workspace = get_object_or_404(Workspace, pk=pk)
+    if workspace.owner != request.user:
+        from django.core.exceptions import PermissionDenied
+
+        raise PermissionDenied("You do not own this workspace.")
+    workspace.delete()
+    return redirect("overview")
 
 
 @login_required(login_url="/login/")
@@ -1935,7 +1972,9 @@ def add_workspace_member(request: HttpRequest, pk: int) -> JsonResponse:
         return JsonResponse({"success": False, "error": "POST required"}, status=405)
 
     workspace = get_object_or_404(Workspace, pk=pk)
-    membership = WorkspaceMember.objects.filter(workspace=workspace, user=request.user).first()
+    membership = WorkspaceMember.objects.filter(
+        workspace=workspace, user=request.user
+    ).first()
 
     if not membership or membership.role not in [
         WorkspaceRole.OWNER,
@@ -1959,14 +1998,17 @@ def add_workspace_member(request: HttpRequest, pk: int) -> JsonResponse:
 
         # Ensure the newly added member receives object permissions for any
         # Investigations already shared into this workspace.
-        shared_invs = WorkspaceInvestigation.objects.filter(workspace=workspace).select_related("investigation")
+        shared_invs = WorkspaceInvestigation.objects.filter(
+            workspace=workspace
+        ).select_related("investigation")
         for winv in shared_invs:
             try:
                 assign_perm("view_investigation", user, winv.investigation)
             except Exception:
                 logger.exception(
                     "Failed to assign view_investigation perm for user %s on investigation %s",
-                    getattr(user, "email", None), getattr(winv.investigation, "id", None),
+                    getattr(user, "email", None),
+                    getattr(winv.investigation, "id", None),
                 )
 
         return JsonResponse({"success": True, "errors": {}})
@@ -1988,7 +2030,9 @@ def add_workspace_member_by_email(request: HttpRequest, pk: int) -> JsonResponse
         return JsonResponse({"success": False, "error": "POST required"}, status=405)
 
     workspace = get_object_or_404(Workspace, pk=pk)
-    membership = WorkspaceMember.objects.filter(workspace=workspace, user=request.user).first()
+    membership = WorkspaceMember.objects.filter(
+        workspace=workspace, user=request.user
+    ).first()
 
     if not membership or membership.role not in [
         WorkspaceRole.OWNER,
@@ -2009,7 +2053,9 @@ def add_workspace_member_by_email(request: HttpRequest, pk: int) -> JsonResponse
         return JsonResponse({"success": False, "error": "User not found"}, status=404)
 
     if WorkspaceMember.objects.filter(workspace=workspace, user=user).exists():
-        return JsonResponse({"success": False, "error": "User is already a member"}, status=400)
+        return JsonResponse(
+            {"success": False, "error": "User is already a member"}, status=400
+        )
 
     # normalize role
     if role not in dict(WorkspaceRole.choices):
@@ -2018,14 +2064,17 @@ def add_workspace_member_by_email(request: HttpRequest, pk: int) -> JsonResponse
     WorkspaceMember.objects.create(workspace=workspace, user=user, role=role)
 
     # Assign view permissions for all investigations already shared into this workspace
-    shared_invs = WorkspaceInvestigation.objects.filter(workspace=workspace).select_related("investigation")
+    shared_invs = WorkspaceInvestigation.objects.filter(
+        workspace=workspace
+    ).select_related("investigation")
     for winv in shared_invs:
         try:
             assign_perm("view_investigation", user, winv.investigation)
         except Exception:
             logger.exception(
                 "Failed to assign view_investigation perm for user %s on investigation %s",
-                getattr(user, "email", None), getattr(winv.investigation, "id", None),
+                getattr(user, "email", None),
+                getattr(winv.investigation, "id", None),
             )
 
     return JsonResponse({"success": True, "member_email": user.email})
@@ -2038,7 +2087,9 @@ def remove_workspace_member(request: HttpRequest, pk: int, user_id: int) -> Json
         return JsonResponse({"success": False, "error": "POST required"}, status=405)
 
     workspace = get_object_or_404(Workspace, pk=pk)
-    membership = WorkspaceMember.objects.filter(workspace=workspace, user=request.user).first()
+    membership = WorkspaceMember.objects.filter(
+        workspace=workspace, user=request.user
+    ).first()
 
     if not membership or membership.role not in [
         WorkspaceRole.OWNER,
@@ -2049,7 +2100,9 @@ def remove_workspace_member(request: HttpRequest, pk: int, user_id: int) -> Json
         )
 
     try:
-        member_to_remove = WorkspaceMember.objects.get(workspace=workspace, user_id=user_id)
+        member_to_remove = WorkspaceMember.objects.get(
+            workspace=workspace, user_id=user_id
+        )
     except WorkspaceMember.DoesNotExist:
         return JsonResponse({"success": False, "error": "Member not found"}, status=404)
 
@@ -2062,24 +2115,34 @@ def remove_workspace_member(request: HttpRequest, pk: int, user_id: int) -> Json
     # but only if the user does not retain access via another workspace that also shares
     # the same investigation.
     try:
-        other_workspace_ids = WorkspaceMember.objects.filter(
-            user=member_to_remove.user
-        ).exclude(workspace=workspace).values_list("workspace_id", flat=True)
-        shared_invs = WorkspaceInvestigation.objects.filter(workspace=workspace).select_related("investigation")
+        other_workspace_ids = (
+            WorkspaceMember.objects.filter(user=member_to_remove.user)
+            .exclude(workspace=workspace)
+            .values_list("workspace_id", flat=True)
+        )
+        shared_invs = WorkspaceInvestigation.objects.filter(
+            workspace=workspace
+        ).select_related("investigation")
         for winv in shared_invs:
             if WorkspaceInvestigation.objects.filter(
                 investigation=winv.investigation, workspace_id__in=other_workspace_ids
             ).exists():
                 continue  # user still has access via another workspace — keep the perm
             try:
-                remove_perm("view_investigation", member_to_remove.user, winv.investigation)
+                remove_perm(
+                    "view_investigation", member_to_remove.user, winv.investigation
+                )
             except Exception:
                 logger.exception(
                     "Failed to remove view_investigation perm for user %s on investigation %s",
-                    getattr(member_to_remove.user, "email", None), getattr(winv.investigation, "id", None),
+                    getattr(member_to_remove.user, "email", None),
+                    getattr(winv.investigation, "id", None),
                 )
     except Exception:
-        logger.exception("Failed while revoking workspace-based permissions for removed member %s", user_id)
+        logger.exception(
+            "Failed while revoking workspace-based permissions for removed member %s",
+            user_id,
+        )
 
     member_to_remove.delete()
     return JsonResponse({"success": True, "errors": {}})
@@ -2098,7 +2161,9 @@ def remove_workspace_member_by_email(request: HttpRequest, pk: int) -> JsonRespo
     # Allow three cases to remove a member by email:
     # 1) requester is OWNER or ADMIN (can remove other members, but not the owner)
     # 2) requester is removing themself (allowed as long as they are not the owner)
-    membership = WorkspaceMember.objects.filter(workspace=workspace, user=request.user).first()
+    membership = WorkspaceMember.objects.filter(
+        workspace=workspace, user=request.user
+    ).first()
     requester_role = membership.role if membership else None
 
     email = request.POST.get("email", "").strip().lower()
@@ -2117,7 +2182,9 @@ def remove_workspace_member_by_email(request: HttpRequest, pk: int) -> JsonRespo
 
     # Prevent removal of the owner in all cases
     if gm.role == WorkspaceRole.OWNER:
-        return JsonResponse({"success": False, "error": "Cannot remove the owner"}, status=400)
+        return JsonResponse(
+            {"success": False, "error": "Cannot remove the owner"}, status=400
+        )
 
     # If the requester is removing themself, allow it (unless owner)
     if user.id == request.user.id:
@@ -2125,17 +2192,26 @@ def remove_workspace_member_by_email(request: HttpRequest, pk: int) -> JsonRespo
         pass
     else:
         # requester is removing someone else -> must be owner or admin
-        if not membership or requester_role not in [WorkspaceRole.OWNER, WorkspaceRole.ADMIN]:
-            return JsonResponse({"success": False, "error": "You do not have permission"}, status=404)
+        if not membership or requester_role not in [
+            WorkspaceRole.OWNER,
+            WorkspaceRole.ADMIN,
+        ]:
+            return JsonResponse(
+                {"success": False, "error": "You do not have permission"}, status=404
+            )
 
     # Revoke permissions granted via this workspace for the removed user,
     # but only if the user does not retain access via another workspace that also shares
     # the same investigation.
     try:
-        other_workspace_ids = WorkspaceMember.objects.filter(
-            user=user
-        ).exclude(workspace=workspace).values_list("workspace_id", flat=True)
-        shared_invs = WorkspaceInvestigation.objects.filter(workspace=workspace).select_related("investigation")
+        other_workspace_ids = (
+            WorkspaceMember.objects.filter(user=user)
+            .exclude(workspace=workspace)
+            .values_list("workspace_id", flat=True)
+        )
+        shared_invs = WorkspaceInvestigation.objects.filter(
+            workspace=workspace
+        ).select_related("investigation")
         for winv in shared_invs:
             if WorkspaceInvestigation.objects.filter(
                 investigation=winv.investigation, workspace_id__in=other_workspace_ids
@@ -2146,10 +2222,14 @@ def remove_workspace_member_by_email(request: HttpRequest, pk: int) -> JsonRespo
             except Exception:
                 logger.exception(
                     "Failed to remove view_investigation perm for user %s on investigation %s",
-                    getattr(user, "email", None), getattr(winv.investigation, "id", None),
+                    getattr(user, "email", None),
+                    getattr(winv.investigation, "id", None),
                 )
     except Exception:
-        logger.exception("Failed while revoking workspace-based permissions for removed member %s", user.id)
+        logger.exception(
+            "Failed while revoking workspace-based permissions for removed member %s",
+            user.id,
+        )
 
     gm.delete()
     return JsonResponse({"success": True})
@@ -2162,7 +2242,9 @@ def add_workspace_assay(request: HttpRequest, pk: int) -> JsonResponse:
         return JsonResponse({"success": False, "error": "POST required"}, status=405)
 
     workspace = get_object_or_404(Workspace, pk=pk)
-    membership = WorkspaceMember.objects.filter(workspace=workspace, user=request.user).first()
+    membership = WorkspaceMember.objects.filter(
+        workspace=workspace, user=request.user
+    ).first()
 
     if not membership or membership.role not in [
         WorkspaceRole.OWNER,
@@ -2187,16 +2269,34 @@ def add_workspace_assay(request: HttpRequest, pk: int) -> JsonResponse:
                 investigation = None
 
     if not investigation:
-        return JsonResponse({"success": False, "errors": form.errors or {"investigation": ["Missing investigation"]}}, status=400)
+        return JsonResponse(
+            {
+                "success": False,
+                "errors": form.errors or {"investigation": ["Missing investigation"]},
+            },
+            status=400,
+        )
 
     # Enforce owner-only sharing: only the owner of the investigation may add it to a workspace.
     if investigation.owner != request.user:
-        return JsonResponse({"success": False, "error": "You do not own this investigation."}, status=403)
+        return JsonResponse(
+            {"success": False, "error": "You do not own this investigation."}, status=403
+        )
 
-    if WorkspaceInvestigation.objects.filter(workspace=workspace, investigation=investigation).exists():
-        return JsonResponse({"success": False, "error": "Investigation is already shared in this workspace"}, status=400)
+    if WorkspaceInvestigation.objects.filter(
+        workspace=workspace, investigation=investigation
+    ).exists():
+        return JsonResponse(
+            {
+                "success": False,
+                "error": "Investigation is already shared in this workspace",
+            },
+            status=400,
+        )
 
-    workspace_inv = WorkspaceInvestigation.objects.create(workspace=workspace, investigation=investigation, added_by=request.user)
+    workspace_inv = WorkspaceInvestigation.objects.create(
+        workspace=workspace, investigation=investigation, added_by=request.user
+    )
 
     members = WorkspaceMember.objects.filter(workspace=workspace).select_related("user")
     for member in members:
@@ -2212,7 +2312,9 @@ def remove_workspace_assay(request: HttpRequest, pk: int, assay_id: int) -> Json
         return JsonResponse({"success": False, "error": "POST required"}, status=405)
 
     workspace = get_object_or_404(Workspace, pk=pk)
-    membership = WorkspaceMember.objects.filter(workspace=workspace, user=request.user).first()
+    membership = WorkspaceMember.objects.filter(
+        workspace=workspace, user=request.user
+    ).first()
 
     if not membership or membership.role not in [
         WorkspaceRole.OWNER,
@@ -2224,9 +2326,14 @@ def remove_workspace_assay(request: HttpRequest, pk: int, assay_id: int) -> Json
 
     # Treat the provided assay_id as the investigation id for the new model
     try:
-        workspace_inv = WorkspaceInvestigation.objects.get(workspace=workspace, investigation_id=assay_id)
+        workspace_inv = WorkspaceInvestigation.objects.get(
+            workspace=workspace, investigation_id=assay_id
+        )
     except WorkspaceInvestigation.DoesNotExist:
-        return JsonResponse({"success": False, "error": "Investigation not found in workspace"}, status=404)
+        return JsonResponse(
+            {"success": False, "error": "Investigation not found in workspace"},
+            status=404,
+        )
 
     investigation = workspace_inv.investigation
     workspace_inv.delete()
@@ -2235,9 +2342,11 @@ def remove_workspace_assay(request: HttpRequest, pk: int, assay_id: int) -> Json
     # retain access to the same investigation via another workspace.
     members = WorkspaceMember.objects.filter(workspace=workspace).select_related("user")
     for member in members:
-        other_workspace_ids = WorkspaceMember.objects.filter(
-            user=member.user
-        ).exclude(workspace=workspace).values_list("workspace_id", flat=True)
+        other_workspace_ids = (
+            WorkspaceMember.objects.filter(user=member.user)
+            .exclude(workspace=workspace)
+            .values_list("workspace_id", flat=True)
+        )
         if WorkspaceInvestigation.objects.filter(
             investigation=investigation, workspace_id__in=other_workspace_ids
         ).exists():
@@ -2270,6 +2379,7 @@ def set_llm_preference(request: HttpRequest) -> JsonResponse:
         # Return the admin-default's signature so the badge updates in place.
         from toxtempass.azure_registry import badge_icon, badge_short, get_model
         from toxtempass.models import LLMConfig as _LLMConfig
+
         cfg = _LLMConfig.load()
         sig = None
         if cfg.default_model and ":" in cfg.default_model:
@@ -2285,9 +2395,9 @@ def set_llm_preference(request: HttpRequest) -> JsonResponse:
                 sig = {
                     "model_id": m.model_id,
                     "model_by": model_by,
-                    "hosted_on": "Azure (direct)" if direct else (
-                        f"Azure (MaaS via {model_by or 'third-party'})"
-                    ),
+                    "hosted_on": "Azure (direct)"
+                    if direct
+                    else (f"Azure (MaaS via {model_by or 'third-party'})"),
                     "version": m.tags.get("version", ""),
                     "privacy_short": badge_short(m.badge),
                     "privacy_icon": badge_icon(m.badge),
@@ -2319,13 +2429,16 @@ def set_llm_preference(request: HttpRequest) -> JsonResponse:
         and raw not in cfg.allowed_models
         and not request.user.is_superuser
     ):
-        return JsonResponse({"success": False, "error": "Not in allowed list"}, status=403)
+        return JsonResponse(
+            {"success": False, "error": "Not in allowed list"}, status=403
+        )
 
     prefs["llm_model"] = raw
     request.user.preferences = prefs
     request.user.save(update_fields=["preferences"])
 
     from toxtempass.azure_registry import badge_icon, badge_short
+
     direct = (m.tags.get("direct-from-azure") or "").lower() == "true"
     model_by = (m.tags.get("provider") or "").title()
     if direct:
@@ -2333,18 +2446,20 @@ def set_llm_preference(request: HttpRequest) -> JsonResponse:
     else:
         hosted_on = f"Azure (MaaS via {model_by or 'third-party'})"
 
-    return JsonResponse({
-        "success": True,
-        "llm_model": raw,
-        "signature": {
-            "model_id": m.model_id,
-            "model_by": model_by,
-            "hosted_on": hosted_on,
-            "version": m.tags.get("version", ""),
-            "privacy_short": badge_short(m.badge),
-            "privacy_icon": badge_icon(m.badge),
-            "retirement_date": (
-                m.retirement_date.isoformat() if m.retirement_date else ""
-            ),
-        },
-    })
+    return JsonResponse(
+        {
+            "success": True,
+            "llm_model": raw,
+            "signature": {
+                "model_id": m.model_id,
+                "model_by": model_by,
+                "hosted_on": hosted_on,
+                "version": m.tags.get("version", ""),
+                "privacy_short": badge_short(m.badge),
+                "privacy_icon": badge_icon(m.badge),
+                "retirement_date": (
+                    m.retirement_date.isoformat() if m.retirement_date else ""
+                ),
+            },
+        }
+    )

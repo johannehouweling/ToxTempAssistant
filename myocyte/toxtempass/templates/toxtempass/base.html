@@ -16,6 +16,10 @@
     <script>
       window.ToxTempConfig = window.ToxTempConfig || {};
       window.ToxTempConfig.user_onboarding_help = JSON.parse(document.getElementById('userOnboardingHelp').textContent);
+      // Single source of truth for the CSRF token — used by every fetch()
+      // POST in the app. Defined here so all scripts (regardless of include
+      // order) have it available without re-reading the cookie locally.
+      var csrftoken = "{{ csrf_token }}";
     </script>
 </head>
 <script>

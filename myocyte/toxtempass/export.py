@@ -1,6 +1,8 @@
 import json
+import logging
 import re
 import subprocess
+import uuid
 from pathlib import Path
 
 import yaml
@@ -12,6 +14,9 @@ from django.utils.text import slugify
 from myocyte import settings
 from toxtempass import Config
 from toxtempass.models import Assay, Section
+from toxtempass.utilities import add_status_context
+
+logger = logging.getLogger(__name__)
 
 # Export control surface lives on Config (see toxtempass/__init__.py). These
 # module-level aliases keep call sites terse and let tests patch them.
@@ -309,12 +314,32 @@ def export_assay_to_file(
         try:
             subprocess.run(pandoc_command, check=True)  # noqa: S603
         except subprocess.CalledProcessError as e:
+            corr_id = uuid.uuid4().hex[:8]
+            logger.exception(
+                "Pandoc conversion failed [corr=%s] for assay %s", corr_id, assay.id
+            )
+            add_status_context(assay, f"[{corr_id}] {type(e).__name__}: {e}")
+            assay.save()
             return JsonResponse(
-                {"error": f"Pandoc conversion failed: {str(e)}"}, status=500
+                {
+                    "error": f"Export failed (ref {corr_id}). "
+                    "Please contact support if the issue persists."
+                },
+                status=500,
             )
         except Exception as e:
+            corr_id = uuid.uuid4().hex[:8]
+            logger.exception(
+                "Unexpected export error [corr=%s] for assay %s", corr_id, assay.id
+            )
+            add_status_context(assay, f"[{corr_id}] {type(e).__name__}: {e}")
+            assay.save()
             return JsonResponse(
-                {"error": f"An unexpected error occurred: {str(e)}"}, status=500
+                {
+                    "error": f"Export failed (ref {corr_id}). "
+                    "Please contact support if the issue persists."
+                },
+                status=500,
             )
 
         # cleanup the auxiliary files

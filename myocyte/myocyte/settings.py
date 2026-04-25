@@ -236,40 +236,73 @@ AUTH_PASSWORD_VALIDATORS = [
 AUTH_USER_MODEL = "toxtempass.Person"
 
 # Logging
+# The "errors" handler writes to a Docker-volume-mounted path (./myocyte/logs
+# on the host) so tracebacks survive container rebuilds. Correlation IDs in
+# Assay.status_context point back to entries in this file.
+LOG_DIR = BASE_DIR / "logs"
+try:
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    _LOG_FILE_AVAILABLE = True
+except OSError:
+    _LOG_FILE_AVAILABLE = False
+
+_log_handlers_base = {
+    "console": {
+        "level": "INFO",
+        "class": "logging.StreamHandler",
+        "formatter": "detailed",
+    },
+}
+if _LOG_FILE_AVAILABLE:
+    _log_handlers_base["errors"] = {
+        "level": "ERROR",
+        "class": "logging.handlers.RotatingFileHandler",
+        "filename": str(LOG_DIR / "django-errors.log"),
+        "maxBytes": 10 * 1024 * 1024,
+        "backupCount": 5,
+        "formatter": "detailed",
+    }
+
+_logger_handlers = ["console", "errors"] if _LOG_FILE_AVAILABLE else ["console"]
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "handlers": {
-        "console": {
-            "level": "INFO",
-            "class": "logging.StreamHandler",
-            "formatter": "detailed",
-        },
-    },
+    "handlers": _log_handlers_base,
     "formatters": {
         "detailed": {
-            "format": "{asctime} - {levelname} - {message}",
+            "format": "{asctime} - {levelname} - {name} - {message}",
             "style": "{",
         },
     },
     "loggers": {
         "toxtempass.apps": {
-            "handlers": ["console"],
+            "handlers": _logger_handlers,
             "level": "INFO",
             "propagate": False,
         },
         "toxtempass.views": {
-            "handlers": ["console"],
+            "handlers": _logger_handlers,
+            "level": "INFO",
+            "propagate": False,
+        },
+        "toxtempass.export": {
+            "handlers": _logger_handlers,
             "level": "INFO",
             "propagate": False,
         },
         "toxtempass.forms": {
-            "handlers": ["console"],
+            "handlers": _logger_handlers,
             "level": "INFO",
             "propagate": False,
         },
         "toxtempass.llm": {
-            "handlers": ["console"],
+            "handlers": _logger_handlers,
+            "level": "INFO",
+            "propagate": False,
+        },
+        "views": {
+            "handlers": _logger_handlers,
             "level": "INFO",
             "propagate": False,
         },

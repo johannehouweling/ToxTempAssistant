@@ -128,7 +128,11 @@ class AssayTable(tables.Table):
                     <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='html' %}">HTML</a></li>
                 </ul>
             </div>
-            <a class="btn btn-sm btn-outline-danger" href="{% url 'delete_assay' record.id %}?from=overview" onclick="return confirm('Are you sure you want to delete this assay and associated data? This action cannot be undone.')">
+            <a class="btn btn-sm btn-outline-danger js-delete-link"
+               href="#"
+               role="button"
+               data-delete-url="{% url 'delete_assay' record.id %}?from=overview"
+               data-confirm-msg="Are you sure you want to delete this assay and associated data? This action cannot be undone.">
                 <i class="bi bi-x-lg"></i>
                 <span class="ms-1 d-none d-lg-inline">Delete</span>
             </a>

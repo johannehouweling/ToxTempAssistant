@@ -82,24 +82,8 @@
     container.appendChild(col);
   }
 
-  function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== "") {
-      const cookies = document.cookie.split(";");
-      for (let i = 0; i < cookies.length; i++) {
-        const cookie = cookies[i].trim();
-        if (cookie.substring(0, name.length + 1) === name + "=") {
-          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-          break;
-        }
-      }
-    }
-    return cookieValue;
-  }
-  if (typeof csrftoken === 'undefined') {
-    var csrftoken = getCookie("csrftoken");
-  }
-  
+  // csrftoken is defined globally in base.html — no local init needed.
+
   function escapeHtml(s) {
     return String(s).replace(
       /[&<>"']/g,
@@ -703,9 +687,10 @@
       if (!confirm(`Delete workspace "${name}"? This cannot be undone. Shared investigations will not be deleted but all members will lose access.`))
         return;
 
-      // Use GET endpoint which performs the deletion and redirects server-side.
+      // POST-only and CSRF-protected: GET would be triggerable by prefetchers
+      // and cross-site links. The server now returns a redirect (302).
       fetch(`/workspace/delete/${gid}/`, {
-        method: "GET",
+        method: "POST",
         headers: { "X-CSRFToken": csrftoken },
       })
         .then((r) => {
