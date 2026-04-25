@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.1.3 (2026-04-25)
+
+### Bug Fixes
+
+- Update dependencies for Faker, pytest, and pytest-cov to latest versions
+  ([`f65b40e`](https://github.com/johannehouweling/ToxTempAssistant/commit/f65b40eb0327a9747d2ade3c93287f0eedcbc5bd))
+
+
 ## v3.1.2 (2026-04-25)
 
 ### Bug Fixes
