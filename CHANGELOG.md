@@ -2,6 +2,50 @@
 
 <!-- version list -->
 
+## v3.1.2 (2026-04-25)
+
+### Bug Fixes
+
+- Address review feedback - spelling, trimming logic, HTTP status codes, settings mkdir, and add
+  tests
+  ([`0fd5705`](https://github.com/johannehouweling/ToxTempAssistant/commit/0fd5705f309880b7f3d9cc2145b7255f757927b2))
+
+- Centralize CSRF token definition in base.html and remove redundant code in workspace_js.html and
+  new.html
+  ([`bf1a0e9`](https://github.com/johannehouweling/ToxTempAssistant/commit/bf1a0e9d1fb3a38cb4102e7a0955f77fa73730f5))
+
+- Correct error message formatting in add_status_context function
+  ([`a0e4b2f`](https://github.com/johannehouweling/ToxTempAssistant/commit/a0e4b2f623af68150c2eb758c71375a17d62487a))
+
+- Enforce POST method for delete endpoints and update related templates and tests also in tables
+  ([`837d9c6`](https://github.com/johannehouweling/ToxTempAssistant/commit/837d9c60b371c472da6f494a1944a92c002bf15d))
+
+- Enforce POST method for workspace deletion and update tests accordingly
+  ([`8a41078`](https://github.com/johannehouweling/ToxTempAssistant/commit/8a4107808d52f1f8c3a9c0eed9daab2a8892be06))
+
+- Enhance error handling and logging with correlation IDs for better traceability
+  ([`18e9276`](https://github.com/johannehouweling/ToxTempAssistant/commit/18e92761a1b88af19f3b788ae1d67d3a17f6881e))
+
+- Improve error message formatting and enhance readability in views
+  ([`8f1c899`](https://github.com/johannehouweling/ToxTempAssistant/commit/8f1c899b2f64f764768ed88d201ed51d454b738f))
+
+- Standardize error response messages and improve HTTP status codes in views
+  ([`fa6ee60`](https://github.com/johannehouweling/ToxTempAssistant/commit/fa6ee60f915542297af52e49d90fc0e0e58db2db))
+
+- Update email generation in PersonFactory for unique test emails
+  ([`91d32ab`](https://github.com/johannehouweling/ToxTempAssistant/commit/91d32abd74ae7b37b73a06e471636639aa28a385))
+
+### Chores
+
+- Update poetry lock
+  ([`4d504ce`](https://github.com/johannehouweling/ToxTempAssistant/commit/4d504ce8a45a71490742c9747c1991dd0d2d7cb8))
+
+### Refactoring
+
+- Enhance error handling and logging in export and view functions
+  ([`98ccd9a`](https://github.com/johannehouweling/ToxTempAssistant/commit/98ccd9a5fe8f238836f9351269c106b7b871f104))
+
+
 ## v3.1.1 (2026-04-25)
 
 ### Bug Fixes
