@@ -56,9 +56,10 @@ class ExportFilenameTests(TestCase):
             ):
                 mock_settings.MEDIA_ROOT = tmp_dir
                 response = export_assay_to_file(self.request, self.assay, "json")
+            content_disp = response.headers.get("Content-Disposition", "")
+            response.close()
 
         expected_suffix = EXPORT_MIME_SUFFIX["json"]["suffix"]  # ".json"
-        content_disp = response.headers.get("Content-Disposition", "")
         self.assertIn(expected_suffix, content_disp)
         # Guard against a double-dot regression (e.g. "toxtemp_title..json")
         self.assertNotIn("..", content_disp)
@@ -95,9 +96,10 @@ class ExportFilenameTests(TestCase):
                     response = export_assay_to_file(
                         self.request, self.assay, export_type
                     )
+                content_disp = response.headers.get("Content-Disposition", "")
+                response.close()
 
                 expected_suffix = EXPORT_MIME_SUFFIX[export_type]["suffix"]
-                content_disp = response.headers.get("Content-Disposition", "")
                 self.assertIn(
                     expected_suffix,
                     content_disp,
@@ -147,7 +149,8 @@ class ExportPandocCommandTests(TestCase):
                     ),
                 ):
                     mock_settings.MEDIA_ROOT = tmp_dir
-                    export_assay_to_file(self.request, self.assay, export_type)
+                    response = export_assay_to_file(self.request, self.assay, export_type)
+                response.close()
 
                 self.assertEqual(
                     len(captured_commands),
