@@ -1351,25 +1351,22 @@ def create_or_update_investigation(
 
 
 @login_required(login_url="/login/")
-def delete_investigation(
-    request: HttpRequest, pk: int
-) -> JsonResponse | HttpResponseRedirect:
-    """Delete an investigation if the user has permission."""
-    if request.method == "GET":
-        investigation = get_object_or_404(Investigation, pk=pk)
-        if not investigation.is_accessible_by(request.user, perm_prefix="delete"):
-            from django.core.exceptions import PermissionDenied
+@require_POST
+def delete_investigation(request: HttpRequest, pk: int) -> HttpResponseRedirect:
+    """Delete an investigation if the user has permission.
 
-            raise PermissionDenied(
-                "You do not have permission to delete this investigation."
-            )
-        investigation.delete()
-        return redirect("add_new")
-    return JsonResponse(
-        {"status": "error", "message": "Only GET allowed"},
-        status=405,
-        headers={"Allow": "GET"},
-    )
+    POST-only and CSRF-protected: GET would be triggerable by browser
+    prefetchers, link scanners, or cross-site image/link tags.
+    """
+    investigation = get_object_or_404(Investigation, pk=pk)
+    if not investigation.is_accessible_by(request.user, perm_prefix="delete"):
+        from django.core.exceptions import PermissionDenied
+
+        raise PermissionDenied(
+            "You do not have permission to delete this investigation."
+        )
+    investigation.delete()
+    return redirect("add_new")
 
 
 @login_required(login_url="/login/")
@@ -1465,21 +1462,20 @@ def create_or_update_study(
 
 
 @login_required(login_url="/login/")
-def delete_study(request: HttpRequest, pk: int) -> JsonResponse | HttpResponseRedirect:
-    """Delete a study if the user has permission."""
-    if request.method == "GET":
-        study = get_object_or_404(Study, pk=pk)
-        if not study.is_accessible_by(request.user, perm_prefix="delete"):
-            from django.core.exceptions import PermissionDenied
+@require_POST
+def delete_study(request: HttpRequest, pk: int) -> HttpResponseRedirect:
+    """Delete a study if the user has permission.
 
-            raise PermissionDenied("You do not have permission to delete this study.")
-        study.delete()
-        return redirect("add_new")
-    return JsonResponse(
-        {"status": "error", "message": "Only GET allowed"},
-        status=405,
-        headers={"Allow": "GET"},
-    )
+    POST-only and CSRF-protected: GET would be triggerable by browser
+    prefetchers, link scanners, or cross-site image/link tags.
+    """
+    study = get_object_or_404(Study, pk=pk)
+    if not study.is_accessible_by(request.user, perm_prefix="delete"):
+        from django.core.exceptions import PermissionDenied
+
+        raise PermissionDenied("You do not have permission to delete this study.")
+    study.delete()
+    return redirect("add_new")
 
 
 @login_required(login_url="/login/")
@@ -1556,33 +1552,36 @@ def create_or_update_assay(
 
 
 @login_required(login_url="/login/")
-def delete_assay(request: HttpRequest, pk: int) -> JsonResponse | HttpResponseRedirect:
-    """Delete an assay if the user has permission."""
-    if request.method == "GET":
-        # allows to distuigish between deleting from overview tables
-        source_page = request.GET.get("from")
-        assay = get_object_or_404(Assay, pk=pk)
-        if not assay.is_accessible_by(request.user, perm_prefix="delete"):
-            from django.core.exceptions import PermissionDenied
+@require_POST
+def delete_assay(
+    request: HttpRequest, pk: int
+) -> JsonResponse | HttpResponseRedirect:
+    """Delete an assay if the user has permission.
 
-            raise PermissionDenied("You do not have permission to delete this assay.")
-        if assay.demo_lock:
-            return JsonResponse(
-                {
-                    "status": "error",
-                    "message": "Demo assays cannot be deleted.",
-                },
-                status=400,
-            )
-        assay.delete()
-        if source_page == "overview":
-            return redirect("overview")
-        return redirect("add_new")
-    return JsonResponse(
-        {"status": "error", "message": "Only GET allowed"},
-        status=405,
-        headers={"Allow": "GET"},
-    )
+    POST-only and CSRF-protected: GET would be triggerable by browser
+    prefetchers, link scanners, or cross-site image/link tags. The
+    `?from=overview` query parameter is still accepted (querystrings work
+    on POST too) so the redirect target depends on the originating page.
+    """
+    # allows to distinguish between deleting from overview tables
+    source_page = request.GET.get("from")
+    assay = get_object_or_404(Assay, pk=pk)
+    if not assay.is_accessible_by(request.user, perm_prefix="delete"):
+        from django.core.exceptions import PermissionDenied
+
+        raise PermissionDenied("You do not have permission to delete this assay.")
+    if assay.demo_lock:
+        return JsonResponse(
+            {
+                "status": "error",
+                "message": "Demo assays cannot be deleted.",
+            },
+            status=400,
+        )
+    assay.delete()
+    if source_page == "overview":
+        return redirect("overview")
+    return redirect("add_new")
 
 
 @login_required(login_url="/login/")

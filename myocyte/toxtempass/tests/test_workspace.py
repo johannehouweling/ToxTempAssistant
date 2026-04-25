@@ -247,6 +247,43 @@ class TestDeleteWorkspace:
 
 
 # ---------------------------------------------------------------------------
+# TestDeleteEndpointsRejectGet — regression for the GET-prefetch CSRF hazard
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestDeleteEndpointsRejectGet:
+    """All four delete endpoints must reject GET so prefetchers / link
+    scanners / cross-site image tags cannot trigger deletes by URL alone.
+    """
+
+    def test_delete_investigation_via_get_is_rejected(
+        self, client, owner, investigation
+    ):
+        client.force_login(owner)
+        resp = client.get(
+            reverse("delete_investigation", kwargs={"pk": investigation.pk})
+        )
+        assert resp.status_code == 405
+        assert Investigation.objects.filter(pk=investigation.pk).exists()
+
+    def test_delete_study_via_get_is_rejected(self, client, owner, investigation):
+        study = StudyFactory.create(investigation=investigation, created_by=owner)
+        client.force_login(owner)
+        resp = client.get(reverse("delete_study", kwargs={"pk": study.pk}))
+        assert resp.status_code == 405
+        assert Study.objects.filter(pk=study.pk).exists()
+
+    def test_delete_assay_via_get_is_rejected(self, client, owner, investigation):
+        study = StudyFactory.create(investigation=investigation, created_by=owner)
+        assay = AssayFactory.create(study=study, created_by=owner)
+        client.force_login(owner)
+        resp = client.get(reverse("delete_assay", kwargs={"pk": assay.pk}))
+        assert resp.status_code == 405
+        assert Assay.objects.filter(pk=assay.pk).exists()
+
+
+# ---------------------------------------------------------------------------
 # TestAddWorkspaceMember
 # ---------------------------------------------------------------------------
 
@@ -753,7 +790,7 @@ class TestWorkspaceMemberAccess:
         study = StudyFactory.create(investigation=investigation)
 
         client.force_login(member_user)
-        resp = client.get(reverse("delete_study", kwargs={"pk": study.pk}))
+        resp = client.post(reverse("delete_study", kwargs={"pk": study.pk}))
         assert resp.status_code == 403
 
     def test_member_can_edit_assay_via_workspace_check(
@@ -862,7 +899,7 @@ class TestWorkspaceMemberAccess:
         assay = AssayFactory.create(study=study, created_by=owner)
 
         client.force_login(member_user)
-        resp = client.get(reverse("delete_assay", kwargs={"pk": assay.pk}))
+        resp = client.post(reverse("delete_assay", kwargs={"pk": assay.pk}))
         assert resp.status_code == 403
         assert Assay.objects.filter(pk=assay.pk).exists()
 
@@ -875,7 +912,7 @@ class TestWorkspaceMemberAccess:
         assay = AssayFactory.create(study=study, created_by=member_user)
 
         client.force_login(member_user)
-        resp = client.get(reverse("delete_assay", kwargs={"pk": assay.pk}))
+        resp = client.post(reverse("delete_assay", kwargs={"pk": assay.pk}))
         # Expect redirect (success) — assay is gone
         assert resp.status_code == 302
         assert not Assay.objects.filter(pk=assay.pk).exists()
@@ -889,7 +926,7 @@ class TestWorkspaceMemberAccess:
         assay = AssayFactory.create(study=study, created_by=member_user)
 
         client.force_login(owner)
-        resp = client.get(reverse("delete_assay", kwargs={"pk": assay.pk}))
+        resp = client.post(reverse("delete_assay", kwargs={"pk": assay.pk}))
         assert resp.status_code == 302
         assert not Assay.objects.filter(pk=assay.pk).exists()
 

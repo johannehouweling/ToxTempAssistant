@@ -138,20 +138,21 @@
             var btn2 = document.getElementById(id + "_btn2"); // delete
             var selectedValue = select_elem.value; // Get the selected value
 
-            // Update href based on select value
+            // Update btn1 href (modify is GET-safe) and btn2 data-delete-url
+            // (delete is POST-only — keep href empty to defeat prefetchers).
             if (id === 'id_investigation' && selectedValue) {
                 btn1.href = `/investigation/update/${parseInt(selectedValue)}/`;
-                btn2.href = `/investigation/delete/${parseInt(selectedValue)}/`;
+                btn2.dataset.deleteUrl = `/investigation/delete/${parseInt(selectedValue)}/`;
             }
 
             if (id === 'id_study' && selectedValue) {
                 btn1.href = `/study/update/${parseInt(selectedValue)}/`;
-                btn2.href = `/study/delete/${parseInt(selectedValue)}/`;
+                btn2.dataset.deleteUrl = `/study/delete/${parseInt(selectedValue)}/`;
             }
 
             if (id === 'id_assay' && selectedValue) {
                 btn1.href = `/assay/update/${parseInt(selectedValue)}/`;
-                btn2.href = `/assay/delete/${parseInt(selectedValue)}/`;
+                btn2.dataset.deleteUrl = `/assay/delete/${parseInt(selectedValue)}/`;
             }
 
             // Only proceed if btn1 and btn2 are not null
@@ -404,17 +405,28 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Attach confirmation to all delete buttons (IDs ending with "_btn2")
+    // Delete buttons (IDs ending with "_btn2") POST to the delete endpoint
+    // and reload on success. POST + CSRF is required server-side; GET is
+    // refused (405) to defeat prefetchers and cross-site triggers.
     document.querySelectorAll('a[id$="_btn2"]').forEach(function(deleteBtn) {
       deleteBtn.addEventListener('click', function(event) {
-        // Block navigation entirely if the button is disabled (e.g. no delete permission)
-        if (deleteBtn.classList.contains('disabled')) {
-          event.preventDefault();
-          return;
-        }
-        if (!confirm('Are you sure you want to delete this assay and any associated toxtemp answers? This cannot be undone.')) {
-          event.preventDefault();
-        }
+        event.preventDefault();
+        if (deleteBtn.classList.contains('disabled')) return;
+        const url = deleteBtn.dataset.deleteUrl;
+        if (!url) return;
+        if (!confirm('Are you sure you want to delete this and any associated toxtemp answers? This cannot be undone.')) return;
+        fetch(url, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': csrftoken },
+        })
+          .then((r) => {
+            if (r.ok) {
+              window.location.reload();
+            } else {
+              alert('Failed to delete (HTTP ' + r.status + ').');
+            }
+          })
+          .catch((err) => alert('Error: ' + err));
       });
     });
   });
