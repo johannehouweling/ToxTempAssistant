@@ -7,6 +7,26 @@ from toxtempass.models import Assay, Person, Study, Investigation
 
 logger = logging.getLogger(__name__)
 
+
+def add_status_context(
+    assay: Assay, msg: str, clear_first: bool = False, is_error: bool = True
+) -> None:
+    """Add an error message to the assay's status_context field.
+
+    If clear_first is True, overwrite the field; otherwise, append.
+    """
+    preamble = "Error occured: " if is_error else "Info: "
+    new_entry = f"{preamble}: {msg}"
+    if clear_first:
+        setattr(assay, "status_context", new_entry)
+    else:
+        prev_context = getattr(assay, "status_context", "") or ""
+        setattr(
+            assay,
+            "status_context",
+            prev_context + ("\n" if prev_context else "") + new_entry,
+        )
+
 def calculate_md5(pdf_file_path:Path)-> str:
     """Calculate MD5 hash for a given PDF file."""
     md5_hash = hashlib.md5(usedforsecurity=False)

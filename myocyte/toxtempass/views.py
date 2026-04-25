@@ -3,6 +3,7 @@ import json
 import logging
 import re
 import time
+import traceback
 from collections import defaultdict
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -87,7 +88,7 @@ from toxtempass.models import (
     WorkspaceRole,
 )
 from toxtempass.tables import AssayTable
-from toxtempass.utilities import provenance_label_for_item
+from toxtempass.utilities import add_status_context, provenance_label_for_item
 
 logger = logging.getLogger("views")
 
@@ -638,26 +639,6 @@ def init_db(request: HttpRequest, label: str) -> JsonResponse:
     )
 
 
-def add_status_context(
-    assay: Assay, msg: str, clear_first: bool = False, is_error: bool = True
-) -> None:
-    """Add an error message to the assay's status_context field.
-
-    If clear_first is True, overwrite the field; otherwise, append.
-    """
-    preamble = "Error occured: " if is_error else "Info: "
-    new_entry = f"{preamble}: {msg}"
-    if clear_first:
-        setattr(assay, "status_context", new_entry)
-    else:
-        prev_context = getattr(assay, "status_context", "") or ""
-        setattr(
-            assay,
-            "status_context",
-            prev_context + ("\n" if prev_context else "") + new_entry,
-        )
-
-
 def user_has_seen_tour_page(page: str, user: Person) -> bool:
     """Register onboarding in user preferences per page.
 
@@ -1153,10 +1134,16 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                     )
                 except Exception as e:
                     logger.exception("Failed to store files: %s", e)
+                    add_status_context(assay, traceback.format_exc())
+                    assay.save()
                     return JsonResponse(
                         {
                             "success": False,
-                            "errors": {"__all__": [f"File storage failed: {str(e)}"]},
+                            "errors": {
+                                "__all__": [
+                                    "File storage failed. Please contact support if the issue persists."
+                                ]
+                            },
                         }
                     )
 
@@ -1213,10 +1200,16 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                                 logger.exception(
                                     "Failed to cleanup file asset: %s", cleanup_error
                                 )
+                    add_status_context(assay, traceback.format_exc())
+                    assay.save()
                     return JsonResponse(
                         {
                             "success": False,
-                            "errors": {"__all__": [str(e)]},
+                            "errors": {
+                                "__all__": [
+                                    "Processing failed. Please contact support if the issue persists."
+                                ]
+                            },
                         }
                     )
 
