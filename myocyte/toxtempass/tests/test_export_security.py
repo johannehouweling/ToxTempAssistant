@@ -1,7 +1,7 @@
 """Regression tests: export_assay_to_file security hardening.
 
 Verifies that:
-1. Exported filenames use only the hardcoded suffix from mime_type_suffix_dict,
+1. Exported filenames use only the hardcoded suffix from EXPORT_MIME_SUFFIX,
    not raw export_type string concatenation.
 2. The Pandoc subprocess command contains only trusted options from EXPORT_MAPPING
    and never includes raw export_type values as standalone arguments.
@@ -13,8 +13,12 @@ from unittest.mock import MagicMock, patch
 
 from django.test import TestCase
 
-from toxtempass.export import EXPORT_MAPPING, PANDOC_EXPORT_TYPES, mime_type_suffix_dict
+from toxtempass import Config
 from toxtempass.tests.fixtures.factories import AssayFactory, PersonFactory
+
+EXPORT_MAPPING = Config.EXPORT_MAPPING
+EXPORT_MIME_SUFFIX = Config.EXPORT_MIME_SUFFIX
+PANDOC_EXPORT_TYPES = Config.PANDOC_EXPORT_TYPES
 
 
 def _make_pandoc_stub(captured_commands: list) -> object:
@@ -32,7 +36,7 @@ def _make_pandoc_stub(captured_commands: list) -> object:
 
 
 class ExportFilenameTests(TestCase):
-    """Filename suffix is derived from mime_type_suffix_dict, not raw export_type."""
+    """Filename suffix is derived from EXPORT_MIME_SUFFIX, not raw export_type."""
 
     def setUp(self):
         self.user = PersonFactory()
@@ -40,29 +44,27 @@ class ExportFilenameTests(TestCase):
         self.request = MagicMock()
 
     def test_json_filename_suffix_from_mapping(self):
-        """JSON export filename ends with the suffix from mime_type_suffix_dict."""
+        """JSON export filename ends with the suffix from EXPORT_MIME_SUFFIX."""
         from toxtempass.export import export_assay_to_file
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             with (
                 patch("toxtempass.export.settings") as mock_settings,
-                patch("toxtempass.export.Config") as mock_config,
                 patch(
                     "toxtempass.export.generate_json_from_assay", return_value={}
                 ),
             ):
                 mock_settings.MEDIA_ROOT = tmp_dir
-                mock_config.allowed_export_types = list(EXPORT_MAPPING.keys())
                 response = export_assay_to_file(self.request, self.assay, "json")
 
-        expected_suffix = mime_type_suffix_dict["json"]["suffix"]  # ".json"
+        expected_suffix = EXPORT_MIME_SUFFIX["json"]["suffix"]  # ".json"
         content_disp = response.headers.get("Content-Disposition", "")
         self.assertIn(expected_suffix, content_disp)
         # Guard against a double-dot regression (e.g. "toxtemp_title..json")
         self.assertNotIn("..", content_disp)
 
     def test_pandoc_filename_suffix_from_mapping(self):
-        """Every Pandoc export type uses the suffix from mime_type_suffix_dict."""
+        """Every Pandoc export type uses the suffix from EXPORT_MIME_SUFFIX."""
         from toxtempass.export import export_assay_to_file
 
         for export_type in PANDOC_EXPORT_TYPES:
@@ -76,7 +78,6 @@ class ExportFilenameTests(TestCase):
 
                 with (
                     patch("toxtempass.export.settings") as mock_settings,
-                    patch("toxtempass.export.Config") as mock_config,
                     patch(
                         "toxtempass.export.generate_markdown_from_assay",
                         return_value="# test",
@@ -91,12 +92,11 @@ class ExportFilenameTests(TestCase):
                     ),
                 ):
                     mock_settings.MEDIA_ROOT = tmp_dir
-                    mock_config.allowed_export_types = list(EXPORT_MAPPING.keys())
                     response = export_assay_to_file(
                         self.request, self.assay, export_type
                     )
 
-                expected_suffix = mime_type_suffix_dict[export_type]["suffix"]
+                expected_suffix = EXPORT_MIME_SUFFIX[export_type]["suffix"]
                 content_disp = response.headers.get("Content-Disposition", "")
                 self.assertIn(
                     expected_suffix,
@@ -133,7 +133,6 @@ class ExportPandocCommandTests(TestCase):
 
                 with (
                     patch("toxtempass.export.settings") as mock_settings,
-                    patch("toxtempass.export.Config") as mock_config,
                     patch(
                         "toxtempass.export.generate_markdown_from_assay",
                         return_value="# test",
@@ -148,7 +147,6 @@ class ExportPandocCommandTests(TestCase):
                     ),
                 ):
                     mock_settings.MEDIA_ROOT = tmp_dir
-                    mock_config.allowed_export_types = list(EXPORT_MAPPING.keys())
                     export_assay_to_file(self.request, self.assay, export_type)
 
                 self.assertEqual(

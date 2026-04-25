@@ -1,6 +1,8 @@
 # ruff: noqa: W293, W291, E501
 import logging
 import os
+from types import MappingProxyType
+from typing import Final, Mapping
 
 from django.conf import settings
 
@@ -144,18 +146,17 @@ class Config:
             ]
         ]
     )
-    image_accept_files = [".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".webp"]
-    text_accept_files = [
-        ".pdf",
-        ".docx",
-        ".txt",
-        ".md",
-        ".html",
-        ".json",
-        ".csv",
-        ".xlsx",
-    ]
-    allowed_mime_types = [
+    # ── Upload control surface ────────────────────────────────────────────────
+    # What users may upload: image/text suffixes drive the HTML `accept=` hint,
+    # ALLOWED_MIME_TYPES gates server-side validation. Immutable containers so
+    # these can't be mutated at runtime from anywhere in the app.
+    IMAGE_ACCEPT_FILES: Final[tuple[str, ...]] = (
+        ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".webp",
+    )
+    TEXT_ACCEPT_FILES: Final[tuple[str, ...]] = (
+        ".pdf", ".docx", ".txt", ".md", ".html", ".json", ".csv", ".xlsx",
+    )
+    ALLOWED_MIME_TYPES: Final[frozenset[str]] = frozenset({
         "application/pdf",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "application/msword",
@@ -171,7 +172,37 @@ class Config:
         "application/json",
         "text/csv",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    ]
+    })
+
+    # ── Export control surface ────────────────────────────────────────────────
+    # What the app may export: EXPORT_MIME_SUFFIX gives MIME + filename suffix
+    # per type, EXPORT_MAPPING gives the trusted Pandoc options. Security-
+    # relevant: adding a new export type means adding an entry here and nowhere
+    # else. MappingProxyType makes the mappings read-only at runtime — `Final`
+    # and the `Mapping` hint alone only guard rebinding / static-type mistakes,
+    # not `Config.EXPORT_MAPPING["pdf"] = (...)` at runtime.
+    _mime_type_docx = (
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+    EXPORT_MIME_SUFFIX: Final[Mapping[str, Mapping[str, str]]] = MappingProxyType({
+        "html": MappingProxyType({"mime_type": "text/html", "suffix": ".html"}),
+        "xml": MappingProxyType({"mime_type": "application/xml", "suffix": ".xml"}),
+        "pdf": MappingProxyType({"mime_type": "application/pdf", "suffix": ".pdf"}),
+        "docx": MappingProxyType({"mime_type": _mime_type_docx, "suffix": ".docx"}),
+        "json": MappingProxyType({"mime_type": "application/json", "suffix": ".json"}),
+        "md": MappingProxyType({"mime_type": "text/markdown", "suffix": ".md"}),
+    })
+    EXPORT_MAPPING: Final[Mapping[str, tuple[str, ...]]] = MappingProxyType({
+        "json": (),
+        "md": ("--to=gfm+smart",),
+        "pdf": ("--pdf-engine=lualatex", "--standalone"),
+        "docx": ("--to=docx+auto_identifiers",),
+        "html": ("--embed-resources", "--standalone", "--to=html5+smart"),
+        "xml": ("--to=docbook",),
+    })
+    # Subset of EXPORT_MAPPING types that require Pandoc (JSON is serialized inline).
+    PANDOC_EXPORT_TYPES: Final[frozenset[str]] = frozenset(EXPORT_MAPPING) - {"json"}
+
     license_url = "https://www.gnu.org/licenses/agpl-3.0.html"
     version = os.getenv("GIT_TAG", "") + "-beta"
     reference_toxtempassistant_zenodo_code = "https://doi.org/10.5281/zenodo.15607642"
@@ -188,11 +219,7 @@ class Config:
     max_workers_django_q = settings.Q_CLUSTER[
         "workers"
     ]  # 1 worker for django_q, we use threading for parallelism
-    # this is just for security purposes, to add a new type you also need to
-    # define a template for it in export.py
-    allowed_export_types = {"json", "md", "pdf", "html", "docx", "xml"}
-    
-    # How often to reload the overview page to check for busy/scheduled assays 
+    # How often to reload the overview page to check for busy/scheduled assays
     # (in milliseconds)
     reload_busy_interval_seconds = 10000
     reload_busy_max_retries = 30  # e.g., 30 × 10s = 5 minutes

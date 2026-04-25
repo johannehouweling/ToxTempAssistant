@@ -492,7 +492,7 @@ def get_text_or_bytes_perfile_dict(
             elif suffix == ".xlsx":
                 text = _read_xlsx_file(context_filename)
 
-            elif suffix in config.image_accept_files:
+            elif suffix in config.IMAGE_ACCEPT_FILES:
                 # Convert all uploaded images to WebP for optimal token efficiency
                 with open(context_filename, "rb") as img_file:
                     image_bytes = img_file.read()

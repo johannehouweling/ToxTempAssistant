@@ -475,7 +475,7 @@ class AssayAnswerForm(forms.Form):
             raise PermissionDenied("You do not have access to this assay.")
         super().__init__(*args, **kwargs)
 
-        accepted_files = ",".join(config.image_accept_files + config.text_accept_files)
+        accepted_files = ",".join(config.IMAGE_ACCEPT_FILES + config.TEXT_ACCEPT_FILES)
         self.fields["file_upload"] = MultipleFileField(
             widget=MultipleFileInput(
                 attrs={
@@ -563,7 +563,7 @@ class AssayAnswerForm(forms.Form):
         if not files:
             return []
 
-        allowed_types = config.allowed_mime_types
+        allowed_types = config.ALLOWED_MIME_TYPES
         max_size_bytes = int(config.max_size_mb * 1024 * 1024)
 
         errors: list[forms.ValidationError] = []

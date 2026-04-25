@@ -2,7 +2,6 @@ import json
 import re
 import subprocess
 from pathlib import Path
-from typing import Final, Mapping
 
 import yaml
 from django.core.serializers import serialize
@@ -11,8 +10,14 @@ from django.utils import timezone  # Import timezone utilities
 from django.utils.text import slugify
 
 from myocyte import settings
-from toxtempass import Config  # Import your configuration module
+from toxtempass import Config
 from toxtempass.models import Assay, Section
+
+# Export control surface lives on Config (see toxtempass/__init__.py). These
+# module-level aliases keep call sites terse and let tests patch them.
+EXPORT_MIME_SUFFIX = Config.EXPORT_MIME_SUFFIX
+EXPORT_MAPPING = Config.EXPORT_MAPPING
+PANDOC_EXPORT_TYPES = Config.PANDOC_EXPORT_TYPES
 
 # simple regexes to catch display‐math delimiters
 
@@ -47,36 +52,6 @@ def quote_answer(text: str) -> str:
         out.append(f"> {line}" if line.strip() else ">")  # keep blank lines too
 
     return "\n".join(out) + "\n\n"
-
-
-mime_type_str = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-mime_type_suffix_dict = {
-    "html": {"mime_type": "text/html", "suffix": ".html"},
-    "xml": {"mime_type": "application/xml", "suffix": ".xml"},
-    "pdf": {"mime_type": "application/pdf", "suffix": ".pdf"},
-    "docx": {
-        "mime_type": mime_type_str,
-        "suffix": ".docx",
-    },
-    "json": {"mime_type": "application/json", "suffix": ".json"},
-    "md": {"mime_type": "text/markdown", "suffix": ".md"},
-}
-
-# Module-level mapping of allowed export types to trusted Pandoc options.
-# Extensions are derived from mime_type_suffix_dict to keep a single source of truth.
-# Immutable containers (tuples + Mapping) prevent accidental runtime mutation.
-EXPORT_MAPPING: Final[Mapping[str, tuple[str, ...]]] = {
-    "json": (),
-    "md": ("--to=gfm+smart",),
-    "pdf": ("--pdf-engine=lualatex", "--standalone"),
-    "docx": ("--to=docx+auto_identifiers",),
-    "html": ("--embed-resources", "--standalone", "--to=html5+smart"),
-    "xml": ("--to=docbook",),
-}
-
-# Subset of EXPORT_MAPPING types that require Pandoc conversion.
-# Derived from the mapping so adding a new Pandoc format is a one-place change.
-PANDOC_EXPORT_TYPES: Final[frozenset[str]] = frozenset(EXPORT_MAPPING) - {"json"}
 
 
 def generate_json_from_assay(assay: Assay) -> dict | None:
@@ -288,12 +263,12 @@ def export_assay_to_file(
     request: HttpRequest, assay: Assay, export_type: str
 ) -> FileResponse:
     """Export assay to file."""
-    if export_type not in getattr(Config, "allowed_export_types", []):
+    # EXPORT_MAPPING (defined in toxtempass/__init__.py) is the single security
+    # gate: only types with both trusted Pandoc options and known MIME/suffix
+    # metadata are permitted.
+    if export_type not in EXPORT_MAPPING or export_type not in EXPORT_MIME_SUFFIX:
         return JsonResponse({"error": "Invalid export type"}, status=400)
-    # Only use export types with both trusted options and known MIME/suffix metadata
-    if export_type not in EXPORT_MAPPING or export_type not in mime_type_suffix_dict:
-        return JsonResponse({"error": "Invalid export type"}, status=400)
-    mapped_suffix = mime_type_suffix_dict[export_type]["suffix"]
+    mapped_suffix = EXPORT_MIME_SUFFIX[export_type]["suffix"]
     file_name = f"toxtemp_{slugify(assay.title)}{mapped_suffix}"
     file_path = Path(settings.MEDIA_ROOT) / "toxtempass" / file_name  # Use pathlib.Path
     if not file_path.parent.exists():
@@ -359,7 +334,7 @@ def export_assay_to_file(
             file_path.open("rb"),
             as_attachment=True,
             filename=file_name,
-            content_type=mime_type_suffix_dict[export_type]["mime_type"],
+            content_type=EXPORT_MIME_SUFFIX[export_type]["mime_type"],
         )
         return response
     except Exception:
