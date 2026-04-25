@@ -1,4 +1,15 @@
-FROM ubuntu:24.04 
+# syntax=docker/dockerfile:1.7
+#
+# REQUIRES BUILDKIT.
+# This Dockerfile uses BuildKit-only features (`# syntax=` frontend pin and
+# `RUN --mount=type=cache` below). Builds will fail on classic builder.
+#
+# BuildKit is the default in Docker 23.0+ and Docker Compose v2.
+# If you hit "the --mount option requires BuildKit" or syntax errors, enable it:
+#   - Docker CLI:     export DOCKER_BUILDKIT=1
+#   - Docker Compose: export COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1
+#   - GitHub Actions: use docker/setup-buildx-action@v3 (already wired in ci.yml)
+FROM ubuntu:24.04
 
 LABEL maintainer="Jente M Houweling"
 LABEL affiliation="RIVM - National Institute for Public Health and the Environment,\
@@ -24,11 +35,19 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV DEBUG=False
 
-# Update and upgrade and install python and pip and pandoc
-RUN apt-get update && apt-get upgrade -y && apt-get install --no-install-recommends -y \
+# Install python, pandoc, LaTeX and debug tools.
+# BuildKit cache mounts let apt downloads survive between builds: when a
+# package set changes, only new debs download instead of re-fetching the lot.
+# `apt-get upgrade` is intentionally omitted — it pulls "whatever's latest"
+# which makes layer hashes non-deterministic and busts cache for unrelated
+# reasons. Rely on a fresh base image rebuild for security updates instead.
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean && \
+    apt-get update && apt-get install --no-install-recommends -y \
     gcc \
     gunicorn \
-    netcat-openbsd \ 
+    netcat-openbsd \
     libpq-dev \
     python3 \
     python3-pip \
@@ -43,11 +62,9 @@ RUN apt-get update && apt-get upgrade -y && apt-get install --no-install-recomme
     fonts-texgyre-math \
     pandoc \
     git \
-    # for debuggin 
+    # for debugging
     net-tools \
-    curl \
-    # cleanup
-    && rm -rf /var/lib/apt/lists/* 
+    curl
 
 # refresh lualatex font directories
 RUN fc-cache -fv
@@ -68,8 +85,11 @@ RUN echo "Testing mode is set to: ${TESTING}"
 WORKDIR /home
 COPY pyproject.toml poetry.lock ./
 
-# 2) Install into that in-project venv
-RUN if [ "$TESTING" = "true" ]; then \
+# 2) Install into that in-project venv.
+# Cache mount preserves Poetry's wheel cache between builds — adding one
+# dependency only downloads the new wheel instead of refetching the whole set.
+RUN --mount=type=cache,target=/root/.cache/pypoetry \
+    if [ "$TESTING" = "true" ]; then \
     echo "🧪 TESTING mode: installing ALL deps (incl. dev, not eval)"; \
     poetry install --no-interaction --with "dev" --without "eval"; \
     else \
