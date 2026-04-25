@@ -32,8 +32,8 @@ class PersonFactory(DjangoModelFactory):
 
     first_name = factory.Faker("first_name")
     last_name = factory.Faker("last_name")
-    email = factory.LazyAttribute(
-        lambda obj: "%s.%s@test.com" % (obj.first_name, obj.last_name)
+    email = factory.LazyAttributeSequence(
+        lambda obj, n: f"{obj.first_name}.{obj.last_name}.{n}@test.com"
     )
 
 
