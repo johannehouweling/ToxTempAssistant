@@ -11,6 +11,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+from django.http import FileResponse
 from django.test import TestCase
 
 from toxtempass import Config
@@ -19,6 +20,18 @@ from toxtempass.tests.fixtures.factories import AssayFactory, PersonFactory
 EXPORT_MAPPING = Config.EXPORT_MAPPING
 EXPORT_MIME_SUFFIX = Config.EXPORT_MIME_SUFFIX
 PANDOC_EXPORT_TYPES = Config.PANDOC_EXPORT_TYPES
+
+
+def _release_file_response(response: FileResponse) -> None:
+    """Close the underlying file handle without firing request_finished.
+
+    We must close the FD so TemporaryDirectory can clean up (Windows) and to
+    avoid leaking across the loop, but calling response.close() fires
+    django.core.signals.request_finished, whose close_old_connections
+    listener closes the DB connection shared by this TestCase and poisons
+    the next setUp. file_to_stream is FileResponse's public stream attribute.
+    """
+    response.file_to_stream.close()
 
 
 def _make_pandoc_stub(captured_commands: list) -> object:
@@ -57,7 +70,7 @@ class ExportFilenameTests(TestCase):
                 mock_settings.MEDIA_ROOT = tmp_dir
                 response = export_assay_to_file(self.request, self.assay, "json")
             content_disp = response.headers.get("Content-Disposition", "")
-            response.close()
+            _release_file_response(response)
 
         expected_suffix = EXPORT_MIME_SUFFIX["json"]["suffix"]  # ".json"
         self.assertIn(expected_suffix, content_disp)
@@ -97,7 +110,7 @@ class ExportFilenameTests(TestCase):
                         self.request, self.assay, export_type
                     )
                 content_disp = response.headers.get("Content-Disposition", "")
-                response.close()
+                _release_file_response(response)
 
                 expected_suffix = EXPORT_MIME_SUFFIX[export_type]["suffix"]
                 self.assertIn(
@@ -150,7 +163,7 @@ class ExportPandocCommandTests(TestCase):
                 ):
                     mock_settings.MEDIA_ROOT = tmp_dir
                     response = export_assay_to_file(self.request, self.assay, export_type)
-                response.close()
+                _release_file_response(response)
 
                 self.assertEqual(
                     len(captured_commands),
