@@ -4,6 +4,9 @@ on:
   release:
     types: [published] # fires whenever a new GitHub Release is published
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
