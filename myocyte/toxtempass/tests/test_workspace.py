@@ -221,23 +221,29 @@ class TestCreateOrUpdateWorkspace:
 class TestDeleteWorkspace:
     def test_delete_workspace_by_owner_succeeds(self, client, owner, workspace):
         client.force_login(owner)
-        resp = client.get(reverse("delete_workspace", kwargs={"pk": workspace.pk}))
+        resp = client.post(reverse("delete_workspace", kwargs={"pk": workspace.pk}))
         assert resp.status_code == 302
         assert not Workspace.objects.filter(pk=workspace.pk).exists()
 
     def test_delete_workspace_by_non_owner_raises_403(self, client, outsider, workspace):
         client.force_login(outsider)
-        resp = client.get(reverse("delete_workspace", kwargs={"pk": workspace.pk}))
+        resp = client.post(reverse("delete_workspace", kwargs={"pk": workspace.pk}))
         assert resp.status_code == 403
 
     def test_delete_workspace_unauthenticated_redirects(self, client, workspace):
-        resp = client.get(reverse("delete_workspace", kwargs={"pk": workspace.pk}))
+        resp = client.post(reverse("delete_workspace", kwargs={"pk": workspace.pk}))
         assert resp.status_code == 302
 
     def test_delete_workspace_non_existent_returns_404(self, client, owner):
         client.force_login(owner)
-        resp = client.get(reverse("delete_workspace", kwargs={"pk": 99999}))
+        resp = client.post(reverse("delete_workspace", kwargs={"pk": 99999}))
         assert resp.status_code == 404
+
+    def test_delete_workspace_via_get_is_rejected(self, client, owner, workspace):
+        client.force_login(owner)
+        resp = client.get(reverse("delete_workspace", kwargs={"pk": workspace.pk}))
+        assert resp.status_code == 405
+        assert Workspace.objects.filter(pk=workspace.pk).exists()
 
 
 # ---------------------------------------------------------------------------

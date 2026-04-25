@@ -30,6 +30,7 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
 from django.views import View
+from django.views.decorators.http import require_POST
 from django_q.tasks import async_task
 from django_tables2 import SingleTableView
 from guardian.shortcuts import assign_perm, get_objects_for_user, remove_perm
@@ -1949,23 +1950,20 @@ def create_or_update_workspace(
 
 
 @login_required(login_url="/login/")
-def delete_workspace(
-    request: HttpRequest, pk: int
-) -> JsonResponse | HttpResponseRedirect:
-    """Delete a workspace if the user is the owner."""
-    if request.method == "GET":
-        workspace = get_object_or_404(Workspace, pk=pk)
-        if workspace.owner != request.user:
-            from django.core.exceptions import PermissionDenied
+@require_POST
+def delete_workspace(request: HttpRequest, pk: int) -> HttpResponseRedirect:
+    """Delete a workspace if the user is the owner.
 
-            raise PermissionDenied("You do not own this workspace.")
-        workspace.delete()
-        return redirect("overview")
-    return JsonResponse(
-        {"status": "error", "message": "Only GET allowed"},
-        status=405,
-        headers={"Allow": "GET"},
-    )
+    POST-only and CSRF-protected: GET would be triggerable by browser
+    prefetchers, link scanners, or cross-site image/link tags.
+    """
+    workspace = get_object_or_404(Workspace, pk=pk)
+    if workspace.owner != request.user:
+        from django.core.exceptions import PermissionDenied
+
+        raise PermissionDenied("You do not own this workspace.")
+    workspace.delete()
+    return redirect("overview")
 
 
 @login_required(login_url="/login/")
