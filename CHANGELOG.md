@@ -2,6 +2,33 @@
 
 <!-- version list -->
 
+## v3.1.4 (2026-04-25)
+
+### Bug Fixes
+
+- Edge case where llm_model is None
+  ([`07ebac4`](https://github.com/johannehouweling/ToxTempAssistant/commit/07ebac4360878914789a3e4e024200047d6c0833))
+
+- Edge case where llm_model is None
+  ([`a856c3a`](https://github.com/johannehouweling/ToxTempAssistant/commit/a856c3af735b5195b141b6b15c661a76349d48ef))
+
+- **ci**: Potential fix for code scanning alert no. 29: Workflow does not contain permissions
+  ([`68c4d92`](https://github.com/johannehouweling/ToxTempAssistant/commit/68c4d92a4f07a1a23aeab3af0eec74c1dac1d34e))
+
+### Documentation
+
+- Add CLAUDE.md for project guidance and common commands
+  ([`c525373`](https://github.com/johannehouweling/ToxTempAssistant/commit/c5253739a4cee8506e82df194866e82976034286))
+
+### Refactoring
+
+- Update type hints for beta utilities and remove unused import
+  ([`e9ec7c9`](https://github.com/johannehouweling/ToxTempAssistant/commit/e9ec7c967cc2a40948684c6fcb8227acf5857150))
+
+- **beta**: Implement atomic preference updates for user settings
+  ([`2e94e24`](https://github.com/johannehouweling/ToxTempAssistant/commit/2e94e24a056a7e5d189112be73c6249e9287ded8))
+
+
 ## v3.1.3 (2026-04-25)
 
 ### Bug Fixes
