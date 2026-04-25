@@ -130,9 +130,7 @@
           btn.type = 'button';
           btn.className = 'btn-close btn-close-white scale-75';
           btn.setAttribute('aria-label', 'Remove ' + f.name);
-          (function(fileName) {
-            btn.addEventListener('click', function() { removeAccumulatedFile(fileName); });
-          }(f.name));
+          btn.addEventListener('click', () => removeAccumulatedFile(f.name));
           tag.appendChild(nameSpan);
           tag.appendChild(btn);
           list.appendChild(tag);
