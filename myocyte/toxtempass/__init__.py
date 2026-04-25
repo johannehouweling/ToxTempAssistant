@@ -202,7 +202,7 @@ class Config:
     })
     # Subset of EXPORT_MAPPING types that require Pandoc (JSON is serialized inline).
     PANDOC_EXPORT_TYPES: Final[frozenset[str]] = frozenset(EXPORT_MAPPING) - {"json"}
-
+    status_error_max_len = 8192
     license_url = "https://www.gnu.org/licenses/agpl-3.0.html"
     version = os.getenv("GIT_TAG", "") + "-beta"
     reference_toxtempassistant_zenodo_code = "https://doi.org/10.5281/zenodo.15607642"

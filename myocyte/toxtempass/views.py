@@ -3,7 +3,7 @@ import json
 import logging
 import re
 import time
-import traceback
+import uuid
 from collections import defaultdict
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -1133,15 +1133,19 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                         assay.id,
                     )
                 except Exception as e:
-                    logger.exception("Failed to store files: %s", e)
-                    add_status_context(assay, traceback.format_exc())
+                    corr_id = uuid.uuid4().hex[:8]
+                    logger.exception(
+                        "File storage failed [corr=%s] for assay %s", corr_id, assay.id
+                    )
+                    add_status_context(assay, f"[{corr_id}] {type(e).__name__}: {e}")
                     assay.save()
                     return JsonResponse(
                         {
                             "success": False,
                             "errors": {
                                 "__all__": [
-                                    "File storage failed. Please contact support if the issue persists."
+                                    f"File storage failed (ref {corr_id}). "
+                                    "Please contact support if the issue persists."
                                 ]
                             },
                         }
@@ -1185,7 +1189,10 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                     )
 
                 except Exception as e:
-                    logger.exception("LLM processing failed: %s", e)
+                    corr_id = uuid.uuid4().hex[:8]
+                    logger.exception(
+                        "LLM processing failed [corr=%s] for assay %s", corr_id, assay.id
+                    )
                     # Cleanup orphaned files if LLM fails
                     if stored_file_assets:
                         for asset in stored_file_assets:
@@ -1200,14 +1207,15 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                                 logger.exception(
                                     "Failed to cleanup file asset: %s", cleanup_error
                                 )
-                    add_status_context(assay, traceback.format_exc())
+                    add_status_context(assay, f"[{corr_id}] {type(e).__name__}: {e}")
                     assay.save()
                     return JsonResponse(
                         {
                             "success": False,
                             "errors": {
                                 "__all__": [
-                                    "Processing failed. Please contact support if the issue persists."
+                                    f"Processing failed (ref {corr_id}). "
+                                    "Please contact support if the issue persists."
                                 ]
                             },
                         }

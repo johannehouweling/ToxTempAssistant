@@ -236,6 +236,12 @@ AUTH_PASSWORD_VALIDATORS = [
 AUTH_USER_MODEL = "toxtempass.Person"
 
 # Logging
+# The "errors" handler writes to a Docker-volume-mounted path (./myocyte/logs
+# on the host) so tracebacks survive container rebuilds. Correlation IDs in
+# Assay.status_context point back to entries in this file.
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -245,31 +251,49 @@ LOGGING = {
             "class": "logging.StreamHandler",
             "formatter": "detailed",
         },
+        "errors": {
+            "level": "ERROR",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": str(LOG_DIR / "django-errors.log"),
+            "maxBytes": 10 * 1024 * 1024,
+            "backupCount": 5,
+            "formatter": "detailed",
+        },
     },
     "formatters": {
         "detailed": {
-            "format": "{asctime} - {levelname} - {message}",
+            "format": "{asctime} - {levelname} - {name} - {message}",
             "style": "{",
         },
     },
     "loggers": {
         "toxtempass.apps": {
-            "handlers": ["console"],
+            "handlers": ["console", "errors"],
             "level": "INFO",
             "propagate": False,
         },
         "toxtempass.views": {
-            "handlers": ["console"],
+            "handlers": ["console", "errors"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "toxtempass.export": {
+            "handlers": ["console", "errors"],
             "level": "INFO",
             "propagate": False,
         },
         "toxtempass.forms": {
-            "handlers": ["console"],
+            "handlers": ["console", "errors"],
             "level": "INFO",
             "propagate": False,
         },
         "toxtempass.llm": {
-            "handlers": ["console"],
+            "handlers": ["console", "errors"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "views": {
+            "handlers": ["console", "errors"],
             "level": "INFO",
             "propagate": False,
         },

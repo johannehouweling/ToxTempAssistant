@@ -2,7 +2,7 @@ import json
 import logging
 import re
 import subprocess
-import traceback
+import uuid
 from pathlib import Path
 
 import yaml
@@ -313,20 +313,32 @@ def export_assay_to_file(
 
         try:
             subprocess.run(pandoc_command, check=True)  # noqa: S603
-        except subprocess.CalledProcessError:
-            logger.exception("Pandoc conversion failed for assay %s", assay.id)
-            add_status_context(assay, traceback.format_exc())
+        except subprocess.CalledProcessError as e:
+            corr_id = uuid.uuid4().hex[:8]
+            logger.exception(
+                "Pandoc conversion failed [corr=%s] for assay %s", corr_id, assay.id
+            )
+            add_status_context(assay, f"[{corr_id}] {type(e).__name__}: {e}")
             assay.save()
             return JsonResponse(
-                {"error": "Export failed. Please contact support if the issue persists."},
+                {
+                    "error": f"Export failed (ref {corr_id}). "
+                    "Please contact support if the issue persists."
+                },
                 status=500,
             )
-        except Exception:
-            logger.exception("Unexpected export error for assay %s", assay.id)
-            add_status_context(assay, traceback.format_exc())
+        except Exception as e:
+            corr_id = uuid.uuid4().hex[:8]
+            logger.exception(
+                "Unexpected export error [corr=%s] for assay %s", corr_id, assay.id
+            )
+            add_status_context(assay, f"[{corr_id}] {type(e).__name__}: {e}")
             assay.save()
             return JsonResponse(
-                {"error": "Export failed. Please contact support if the issue persists."},
+                {
+                    "error": f"Export failed (ref {corr_id}). "
+                    "Please contact support if the issue persists."
+                },
                 status=500,
             )
 

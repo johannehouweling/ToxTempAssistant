@@ -1,9 +1,11 @@
 import hashlib
 import logging
 from pathlib import Path
-from django.db.models import Model
-from toxtempass.models import Assay, Person, Study, Investigation
 
+from django.db.models import Model
+
+from toxtempass import config
+from toxtempass.models import Assay, Investigation, Person, Study
 
 logger = logging.getLogger(__name__)
 
@@ -14,18 +16,25 @@ def add_status_context(
     """Add an error message to the assay's status_context field.
 
     If clear_first is True, overwrite the field; otherwise, append.
+    Total field length is capped at config.status_error_max_len by dropping the
+    oldest entries; full tracebacks live in the persistent log file.
     """
     preamble = "Error occured: " if is_error else "Info: "
     new_entry = f"{preamble}: {msg}"
     if clear_first:
-        setattr(assay, "status_context", new_entry)
+        combined = new_entry
     else:
         prev_context = getattr(assay, "status_context", "") or ""
-        setattr(
-            assay,
-            "status_context",
-            prev_context + ("\n" if prev_context else "") + new_entry,
-        )
+        combined = prev_context + ("\n" if prev_context else "") + new_entry
+
+    if len(combined) > config.status_error_max_len:
+        # Drop oldest lines until we're under the cap.
+        lines = combined.splitlines()
+        while lines and len("\n".join(lines)) > config.status_error_max_len:
+            lines.pop(0)
+        combined = "\n".join(lines)
+
+    setattr(assay, "status_context", combined)
 
 def calculate_md5(pdf_file_path:Path)-> str:
     """Calculate MD5 hash for a given PDF file."""
