@@ -163,6 +163,7 @@ def llm_info(request) -> dict:
                 m.retirement_date.isoformat() if m.retirement_date else ""
             ),
             "retirement_status": m.retirement_status,
+            "context_window": m.context_window,
             "source": "user" if current else "admin_default",
         }
 

@@ -67,6 +67,12 @@
         if (!badge || !sig) return;
         const label = badge.querySelector('[data-llm-badge-label]');
         if (label) label.textContent = sig.model_id;
+        if (badge.tagName === 'A' && sig.model_id) {
+          badge.setAttribute(
+            'href',
+            'https://ai.azure.com/catalog/models/' + encodeURIComponent(sig.model_id)
+          );
+        }
         const parts = [
           'Model: ' + htmlEscape(sig.model_id),
           'Model by: ' + htmlEscape(sig.model_by || '—'),
@@ -74,7 +80,11 @@
         ];
         if (sig.version) parts.push('Version: ' + htmlEscape(sig.version));
         parts.push('Data handling: ' + htmlEscape(sig.privacy_short || ''));
+        if (sig.context_window) {
+          parts.push('Context window: ' + htmlEscape(sig.context_window) + ' tokens');
+        }
         if (sig.retirement_date) parts.push('Retires: ' + htmlEscape(sig.retirement_date));
+        parts.push('<em>Click to open in Azure model catalog</em>');
         const title = parts.join('<br>');
         badge.setAttribute('data-bs-original-title', title);
         badge.setAttribute('title', title);
@@ -136,9 +146,11 @@
             <button class="btn btn-sm btn-outline-primary" type="button" data-bs-target="#copyrightModal" data-bs-toggle="modal"> <i class="bi bi-c-circle"></i></button>
             <button class="btn btn-sm btn-outline-primary" type="button" data-bs-target="#termsModal" data-bs-toggle="modal" href="#"> <i class="bi bi-book"></i> </button>
             {% if llm_signature %}
-            <span id="llm-signature-badge"
+            <a id="llm-signature-badge"
                   class="btn btn-sm btn-outline-primary d-flex align-items-center"
-                  style="cursor: default;"
+                  href="https://ai.azure.com/catalog/models/{{ llm_signature.model_id }}"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   data-bs-toggle="tooltip"
                   data-bs-html="true"
                   title="Model: {{ llm_signature.model_id }}<br>
@@ -146,10 +158,12 @@
                          Hosted on: {{ llm_signature.hosted_on }}<br>
                          {% if llm_signature.version %}Version: {{ llm_signature.version }}<br>{% endif %}
                          Data handling: {{ llm_signature.privacy_short }}
-                         {% if llm_signature.retirement_date %}<br>Retires: {{ llm_signature.retirement_date }}{% endif %}">
+                         {% if llm_signature.context_window %}<br>Context window: {{ llm_signature.context_window|stringformat:'d' }} tokens{% endif %}
+                         {% if llm_signature.retirement_date %}<br>Retires: {{ llm_signature.retirement_date }}{% endif %}<br>
+                         <em>Click to open in Azure model catalog</em>">
                 <i class="bi bi-robot"></i>
                 <span class="ms-1 small" data-llm-badge-label>{{ llm_signature.model_id }}</span>
-            </span>
+            </a>
             {% endif %}
         </div>
     </div>
