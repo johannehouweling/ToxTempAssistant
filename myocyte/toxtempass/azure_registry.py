@@ -72,6 +72,7 @@ def _parse_tags(raw: str) -> dict[str, str]:
 KNOWN_TAG_KEYS = {
     "tier", "residency", "provider", "direct-from-azure",
     "version", "label", "api", "retirement-date", "default",
+    "context-window",
 }
 
 # Number of days before retirement when a model starts showing as "retiring soon".
@@ -170,6 +171,18 @@ class ModelEntry:
         (fresh deploys, headless tests, CI). Only the first such model wins.
         """
         return (self.tags.get("default") or "").lower() == "true"
+
+    @property
+    def context_window(self) -> int | None:
+        """Maximum context window in tokens, parsed from the ``context-window`` tag."""
+        raw = self.tags.get("context-window", "").strip()
+        if not raw:
+            return None
+        try:
+            return int(raw)
+        except ValueError:
+            logger.warning("Invalid context-window %r on tag %s", raw, self.tag)
+            return None
 
     @property
     def retirement_date(self) -> "date | None":
