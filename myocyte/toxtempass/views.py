@@ -42,7 +42,7 @@ from tqdm.auto import tqdm
 from myocyte import settings
 from toxtempass import config
 from toxtempass import utilities as beta_util
-from toxtempass.export import export_assay_to_file
+from toxtempass.export import export_assay_to_file, generate_jsonld_from_assay
 from toxtempass.filehandling import (
     collect_source_documents,
     get_text_or_imagebytes_from_django_uploaded_file,
@@ -1682,6 +1682,12 @@ def answer_assay_questions(
             "export_docx_url": reverse(
                 "export_assay", kwargs=dict(assay_id=assay.id, export_type="docx")
             ),
+            "export_jsonld_url": reverse(
+                "export_assay", kwargs=dict(assay_id=assay.id, export_type="jsonld")
+            ),
+            "export_zip_url": reverse(
+                "export_assay", kwargs=dict(assay_id=assay.id, export_type="zip")
+            ),
         },
     )
 
@@ -1864,6 +1870,30 @@ def assay_feedback(request: HttpRequest, assay_id: int) -> JsonResponse:
             if not usefulness_rating:
                 errors["usefulnessRating"] = ["Usefulness rating cannot be empty."]
             return JsonResponse({"success": False, "errors": errors})
+
+
+@login_required(login_url="/login/")
+def api_assay_metadata(request: HttpRequest, assay_uid: uuid.UUID) -> JsonResponse:
+    """Return JSON-LD metadata for an assay via the FAIR API.
+
+    Provides programmatic access to assay metadata following FAIR data
+    principles (Accessible).  Authentication is required.
+
+    Args:
+        request: The incoming HTTP request.
+        assay_uid: The UUID persistent identifier of the assay.
+
+    Returns:
+        JsonResponse with JSON-LD payload (``application/ld+json``) on success,
+        or an appropriate error response.
+    """
+    assay = get_object_or_404(Assay, uid=assay_uid)
+    if not assay.is_accessible_by(request.user, perm_prefix="view"):
+        from django.core.exceptions import PermissionDenied
+
+        raise PermissionDenied("You do not have permission to access this assay.")
+    jsonld = generate_jsonld_from_assay(assay)
+    return JsonResponse(jsonld, content_type="application/ld+json")
 
 
 @login_required(login_url="/login/")

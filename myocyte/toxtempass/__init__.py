@@ -191,6 +191,10 @@ class Config:
         "docx": MappingProxyType({"mime_type": _mime_type_docx, "suffix": ".docx"}),
         "json": MappingProxyType({"mime_type": "application/json", "suffix": ".json"}),
         "md": MappingProxyType({"mime_type": "text/markdown", "suffix": ".md"}),
+        "jsonld": MappingProxyType(
+            {"mime_type": "application/ld+json", "suffix": ".jsonld"}
+        ),
+        "zip": MappingProxyType({"mime_type": "application/zip", "suffix": ".zip"}),
     })
     EXPORT_MAPPING: Final[Mapping[str, tuple[str, ...]]] = MappingProxyType({
         "json": (),
@@ -199,9 +203,13 @@ class Config:
         "docx": ("--to=docx+auto_identifiers",),
         "html": ("--embed-resources", "--standalone", "--to=html5+smart"),
         "xml": ("--to=docbook",),
+        "jsonld": (),
+        "zip": (),
     })
-    # Subset of EXPORT_MAPPING types that require Pandoc (JSON is serialized inline).
-    PANDOC_EXPORT_TYPES: Final[frozenset[str]] = frozenset(EXPORT_MAPPING) - {"json"}
+    # Subset of EXPORT_MAPPING types that require Pandoc (JSON/JSON-LD/ZIP handled inline).
+    PANDOC_EXPORT_TYPES: Final[frozenset[str]] = frozenset(EXPORT_MAPPING) - {
+        "json", "jsonld", "zip"
+    }
     status_error_max_len = 8192
     license_url = "https://www.gnu.org/licenses/agpl-3.0.html"
     version = os.getenv("GIT_TAG", "") + "-beta"

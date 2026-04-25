@@ -209,6 +209,10 @@
                   <li><a class="dropdown-item" onclick=feedback_export("{{export_xml_url}}",{{id}})>XML</a></li>
                   <li><a class="dropdown-item" onclick=feedback_export("{{export_docx_url}}",{{id}})>DOCX</a></li>
                   <li><a class="dropdown-item" onclick=feedback_export("{{export_html_url}}",{{id}})>HTML</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li class="dropdown-header">FAIR Exports</li>
+                  <li><a class="dropdown-item" onclick=feedback_export("{{export_jsonld_url}}",{{id}})>JSON-LD <small class="text-muted">(schema.org)</small></a></li>
+                  <li><a class="dropdown-item" onclick=feedback_export("{{export_zip_url}}",{{id}})>FAIR ZIP <small class="text-muted">(JSON-LD + README + LICENSE + PROV)</small></a></li>
                   {% endwith %}
                 </ul>
               </div>

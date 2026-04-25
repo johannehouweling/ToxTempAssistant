@@ -250,6 +250,12 @@ class QuestionSet(models.Model):
 
 # Assay Model
 class Assay(AccessibleModel):
+    uid = models.UUIDField(
+        default=uuid.uuid4,
+        editable=False,
+        unique=True,
+        help_text="Persistent identifier (UUID) for this assay, used in FAIR data exports.",
+    )
     study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name="assays")
     title = models.CharField(max_length=255, blank=False, null=False)
     description = models.TextField(blank=False, default="")
