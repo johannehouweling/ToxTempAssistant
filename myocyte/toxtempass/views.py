@@ -89,7 +89,11 @@ from toxtempass.models import (
     WorkspaceRole,
 )
 from toxtempass.tables import AssayTable
-from toxtempass.utilities import add_status_context, provenance_label_for_item
+from toxtempass.utilities import (
+    add_status_context,
+    provenance_label_for_item,
+    update_prefs_atomic,
+)
 
 logger = logging.getLogger("views")
 
@@ -648,24 +652,30 @@ def user_has_seen_tour_page(page: str, user: Person) -> bool:
         bool: True, if onboarding has been shown already
 
     """
-    # Check if user has seen the add_new tour before
-    prefs = getattr(user, "preferences", {}) or {}
+    # Fast path: if the in-memory snapshot already records this page as seen,
+    # skip the lock + save entirely. Page renders are frequent and writing on
+    # every render widens the window for lost-update races on preferences.
+    cached = getattr(user, "preferences", None) or {}
+    cached_seen = cached.get("has_seen_tour")
+    if isinstance(cached_seen, dict) and cached_seen.get(page, False):
+        return True
 
-    # Ensure the 'has_seen_tour' entry is a dict so we can safely call .get on it.
-    seen = prefs.get("has_seen_tour")
-    if not isinstance(seen, dict):
-        seen = {}
-        prefs["has_seen_tour"] = seen
+    result = {"already_seen": False}
 
-    # Determine whether this page has been seen and mark it as seen if not.
-    has_seen_tour = bool(seen.get(page, False))
-    if not has_seen_tour:
+    def mutate(prefs: dict) -> bool:
+        seen = prefs.get("has_seen_tour")
+        if not isinstance(seen, dict):
+            # Repair malformed entry and record this page as seen in one write.
+            prefs["has_seen_tour"] = {page: True}
+            return True
+        if seen.get(page, False):
+            result["already_seen"] = True
+            return False
         seen[page] = True
+        return True
 
-    # if we have visited all tours we no longer have to autostart
-    user.preferences = prefs
-    user.save()
-    return has_seen_tour
+    update_prefs_atomic(user, mutate)
+    return result["already_seen"]
 
 
 llm = get_llm()
@@ -2370,12 +2380,13 @@ def set_llm_preference(request: HttpRequest) -> JsonResponse:
     from toxtempass.models import LLMConfig
 
     raw = (request.POST.get("llm_model") or "").strip()
-    prefs = dict(request.user.preferences or {})
 
     if not raw:
-        prefs.pop("llm_model", None)
-        request.user.preferences = prefs
-        request.user.save(update_fields=["preferences"])
+        sentinel = object()
+        update_prefs_atomic(
+            request.user,
+            lambda prefs: prefs.pop("llm_model", sentinel) is not sentinel,
+        )
         # Return the admin-default's signature so the badge updates in place.
         from toxtempass.azure_registry import badge_icon, badge_short, get_model
         from toxtempass.models import LLMConfig as _LLMConfig
@@ -2433,9 +2444,11 @@ def set_llm_preference(request: HttpRequest) -> JsonResponse:
             {"success": False, "error": "Not in allowed list"}, status=403
         )
 
-    prefs["llm_model"] = raw
-    request.user.preferences = prefs
-    request.user.save(update_fields=["preferences"])
+    def _set_llm_model(prefs: dict) -> bool:
+        prefs["llm_model"] = raw
+        return True
+
+    update_prefs_atomic(request.user, _set_llm_model)
 
     from toxtempass.azure_registry import badge_icon, badge_short
 

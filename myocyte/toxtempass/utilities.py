@@ -1,7 +1,9 @@
 import hashlib
 import logging
 from pathlib import Path
+from typing import Callable
 
+from django.db import transaction
 from django.db.models import Model
 
 from toxtempass import config
@@ -85,9 +87,34 @@ def combine_dicts(dict1: dict, dict2: dict) -> dict:
 
     return combined
 
-
 # --- Beta utilities (token generation, verification, preference helpers) ---
-from typing import Optional
+
+def update_prefs_atomic(
+    user: Person, mutate: Callable[[dict], bool]
+) -> dict:
+    """Atomically read-modify-write ``Person.preferences`` under a row lock.
+
+    ``mutate(prefs)`` receives a dict (never None), mutates it in place, and
+    returns ``True`` when prefs changed and a save is required, ``False`` to
+    skip the save. Returns the latest prefs dict.
+
+    Why: ``preferences`` is a JSONField holding multiple semantically distinct
+    keys (beta state, tour progress, llm pref). The naive read-modify-write
+    pattern allows concurrent requests to clobber each other's keys. Locking
+    the row with ``SELECT FOR UPDATE`` serialises writers, eliminating the
+    lost-update race.
+    """
+    with transaction.atomic():
+        locked = Person.objects.select_for_update().get(pk=user.pk)
+        prefs = locked.preferences or {}
+        changed = mutate(prefs)
+        if changed:
+            locked.preferences = prefs
+            locked.save(update_fields=["preferences"])
+        # Reflect the post-lock state on the caller's instance so subsequent
+        # reads see fresh data instead of the pre-lock snapshot.
+        user.preferences = prefs
+        return prefs
 
 
 def generate_beta_token(person_id: int) -> str:
@@ -104,7 +131,7 @@ def generate_beta_token(person_id: int) -> str:
     return dumps(payload, salt="toxtempass-beta")
 
 
-def verify_beta_token(token: str, max_age_days: int = 30) -> Optional[dict]:
+def verify_beta_token(token: str, max_age_days: int = 30) -> None|dict:
     """Verify a beta token and return the payload on success, otherwise None.
 
     max_age_days controls how long the token is valid (default 30 days).
@@ -121,7 +148,7 @@ def verify_beta_token(token: str, max_age_days: int = 30) -> Optional[dict]:
         return None
 
 
-def set_beta_requested(person, comment: Optional[str] = None) -> None:
+def set_beta_requested(person, comment: str | None = None) -> None:
     """Mark a Person as having requested access to the beta program.
 
     Safely handles person.preferences == None. Sets:
@@ -129,24 +156,22 @@ def set_beta_requested(person, comment: Optional[str] = None) -> None:
       - beta_requested_at = ISO timestamp
       - beta_admitted = False (if not present)
       - beta_comment = comment (if provided)
-
-    Saves the Person model updating only the preferences field.
     """
     from django.utils import timezone
 
-    prefs = person.preferences or {}
-    prefs["beta_signup"] = True
-    prefs["beta_requested_at"] = timezone.now().isoformat()
-    prefs.setdefault("beta_admitted", False)
-    if comment is not None:
-        prefs["beta_comment"] = comment
-    person.preferences = prefs
-    # update_fields to avoid touching other fields / updated timestamps unless desired
-    person.save(update_fields=["preferences"])
+    def mutate(prefs: dict) -> bool:
+        prefs["beta_signup"] = True
+        prefs["beta_requested_at"] = timezone.now().isoformat()
+        prefs.setdefault("beta_admitted", False)
+        if comment is not None:
+            prefs["beta_comment"] = comment
+        return True
+
+    update_prefs_atomic(person, mutate)
 
 
 def set_beta_admitted(
-    person: Person, admitted: bool, comment: Optional[str] = None
+    person: Person, admitted: bool, comment: str | None = None
 ) -> None:
     """Admit or revoke a Person's beta status.
 
@@ -154,18 +179,19 @@ def set_beta_admitted(
       - beta_admitted = bool(admitted)
       - beta_admitted_at = ISO timestamp when admitted, or None when revoked
       - beta_comment = comment (if provided)
-
-    Saves the Person model updating only the preferences field.
     """
     from django.utils import timezone
 
-    prefs = person.preferences or {}
-    prefs["beta_admitted"] = bool(admitted)
-    prefs["beta_admitted_at"] = timezone.now().isoformat() if admitted else None
-    if comment is not None:
-        prefs["beta_comment"] = comment
-    person.preferences = prefs
-    person.save(update_fields=["preferences"])
+    def mutate(prefs: dict) -> bool:
+        prefs["beta_admitted"] = bool(admitted)
+        prefs["beta_admitted_at"] = (
+            timezone.now().isoformat() if admitted else None
+        )
+        if comment is not None:
+            prefs["beta_comment"] = comment
+        return True
+
+    update_prefs_atomic(person, mutate)
 
 
 def provenance_label_for_item(

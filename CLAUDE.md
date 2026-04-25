@@ -1,0 +1,151 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project overview
+
+ToxTempAssistant is a Django 6 web application that uses LLMs to help users draft annotated toxicity test method templates ("ToxTemp", per ALTEX 36.4 (2019), GD211). Users upload assay-related documents (PDFs, images, DOCX, etc.); the LLM extracts answers to a structured questionnaire (Section → Subsection → Question → Answer), which the user then edits, accepts, and exports.
+
+Dependencies are managed with Poetry; the project ships as a Docker Compose stack (Django + Postgres + MinIO + nginx + a backup scheduler).
+
+## Repository layout
+
+```
+myocyte/                  ← Django project root (`manage.py` lives here)
+  myocyte/                ← Django settings package (settings.py, urls.py, wsgi.py)
+  toxtempass/             ← The single Django app — most application code
+    models.py             ← Person/Investigation/Study/Assay/Question/Answer/Workspace/LLMConfig
+    views.py              ← All HTTP endpoints (function- + class-based)
+    llm.py                ← LLM client resolution (Azure / OpenAI / Anthropic)
+    azure_registry.py     ← Auto-discovery of AZURE_E*_* env vars at startup
+    filehandling.py       ← Upload validation + text/image extraction (pypdf, unstructured, OCR)
+    export.py             ← Pandoc-based export to PDF/DOCX/HTML/MD/XML/JSON
+    tasks.py              ← django-q2 async task wrappers (emails, etc.)
+    signals.py            ← post_save (seed demo assay), post_delete (S3 object cleanup)
+    demo.py               ← Seeds a read-only demo assay for new users
+    evaluation/           ← Evaluation harness (positive_control, negative_control, real_world_files)
+    management/commands/  ← `init_db`, `run_evals`, `test_llm_endpoints`
+    tests/                ← Pytest test suite
+    prompts/blocks/       ← LLM prompt fragments
+    templates/toxtempass/ ← Django templates
+  dockerfiles/            ← Per-service Dockerfiles (djangoapp, nginx, minio, backup-scheduler)
+  django_startup.sh       ← Container entrypoint: waits for postgres, migrates, collectstatic, qcluster
+docker-compose.yml        ← Profiles: `prod` and `test`
+.env.dummy                ← Template; copy to `.env` and fill in
+ToxTemp_v1.json           ← Question hierarchy seed (loaded via `/init/<label>` route or `init_db` cmd)
+```
+
+## Common commands
+
+All commands assume Poetry is installed (`pipx install poetry`).
+
+**Run tests** (must set `DJANGO_SETTINGS_MODULE` and run from `myocyte/`):
+```bash
+cd myocyte
+DJANGO_SETTINGS_MODULE=myocyte.settings poetry run pytest
+```
+
+Run a single test file or test:
+```bash
+DJANGO_SETTINGS_MODULE=myocyte.settings PYTHONPATH=myocyte poetry run pytest myocyte/toxtempass/tests/test_workspace.py -v
+DJANGO_SETTINGS_MODULE=myocyte.settings PYTHONPATH=myocyte poetry run pytest myocyte/toxtempass/tests/test_workspace.py::TestWorkspaceMemberAccess -v
+```
+
+Note: `pyproject.toml` declares `DJANGO_SETTINGS_MODULE = "toxtempass.myocyte.settings"` for running from the repo root; running from `myocyte/` requires `myocyte.settings`. CI runs tests inside the Docker image with `myocyte.settings`.
+
+**Lint / format**:
+```bash
+poetry run ruff check .
+poetry run ruff check . --fix
+```
+Ruff config is in `pyproject.toml`: line length 90, target py310, selects `E,F,W,T,ANN,D,DJ,I,S`. Migrations and `*/validation/*` are excluded; tests skip `S/D/ANN`.
+
+**Pre-commit hooks** (ruff, commitizen on `commit-msg`, detect-secrets against `.secrets.baseline`):
+```bash
+pre-commit install
+```
+
+**Run the full stack locally** (BuildKit required — Docker 23.0+ / Compose v2):
+```bash
+cp .env.dummy .env   # then fill in real values
+docker compose -f docker-compose.yml --profile prod up
+```
+The `test` profile uses an ephemeral Postgres (`postgres_test_for_django`) with no volume.
+
+**Management commands** (run inside the container or with `poetry run`):
+```bash
+docker compose exec djangoapp python manage.py init_db --label v1            # seed QuestionSet from ToxTemp_<label>.json
+docker compose exec djangoapp python manage.py test_llm_endpoints [--save]   # ping every Azure deployment
+docker compose exec djangoapp python manage.py run_evals --experiment X      # evaluation pipeline
+```
+
+**Releases**: `python-semantic-release` drives versioning from Conventional Commits on `main`; the version lives in `pyproject.toml:project.version`. Use `feat:`/`fix:`/`docs:` etc. prefixes — commitizen enforces this on `commit-msg`.
+
+## Architecture notes
+
+### LLM resolution chain
+
+`toxtempass.llm.get_llm()` and `resolve_user_llm(user)` resolve which model client to instantiate at request time. The order is:
+
+1. **User preference** — `user.preferences["llm_model"]` (a `"endpoint_index:tag"` string), if still in the admin allowlist and not retired.
+2. **Admin default** — `LLMConfig.default_model` (singleton row, pk=1, managed at `/admin/toxtempass/llmconfig/`).
+3. **Env-tagged default** — the Azure deployment whose `.env` tag string contains `default:true`.
+4. **Legacy fallback** — `OPENAI_API_KEY` or `OPENROUTER_API_KEY` env vars (`toxtempass/__init__.py` resolves these into `LLM_ENDPOINT` / `LLM_API_KEY` at import time).
+
+Per-deployment clients are cached with `@lru_cache(maxsize=32)` in `get_llm_for_endpoint()`. The cache key is `(endpoint_index, model_tag, temperature)`. The function dispatches by the deployment's `api:` tag:
+
+| `api:` tag | Class used |
+|---|---|
+| `openai` | `langchain_openai.ChatOpenAI` (generic OpenAI-compat) |
+| `azure-openai` | `langchain_openai.AzureChatOpenAI` (requires `AZURE_E<n>_API_VERSION`) |
+| `foundry` | `langchain_azure_ai.chat_models.AzureAIChatCompletionsModel` |
+| `anthropic` | `langchain_anthropic.ChatAnthropic` |
+
+Reasoning models (o1/o3/o4/o5/gpt-5*) reject custom temperature; `_is_reasoning_model()` forces temperature=1 for those.
+
+`current_llm_key(user)` snapshots the user's resolved deployment at queue time so a worker uses the same model when the task fires later (regardless of preference changes in between).
+
+### Azure deployment auto-discovery
+
+`toxtempass/azure_registry.py` parses env vars at startup. Convention:
+
+- `AZURE_E<n>_ENDPOINT`, `AZURE_E<n>_KEY`, optionally `AZURE_E<n>_API_VERSION`
+- Per-model triple: `AZURE_E<n>_DEPLOY_<TAG>`, `AZURE_E<n>_MODEL_<TAG>`, `AZURE_E<n>_TAGS_<TAG>` (comma-separated `key:value` pairs).
+
+Recognized tag keys include `tier`, `residency`, `provider`, `direct-from-azure`, `version`, `api`, `retirement-date`, `default`. The admin panel surfaces these as privacy badges and retirement countdowns. To retire a model: add `retirement-date:YYYY-MM-DD` to its tag list (soft retire) or delete the three env lines (hard remove).
+
+### Permission model
+
+Object-level permissions go through `django-guardian`. The abstract `AccessibleModel` (in `models.py`) implements recursive `is_accessible_by(user, perm_prefix)` — if the user lacks direct permission, it walks `get_parent()` (Assay → Study → Investigation). `Assay.is_accessible_by` additionally checks `WorkspaceInvestigation` membership: if the parent investigation is shared into a workspace the user belongs to, the assay is accessible — but `delete` is restricted to the assay creator or the investigation owner.
+
+`Person.preferences` is a JSONField holding multiple semantically distinct keys (beta state, tour progress, llm pref). All writes must go through `utilities.update_prefs_atomic(user, mutate)`, which serialises with `SELECT FOR UPDATE` — the naive read-modify-write pattern races and clobbers other keys.
+
+### Async tasks
+
+`django-q2` runs in-process via `manage.py qcluster` (started by `django_startup.sh` unless `TESTING=true`). The cluster uses the Django ORM as its broker (`Q_CLUSTER["orm"] = "default"`). When `DEBUG` or `TESTING` is true, `Q_CLUSTER["sync"] = True` so tasks execute inline. Email is the primary task type today (`tasks.queue_email`).
+
+### File storage
+
+Files use `django-storages` with the S3 backend pointed at MinIO (env: `AWS_S3_ENDPOINT_URL`, `AWS_STORAGE_BUCKET_NAME`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` — required at import time in `settings.py`). The `FileAsset` model owns the object lifecycle; a `post_delete` signal (`signals.delete_object_from_storage`) removes the underlying object from storage when the row is deleted. Allowed MIME types and file extensions are gated centrally in `Config.ALLOWED_MIME_TYPES`, `IMAGE_ACCEPT_FILES`, `TEXT_ACCEPT_FILES` (immutable; runtime mutation is blocked).
+
+### Export pipeline
+
+`export.py` uses Pandoc (installed in the djangoapp Dockerfile) for PDF/DOCX/HTML/MD/XML; JSON is serialized inline. The trusted Pandoc options live in `Config.EXPORT_MAPPING` (read-only `MappingProxyType`) — adding a new export type means adding entries to both `EXPORT_MAPPING` and `EXPORT_MIME_SUFFIX` and nowhere else.
+
+### User onboarding tour
+
+Selectors and help text for the in-app tour live in `Config.user_onboarding_help`, keyed by URL name (`overview`, `add_new`, `create_assay`, `answer_assay_questions`).
+
+### Error/status surfacing
+
+`Assay.status_context` accumulates user-visible error/info messages; `utilities.add_status_context()` truncates to `Config.status_error_max_len` while preserving the most recent entry. Full tracebacks go to the rotating file handler at `myocyte/logs/django-errors.log` (volume-mounted; survives container rebuilds). Correlation IDs in `status_context` point back to entries in that log.
+
+## Environment variables
+
+Required for any run (see `.env.dummy` for the full list): `SECRET_KEY`, `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, `AWS_*` (MinIO), `GMAIL_ADDRESS` (used in `DEFAULT_FROM_EMAIL` — failing if absent). `USE_POSTGRES=true` switches from SQLite to Postgres; if `USE_POSTGRES=true` and `TESTING=true`, `POSTGRES_HOST` must equal `postgres_test_for_django` (settings.py raises otherwise). At least one LLM credential set (Azure E<n>, OpenAI, or OpenRouter) is required for non-test runs.
+
+## Conventions to honour
+
+- **Conventional Commits** are enforced on `commit-msg` by commitizen — releases depend on this.
+- The `.secrets.baseline` is checked by `detect-secrets`; if you add an intentional fixture-like secret, regenerate the baseline rather than disabling the hook.
+- Don't run `git add .` blindly — `.env`, `db.sqlite3`, and `backups/` live in the tree and are gitignored, but new untracked artifacts can slip in.
