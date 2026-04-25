@@ -77,7 +77,7 @@
     </div>
 
     <script>
-        var csrftoken = "{{ csrf_token }}"; // This line uses Django's template tag
+        // csrftoken is defined globally in base.html.
         // Deactivate the upload menu if gpt is not allowed anymore because answers exist already.
         var assay_select = document.getElementById('id_assay')
         

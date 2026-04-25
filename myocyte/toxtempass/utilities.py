@@ -34,11 +34,12 @@ def add_status_context(
             lines.pop(0)
         combined = "\n".join(lines)
         if len(combined) > config.status_error_max_len:
-            combined = combined[-config.status_error_max_len:]
+            combined = combined[-config.status_error_max_len :]
 
     setattr(assay, "status_context", combined)
 
-def calculate_md5(pdf_file_path:Path)-> str:
+
+def calculate_md5(pdf_file_path: Path) -> str:
     """Calculate MD5 hash for a given PDF file."""
     md5_hash = hashlib.md5(usedforsecurity=False)
 
@@ -144,7 +145,9 @@ def set_beta_requested(person, comment: Optional[str] = None) -> None:
     person.save(update_fields=["preferences"])
 
 
-def set_beta_admitted(person:Person, admitted: bool, comment: Optional[str] = None) -> None:
+def set_beta_admitted(
+    person: Person, admitted: bool, comment: Optional[str] = None
+) -> None:
     """Admit or revoke a Person's beta status.
 
     Sets:
@@ -189,7 +192,9 @@ def provenance_label_for_item(
         creator = getattr(item, "created_by", None)
     elif isinstance(item, Assay):
         investigation_owner = (
-            item.study.investigation.owner if item.study and item.study.investigation else None
+            item.study.investigation.owner
+            if item.study and item.study.investigation
+            else None
         )
         creator = getattr(item, "created_by", None)
     elif isinstance(item, Investigation):
@@ -206,16 +211,19 @@ def provenance_label_for_item(
             return f"{item.title} (by {creator_str} on behalf of {investigation_owner.email})"
         if creator and current_user and creator.id != current_user.id:
             return f"{item.title} (by {creator_str})"
-        if investigation_owner and current_user and investigation_owner.id != current_user.id:
+        if (
+            investigation_owner
+            and current_user
+            and investigation_owner.id != current_user.id
+        ):
             return f"{item.title} (by {investigation_owner.email})"
         # Fallbacks: if creator exists and is not current_user
         if creator and (not current_user or creator.id != current_user.id):
             return f"{item.title} (by {creator_str})"
-        if investigation_owner and (not current_user or investigation_owner.id != current_user.id):
+        if investigation_owner and (
+            not current_user or investigation_owner.id != current_user.id
+        ):
             return f"{item.title} (by {investigation_owner.email})"
     except Exception:
         pass
     return item.title
-
-
-
