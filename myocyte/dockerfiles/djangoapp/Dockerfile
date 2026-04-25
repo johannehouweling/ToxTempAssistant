@@ -1,4 +1,14 @@
 # syntax=docker/dockerfile:1.7
+#
+# REQUIRES BUILDKIT.
+# This Dockerfile uses BuildKit-only features (`# syntax=` frontend pin and
+# `RUN --mount=type=cache` below). Builds will fail on classic builder.
+#
+# BuildKit is the default in Docker 23.0+ and Docker Compose v2.
+# If you hit "the --mount option requires BuildKit" or syntax errors, enable it:
+#   - Docker CLI:     export DOCKER_BUILDKIT=1
+#   - Docker Compose: export COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1
+#   - GitHub Actions: use docker/setup-buildx-action@v3 (already wired in ci.yml)
 FROM ubuntu:24.04
 
 LABEL maintainer="Jente M Houweling"
