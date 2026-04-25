@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v3.1.0 (2026-04-25)
+
+### Documentation
+
+- Update README and Dockerfile to include BuildKit requirements for improved build performance
+  ([`4036c54`](https://github.com/johannehouweling/ToxTempAssistant/commit/4036c540a03437c3ee4d5a0e583c35a11e1e95bf))
+
+### Features
+
+- **ci**: Enhance caching in CI workflow and Docker Compose for improved build performance
+  ([`c9a8b13`](https://github.com/johannehouweling/ToxTempAssistant/commit/c9a8b13a14278fa166e22c54c0ec79a8351e8619))
+
+- **docker**: Add .dockerignore and improve Dockerfile for caching and installation efficiency
+  ([`06fbb9b`](https://github.com/johannehouweling/ToxTempAssistant/commit/06fbb9b19fafbe5481b5ebff308f9445f4e19550))
+
+
 ## v3.0.2 (2026-04-25)
 
 ### Bug Fixes
