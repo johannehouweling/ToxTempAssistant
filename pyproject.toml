@@ -239,3 +239,15 @@ build-backend = "poetry.core.masonry.api"
 DJANGO_SETTINGS_MODULE = "toxtempass.myocyte.settings"
 # which test file patterns to collect
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
+
+[tool.coverage.run]
+source = ["toxtempass"]
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+    "*/evaluation/*",
+    "manage.py",
+]
+
+[tool.coverage.report]
+show_missing = true
