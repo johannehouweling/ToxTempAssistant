@@ -1,0 +1,51 @@
+# Python bytecode and caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Test / coverage / type-check caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+test-results/
+
+# Local runtime data — mounted via docker-compose volumes at runtime
+myocyte/logs/
+myocyte/media/
+myocyte/static/
+myocyte/db.sqlite3
+myocyte/db.sqlite3-journal
+
+# Backups (mounted by the backup service, not needed in image)
+backups/
+
+# VCS / editor / OS
+.git/
+.gitignore
+.github/
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Local Python envs
+.venv/
+venv/
+env/
+
+# Node (if any frontend tooling appears)
+node_modules/
+
+# Secrets / local env files (re-injected via env_file at runtime)
+.env
+.env.*
+!.env.dummy
+
+# Docs and dev-only files that don't belong in the image
+*.md
+!myocyte/toxtempass/templates/toxtempass/md_content/**/*.md
+LICENSE.md
