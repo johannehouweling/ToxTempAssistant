@@ -2,6 +2,42 @@
 
 <!-- version list -->
 
+## v3.0.2 (2026-04-25)
+
+### Bug Fixes
+
+- Close FileResponse handles in test_export_security to prevent temp-dir leaks
+  ([`184598b`](https://github.com/johannehouweling/ToxTempAssistant/commit/184598bb40df3725a5c246aafafde0ef40b2d1ec))
+
+- Implement _release_file_response to properly close FileResponse handles in tests
+  ([`4abf5cb`](https://github.com/johannehouweling/ToxTempAssistant/commit/4abf5cb687436436edb954276a0ae6225c3ed64b))
+
+- Update myocyte/toxtempass/export.py
+  ([`c8a204e`](https://github.com/johannehouweling/ToxTempAssistant/commit/c8a204ee43e41431aee996b767afee7999098212))
+
+- **security**: Potential fix for code scanning alert no. 7
+  ([`ffce48b`](https://github.com/johannehouweling/ToxTempAssistant/commit/ffce48b970484172ed844ebd97080827a3ed7931))
+
+### Chores
+
+- **dependencies**: Update package versions for compatibility
+  ([`dbf6adc`](https://github.com/johannehouweling/ToxTempAssistant/commit/dbf6adca9bf84c84278b9c3ee4f5f07db31091a8))
+
+- **poetry**: Bump versions
+  ([`d2ba824`](https://github.com/johannehouweling/ToxTempAssistant/commit/d2ba82422f62482252a7ca392b4361f4dea5eaca))
+
+### Refactoring
+
+- Immutable EXPORT_MAPPING, PANDOC_EXPORT_TYPES constant, and security regression tests
+  ([`8b3ec70`](https://github.com/johannehouweling/ToxTempAssistant/commit/8b3ec704805fbd35c1ad9d840578daf5ea3a9a5c))
+
+- Move export_mapping to module-level constant and fix filename double-dot
+  ([`2761e58`](https://github.com/johannehouweling/ToxTempAssistant/commit/2761e5834b0994b2f3c792ca71264efb4f7f2d0d))
+
+- Update export and file handling to use immutable constants for file types and MIME mappings
+  ([`4024101`](https://github.com/johannehouweling/ToxTempAssistant/commit/40241014613746fa3ac77688e041e571a27836b5))
+
+
 ## v3.0.1 (2026-04-13)
 
 ### Bug Fixes
