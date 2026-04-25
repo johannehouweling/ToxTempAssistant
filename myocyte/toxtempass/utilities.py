@@ -87,10 +87,7 @@ def combine_dicts(dict1: dict, dict2: dict) -> dict:
 
     return combined
 
-
 # --- Beta utilities (token generation, verification, preference helpers) ---
-from typing import Optional
-
 
 def update_prefs_atomic(
     user: Person, mutate: Callable[[dict], bool]
@@ -134,7 +131,7 @@ def generate_beta_token(person_id: int) -> str:
     return dumps(payload, salt="toxtempass-beta")
 
 
-def verify_beta_token(token: str, max_age_days: int = 30) -> Optional[dict]:
+def verify_beta_token(token: str, max_age_days: int = 30) -> None|dict:
     """Verify a beta token and return the payload on success, otherwise None.
 
     max_age_days controls how long the token is valid (default 30 days).
@@ -151,7 +148,7 @@ def verify_beta_token(token: str, max_age_days: int = 30) -> Optional[dict]:
         return None
 
 
-def set_beta_requested(person, comment: Optional[str] = None) -> None:
+def set_beta_requested(person, comment: str | None = None) -> None:
     """Mark a Person as having requested access to the beta program.
 
     Safely handles person.preferences == None. Sets:
@@ -174,7 +171,7 @@ def set_beta_requested(person, comment: Optional[str] = None) -> None:
 
 
 def set_beta_admitted(
-    person: Person, admitted: bool, comment: Optional[str] = None
+    person: Person, admitted: bool, comment: str | None = None
 ) -> None:
     """Admit or revoke a Person's beta status.
 
