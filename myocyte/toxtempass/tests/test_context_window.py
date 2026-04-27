@@ -88,8 +88,8 @@ class _SimpleFakeLLM:
 
 @pytest.mark.django_db
 def test_process_llm_async_warns_when_context_truncated():
-    """process_llm_async should write a truncation warning into status_context
-    when the document context exceeds the available token budget.
+    """process_llm_async should append a user-visible truncation alert to
+    user_alerts when the document context exceeds the available token budget.
     The budget is derived from the model's context_window minus headroom, or
     fallback - headroom when no context_window tag is set.
     """
@@ -128,16 +128,17 @@ def test_process_llm_async_warns_when_context_truncated():
 
     assay.refresh_from_db()
 
-    assert assay.status_context, "status_context should not be empty after truncation"
-    assert "truncated" in assay.status_context.lower(), (
-        "status_context should mention truncation; got: " + assay.status_context
+    assert assay.user_alerts, "user_alerts should not be empty after truncation"
+    alert_text = " ".join(a.get("message", "") for a in assay.user_alerts).lower()
+    assert "truncated" in alert_text, (
+        "user_alerts should mention truncation; got: " + repr(assay.user_alerts)
     )
 
 
 @pytest.mark.django_db
 def test_process_llm_async_no_warning_when_context_fits():
-    """process_llm_async should NOT modify status_context when the context
-    fits within the available token budget.
+    """process_llm_async should NOT add a user alert when the context fits
+    within the available token budget.
     """
     assay = AssayFactory()
     qs = QuestionSet.objects.create(
@@ -172,10 +173,11 @@ def test_process_llm_async_no_warning_when_context_fits():
 
     assay.refresh_from_db()
 
-    # status_context may still be None/empty; there should be no truncation notice
-    ctx = assay.status_context or ""
-    assert "truncated" not in ctx.lower(), (
-        "Unexpected truncation warning in status_context: " + ctx
+    # user_alerts should be empty (no truncation notice)
+    alerts = assay.user_alerts or []
+    alert_text = " ".join(a.get("message", "") for a in alerts).lower()
+    assert "truncated" not in alert_text, (
+        "Unexpected truncation alert in user_alerts: " + repr(alerts)
     )
 
 
@@ -233,5 +235,6 @@ def test_process_llm_async_uses_model_context_window_tag():
     assay.refresh_from_db()
 
     # Budget was 150 - 50 = 100 tokens; large_text is ~500 tokens → truncated
-    assert assay.status_context, "Expected a truncation warning in status_context"
-    assert "truncated" in assay.status_context.lower()
+    assert assay.user_alerts, "Expected a truncation alert in user_alerts"
+    alert_text = " ".join(a.get("message", "") for a in assay.user_alerts).lower()
+    assert "truncated" in alert_text

@@ -227,6 +227,11 @@ class Config:
     # no ``context-window`` tag.  Most modern LLMs support at least 128 k tokens,
     # so 128,000 is a safe lower bound.
     context_window_fallback_tokens = 128_000
+    # Safety margin applied when computing the character budget from the token
+    # limit.  A value of 0.95 means we keep 95 % of the proportionally-computed
+    # length, leaving a 5 % buffer to compensate for imprecision in the
+    # character-to-token ratio.
+    truncation_safety_margin = 0.95
     max_workers_django_q = settings.Q_CLUSTER[
         "workers"
     ]  # 1 worker for django_q, we use threading for parallelism

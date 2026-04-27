@@ -238,7 +238,7 @@ AUTH_USER_MODEL = "toxtempass.Person"
 # Logging
 # The "errors" handler writes to a Docker-volume-mounted path (./myocyte/logs
 # on the host) so tracebacks survive container rebuilds. Correlation IDs in
-# Assay.status_context point back to entries in this file.
+# Assay.processing_log point back to entries in this file.
 LOG_DIR = BASE_DIR / "logs"
 try:
     LOG_DIR.mkdir(parents=True, exist_ok=True)

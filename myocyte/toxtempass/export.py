@@ -14,7 +14,7 @@ from django.utils.text import slugify
 from myocyte import settings
 from toxtempass import Config
 from toxtempass.models import Assay, Section
-from toxtempass.utilities import add_status_context
+from toxtempass.utilities import log_processing_event
 
 logger = logging.getLogger(__name__)
 
@@ -318,7 +318,7 @@ def export_assay_to_file(
             logger.exception(
                 "Pandoc conversion failed [corr=%s] for assay %s", corr_id, assay.id
             )
-            add_status_context(assay, f"[{corr_id}] {type(e).__name__}: {e}")
+            log_processing_event(assay, f"[{corr_id}] {type(e).__name__}: {e}")
             assay.save()
             return JsonResponse(
                 {
@@ -332,7 +332,7 @@ def export_assay_to_file(
             logger.exception(
                 "Unexpected export error [corr=%s] for assay %s", corr_id, assay.id
             )
-            add_status_context(assay, f"[{corr_id}] {type(e).__name__}: {e}")
+            log_processing_event(assay, f"[{corr_id}] {type(e).__name__}: {e}")
             assay.save()
             return JsonResponse(
                 {

@@ -92,7 +92,8 @@ from toxtempass.models import (
 )
 from toxtempass.tables import AssayTable
 from toxtempass.utilities import (
-    add_status_context,
+    add_user_alert,
+    log_processing_event,
     provenance_label_for_item,
     update_prefs_atomic,
 )
@@ -931,7 +932,7 @@ def process_llm_async(
                 assay_id,
                 _context_budget,
             )
-            add_status_context(
+            add_user_alert(
                 assay,
                 (
                     "Uploaded documents exceeded the available context-window budget "
@@ -940,7 +941,7 @@ def process_llm_async(
                     "content may not have been used when generating answers. "
                     "Consider uploading fewer or shorter files."
                 ),
-                is_error=False,
+                level="warning",
             )
             assay.save()
         # ------------------------------------------------------------------
@@ -1040,7 +1041,7 @@ def process_llm_async(
                                 answer_documents=source_documents,
                             )
                         except Exception as e:
-                            add_status_context(assay, str(e))
+                            log_processing_event(assay, str(e))
                             assay.status = LLMStatus.ERROR
                             assay.save()
                             continue
@@ -1057,7 +1058,7 @@ def process_llm_async(
         # Check if assay exists before updating status and context
         try:
             assay.status = LLMStatus.ERROR
-            add_status_context(assay, str(e))
+            log_processing_event(assay, str(e))
             assay.save()
         except (UnboundLocalError, Assay.DoesNotExist):
             logger.info(
@@ -1237,7 +1238,9 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                     logger.exception(
                         "File storage failed [corr=%s] for assay %s", corr_id, assay.id
                     )
-                    add_status_context(assay, f"[{corr_id}] {type(e).__name__}: {e}")
+                    log_processing_event(
+                        assay, f"[{corr_id}] {type(e).__name__}: {e}"
+                    )
                     assay.save()
                     return JsonResponse(
                         {
@@ -1308,7 +1311,9 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                                 logger.exception(
                                     "Failed to cleanup file asset: %s", cleanup_error
                                 )
-                    add_status_context(assay, f"[{corr_id}] {type(e).__name__}: {e}")
+                    log_processing_event(
+                        assay, f"[{corr_id}] {type(e).__name__}: {e}"
+                    )
                     assay.save()
                     return JsonResponse(
                         {
@@ -1675,6 +1680,31 @@ def delete_assay(
     if source_page == "overview":
         return redirect("overview")
     return redirect("add_new")
+
+
+@login_required(login_url="/login/")
+@require_POST
+def dismiss_assay_user_alert(
+    request: HttpRequest, pk: int, index: int
+) -> JsonResponse:
+    """Remove the user_alert at ``index`` from ``assay.user_alerts``.
+
+    User must have view permission on the assay (sufficient: dismissing only
+    affects what the dismisser sees in their own UI; the alert pertains to
+    their own assay context).
+    """
+    assay = get_object_or_404(Assay, pk=pk)
+    if not assay.is_accessible_by(request.user, perm_prefix="view"):
+        from django.core.exceptions import PermissionDenied
+
+        raise PermissionDenied("You do not have permission to access this assay.")
+
+    alerts = list(assay.user_alerts or [])
+    if 0 <= index < len(alerts):
+        alerts.pop(index)
+        assay.user_alerts = alerts
+        assay.save(update_fields=["user_alerts"])
+    return JsonResponse({"success": True, "remaining": len(alerts)})
 
 
 @login_required(login_url="/login/")

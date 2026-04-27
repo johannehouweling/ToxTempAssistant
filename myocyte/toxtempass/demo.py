@@ -51,7 +51,8 @@ def seed_demo_assay_for_user(user:Person) -> Assay|None:
             description=template.description,
             question_set=template.question_set,
             status=LLMStatus.DONE,
-            status_context=template.status_context,
+            processing_log=template.processing_log,
+            user_alerts=list(template.user_alerts or []),
             demo_lock=True,
             demo_source=template,
         )

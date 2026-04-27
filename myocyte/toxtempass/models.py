@@ -284,7 +284,24 @@ class Assay(AccessibleModel):
         related_name="demo_copies",
         help_text="Template assay this demo copy originated from.",
     )
-    status_context = models.TextField(blank=True, default="")
+    processing_log = models.TextField(
+        blank=True,
+        default="",
+        help_text=(
+            "Internal append-only log of file-processing and LLM events for "
+            "this assay (correlation ids, exception traces, info notices). "
+            "May contain debug-grade detail and is NOT shown to end users."
+        ),
+    )
+    user_alerts = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=(
+            "User-visible alerts rendered as dismissable banners on the assay "
+            "page. List of {message, level, ts} entries. Only pre-vetted "
+            "messages should be added — never raw exception text."
+        ),
+    )
     question_set = models.ForeignKey(
         QuestionSet,
         on_delete=models.PROTECT,
