@@ -2,6 +2,36 @@
 
 <!-- version list -->
 
+## v3.4.0 (2026-04-27)
+
+### Documentation
+
+- Fix inline docs
+  ([`4b4c169`](https://github.com/johannehouweling/ToxTempAssistant/commit/4b4c169c05c9c7b12a97a13847f553ae1984114f))
+
+- Fix typo
+  ([`6137e32`](https://github.com/johannehouweling/ToxTempAssistant/commit/6137e325374c9e742cc060b11690a6af03175736))
+
+- Fix typo
+  ([`0eea1f8`](https://github.com/johannehouweling/ToxTempAssistant/commit/0eea1f8a0a5ce22904f51557214aeb837e7272ae))
+
+### Features
+
+- Enhance context truncation logic and clean up user alerts handling
+  ([`d3662b5`](https://github.com/johannehouweling/ToxTempAssistant/commit/d3662b536112ca091cebad3800e71b9932c78b7c))
+
+- Use per-model context-window tag for PDF context budget
+  ([`b9d066f`](https://github.com/johannehouweling/ToxTempAssistant/commit/b9d066f2750d0ba302d49c0637c33d58f713f2a0))
+
+- **alert**: Refactor status_context to processing_log and add user_alerts for user notifications
+  ([`8b175c9`](https://github.com/johannehouweling/ToxTempAssistant/commit/8b175c989ba691cf4176c5debf49f05d93a92e70))
+
+### Refactoring
+
+- Move get_azure_model import to module level in views.py
+  ([`8e9d022`](https://github.com/johannehouweling/ToxTempAssistant/commit/8e9d022d76f001c4380ba19c4dec84d62b152b4c))
+
+
 ## v3.3.0 (2026-04-25)
 
 ### Bug Fixes
