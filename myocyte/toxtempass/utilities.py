@@ -50,7 +50,7 @@ def add_user_alert(
 ) -> None:
     """Append a user-visible alert to ``assay.user_alerts``.
 
-    Rendered as a dismissable Bootstrap banner on the assay page. ``level`` is
+    Rendered as a dismissible Bootstrap banner on the assay page. ``level`` is
     a Bootstrap alert variant (``"info" | "warning" | "danger" | "success"``).
 
     Pre-vetted text only — never include raw exception messages, file paths,
