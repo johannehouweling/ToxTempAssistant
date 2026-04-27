@@ -33,7 +33,7 @@ class Migration(migrations.Migration):
                 blank=True,
                 default=list,
                 help_text=(
-                    'User-visible alerts rendered as dismissable banners on the assay '
+                    'User-visible alerts rendered as dismissible banners on the assay '
                     'page. List of {message, level, ts} entries. Only pre-vetted '
                     'messages should be added — never raw exception text.'
                 ),
