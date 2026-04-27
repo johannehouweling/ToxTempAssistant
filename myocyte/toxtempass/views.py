@@ -289,7 +289,12 @@ def approve_beta(request: HttpRequest, token: str) -> HttpResponse:
 
 
 def beta_wait(request: HttpRequest) -> HttpResponse:
-    """Page shown to users who have requested beta access but are not yet admitted."""
+    """Page shown to users who have requested beta access but are not yet admitted.
+
+    If the user has already been admitted, redirect them to the main application.
+    """
+    if is_beta_admitted(request.user):
+        return redirect(reverse("overview"))
     return render(request, "toxtempass/beta_wait.html")
 
 
