@@ -95,6 +95,17 @@
           <div>
             <h1> Test method: {{ assay.title }}</h1>
           </div>
+          {% if assay.user_alerts %}
+          <div id="user-alerts-container">
+            {% for alert in assay.user_alerts %}
+            <div class="alert alert-{{ alert.level|default:'warning' }} alert-dismissible fade show"
+                 role="alert">
+              <i class="bi bi-exclamation-triangle me-2"></i>{{ alert.message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
             <form id="QuestionsForm" method="post" action="{{action}}" novalidate enctype="multipart/form-data">
                 {% csrf_token %}
                 <div id="non-field-errors"></div>

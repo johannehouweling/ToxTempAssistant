@@ -12,22 +12,26 @@ from toxtempass.models import Assay, Investigation, Person, Study
 logger = logging.getLogger(__name__)
 
 
-def add_status_context(
+def log_processing_event(
     assay: Assay, msg: str, clear_first: bool = False, is_error: bool = True
 ) -> None:
-    """Add an error message to the assay's status_context field.
+    """Append an internal event to ``assay.processing_log`` (debug/audit only).
 
-    If clear_first is True, overwrite the field; otherwise, append.
-    Total field length is capped at config.status_error_max_len by dropping the
-    oldest entries; full tracebacks live in the persistent log file.
+    If clear_first is True, overwrite the field; otherwise, append. Total field
+    length is capped at ``config.status_error_max_len`` by dropping the oldest
+    entries; full tracebacks live in the persistent log file.
+
+    Not surfaced to users — entries may contain stack traces, exception text,
+    file paths, or correlation ids. For user-facing notifications, use
+    :func:`add_user_alert` instead.
     """
     preamble = "Error occurred: " if is_error else "Info: "
     new_entry = f"{preamble}{msg}"
     if clear_first:
         combined = new_entry
     else:
-        prev_context = getattr(assay, "status_context", "") or ""
-        combined = prev_context + ("\n" if prev_context else "") + new_entry
+        prev = getattr(assay, "processing_log", "") or ""
+        combined = prev + ("\n" if prev else "") + new_entry
 
     if len(combined) > config.status_error_max_len:
         # Drop oldest lines first, but always preserve the most recent entry.
@@ -38,7 +42,30 @@ def add_status_context(
         if len(combined) > config.status_error_max_len:
             combined = combined[-config.status_error_max_len :]
 
-    setattr(assay, "status_context", combined)
+    setattr(assay, "processing_log", combined)
+
+
+def add_user_alert(
+    assay: Assay, message: str, level: str = "warning"
+) -> None:
+    """Append a user-visible alert to ``assay.user_alerts``.
+
+    Rendered as a dismissible Bootstrap banner on the assay page. ``level`` is
+    a Bootstrap alert variant (``"info" | "warning" | "danger" | "success"``).
+
+    Pre-vetted text only — never include raw exception messages, file paths,
+    correlation ids, or other internal data here. For internal logging use
+    :func:`log_processing_event`.
+    """
+    from django.utils import timezone
+
+    alerts = list(getattr(assay, "user_alerts", None) or [])
+    alerts.append({
+        "message": message,
+        "level": level,
+        "ts": timezone.now().isoformat(),
+    })
+    setattr(assay, "user_alerts", alerts)
 
 
 def calculate_md5(pdf_file_path: Path) -> str:

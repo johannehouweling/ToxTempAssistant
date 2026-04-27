@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 from zipfile import ZipFile
 from zipfile import ZipFile as ZipFileLib
 
+import tiktoken
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import (
     InMemoryUploadedFile,
@@ -407,6 +408,73 @@ def stringyfy_text_dict(text_dict: dict[str, dict[str, str]]) -> str:
         for fp, meta in text_dict.items()
         if "text" in meta
     )
+
+
+def estimate_token_count(text: str) -> int:
+    """Estimate the number of tokens in *text* using tiktoken (cl100k_base)."""
+    if not text:
+        return 0
+    try:
+        enc = tiktoken.get_encoding("cl100k_base")
+        return len(enc.encode(text))
+    except Exception:
+        logger.debug(
+            "tiktoken encoding failed; using char-based token estimate.",
+            exc_info=True,
+        )
+        return max(1, len(text) // 4)
+
+
+_TRUNCATION_MARKER = (
+    "\n\n[... context truncated: uploaded documents exceeded the "
+    "configured context-window limit ...]"
+)
+
+
+def truncate_context_to_token_limit(
+    text: str,
+    max_tokens: int,
+) -> tuple[str, bool]:
+    """Truncate *text* so it fits within *max_tokens*.
+
+    Returns a ``(possibly_truncated_text, was_truncated)`` tuple. When
+    truncation is needed the returned string ends with a visible marker so
+    downstream readers know that content was dropped. The marker's own token
+    cost is budgeted, so the final result is guaranteed to fit under
+    ``max_tokens``.
+
+    ``max_tokens <= 0`` returns ``("", True)`` — there is no budget for any
+    payload, and silently passing a non-positive limit through the slicing
+    arithmetic would otherwise yield a result that exceeds the limit.
+    """
+    if not text:
+        return text, False
+    if max_tokens <= 0:
+        return "", True
+
+    token_count = estimate_token_count(text)
+    if token_count <= max_tokens:
+        return text, False
+
+    marker_tokens = estimate_token_count(_TRUNCATION_MARKER)
+    body_budget = max_tokens - marker_tokens
+    if body_budget <= 0:
+        # Marker alone wouldn't fit under the budget — drop everything.
+        return "", True
+
+    ratio = body_budget / token_count
+    approx_chars = int(len(text) * ratio * config.truncation_safety_margin)
+    truncated = text[:approx_chars].rstrip()
+    result = truncated + _TRUNCATION_MARKER
+
+    # The proportional cut is heuristic (chars-per-token varies). Verify and
+    # shave the body until the final result actually fits. Each iteration
+    # drops ~10% of the body so this terminates in O(log(len)).
+    while estimate_token_count(result) > max_tokens and truncated:
+        truncated = truncated[: int(len(truncated) * 0.9)].rstrip()
+        result = truncated + _TRUNCATION_MARKER
+
+    return result, True
 
 
 def get_text_or_bytes_perfile_dict(

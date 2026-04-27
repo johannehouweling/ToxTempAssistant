@@ -3,7 +3,8 @@
 Verifies that when Pandoc (subprocess.run) raises CalledProcessError or an
 unexpected Exception:
 1. The response has HTTP status 500.
-2. assay.status_context is updated with the correlation id.
+2. assay.processing_log is updated with the correlation id (internal log
+   only — never surfaced to the user).
 """
 
 import subprocess
@@ -21,7 +22,7 @@ PANDOC_EXPORT_TYPES = Config.PANDOC_EXPORT_TYPES
 def _mock_assay() -> MagicMock:
     """Return a mock Assay with the minimal attributes used by export_assay_to_file."""
     assay = MagicMock()
-    assay.status_context = ""
+    assay.processing_log = ""
     assay.title = "error test assay"
     return assay
 
@@ -59,7 +60,7 @@ def _run_export_with_pandoc_error(assay, side_effect):
 
 
 class ExportCalledProcessErrorTests(SimpleTestCase):
-    """subprocess.CalledProcessError → HTTP 500 + correlation id in status_context."""
+    """subprocess.CalledProcessError → HTTP 500 + correlation id in processing_log."""
 
     def test_returns_500(self):
         assay = _mock_assay()
@@ -67,19 +68,19 @@ class ExportCalledProcessErrorTests(SimpleTestCase):
         response = _run_export_with_pandoc_error(assay, error)
         self.assertEqual(response.status_code, 500)
 
-    def test_status_context_contains_corr_id(self):
+    def test_processing_log_contains_corr_id(self):
         assay = _mock_assay()
         error = subprocess.CalledProcessError(returncode=1, cmd=["pandoc"])
         _run_export_with_pandoc_error(assay, error)
         self.assertRegex(
-            assay.status_context,
+            assay.processing_log,
             r"\[[0-9a-f]{8}\]",
-            msg="status_context should contain a correlation id like [abcd1234]",
+            msg="processing_log should contain a correlation id like [abcd1234]",
         )
 
 
 class ExportUnexpectedExceptionTests(SimpleTestCase):
-    """Generic Exception → HTTP 500 + correlation id in status_context."""
+    """Generic Exception → HTTP 500 + correlation id in processing_log."""
 
     def test_returns_500(self):
         assay = _mock_assay()
@@ -87,12 +88,12 @@ class ExportUnexpectedExceptionTests(SimpleTestCase):
         response = _run_export_with_pandoc_error(assay, error)
         self.assertEqual(response.status_code, 500)
 
-    def test_status_context_contains_corr_id(self):
+    def test_processing_log_contains_corr_id(self):
         assay = _mock_assay()
         error = RuntimeError("unexpected pandoc failure")
         _run_export_with_pandoc_error(assay, error)
         self.assertRegex(
-            assay.status_context,
+            assay.processing_log,
             r"\[[0-9a-f]{8}\]",
-            msg="status_context should contain a correlation id like [abcd1234]",
+            msg="processing_log should contain a correlation id like [abcd1234]",
         )

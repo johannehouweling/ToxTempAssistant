@@ -36,12 +36,13 @@ from django_tables2 import SingleTableView
 from guardian.shortcuts import assign_perm, get_objects_for_user, remove_perm
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
-from openai import RateLimitError
+from openai import BadRequestError, RateLimitError
 from tqdm.auto import tqdm
 
 from myocyte import settings
 from toxtempass import config
 from toxtempass import utilities as beta_util
+from toxtempass.azure_registry import get_model as get_azure_model
 from toxtempass.export import export_assay_to_file
 from toxtempass.filehandling import (
     collect_source_documents,
@@ -50,6 +51,7 @@ from toxtempass.filehandling import (
     store_files_to_storage,
     stringyfy_text_dict,
     summarize_image_entries,
+    truncate_context_to_token_limit,
 )
 from toxtempass.forms import (
     AssayAnswerForm,
@@ -90,7 +92,8 @@ from toxtempass.models import (
 )
 from toxtempass.tables import AssayTable
 from toxtempass.utilities import (
-    add_status_context,
+    add_user_alert,
+    log_processing_event,
     provenance_label_for_item,
     update_prefs_atomic,
 )
@@ -787,6 +790,19 @@ def generate_answer(
             )
             time.sleep(wait)
 
+        except BadRequestError as exc:
+            # Surface context-length (and other 400-level) errors explicitly
+            # so they are never silently swallowed as empty answers.
+            # logger.exception includes the full traceback for diagnostics.
+            logger.exception(
+                "BadRequest from LLM for answer %s [%s of %s]: %s",
+                ans.id,
+                max_ans_id - ans.id,
+                delta_ans,
+                exc,
+            )
+            return ans.id, ""
+
         except Exception as exc:
             logger.exception(
                 f"LLM error for answer {ans.id} [{max_ans_id - ans.id} "
@@ -823,7 +839,12 @@ def process_llm_async(
             logger.info("Assay %s is demo locked; skipping processing.", assay_id)
             return
 
+        # Clear stale user alerts at the start of each run so the banner
+        # reflects only what happened in the current run. Without persistent
+        # dismissal this is how alerts get cleaned up — uploading new files
+        # (or retrying) starts fresh, and any new issues will re-populate.
         assay.status = LLMStatus.BUSY
+        assay.user_alerts = []
         assay.save()
 
         if chatopenai is None:
@@ -861,6 +882,111 @@ def process_llm_async(
         source_documents = collect_source_documents(payload)
         text_dict, _ = split_doc_dict_by_type(payload, decode=False)
         full_pdf_context = stringyfy_text_dict(text_dict)
+
+        # --- Context-window guard -----------------------------------------
+        # Proactively truncate the document context so it stays within the
+        # token budget available to the active model.  Without this guard, an
+        # oversized context would either cause the LLM API to raise a
+        # BadRequestError (silently turned into empty answers) or, for APIs
+        # that do their own truncation, silently crop the input.
+        #
+        # Budget = model's context_window tag - headroom (prompts/output).
+        # When the model has no context-window tag we use a conservative
+        # fallback so the guard is always active.
+        _context_budget: int = (
+            config.context_window_fallback_tokens
+            - config.context_window_headroom_tokens
+        )
+        if llm_model and ":" in llm_model:
+            try:
+                _idx_s, _mtag = llm_model.split(":", 1)
+                _result = get_azure_model(int(_idx_s), _mtag)
+                if _result is not None:
+                    _ep, _model_entry = _result
+                    if _model_entry.context_window is not None:
+                        _context_budget = (
+                            _model_entry.context_window
+                            - config.context_window_headroom_tokens
+                        )
+                        logger.debug(
+                            "Context budget for assay %s: %d tokens "
+                            "(model=%s context_window=%d, headroom=%d)",
+                            assay_id,
+                            _context_budget,
+                            _model_entry.model_id,
+                            _model_entry.context_window,
+                            config.context_window_headroom_tokens,
+                        )
+            except Exception as exc:
+                logger.warning(
+                    "Could not resolve context-window for model %r; "
+                    "using fallback budget of %d tokens. Error: %s",
+                    llm_model,
+                    _context_budget,
+                    exc,
+                )
+
+        # Guard against misconfiguration: if headroom >= context_window the
+        # budget can be 0 or negative. truncate_context_to_token_limit returns
+        # an empty context and marks it truncated when max_tokens <= 0, so
+        # continuing would call the LLM with no document context. Running the
+        # LLM with no document context produces near-useless answers, so abort
+        # the run rather than press on.
+        if _context_budget <= 0:
+            logger.error(
+                "Context budget non-positive (%d tokens) for assay %s; "
+                "check context_window_headroom_tokens (%d) vs the active "
+                "model's context_window. Aborting run.",
+                _context_budget,
+                assay_id,
+                config.context_window_headroom_tokens,
+            )
+            log_processing_event(
+                assay,
+                (
+                    f"Context budget non-positive ({_context_budget} tokens); "
+                    f"headroom={config.context_window_headroom_tokens}. "
+                    "Aborted before LLM call."
+                ),
+            )
+            add_user_alert(
+                assay,
+                (
+                    "The selected model's available context window is too small "
+                    "to include the uploaded documents, so no answers were "
+                    "generated. Switch to a model with a larger context window "
+                    "(see model details in the side panel) and re-run."
+                ),
+                level="danger",
+            )
+            assay.status = LLMStatus.ERROR
+            assay.save()
+            return
+
+        full_pdf_context, context_was_truncated = truncate_context_to_token_limit(
+            full_pdf_context, _context_budget
+        )
+        if context_was_truncated:
+            logger.warning(
+                "Context for assay %s was truncated to fit within the "
+                "%d-token context budget. "
+                "Consider uploading fewer or shorter documents.",
+                assay_id,
+                _context_budget,
+            )
+            add_user_alert(
+                assay,
+                (
+                    "Uploaded documents exceeded the available context-window budget "
+                    f"({_context_budget:,} tokens). "
+                    "The context was automatically truncated; some document "
+                    "content may not have been used when generating answers. "
+                    "Consider uploading fewer or shorter files."
+                ),
+                level="warning",
+            )
+            assay.save()
+        # ------------------------------------------------------------------
 
         all_answers = list(
             assay.answers.select_related("question__subsection__section__question_set")
@@ -957,7 +1083,7 @@ def process_llm_async(
                                 answer_documents=source_documents,
                             )
                         except Exception as e:
-                            add_status_context(assay, str(e))
+                            log_processing_event(assay, str(e))
                             assay.status = LLMStatus.ERROR
                             assay.save()
                             continue
@@ -974,7 +1100,7 @@ def process_llm_async(
         # Check if assay exists before updating status and context
         try:
             assay.status = LLMStatus.ERROR
-            add_status_context(assay, str(e))
+            log_processing_event(assay, str(e))
             assay.save()
         except (UnboundLocalError, Assay.DoesNotExist):
             logger.info(
@@ -1154,7 +1280,9 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                     logger.exception(
                         "File storage failed [corr=%s] for assay %s", corr_id, assay.id
                     )
-                    add_status_context(assay, f"[{corr_id}] {type(e).__name__}: {e}")
+                    log_processing_event(
+                        assay, f"[{corr_id}] {type(e).__name__}: {e}"
+                    )
                     assay.save()
                     return JsonResponse(
                         {
@@ -1225,7 +1353,9 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                                 logger.exception(
                                     "Failed to cleanup file asset: %s", cleanup_error
                                 )
-                    add_status_context(assay, f"[{corr_id}] {type(e).__name__}: {e}")
+                    log_processing_event(
+                        assay, f"[{corr_id}] {type(e).__name__}: {e}"
+                    )
                     assay.save()
                     return JsonResponse(
                         {
