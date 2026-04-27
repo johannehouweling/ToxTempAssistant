@@ -839,7 +839,12 @@ def process_llm_async(
             logger.info("Assay %s is demo locked; skipping processing.", assay_id)
             return
 
+        # Clear stale user alerts at the start of each run so the banner
+        # reflects only what happened in the current run. Without persistent
+        # dismissal this is how alerts get cleaned up — uploading new files
+        # (or retrying) starts fresh, and any new issues will re-populate.
         assay.status = LLMStatus.BUSY
+        assay.user_alerts = []
         assay.save()
 
         if chatopenai is None:
@@ -920,6 +925,43 @@ def process_llm_async(
                     _context_budget,
                     exc,
                 )
+
+        # Guard against misconfiguration: if headroom >= context_window the
+        # budget can be 0 or negative. truncate_context_to_token_limit treats
+        # a negative max_tokens as a slice-from-end (keeping most of the
+        # text), so the guard would silently fail. Running the LLM with no
+        # document context produces near-useless answers, so abort the run
+        # rather than press on.
+        if _context_budget <= 0:
+            logger.error(
+                "Context budget non-positive (%d tokens) for assay %s; "
+                "check context_window_headroom_tokens (%d) vs the active "
+                "model's context_window. Aborting run.",
+                _context_budget,
+                assay_id,
+                config.context_window_headroom_tokens,
+            )
+            log_processing_event(
+                assay,
+                (
+                    f"Context budget non-positive ({_context_budget} tokens); "
+                    f"headroom={config.context_window_headroom_tokens}. "
+                    "Aborted before LLM call."
+                ),
+            )
+            add_user_alert(
+                assay,
+                (
+                    "The selected model's available context window is too small "
+                    "to include the uploaded documents, so no answers were "
+                    "generated. Switch to a model with a larger context window "
+                    "(see model details in the side panel) and re-run."
+                ),
+                level="danger",
+            )
+            assay.status = LLMStatus.ERROR
+            assay.save()
+            return
 
         full_pdf_context, context_was_truncated = truncate_context_to_token_limit(
             full_pdf_context, _context_budget
@@ -1680,31 +1722,6 @@ def delete_assay(
     if source_page == "overview":
         return redirect("overview")
     return redirect("add_new")
-
-
-@login_required(login_url="/login/")
-@require_POST
-def dismiss_assay_user_alert(
-    request: HttpRequest, pk: int, index: int
-) -> JsonResponse:
-    """Remove the user_alert at ``index`` from ``assay.user_alerts``.
-
-    User must have view permission on the assay (sufficient: dismissing only
-    affects what the dismisser sees in their own UI; the alert pertains to
-    their own assay context).
-    """
-    assay = get_object_or_404(Assay, pk=pk)
-    if not assay.is_accessible_by(request.user, perm_prefix="view"):
-        from django.core.exceptions import PermissionDenied
-
-        raise PermissionDenied("You do not have permission to access this assay.")
-
-    alerts = list(assay.user_alerts or [])
-    if 0 <= index < len(alerts):
-        alerts.pop(index)
-        assay.user_alerts = alerts
-        assay.save(update_fields=["user_alerts"])
-    return JsonResponse({"success": True, "remaining": len(alerts)})
 
 
 @login_required(login_url="/login/")

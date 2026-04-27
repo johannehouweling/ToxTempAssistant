@@ -64,8 +64,30 @@ def test_truncate_context_result_within_limit():
     result, was_truncated = truncate_context_to_token_limit(long_text, max_tokens=200)
     assert was_truncated is True
     actual_tokens = estimate_token_count(result)
-    # Allow a small overage due to the appended marker
-    assert actual_tokens <= 200 + 50
+    # Result (body + marker) must fit strictly under the configured limit.
+    assert actual_tokens <= 200
+
+
+def test_truncate_context_zero_max_tokens():
+    result, was_truncated = truncate_context_to_token_limit("hello", max_tokens=0)
+    assert result == ""
+    assert was_truncated is True
+
+
+def test_truncate_context_negative_max_tokens():
+    result, was_truncated = truncate_context_to_token_limit("hello", max_tokens=-5)
+    assert result == ""
+    assert was_truncated is True
+
+
+def test_truncate_context_marker_does_not_fit():
+    """When the marker alone exceeds the budget, return empty."""
+    long_text = "token " * 1000
+    # The marker is roughly 20-30 tokens; pick a budget below it.
+    result, was_truncated = truncate_context_to_token_limit(long_text, max_tokens=5)
+    assert was_truncated is True
+    actual_tokens = estimate_token_count(result)
+    assert actual_tokens <= 5
 
 
 # ---------------------------------------------------------------------------
@@ -238,3 +260,72 @@ def test_process_llm_async_uses_model_context_window_tag():
     assert assay.user_alerts, "Expected a truncation alert in user_alerts"
     alert_text = " ".join(a.get("message", "") for a in assay.user_alerts).lower()
     assert "truncated" in alert_text
+
+
+@pytest.mark.django_db
+def test_process_llm_async_aborts_when_budget_non_positive():
+    """When headroom >= context_window the budget is <= 0; the guard should
+    abort the run with status=ERROR and a user-visible alert (rather than
+    silently passing a negative limit into the truncator and producing
+    useless context-free answers).
+    """
+    from unittest.mock import MagicMock
+
+    assay = AssayFactory()
+    qs = QuestionSet.objects.create(
+        display_name="qs", created_by=assay.study.investigation.owner
+    )
+    section = Section.objects.create(question_set=qs, title="S1")
+    subsection = Subsection.objects.create(section=section, title="Sub1")
+    q = Question.objects.create(subsection=subsection, question_text="What is this?")
+    Answer.objects.create(assay=assay, question=q)
+
+    doc_dict = {
+        "doc.txt": {
+            "text": "word " * 100,
+            "source_document": "doc.txt",
+            "origin": "document",
+        }
+    }
+
+    fake_llm = _SimpleFakeLLM()
+
+    # Headroom (200) larger than the model's context window (100) → budget=-100
+    mock_model_entry = MagicMock()
+    mock_model_entry.context_window = 100
+    mock_model_entry.model_id = "tiny-model"
+    mock_ep = MagicMock()
+
+    with (
+        patch("toxtempass.views.config.context_window_headroom_tokens", new=200),
+        patch("toxtempass.views.config.context_window_fallback_tokens", new=1_000_000),
+        patch(
+            "toxtempass.views.get_azure_model",
+            return_value=(mock_ep, mock_model_entry),
+        ),
+    ):
+        process_llm_async(
+            assay.id,
+            doc_dict=doc_dict,
+            extract_images=False,
+            chatopenai=fake_llm,
+            llm_model="1:TINY",
+        )
+
+    assay.refresh_from_db()
+
+    assert assay.user_alerts, "Expected a user alert when budget is non-positive"
+    alert_text = " ".join(a.get("message", "") for a in assay.user_alerts).lower()
+    assert "context window" in alert_text and "too small" in alert_text, (
+        "Alert should explain the model's window is too small; got: "
+        + repr(assay.user_alerts)
+    )
+    # Internal log should also record the misconfiguration for ops.
+    assert "non-positive" in (assay.processing_log or "").lower()
+    # The run must abort with ERROR rather than continue producing useless
+    # context-free answers.
+    from toxtempass.models import LLMStatus
+
+    assert assay.status == LLMStatus.ERROR
+    # No LLM calls should have been made.
+    assert fake_llm._calls == 0

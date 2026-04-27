@@ -96,41 +96,15 @@
             <h1> Test method: {{ assay.title }}</h1>
           </div>
           {% if assay.user_alerts %}
-          <div id="user-alerts-container" data-assay-id="{{ assay.id }}">
+          <div id="user-alerts-container">
             {% for alert in assay.user_alerts %}
             <div class="alert alert-{{ alert.level|default:'warning' }} alert-dismissible fade show"
-                 role="alert"
-                 data-alert-index="{{ forloop.counter0 }}">
+                 role="alert">
               <i class="bi bi-exclamation-triangle me-2"></i>{{ alert.message }}
-              <button type="button" class="btn-close" aria-label="Dismiss" data-alert-dismiss></button>
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
             {% endfor %}
           </div>
-          <script>
-          (function () {
-            const container = document.getElementById('user-alerts-container');
-            if (!container) return;
-            const assayId = container.getAttribute('data-assay-id');
-            const csrfToken = '{{ csrf_token }}';
-            container.querySelectorAll('[data-alert-dismiss]').forEach((btn) => {
-              btn.addEventListener('click', async (e) => {
-                const alertEl = e.currentTarget.closest('.alert');
-                const index = alertEl.getAttribute('data-alert-index');
-                const url = `/assay/${assayId}/dismiss-alert/${index}/`;
-                try {
-                  await fetch(url, {
-                    method: 'POST',
-                    headers: { 'X-CSRFToken': csrfToken },
-                  });
-                } catch (err) {
-                  // Server-side dismiss failed; the Bootstrap dismiss still
-                  // hides it from the current page. The alert will reappear
-                  // on next page load — acceptable degradation.
-                }
-              });
-            });
-          })();
-          </script>
           {% endif %}
             <form id="QuestionsForm" method="post" action="{{action}}" novalidate enctype="multipart/form-data">
                 {% csrf_token %}

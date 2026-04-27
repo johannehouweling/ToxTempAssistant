@@ -104,11 +104,6 @@ urlpatterns += [
         views.answer_assay_questions,
         name="answer_assay_questions",
     ),
-    path(
-        "assay/<int:pk>/dismiss-alert/<int:index>/",
-        views.dismiss_assay_user_alert,
-        name="dismiss_assay_user_alert",
-    ),
 ]
 # Version History
 
