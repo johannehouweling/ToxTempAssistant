@@ -927,11 +927,11 @@ def process_llm_async(
                 )
 
         # Guard against misconfiguration: if headroom >= context_window the
-        # budget can be 0 or negative. truncate_context_to_token_limit treats
-        # a negative max_tokens as a slice-from-end (keeping most of the
-        # text), so the guard would silently fail. Running the LLM with no
-        # document context produces near-useless answers, so abort the run
-        # rather than press on.
+        # budget can be 0 or negative. truncate_context_to_token_limit returns
+        # an empty context and marks it truncated when max_tokens <= 0, so
+        # continuing would call the LLM with no document context. Running the
+        # LLM with no document context produces near-useless answers, so abort
+        # the run rather than press on.
         if _context_budget <= 0:
             logger.error(
                 "Context budget non-positive (%d tokens) for assay %s; "
