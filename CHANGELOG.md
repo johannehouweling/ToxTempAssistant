@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.4.1 (2026-04-27)
+
+### Bug Fixes
+
+- Redirect admitted users away from beta wait page to overview
+  ([`b251ddb`](https://github.com/johannehouweling/ToxTempAssistant/commit/b251ddbc0cff8704ad86b3a3bee452a4dc62fb07))
+
+
 ## v3.4.0 (2026-04-27)
 
 ### Documentation
