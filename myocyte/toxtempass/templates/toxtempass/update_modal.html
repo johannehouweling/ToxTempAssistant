@@ -83,6 +83,8 @@
     </div>
   </div>
 
+  {% include "toxtempass/_file_accumulator.html" with input_id="fileUpload" prefix="fileUpload" %}
+
   <!-- JavaScript to Handle Modal Content and Upload Field Clearing -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -179,14 +181,14 @@
       
       // Event listener for when the modal is fully hidden (after closing animation)
       updateModal.addEventListener('hidden.bs.modal', function (event) {
-        // Clear the upload field
-        fileUpload.value = '';
+        // Clear the upload field and accumulated file badges
+        fileUploadAccumulatorClear();
         fileUploadInfo.style.display = 'none';
       });
-      
+
       // Event listener for the "Cancel" button to ensure the upload field is cleared
       cancelButton.addEventListener('click', function () {
-        fileUpload.value = '';
+        fileUploadAccumulatorClear();
         fileUploadInfo.style.display = 'none';
       });
       
@@ -222,8 +224,10 @@
         });
       });
 
-      // Event listener for the file upload field to update the "Save" button state
-      fileUpload.addEventListener('change', function() {
+      // Refresh the "Save" button whenever the file accumulator changes
+      // (file added, removed via badge ×, or cleared on modal close).
+      // The 'change' event itself is handled by _file_accumulator.html.
+      fileUpload.addEventListener('fileAccumulator:changed', function() {
         if (updateModal.classList.contains('show')) {
           updateSaveButtonState();
         }
