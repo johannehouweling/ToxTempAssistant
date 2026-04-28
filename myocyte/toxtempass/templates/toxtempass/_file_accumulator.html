@@ -1,0 +1,81 @@
+{% comment %}
+File accumulator JS — lets users add files across multiple dialog opens and
+remove individual files via badge × buttons. Pairs with the
+`accumulated-file-list` container rendered by the MultipleFileInput widget.
+
+Required context vars (pass via `{% include "..." with input_id="..." prefix="..." %}`):
+  input_id   id of the <input type="file"> element to manage (e.g. "id_files", "fileUpload")
+  prefix     unique namespace for global functions exposed by this include
+             (e.g. "files", "fileUpload") — must match what page-level callers use
+
+Globals exposed on window:
+  {prefix}AccumulatorClear()         — clear all accumulated files
+  {prefix}AccumulatorRemove(name)    — remove a single file (called by badge ×)
+
+After each state change (add / remove / clear), dispatches a
+'fileAccumulator:changed' CustomEvent on the file input — listen for it to
+react (e.g. refresh a Save button).
+{% endcomment %}
+<script>
+    (function() {
+        var accumulator = new DataTransfer();
+
+        function input() { return document.getElementById('{{ input_id }}'); }
+        function listEl() { return document.getElementById('accumulated-file-list'); }
+
+        function fire() {
+            var inp = input();
+            if (inp) inp.dispatchEvent(new CustomEvent('fileAccumulator:changed', {bubbles: true}));
+        }
+
+        function clearAll() {
+            accumulator = new DataTransfer();
+            var inp = input();
+            if (inp) inp.files = accumulator.files;
+            render();
+            fire();
+        }
+
+        function removeOne(name) {
+            var newDt = new DataTransfer();
+            Array.from(accumulator.files)
+                .filter(function(f) { return f.name !== name; })
+                .forEach(function(f) { newDt.items.add(f); });
+            accumulator = newDt;
+            var inp = input();
+            if (inp) inp.files = accumulator.files;
+            render();
+            fire();
+        }
+
+        function render() {
+            var list = listEl();
+            if (!list) return;
+            list.innerHTML = '';
+            Array.from(accumulator.files).forEach(function(f) {
+                var tag = document.createElement('span');
+                tag.className = 'badge bg-secondary me-1 mb-1 d-inline-flex align-items-center gap-1';
+                var safeName = f.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                tag.innerHTML = f.name +
+                    ' <button type="button" class="btn-close btn-close-white scale-75"' +
+                    ' onclick="window.{{ prefix }}AccumulatorRemove(\'' + safeName + '\')"></button>';
+                list.appendChild(tag);
+            });
+        }
+
+        // Expose so inline onclick handlers and external pages can call them.
+        window.{{ prefix }}AccumulatorClear = clearAll;
+        window.{{ prefix }}AccumulatorRemove = removeOne;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var inp = input();
+            if (!inp) return;
+            inp.addEventListener('change', function() {
+                Array.from(this.files).forEach(function(f) { accumulator.items.add(f); });
+                this.files = accumulator.files;
+                render();
+                fire();
+            });
+        });
+    })();
+</script>
