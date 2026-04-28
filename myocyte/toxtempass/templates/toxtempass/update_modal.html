@@ -83,6 +83,8 @@
     </div>
   </div>
 
+  {% include "toxtempass/_file_accumulator.html" with input_id="fileUpload" prefix="fileUpload" %}
+
   <!-- JavaScript to Handle Modal Content and Upload Field Clearing -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -96,48 +98,6 @@
       var okButtonSpinner = document.getElementById('okButtonSpinner');
       var fileUploadInfo = document.getElementById('fileUploadInfo');
 
-      // ── File accumulator ────────────────────────────────────────────────────
-      // Allows adding files across multiple dialog opens instead of replacing them.
-      var fileAccumulator = new DataTransfer();
-
-      function clearFileAccumulator() {
-        fileAccumulator = new DataTransfer();
-        fileUpload.files = fileAccumulator.files;
-        renderAccumulatedFileList();
-      }
-
-      function removeAccumulatedFile(name) {
-        var newDt = new DataTransfer();
-        Array.from(fileAccumulator.files)
-          .filter(function(f) { return f.name !== name; })
-          .forEach(function(f) { newDt.items.add(f); });
-        fileAccumulator = newDt;
-        fileUpload.files = fileAccumulator.files;
-        renderAccumulatedFileList();
-        updateSaveButtonState();
-      }
-
-      function renderAccumulatedFileList() {
-        var list = document.getElementById('accumulated-file-list');
-        if (!list) return;
-        list.innerHTML = '';
-        Array.from(fileAccumulator.files).forEach(function(f) {
-          var tag = document.createElement('span');
-          tag.className = 'badge bg-secondary me-1 mb-1 d-inline-flex align-items-center gap-1';
-          var nameSpan = document.createElement('span');
-          nameSpan.textContent = f.name;
-          var btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'btn-close btn-close-white scale-75';
-          btn.setAttribute('aria-label', 'Remove ' + f.name);
-          btn.addEventListener('click', () => removeAccumulatedFile(f.name));
-          tag.appendChild(nameSpan);
-          tag.appendChild(btn);
-          list.appendChild(tag);
-        });
-      }
-      // ────────────────────────────────────────────────────────────────────────
-
       // Function to check if at least one checkbox is selected
       function checkSelectedQuestions() {
         var checkboxes = document.querySelectorAll('input[type="checkbox"][name^="earmarked_"]:checked');
@@ -146,7 +106,7 @@
 
       // Function to check if a file is selected
       function isFileSelected() {
-        return fileAccumulator.files.length > 0;
+        return fileUpload.files.length > 0;
       }
 
       // Function to update the state of the "Save" button
@@ -221,14 +181,14 @@
       
       // Event listener for when the modal is fully hidden (after closing animation)
       updateModal.addEventListener('hidden.bs.modal', function (event) {
-        // Clear the upload field and file accumulator
-        clearFileAccumulator();
+        // Clear the upload field and accumulated file badges
+        fileUploadAccumulatorClear();
         fileUploadInfo.style.display = 'none';
       });
-      
+
       // Event listener for the "Cancel" button to ensure the upload field is cleared
       cancelButton.addEventListener('click', function () {
-        clearFileAccumulator();
+        fileUploadAccumulatorClear();
         fileUploadInfo.style.display = 'none';
       });
       
@@ -264,11 +224,10 @@
         });
       });
 
-      // Event listener for the file upload field to update the "Save" button state
-      fileUpload.addEventListener('change', function() {
-        Array.from(this.files).forEach(function(f) { fileAccumulator.items.add(f); });
-        fileUpload.files = fileAccumulator.files;
-        renderAccumulatedFileList();
+      // Refresh the "Save" button whenever the file accumulator changes
+      // (file added, removed via badge ×, or cleared on modal close).
+      // The 'change' event itself is handled by _file_accumulator.html.
+      fileUpload.addEventListener('fileAccumulator:changed', function() {
         if (updateModal.classList.contains('show')) {
           updateSaveButtonState();
         }
