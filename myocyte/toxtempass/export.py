@@ -1,7 +1,9 @@
+import io
 import json
 import logging
 import re
 import subprocess
+import tempfile
 import uuid
 from pathlib import Path
 
@@ -11,7 +13,6 @@ from django.http import FileResponse, HttpRequest, JsonResponse
 from django.utils import timezone  # Import timezone utilities
 from django.utils.text import slugify
 
-from myocyte import settings
 from toxtempass import Config
 from toxtempass.models import Assay, Section
 from toxtempass.utilities import log_processing_event
@@ -275,88 +276,86 @@ def export_assay_to_file(
         return JsonResponse({"error": "Invalid export type"}, status=400)
     mapped_suffix = EXPORT_MIME_SUFFIX[export_type]["suffix"]
     file_name = f"toxtemp_{slugify(assay.title)}{mapped_suffix}"
-    file_path = Path(settings.MEDIA_ROOT) / "toxtempass" / file_name  # Use pathlib.Path
-    if not file_path.parent.exists():
-        file_path.parent.mkdir(parents=True)
 
-    export_data = None
-    if export_type == "json":
-        export_data = generate_json_from_assay(assay)
-        with file_path.open("w", encoding="utf-8") as json_file:
-            json.dump(export_data, json_file, indent=4)
+    # All export artefacts are written to a short-lived temp directory; nothing
+    # is stored permanently on the container filesystem.
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        file_path = Path(tmp_dir) / file_name
 
-    # elif export_type == "md":
-    #     export_data = generate_markdown_from_assay(assay)
-    #     with file_path.open("w", encoding="utf-8") as md_file:
-    #         md_file.write(export_data)
+        export_data = None
+        if export_type == "json":
+            export_data = generate_json_from_assay(assay)
+            with file_path.open("w", encoding="utf-8") as json_file:
+                json.dump(export_data, json_file, indent=4)
 
-    elif export_type in PANDOC_EXPORT_TYPES:
-        # Generate the markdown file
-        export_data = generate_markdown_from_assay(assay)
-        md_file_path = (file_path.with_name(f"{file_path.stem}_md")).with_suffix(".md")
-        with md_file_path.open("w", encoding="utf-8") as md_file:
-            md_file.write(export_data)
+        # elif export_type == "md":
+        #     export_data = generate_markdown_from_assay(assay)
+        #     with file_path.open("w", encoding="utf-8") as md_file:
+        #         md_file.write(export_data)
 
-        yaml_metadata_file_path = get_create_meta_data_yaml(request, assay, file_path)
+        elif export_type in PANDOC_EXPORT_TYPES:
+            # Generate the markdown file
+            export_data = generate_markdown_from_assay(assay)
+            md_file_path = (file_path.with_name(f"{file_path.stem}_md")).with_suffix(".md")
+            with md_file_path.open("w", encoding="utf-8") as md_file:
+                md_file.write(export_data)
 
-        # Convert the markdown file to the requested format using Pandoc
-        pandoc_command = [
-            "pandoc",
-            str(md_file_path),
-            "--from=markdown+tex_math_dollars+tex_math_single_backslash+tex_math_double_backslash",
-            f"--metadata-file={str(yaml_metadata_file_path)}",
-            "--toc",
-        ]
-        # Add ONLY safe mapped Pandoc options
-        pandoc_command.extend(EXPORT_MAPPING[export_type])
-        pandoc_command.extend(["-o", str(file_path)])
+            yaml_metadata_file_path = get_create_meta_data_yaml(request, assay, file_path)
 
-        try:
-            subprocess.run(pandoc_command, check=True)  # noqa: S603
-        except subprocess.CalledProcessError as e:
-            corr_id = uuid.uuid4().hex[:8]
-            logger.exception(
-                "Pandoc conversion failed [corr=%s] for assay %s", corr_id, assay.id
-            )
-            log_processing_event(assay, f"[{corr_id}] {type(e).__name__}: {e}")
-            assay.save()
-            return JsonResponse(
-                {
-                    "error": f"Export failed (ref {corr_id}). "
-                    "Please contact support if the issue persists."
-                },
-                status=500,
-            )
-        except Exception as e:
-            corr_id = uuid.uuid4().hex[:8]
-            logger.exception(
-                "Unexpected export error [corr=%s] for assay %s", corr_id, assay.id
-            )
-            log_processing_event(assay, f"[{corr_id}] {type(e).__name__}: {e}")
-            assay.save()
-            return JsonResponse(
-                {
-                    "error": f"Export failed (ref {corr_id}). "
-                    "Please contact support if the issue persists."
-                },
-                status=500,
-            )
+            # Convert the markdown file to the requested format using Pandoc
+            pandoc_command = [
+                "pandoc",
+                str(md_file_path),
+                "--from=markdown+tex_math_dollars+tex_math_single_backslash+tex_math_double_backslash",
+                f"--metadata-file={str(yaml_metadata_file_path)}",
+                "--toc",
+            ]
+            # Add ONLY safe mapped Pandoc options
+            pandoc_command.extend(EXPORT_MAPPING[export_type])
+            pandoc_command.extend(["-o", str(file_path)])
 
-        # cleanup the auxiliary files
-        try:
-            yaml_metadata_file_path.unlink()
-            md_file_path.unlink()
-        except FileNotFoundError:
-            # If the file doesn't exist, there's nothing to unlink, so pass
-            pass
+            try:
+                subprocess.run(pandoc_command, check=True)  # noqa: S603
+            except subprocess.CalledProcessError as e:
+                corr_id = uuid.uuid4().hex[:8]
+                logger.exception(
+                    "Pandoc conversion failed [corr=%s] for assay %s", corr_id, assay.id
+                )
+                log_processing_event(assay, f"[{corr_id}] {type(e).__name__}: {e}")
+                assay.save()
+                return JsonResponse(
+                    {
+                        "error": f"Export failed (ref {corr_id}). "
+                        "Please contact support if the issue persists."
+                    },
+                    status=500,
+                )
+            except Exception as e:
+                corr_id = uuid.uuid4().hex[:8]
+                logger.exception(
+                    "Unexpected export error [corr=%s] for assay %s", corr_id, assay.id
+                )
+                log_processing_event(assay, f"[{corr_id}] {type(e).__name__}: {e}")
+                assay.save()
+                return JsonResponse(
+                    {
+                        "error": f"Export failed (ref {corr_id}). "
+                        "Please contact support if the issue persists."
+                    },
+                    status=500,
+                )
 
-    if export_data is None:
-        return JsonResponse({"error": "Assay or file_type not found"}, status=404)
+        if export_data is None:
+            return JsonResponse({"error": "Assay or file_type not found"}, status=404)
 
-    # Prepare the response for the genrated file
+        # Read the output file into memory so it can be served after the temp
+        # directory is cleaned up.
+        file_content = file_path.read_bytes()
+
+    # Prepare the response for the generated file
     try:
         response = FileResponse(
-            file_path.open("rb"),
+            io.BytesIO(file_content),
             as_attachment=True,
             filename=file_name,
             content_type=EXPORT_MIME_SUFFIX[export_type]["mime_type"],

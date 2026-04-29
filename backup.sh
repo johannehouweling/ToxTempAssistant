@@ -18,12 +18,10 @@ set -euo pipefail
 # Optional (safe defaults if missing):
 #   BACKUP_ROOT          default: ./backups (next to script)
 #   RETENTION_DAYS       default: 14
-#   MEDIA_DIR            default: ./myocyte/media (next to script)
 #   MINIO_BUCKET         default: empty => all buckets
 #
 # What it does:
 # - Postgres: pg_dump (logical backup) from inside the postgres container
-# - Media: tar.gz of MEDIA_DIR on the host (or inside backup container mount)
 # - MinIO: mc mirror (object-level backup) using minio/mc container
 #
 # IMPORTANT:
@@ -50,7 +48,6 @@ fi
 # -------------------- Defaults (do NOT require new .env keys) --------------------
 BACKUP_ROOT="${BACKUP_ROOT:-$SCRIPT_DIR/backups}"
 RETENTION_DAYS="${RETENTION_DAYS:-${BACKUP_RETENTION_DAYS:-14}}"
-MEDIA_DIR="${MEDIA_DIR:-${BACKUP_MEDIA_DIR:-$SCRIPT_DIR/myocyte/media}}"
 MINIO_BUCKET="${MINIO_BUCKET:-}"
 
 # If BACKUP_ROOT is relative, make it relative to the script directory
@@ -117,27 +114,7 @@ docker compose exec -T \
 
 log "Postgres dump written: $PG_OUT"
 
-# -------------------- 2) Django media backup --------------------
-log "Backing up Django media directory: $MEDIA_DIR ..."
-
-# Resolve MEDIA_DIR relative to SCRIPT_DIR if it is relative
-if [[ "$MEDIA_DIR" != /* ]]; then
-  MEDIA_DIR="$SCRIPT_DIR/$MEDIA_DIR"
-fi
-
-if [[ ! -d "$MEDIA_DIR" ]]; then
-  echo "ERROR: MEDIA_DIR does not exist or is not a directory: $MEDIA_DIR" >&2
-  exit 1
-fi
-
-MEDIA_OUT="$OUTDIR/media.tar.gz"
-MEDIA_PARENT="$(cd "$(dirname "$MEDIA_DIR")" && pwd)"
-MEDIA_BASE="$(basename "$MEDIA_DIR")"
-
-tar -C "$MEDIA_PARENT" -czf "$MEDIA_OUT" "$MEDIA_BASE"
-log "Media archive written: $MEDIA_OUT"
-
-# -------------------- 3) MinIO backup (mc mirror) --------------------
+# -------------------- 2) MinIO backup (mc mirror) --------------------
 MINIO_ENDPOINT="$AWS_S3_ENDPOINT_URL"
 MC_ALIAS="local"
 
@@ -245,7 +222,6 @@ log "Writing manifest ..."
     echo "postgres_service=$PG_SERVICE"
     echo "postgres_db=$POSTGRES_DB"
     echo "postgres_user=$POSTGRES_USER"
-    echo "media_dir=$MEDIA_DIR"
     echo "minio_endpoint=$MINIO_ENDPOINT"
     echo "minio_service=$MINIO_SERVICE"
     echo "minio_bucket=${MINIO_BUCKET:-ALL}"
@@ -290,9 +266,6 @@ log "Output directory: $OUTDIR"
 #
 # Postgres:
 #   gunzip -c backups/<STAMP>/postgres_<DB>.sql.gz | docker compose exec -T <POSTGRES_HOST> psql -U <POSTGRES_USER> <POSTGRES_DB>
-#
-# Media:
-#   tar -xzf backups/<STAMP>/media.tar.gz -C <parent-of-MEDIA_DIR>
 #
 # MinIO:
 #   If you backed up ALL buckets:
