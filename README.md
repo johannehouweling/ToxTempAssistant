@@ -7,7 +7,6 @@ ToxTemp "was developed (i) to fulfill all requirements of GD211, (ii) to guide t
 - [ToxTempAssistant](#toxtempassistant)
   - [TOC](#toc)
   - [Spin up server with docker](#spin-up-server-with-docker)
-    - [Get OpenAI API credentials](#get-openai-api-credentials)
     - [Azure AI Foundry — add a model](#azure-ai-foundry--add-a-model)
     - [Get ORCID iD credentials](#get-orcid-id-credentials)
     - [Create Certificate](#create-certificate)
@@ -31,7 +30,6 @@ Modify and rename the '.env.dummy'-file to `.env` in same path as the `docker-co
 
 - `DEBUG` settitng for django should be False for production
 - `SECRET_KEY` for django, salt for pw hashes
-- `OPENAI_API_KEY` for LLM access
 - `ORCID_CLIENT_ID` and `ORCID_CLIENT_SECRECT` to facilitate login via ORCID (see below for details)
 - `ALLOWED_HOSTS` URI of the app, and IP address of server, potentaially also furhter aliases
 - `POSTGRES_HOST` IP address of dedicated Postgres server if available, otherwise postgres_for_django to use postgres included in docker compose (obviously, the postgres server can be taken out of the docker compose if an external server is used)
@@ -57,14 +55,10 @@ docker compose -f docker-compose.yml up
 > export COMPOSE_DOCKER_CLI_BUILD=1
 > ```
 
-### Get OpenAI API credentials
-https://platform.openai.com/api-keys
-
 ### Azure AI Foundry — add a model
 
-ToxTempAssistant can serve models from Azure AI Foundry (Azure OpenAI, Mistral,
-Anthropic, Moonshot/Kimi, etc.) in parallel to (or instead of) the direct OpenAI
-/ OpenRouter paths. Models are auto-discovered from the `.env` file at startup —
+ToxTempAssistant serves models from Azure AI Foundry (Azure OpenAI, Mistral,
+Anthropic, Moonshot/Kimi, etc.). Models are auto-discovered from the `.env` file at startup —
 no code changes are required to add, remove, or retire a deployment.
 
 #### Env-var convention
