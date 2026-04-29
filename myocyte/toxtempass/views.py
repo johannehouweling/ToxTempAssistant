@@ -2130,35 +2130,57 @@ def delete_workspace(request: HttpRequest, pk: int) -> HttpResponseRedirect:
         .select_related("user")
     )
 
-    for member in non_owner_members:
-        # Workspaces this user belongs to *other* than the one being deleted.
-        other_workspace_ids = list(
-            WorkspaceMember.objects.filter(user=member.user)
+    if non_owner_members and shared_inv_ids:
+        member_user_ids = [m.user_id for m in non_owner_members]
+
+        # Batch 1: other workspace IDs for all non-owner members (single query).
+        user_other_workspaces: dict[int, set[int]] = {}
+        for row in (
+            WorkspaceMember.objects.filter(user_id__in=member_user_ids)
             .exclude(workspace=workspace)
-            .values_list("workspace_id", flat=True)
-        )
-        # Single batch query: which of the shared investigations does this member
-        # still have access to via another workspace?  Set lookup avoids O(N×M)
-        # individual existence queries.
-        retained_inv_ids = set(
-            WorkspaceInvestigation.objects.filter(
+            .values("user_id", "workspace_id")
+        ):
+            user_other_workspaces.setdefault(row["user_id"], set()).add(
+                row["workspace_id"]
+            )
+
+        all_other_workspace_ids = {
+            wid
+            for ws_ids in user_other_workspaces.values()
+            for wid in ws_ids
+        }
+
+        # Batch 2: which of the shared investigations are accessible from those
+        # other workspaces (single query).
+        workspace_inv_map: dict[int, set[int]] = {}
+        if all_other_workspace_ids:
+            for row in WorkspaceInvestigation.objects.filter(
                 investigation_id__in=shared_inv_ids,
-                workspace_id__in=other_workspace_ids,
-            ).values_list("investigation_id", flat=True)
-        )
-        for winv in shared_invs:
-            if winv.investigation_id in retained_inv_ids:
-                continue
-            try:
-                remove_perm("view_investigation", member.user, winv.investigation)
-            except Exception:
-                logger.exception(
-                    "Failed to remove view_investigation perm for user %s on "
-                    "investigation %s during workspace %s deletion",
-                    getattr(member.user, "email", None),
-                    getattr(winv.investigation, "id", None),
-                    pk,
+                workspace_id__in=all_other_workspace_ids,
+            ).values("workspace_id", "investigation_id"):
+                workspace_inv_map.setdefault(row["workspace_id"], set()).add(
+                    row["investigation_id"]
                 )
+
+        for member in non_owner_members:
+            # Investigation IDs still accessible to this member via other workspaces.
+            retained_inv_ids: set[int] = set()
+            for ws_id in user_other_workspaces.get(member.user_id, set()):
+                retained_inv_ids.update(workspace_inv_map.get(ws_id, set()))
+
+            for winv in shared_invs:
+                if winv.investigation_id in retained_inv_ids:
+                    continue
+                try:
+                    remove_perm("view_investigation", member.user, winv.investigation)
+                except Exception:
+                    logger.exception(
+                        "Failed to remove view_investigation perm for user %s on "
+                        "investigation %s during workspace %s deletion",
+                        getattr(member.user, "email", None),
+                        getattr(winv.investigation, "id", None),
+                        pk,
+                    )
 
     workspace.delete()
     return redirect("overview")
