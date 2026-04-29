@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v3.5.0 (2026-04-29)
+
+### Documentation
+
+- Add citation instructions to README
+  ([`d58423f`](https://github.com/johannehouweling/ToxTempAssistant/commit/d58423fb4e8cded1abb4cb621861cb27820badf7))
+
+### Features
+
+- Add how to cite sentence and fix swapped footnote links on landing page
+  ([`1acc0bb`](https://github.com/johannehouweling/ToxTempAssistant/commit/1acc0bbe98ea90adac2e85d643c0e091dfabe849))
+
+
 ## v3.4.1 (2026-04-27)
 
 ### Bug Fixes
