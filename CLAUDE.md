@@ -90,7 +90,7 @@ docker compose exec djangoapp python manage.py run_evals --experiment X      # e
 1. **User preference** — `user.preferences["llm_model"]` (a `"endpoint_index:tag"` string), if still in the admin allowlist and not retired.
 2. **Admin default** — `LLMConfig.default_model` (singleton row, pk=1, managed at `/admin/toxtempass/llmconfig/`).
 3. **Env-tagged default** — the Azure deployment whose `.env` tag string contains `default:true`.
-4. **Legacy fallback** — `OPENAI_API_KEY` or `OPENROUTER_API_KEY` env vars (`toxtempass/__init__.py` resolves these into `LLM_ENDPOINT` / `LLM_API_KEY` at import time). These are deprecated; prefer Azure AI Foundry credentials.
+4. **Legacy fallback** — `OPENAI_API_KEY` env var (`toxtempass/__init__.py` resolves it into `LLM_ENDPOINT` / `LLM_API_KEY` at import time). Deprecated; prefer Azure AI Foundry credentials.
 
 Per-deployment clients are cached with `@lru_cache(maxsize=32)` in `get_llm_for_endpoint()`. The cache key is `(endpoint_index, model_tag, temperature)`. The function dispatches by the deployment's `api:` tag:
 

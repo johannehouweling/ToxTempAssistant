@@ -48,7 +48,6 @@ class ToxtempassConfig(AppConfig):
             "CSRF_TRUSTED_ORIGINS": _limit(settings.CSRF_TRUSTED_ORIGINS),
             "SECRET_KEY": _mask(settings.SECRET_KEY),
             "OPENAI_API_KEY": _mask(os.getenv("OPENAI_API_KEY")),
-            "OPENROUTER_API_KEY": _mask(os.getenv("OPENROUTER_API_KEY")),
         }
 
         title = "ENV VARIABLES FOR DJANGO SETUP"

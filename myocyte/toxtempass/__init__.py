@@ -24,20 +24,15 @@ if _azure_endpoints:
     LLM_ENDPOINT = _default_ep.endpoint
     LLM_API_KEY = _default_ep.api_key
 
-# ── Legacy fallbacks (OpenAI / OpenRouter) ─────────────────────────────────────
+# ── Legacy fallback (OpenAI) ──────────────────────────────────────────────────
 BASEURL_OPENAI = "https://api.openai.com/v1"
-BASEURL_OPENROUTER = "https://openrouter.ai/api/v1"
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 if not LLM_ENDPOINT:
     if OPENAI_API_KEY and BASEURL_OPENAI:
         LLM_ENDPOINT = BASEURL_OPENAI
         LLM_API_KEY = OPENAI_API_KEY
-    elif OPENROUTER_API_KEY and BASEURL_OPENROUTER:
-        LLM_ENDPOINT = BASEURL_OPENROUTER
-        LLM_API_KEY = OPENROUTER_API_KEY
 
 logging.basicConfig(
     level=logging.WARNING, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -52,7 +47,7 @@ class Config:
     ## IMPORTANT ALL PARAMETERS ARE DUMPED INTO THE METADATA OF THE USER EXPORT, UNLESS MARKED WITH _ or __ (underscore or double underscore) ##
 
     # Model defaults — resolved at import time from the Azure registry or
-    # legacy OpenAI/OpenRouter env vars.  The admin can override the active
+    # legacy OpenAI env vars.  The admin can override the active
     # endpoint+model at runtime via the LLMConfig singleton.
     if _azure_endpoints:
         _default_model_entry = (
@@ -61,21 +56,11 @@ class Config:
         model = _default_model_entry.model_id if _default_model_entry else "gpt-4o-mini"
         _deployment_name = _default_model_entry.deployment_name if _default_model_entry else None
     else:
-        model = "gpt-4o-mini" if OPENAI_API_KEY == LLM_API_KEY else "openai/gpt-4o-mini"
+        model = "gpt-4o-mini"
         _deployment_name = None
 
     model_info_url = ""
-    # openrouter allows us to identify the site and title for rankings so that in billing we see which app
-    extra_headers = (
-        {
-            "HTTP-Referer": os.getenv(
-                "SITE_URL"
-            ),  # Optional. Site URL for rankings on openrouter.ai.
-            "X-Title": "ToxTempAssistant",  # Optional. Site title for rankings on openrouter.ai.
-        }
-        if LLM_ENDPOINT == BASEURL_OPENROUTER
-        else {}
-    )
+    extra_headers = {}
     url = LLM_ENDPOINT
     temperature = 0
     not_found_string = "Answer not found in documents."
@@ -247,11 +232,7 @@ class Config:
     # These are used in the validation pipeline to estimate performance of the LLM
     # Not used in the actual application, but for validation purposes only.
 
-    _validation_embedding_model = (
-        "text-embedding-3-large"
-        if OPENAI_API_KEY == LLM_API_KEY
-        else "openai/text-embedding-3-large"
-    )
+    _validation_embedding_model = "text-embedding-3-large"
     _validation_bert_score_model = "microsoft/deberta-xlarge-mnli"
     _validation_cos_similarity_threshold = 0.7
     user_onboarding_help = {

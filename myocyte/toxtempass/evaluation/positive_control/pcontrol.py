@@ -89,7 +89,7 @@ def run(
         else:
             stdout.write(style.ERROR(
                 f"Model {model_name!r} not found in Azure registry and no legacy "
-                "OPENAI_API_KEY/OPENROUTER_API_KEY configured — skipping."
+                "OPENAI_API_KEY configured — skipping."
             ))
             continue
 

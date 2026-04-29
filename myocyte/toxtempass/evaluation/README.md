@@ -307,7 +307,7 @@ Results are skipped if output directory contains `tier*_summary*.json` files.
 ```
 ERROR: Required environment variables are missing
 ```
-**Solution**: Ensure the Azure AI Foundry credentials (`AZURE_E<n>_ENDPOINT`, `AZURE_E<n>_KEY`) are set in your `.env` file.
+**Solution**: Ensure `OPENAI_API_KEY` is set in your `.env` file, or configure Azure AI Foundry credentials (`AZURE_E<n>_ENDPOINT`, `AZURE_E<n>_KEY`).
 
 ## Contributing
 
