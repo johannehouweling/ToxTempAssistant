@@ -144,7 +144,6 @@ class Config:
     ALLOWED_MIME_TYPES: Final[frozenset[str]] = frozenset({
         "application/pdf",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/msword",
         "text/plain",
         "text/markdown",
         "text/html",
