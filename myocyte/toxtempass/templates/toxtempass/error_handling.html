@@ -29,7 +29,8 @@ document.addEventListener('DOMContentLoaded', function() {
     form.addEventListener('submit', function(event) {
         event.preventDefault(); // Prevent the form from submitting the default way
         const formData = new FormData(form); // Create FormData object for handling file uploads
-        const filesInForm = formData.getAll('files');
+        const filesInForm = Array.from(form.querySelectorAll('input[type="file"]'))
+            .flatMap(inp => Array.from(inp.files));
 
         // Clear previous errors
         form.querySelectorAll('.invalid-feedback').forEach(function(error) {
