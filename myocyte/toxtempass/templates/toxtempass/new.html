@@ -108,11 +108,11 @@
                 if (allowed) {
                     filesInput.disabled = false;
                     // Only clear files if transitioning from disabled (new assay context)
-                    if (!wasEnabled) { clearFileAccumulator(); }
+                    if (!wasEnabled) { filesAccumulatorClear(); }
                     document.getElementById('startButtonText').textContent = 'Create draft';
                 } else {
                     filesInput.disabled = true;
-                    clearFileAccumulator();
+                    filesAccumulatorClear();
                     document.getElementById('startButtonText').textContent = 'Edit draft';
                 }
             })
@@ -237,52 +237,7 @@
 
     </script>
 
-    <script>
-        // ── File accumulator ─────────────────────────────────────────────────────
-        // Allows adding files across multiple dialog opens instead of replacing them.
-        var fileAccumulator = new DataTransfer();
-
-        function clearFileAccumulator() {
-            fileAccumulator = new DataTransfer();
-            var inp = document.getElementById('id_files');
-            if (inp) inp.files = fileAccumulator.files;
-            renderFileList();
-        }
-
-        function removeAccumulatedFile(name) {
-            var newDt = new DataTransfer();
-            Array.from(fileAccumulator.files)
-                .filter(function(f) { return f.name !== name; })
-                .forEach(function(f) { newDt.items.add(f); });
-            fileAccumulator = newDt;
-            document.getElementById('id_files').files = fileAccumulator.files;
-            renderFileList();
-        }
-
-        function renderFileList() {
-            var list = document.getElementById('accumulated-file-list');
-            if (!list) return;
-            list.innerHTML = '';
-            Array.from(fileAccumulator.files).forEach(function(f) {
-                var tag = document.createElement('span');
-                tag.className = 'badge bg-secondary me-1 mb-1 d-inline-flex align-items-center gap-1';
-                var safeName = f.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-                tag.innerHTML = f.name +
-                    ' <button type="button" class="btn-close btn-close-white scale-75"' +
-                    ' onclick="removeAccumulatedFile(\'' + safeName + '\')"></button>';
-                list.appendChild(tag);
-            });
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('id_files').addEventListener('change', function() {
-                Array.from(this.files).forEach(function(f) { fileAccumulator.items.add(f); });
-                this.files = fileAccumulator.files;
-                renderFileList();
-            });
-        });
-        // ─────────────────────────────────────────────────────────────────────────
-    </script>
+    {% include "toxtempass/_file_accumulator.html" with input_id="id_files" prefix="files" %}
 
     <script>
         // Filter Investigation and Study so that the hierachy is reflected in the menu
