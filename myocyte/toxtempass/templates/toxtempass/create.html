@@ -12,7 +12,16 @@
     {% if workspace_creation_warning %}
       <div class="alert alert-warning">{{ workspace_creation_warning }}</div>
     {% endif %}
-    {% bootstrap_form form layout='floating'%}
+    {% if form.description and form.description.help_text %}
+        {% comment %}Render all fields except description, then description with its help text placed above the textarea{% endcomment %}
+        {% bootstrap_form form exclude='description' layout='floating' %}
+        <div class="mb-3">
+            <div class="form-text mb-1">{{ form.description.help_text }}</div>
+            {% bootstrap_field form.description layout='floating' show_help=False %}
+        </div>
+    {% else %}
+        {% bootstrap_form form layout='floating' %}
+    {% endif %}
     {% bootstrap_button button_type="submit" content="Save" button_class="btn-primary" %}
     {% bootstrap_button button_type="link" content="Back" href=back_url button_class="btn-outline-danger" %}
 </form>
