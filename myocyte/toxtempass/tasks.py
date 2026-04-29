@@ -161,6 +161,7 @@ def send_beta_signup_notification(person_id: int) -> str:
     recipient_email = getattr(config, "maintainer_email", None)
     if not recipient_email:
         _LOG.error("No maintainer email configured; cannot send beta notification.")
+        return ""
 
     prefs = person.preferences or {}
     context = {
