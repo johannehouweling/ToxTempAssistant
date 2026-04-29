@@ -365,7 +365,7 @@ class StartingForm(forms.Form):
         return cleaned_data
 
 
-_DESCRIPTION_TEXTAREA_ATTRS = {"style": "min-height: 25vh;"}
+_DESCRIPTION_TEXTAREA_ATTRS = {"style": "min-height: 15vh;"}
 
 
 # Form to create an Investigation
