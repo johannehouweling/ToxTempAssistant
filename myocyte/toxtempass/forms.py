@@ -365,7 +365,18 @@ class StartingForm(forms.Form):
         return cleaned_data
 
 
-_DESCRIPTION_TEXTAREA_ATTRS = {"style": "min-height: 15vh;"}
+_DESCRIPTION_TEXTAREA_ATTRS = {
+    "style": "min-height: 15vh;",
+}
+
+_ASSAY_DESCRIPTION_TEXTAREA_ATTRS = {
+    **_DESCRIPTION_TEXTAREA_ATTRS,
+    "placeholder": (
+        "(1) Test purpose (e.g., cytotoxicity);\n"
+        "(2) Test system (e.g., human neural stem cells in a 2D monolayer);\n"
+        "(3) Measured endpoint (e.g., cell viability by formazan conversion)."
+    ),
+}
 
 
 # Form to create an Investigation
@@ -428,18 +439,7 @@ class AssayForm(forms.ModelForm):
         model = Assay
         fields = ["study", "title", "description"]
         widgets = {
-            "description": forms.Textarea(attrs=_DESCRIPTION_TEXTAREA_ATTRS),
-        }
-        help_texts = {
-            "description": (
-                "Please provide a concise description of the assay that"
-                " specifies: (1) the test purpose (e.g., cytotoxicity);"
-                " (2) the test system (e.g., human neural stem cells"
-                " differentiated into a neuron-astrocyte co-culture in a"
-                " 2D monolayer); and (3) the measured endpoint (e.g., "
-                "cell viability assessed by formazan conversion using "
-                "a luminescence assay)."
-            )
+            "description": forms.Textarea(attrs=_ASSAY_DESCRIPTION_TEXTAREA_ATTRS),
         }
 
     def __init__(self, *args, user: Person = None, **kwargs):
