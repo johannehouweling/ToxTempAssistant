@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.6.1 (2026-04-29)
+
+### Bug Fixes
+
+- Increase description textarea min-height to 25vh for all three entity forms
+  ([`b1d1418`](https://github.com/johannehouweling/ToxTempAssistant/commit/b1d1418e87937441be453e0eefd5d201d0c208c3))
+
+
 ## v3.6.0 (2026-04-29)
 
 ### Bug Fixes
