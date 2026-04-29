@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.6.2 (2026-04-29)
+
+### Bug Fixes
+
+- Collect files from all file inputs for upload progress bar
+  ([`304c1a3`](https://github.com/johannehouweling/ToxTempAssistant/commit/304c1a32a8b79494eabe7c407e64294c0a060333))
+
+
 ## v3.6.1 (2026-04-29)
 
 ### Bug Fixes
