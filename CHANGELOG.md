@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v3.8.0 (2026-04-29)
+
+### Features
+
+- Move description help text above textarea in create form (closes #issue)
+  ([`e28f16f`](https://github.com/johannehouweling/ToxTempAssistant/commit/e28f16f78a6c19e6595cd1708f242789e11a1ee2))
+
+### Refactoring
+
+- Replace description help text with placeholder in AssayForm textarea
+  ([`ec0f32e`](https://github.com/johannehouweling/ToxTempAssistant/commit/ec0f32ed952234915fa980f3388c71abc762ba5e))
+
+
 ## v3.7.0 (2026-04-29)
 
 ### Bug Fixes
