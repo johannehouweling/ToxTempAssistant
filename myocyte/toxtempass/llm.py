@@ -121,7 +121,7 @@ def get_llm():
 
     if not api_key and not os.getenv("TESTING"):  # allow missing key in tests
         raise ImproperlyConfigured(
-            "LLM API key missing. Set AZURE_E1_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY."
+            "LLM API key missing. Set AZURE_E1_KEY or OPENAI_API_KEY."
         )
 
     logger.info("LLM configured")
@@ -192,7 +192,7 @@ def resolve_user_llm(user, temperature: float | int = 0):
     Resolution order (silent fallback, option A):
         1. ``user.preferences["llm_model"]`` if set, still in allowed list, not retired.
         2. ``LLMConfig.default_model`` (admin-chosen default).
-        3. Legacy ``get_llm()`` fallback (OpenAI/OpenRouter env creds).
+        3. Legacy ``get_llm()`` fallback (OpenAI env creds).
 
     ``source`` is one of ``"user" | "admin_default" | "legacy"``.
     ``replaced`` is ``True`` when the user had a preference that was invalid/retired/

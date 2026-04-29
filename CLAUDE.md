@@ -90,7 +90,7 @@ docker compose exec djangoapp python manage.py run_evals --experiment X      # e
 1. **User preference** — `user.preferences["llm_model"]` (a `"endpoint_index:tag"` string), if still in the admin allowlist and not retired.
 2. **Admin default** — `LLMConfig.default_model` (singleton row, pk=1, managed at `/admin/toxtempass/llmconfig/`).
 3. **Env-tagged default** — the Azure deployment whose `.env` tag string contains `default:true`.
-4. **Legacy fallback** — `OPENAI_API_KEY` or `OPENROUTER_API_KEY` env vars (`toxtempass/__init__.py` resolves these into `LLM_ENDPOINT` / `LLM_API_KEY` at import time).
+4. **Legacy fallback** — `OPENAI_API_KEY` env var (`toxtempass/__init__.py` resolves it into `LLM_ENDPOINT` / `LLM_API_KEY` at import time). Deprecated; prefer Azure AI Foundry credentials.
 
 Per-deployment clients are cached with `@lru_cache(maxsize=32)` in `get_llm_for_endpoint()`. The cache key is `(endpoint_index, model_tag, temperature)`. The function dispatches by the deployment's `api:` tag:
 
@@ -142,7 +142,7 @@ Selectors and help text for the in-app tour live in `Config.user_onboarding_help
 
 ## Environment variables
 
-Required for any run (see `.env.dummy` for the full list): `SECRET_KEY`, `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, `AWS_*` (MinIO), `GMAIL_ADDRESS` (used in `DEFAULT_FROM_EMAIL` — failing if absent). `USE_POSTGRES=true` switches from SQLite to Postgres; if `USE_POSTGRES=true` and `TESTING=true`, `POSTGRES_HOST` must equal `postgres_test_for_django` (settings.py raises otherwise). At least one LLM credential set (Azure E<n>, OpenAI, or OpenRouter) is required for non-test runs.
+Required for any run (see `.env.dummy` for the full list): `SECRET_KEY`, `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, `AWS_*` (MinIO), `GMAIL_ADDRESS` (used in `DEFAULT_FROM_EMAIL` — failing if absent). `USE_POSTGRES=true` switches from SQLite to Postgres; if `USE_POSTGRES=true` and `TESTING=true`, `POSTGRES_HOST` must equal `postgres_test_for_django` (settings.py raises otherwise). Azure AI Foundry credentials (`AZURE_E<n>_ENDPOINT`, `AZURE_E<n>_KEY`) are required for non-test runs.
 
 ## Conventions to honour
 

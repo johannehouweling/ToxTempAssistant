@@ -129,7 +129,7 @@ def llm_info(request) -> dict:
         except (ValueError, TypeError):
             resolved = None
     if resolved is None:
-        # Legacy path (OpenAI/OpenRouter env creds, no Azure registry)
+        # Legacy path (OpenAI env creds, no Azure registry)
         try:
             resolved = find_by_model_id(config.model)
         except Exception:
