@@ -245,6 +245,101 @@ class TestDeleteWorkspace:
         assert resp.status_code == 405
         assert Workspace.objects.filter(pk=workspace.pk).exists()
 
+    def test_delete_workspace_revokes_member_guardian_perm(
+        self, client, owner, workspace, investigation, member_user
+    ):
+        """Deleting the workspace revokes view_investigation for non-owner members."""
+        _give_member_access(workspace, investigation, owner, member_user)
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=member_user.pk), investigation
+        )
+
+        client.force_login(owner)
+        client.post(reverse("delete_workspace", kwargs={"pk": workspace.pk}))
+
+        assert not Workspace.objects.filter(pk=workspace.pk).exists()
+        assert "view_investigation" not in get_perms(
+            Person.objects.get(pk=member_user.pk), investigation
+        )
+
+    def test_delete_workspace_member_cannot_view_assay_after_deletion(
+        self, client, owner, workspace, investigation, member_user
+    ):
+        """After workspace deletion, ex-member is denied access to shared assays."""
+        _give_member_access(workspace, investigation, owner, member_user)
+        study = StudyFactory.create(investigation=investigation)
+        assay = AssayFactory.create(study=study)
+
+        client.force_login(owner)
+        client.post(reverse("delete_workspace", kwargs={"pk": workspace.pk}))
+
+        client.force_login(member_user)
+        resp = client.get(
+            reverse("answer_assay_questions", kwargs={"assay_id": assay.pk})
+        )
+        assert resp.status_code == 403
+
+    def test_delete_workspace_preserves_perm_if_member_has_other_workspace(
+        self, client, owner, member_user, investigation
+    ):
+        """Member retains view_investigation if another workspace still shares the same investigation."""
+        workspace_a = WorkspaceFactory.create(owner=owner)
+        workspace_b = WorkspaceFactory.create(owner=owner)
+
+        _give_member_access(workspace_a, investigation, owner, member_user)
+        _give_member_access(workspace_b, investigation, owner, member_user)
+
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=member_user.pk), investigation
+        )
+
+        # Delete workspace_a — member still has access via workspace_b
+        client.force_login(owner)
+        client.post(reverse("delete_workspace", kwargs={"pk": workspace_a.pk}))
+
+        assert not Workspace.objects.filter(pk=workspace_a.pk).exists()
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=member_user.pk), investigation
+        )
+
+    def test_delete_workspace_owner_retains_own_investigation_access(
+        self, client, owner, workspace, investigation
+    ):
+        """Deleting the workspace does not affect the owner's own investigation."""
+        WorkspaceInvestigation.objects.create(
+            workspace=workspace, investigation=investigation, added_by=owner
+        )
+
+        client.force_login(owner)
+        client.post(reverse("delete_workspace", kwargs={"pk": workspace.pk}))
+
+        # The investigation itself should still exist (only workspace is gone)
+        assert Investigation.objects.filter(pk=investigation.pk).exists()
+
+    def test_delete_workspace_with_admin_member_revokes_admin_perm(
+        self, client, owner, workspace, investigation, admin_user
+    ):
+        """ADMIN-role members also lose view_investigation when the workspace is deleted."""
+        WorkspaceMemberFactory.create(
+            workspace=workspace, user=admin_user, role=WorkspaceRole.ADMIN
+        )
+        WorkspaceInvestigation.objects.create(
+            workspace=workspace, investigation=investigation, added_by=owner
+        )
+        assign_perm("view_investigation", admin_user, investigation)
+
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=admin_user.pk), investigation
+        )
+
+        client.force_login(owner)
+        client.post(reverse("delete_workspace", kwargs={"pk": workspace.pk}))
+
+        assert not Workspace.objects.filter(pk=workspace.pk).exists()
+        assert "view_investigation" not in get_perms(
+            Person.objects.get(pk=admin_user.pk), investigation
+        )
+
 
 # ---------------------------------------------------------------------------
 # TestDeleteEndpointsRejectGet — regression for the GET-prefetch CSRF hazard

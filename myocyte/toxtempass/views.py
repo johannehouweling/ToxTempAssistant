@@ -2100,12 +2100,61 @@ def delete_workspace(request: HttpRequest, pk: int) -> HttpResponseRedirect:
 
     POST-only and CSRF-protected: GET would be triggerable by browser
     prefetchers, link scanners, or cross-site image/link tags.
+
+    Before deleting the workspace we explicitly revoke the guardian
+    ``view_investigation`` permissions that were granted to non-owner
+    members via this workspace.  The CASCADE delete of WorkspaceMember /
+    WorkspaceInvestigation rows removes the DB records but does **not**
+    clean up guardian's object-level permission rows — without this step,
+    ex-members would retain read access to the shared investigations.
+
+    We preserve access for members who still have the same investigation
+    shared through a *different* workspace they belong to.
     """
     workspace = get_object_or_404(Workspace, pk=pk)
     if workspace.owner != request.user:
         from django.core.exceptions import PermissionDenied
 
         raise PermissionDenied("You do not own this workspace.")
+
+    # Snapshot investigations and non-owner members *before* the CASCADE delete.
+    shared_invs = list(
+        WorkspaceInvestigation.objects.filter(workspace=workspace).select_related(
+            "investigation"
+        )
+    )
+    non_owner_members = list(
+        WorkspaceMember.objects.filter(workspace=workspace)
+        .exclude(role=WorkspaceRole.OWNER)
+        .select_related("user")
+    )
+
+    for member in non_owner_members:
+        # Workspaces this user belongs to *other* than the one being deleted.
+        other_workspace_ids = (
+            WorkspaceMember.objects.filter(user=member.user)
+            .exclude(workspace=workspace)
+            .values_list("workspace_id", flat=True)
+        )
+        for winv in shared_invs:
+            # Keep the perm if another workspace still shares this investigation
+            # with the user.
+            if WorkspaceInvestigation.objects.filter(
+                investigation=winv.investigation,
+                workspace_id__in=other_workspace_ids,
+            ).exists():
+                continue
+            try:
+                remove_perm("view_investigation", member.user, winv.investigation)
+            except Exception:
+                logger.exception(
+                    "Failed to remove view_investigation perm for user %s on "
+                    "investigation %s during workspace %s deletion",
+                    getattr(member.user, "email", None),
+                    getattr(winv.investigation, "id", None),
+                    pk,
+                )
+
     workspace.delete()
     return redirect("overview")
 
