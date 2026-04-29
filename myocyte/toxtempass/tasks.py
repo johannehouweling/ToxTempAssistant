@@ -162,8 +162,14 @@ def send_beta_signup_notification(person_id: int) -> str:
     if not recipient_email:
         _LOG.error("No maintainer email configured; cannot send beta notification.")
 
+    prefs = person.preferences or {}
     context = {
-        "person": person,
+        "person": {
+            "get_full_name": person.get_full_name(),
+            "email": person.email,
+            "organization": person.organization,
+            "preferences": {"beta_requested_at": prefs.get("beta_requested_at")},
+        },
         "approve_url": approve_url,
     }
 

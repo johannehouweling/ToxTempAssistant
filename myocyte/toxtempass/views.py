@@ -267,7 +267,10 @@ def approve_beta(request: HttpRequest, token: str) -> HttpResponse:
                 template_text="toxtempass/email/beta_approved_email.txt",
                 template_html="toxtempass/email/beta_approved_email.html",
                 context={
-                    "person": person,
+                    "person": {
+                        "get_full_name": person.get_full_name(),
+                        "email": person.email,
+                    },
                     "login_url": request.build_absolute_uri(reverse("login")),
                 },
                 group="emails",
