@@ -2,6 +2,41 @@
 
 <!-- version list -->
 
+## v3.6.0 (2026-04-29)
+
+### Bug Fixes
+
+- Add file accumulator to update modal to preserve selected files across picker opens
+  ([`21927f1`](https://github.com/johannehouweling/ToxTempAssistant/commit/21927f18f9a0399a4fda324497095fdae7e8c64f))
+
+- Imporve file indentivfaction when removeing files from file list
+  ([`35eeab6`](https://github.com/johannehouweling/ToxTempAssistant/commit/35eeab6d72eff7a9d4c9c0c5aa7c6d2455e24bfe))
+
+- Small tweaks for doc imports loading
+  ([`afd3404`](https://github.com/johannehouweling/ToxTempAssistant/commit/afd34046838321e75cd51454d261e484552297ae))
+
+- **file-upload**: Multi-file select also for modal per-question upload
+  ([`c9f90b0`](https://github.com/johannehouweling/ToxTempAssistant/commit/c9f90b04e9626d95ceda5338290ceb0810616c36))
+
+### Documentation
+
+- Remove OpenAI API references from documentation
+  ([`c44900b`](https://github.com/johannehouweling/ToxTempAssistant/commit/c44900b3787b2afc51d3825fbc3295be9c8ec2f1))
+
+### Features
+
+- **file-upload**: Multi-file select also for modal per-question upload
+  ([`54e906e`](https://github.com/johannehouweling/ToxTempAssistant/commit/54e906e26b1d8bd7d16c76420f5f84f876339c07))
+
+### Refactoring
+
+- Purge OpenRouter from codebase, keep OPENAI_API_KEY functional
+  ([`9992dec`](https://github.com/johannehouweling/ToxTempAssistant/commit/9992dec7edca0ee5c8d6438dbb17289586487ebb))
+
+- Use arrow function instead of IIFE in renderAccumulatedFileList
+  ([`0034ccd`](https://github.com/johannehouweling/ToxTempAssistant/commit/0034ccdc8d87e5162ae87c61be7fdff7264a9a8c))
+
+
 ## v3.5.0 (2026-04-29)
 
 ### Documentation
