@@ -120,6 +120,42 @@ Object-level permissions go through `django-guardian`. The abstract `AccessibleM
 
 `Person.preferences` is a JSONField holding multiple semantically distinct keys (beta state, tour progress, llm pref). All writes must go through `utilities.update_prefs_atomic(user, mutate)`, which serialises with `SELECT FOR UPDATE` — the naive read-modify-write pattern races and clobbers other keys.
 
+### Workspace ownership model
+
+Workspaces are a collaboration mechanism and **do not transfer ownership**. The
+ownership chain is always rooted at the `Investigation.owner` field and never
+changes when an investigation is shared into a workspace.
+
+Key rules to observe when working in this area:
+
+* **Investigation ownership is permanent.** `Investigation.save()` always grants
+  the owner `view_investigation` / `change_investigation` / `delete_investigation`
+  guardian permissions. These are *baseline* permissions and must **not** be
+  revoked by workspace lifecycle operations (create, delete, member add/remove).
+
+* **Workspace access is additive.** Adding an investigation to a workspace grants
+  `view_investigation` to all current workspace members. Removing it (or deleting
+  the workspace) revokes that perm — *unless* the member also owns the investigation
+  or still has access via another workspace that shares the same investigation.
+
+* **Studies and Assays created inside a shared investigation are owned by their
+  creator** (`created_by` FK), not by the investigation owner. However, **access
+  to those objects is gated entirely by the investigation's sharing status.** If
+  a workspace is dissolved and a member no longer has access to the parent
+  investigation, they also lose access to every Study/Assay they created inside
+  it. This is by design — the investigation is the root that defines the access
+  boundary.
+
+* **Workspace dissolution (`delete_workspace`) cleanup order:**
+  1. Snapshot `WorkspaceMember` (non-owner) + `WorkspaceInvestigation` rows.
+  2. For each non-owner member × shared investigation: skip if the member owns
+     the investigation *or* still has access via another workspace; otherwise
+     revoke `view_investigation`.
+  3. Call `workspace.delete()` (CASCADE removes members + investigations rows).
+
+  Never revoke permissions on an investigation whose `owner_id` matches the
+  workspace member being processed — their perm is baseline, not workspace-derived.
+
 ### Async tasks
 
 `django-q2` runs in-process via `manage.py qcluster` (started by `django_startup.sh` unless `TESTING=true`). The cluster uses the Django ORM as its broker (`Q_CLUSTER["orm"] = "default"`). When `DEBUG` or `TESTING` is true, `Q_CLUSTER["sync"] = True` so tasks execute inline. Email is the primary task type today (`tasks.queue_email`).

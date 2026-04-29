@@ -2171,6 +2171,11 @@ def delete_workspace(request: HttpRequest, pk: int) -> HttpResponseRedirect:
             for winv in shared_invs:
                 if winv.investigation_id in retained_inv_ids:
                     continue
+                # Never revoke the investigation owner's own perm — it was
+                # granted by Investigation.save() and is baseline access, not
+                # workspace-derived.
+                if member.user_id == winv.investigation.owner_id:
+                    continue
                 try:
                     remove_perm("view_investigation", member.user, winv.investigation)
                 except Exception:

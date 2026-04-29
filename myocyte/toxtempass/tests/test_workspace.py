@@ -340,6 +340,42 @@ class TestDeleteWorkspace:
             Person.objects.get(pk=admin_user.pk), investigation
         )
 
+    def test_delete_workspace_preserves_perm_for_member_who_owns_investigation(
+        self, client, owner, workspace, admin_user
+    ):
+        """Deleting a workspace must not revoke the view perm of a member who owns the shared investigation.
+
+        A workspace member (with ADMIN role here, but the same applies to any
+        non-owner role) can share *their own* investigation into the workspace.
+        When the workspace is later deleted the investigation owner must retain
+        their baseline ``view_investigation`` permission — it was granted by
+        ``Investigation.save()`` and is not workspace-derived.
+        """
+        owned_investigation = InvestigationFactory.create(owner=admin_user)
+        WorkspaceMemberFactory.create(
+            workspace=workspace, user=admin_user, role=WorkspaceRole.ADMIN
+        )
+        WorkspaceInvestigation.objects.create(
+            workspace=workspace,
+            investigation=owned_investigation,
+            added_by=admin_user,
+        )
+
+        # Investigation.save() already assigned the perm; confirm it exists.
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=admin_user.pk), owned_investigation
+        )
+
+        client.force_login(owner)
+        client.post(reverse("delete_workspace", kwargs={"pk": workspace.pk}))
+
+        assert not Workspace.objects.filter(pk=workspace.pk).exists()
+        assert Investigation.objects.filter(pk=owned_investigation.pk).exists()
+        # Owner must still be able to see their own investigation.
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=admin_user.pk), owned_investigation
+        )
+
 
 # ---------------------------------------------------------------------------
 # TestDeleteEndpointsRejectGet — regression for the GET-prefetch CSRF hazard
