@@ -680,6 +680,7 @@ def get_text_or_imagebytes_from_django_uploaded_file(
     processed_sources = {
         entry.get("source_document")
         for entry in text_dict.values()
+        if entry.get("source_document") is not None
     }
     unreadable = [
         display_name

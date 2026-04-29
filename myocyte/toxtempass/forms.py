@@ -30,7 +30,7 @@ from toxtempass.models import (
     Workspace,
     WorkspaceRole,
 )
-from toxtempass.utilities import provenance_label_for_item
+from toxtempass.utilities import add_user_alert, provenance_label_for_item
 from functools import partial
 from toxtempass.widgets import (
     BootstrapSelectWithButtonsWidget,
@@ -623,8 +623,6 @@ class AssayAnswerForm(forms.Form):
             )
             logger.debug(f"Received {len(uploaded_files)} uploaded files for processing.")
             if unreadable:
-                from toxtempass.utilities import add_user_alert
-
                 for name in unreadable:
                     add_user_alert(
                         self.assay,
@@ -637,6 +635,8 @@ class AssayAnswerForm(forms.Form):
                         "None of the uploaded files could be read. "
                         "Please check that the files are not corrupted or password-protected.",
                     )
+                    # Persist alerts without changing assay status — no task is
+                    # queued so SCHEDULED would be misleading.
                     self.assay.save(update_fields=["user_alerts"])
                     return False
         else:
