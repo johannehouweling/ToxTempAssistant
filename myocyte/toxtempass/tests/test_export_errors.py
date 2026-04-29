@@ -39,7 +39,6 @@ def _run_export_with_pandoc_error(assay, side_effect):
         yaml_stub.write_text("title: test")
 
         with (
-            patch("toxtempass.export.settings") as mock_settings,
             patch(
                 "toxtempass.export.generate_markdown_from_assay",
                 return_value="# test",
@@ -53,7 +52,6 @@ def _run_export_with_pandoc_error(assay, side_effect):
                 side_effect=side_effect,
             ),
         ):
-            mock_settings.MEDIA_ROOT = tmp_dir
             response = export_assay_to_file(request, assay, export_type)
 
     return response

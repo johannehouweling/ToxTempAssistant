@@ -170,6 +170,17 @@ To obtain ORCID iD and secret perform the following steps:
 Required for orcid login and general privacy considerations, it is advised to setup https. To this end a certificate is required. Create a Certificate Signing Request and send it to Certifying Authority, your institution should have someone. 
 See this article, which also has some details on making the certificiate work with nginx: https://www.digitalocean.com/community/tutorials/how-to-create-a-self-signed-ssl-certificate-for-nginx-in-ubuntu-20-04-1
 
+### Storage architecture
+
+The app uses two storage tiers:
+
+| Tier | What goes here | Backed up? |
+|------|---------------|------------|
+| **MinIO (S3)** | User-uploaded files (PDFs, images, DOCX, etc.) stored as `FileAsset` objects — **persistent** | Yes — via `backup.sh` MinIO mirror |
+| **Temp directory** | Export artefacts generated on-the-fly (PDF, DOCX, JSON, …) — **ephemeral**, served from memory and discarded after each request | No — nothing to back up |
+
+There is **no Django media folder**. `MEDIA_ROOT`/`MEDIA_URL` are not defined. All persistent uploads must go through `FileAsset` and `store_files_to_storage()` in `filehandling.py`.
+
 ### MinIO setup
 MinIO provides local S3-compatible object storage for the app.
 

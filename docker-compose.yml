@@ -124,7 +124,6 @@ services:
     volumes:
       - ./myocyte/logs:/home/myocyte/logs
       - ./myocyte/static:/home/myocyte/static
-      - ./myocyte/media:/home/myocyte/media
       - ./test-results:/home/myocyte/test-results
     ports:
       - 8401:8000

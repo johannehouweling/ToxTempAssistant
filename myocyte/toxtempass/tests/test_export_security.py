@@ -60,17 +60,10 @@ class ExportFilenameTests(TestCase):
         """JSON export filename ends with the suffix from EXPORT_MIME_SUFFIX."""
         from toxtempass.export import export_assay_to_file
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            with (
-                patch("toxtempass.export.settings") as mock_settings,
-                patch(
-                    "toxtempass.export.generate_json_from_assay", return_value={}
-                ),
-            ):
-                mock_settings.MEDIA_ROOT = tmp_dir
-                response = export_assay_to_file(self.request, self.assay, "json")
-            content_disp = response.headers.get("Content-Disposition", "")
-            _release_file_response(response)
+        with patch("toxtempass.export.generate_json_from_assay", return_value={}):
+            response = export_assay_to_file(self.request, self.assay, "json")
+        content_disp = response.headers.get("Content-Disposition", "")
+        _release_file_response(response)
 
         expected_suffix = EXPORT_MIME_SUFFIX["json"]["suffix"]  # ".json"
         self.assertIn(expected_suffix, content_disp)
@@ -91,7 +84,6 @@ class ExportFilenameTests(TestCase):
                 captured_commands: list = []
 
                 with (
-                    patch("toxtempass.export.settings") as mock_settings,
                     patch(
                         "toxtempass.export.generate_markdown_from_assay",
                         return_value="# test",
@@ -105,7 +97,6 @@ class ExportFilenameTests(TestCase):
                         side_effect=_make_pandoc_stub(captured_commands),
                     ),
                 ):
-                    mock_settings.MEDIA_ROOT = tmp_dir
                     response = export_assay_to_file(
                         self.request, self.assay, export_type
                     )
@@ -147,7 +138,6 @@ class ExportPandocCommandTests(TestCase):
                 captured_commands: list = []
 
                 with (
-                    patch("toxtempass.export.settings") as mock_settings,
                     patch(
                         "toxtempass.export.generate_markdown_from_assay",
                         return_value="# test",
@@ -161,7 +151,6 @@ class ExportPandocCommandTests(TestCase):
                         side_effect=_make_pandoc_stub(captured_commands),
                     ),
                 ):
-                    mock_settings.MEDIA_ROOT = tmp_dir
                     response = export_assay_to_file(self.request, self.assay, export_type)
                 _release_file_response(response)
 

@@ -126,7 +126,9 @@ Object-level permissions go through `django-guardian`. The abstract `AccessibleM
 
 ### File storage
 
-Files use `django-storages` with the S3 backend pointed at MinIO (env: `AWS_S3_ENDPOINT_URL`, `AWS_STORAGE_BUCKET_NAME`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` — required at import time in `settings.py`). The `FileAsset` model owns the object lifecycle; a `post_delete` signal (`signals.delete_object_from_storage`) removes the underlying object from storage when the row is deleted. Allowed MIME types and file extensions are gated centrally in `Config.ALLOWED_MIME_TYPES`, `IMAGE_ACCEPT_FILES`, `TEXT_ACCEPT_FILES` (immutable; runtime mutation is blocked).
+All user-uploaded files are stored in **MinIO** (S3-compatible object storage) via `django-storages` with the S3 backend (env: `AWS_S3_ENDPOINT_URL`, `AWS_STORAGE_BUCKET_NAME`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` — required at import time in `settings.py`). There is **no local media folder**; do not use `MEDIA_ROOT`/`MEDIA_URL` or Django's default file upload storage — all uploads must go through the `FileAsset` model and `store_files_to_storage()` in `filehandling.py`. The `FileAsset` model owns the object lifecycle; a `post_delete` signal (`signals.delete_object_from_storage`) removes the underlying object from MinIO when the DB row is deleted. Allowed MIME types and file extensions are gated centrally in `Config.ALLOWED_MIME_TYPES`, `IMAGE_ACCEPT_FILES`, `TEXT_ACCEPT_FILES` (immutable; runtime mutation is blocked).
+
+Export artefacts (PDF, DOCX, etc.) are generated on-the-fly using a `tempfile.TemporaryDirectory` and served directly from memory — they are never written to permanent disk storage.
 
 ### Export pipeline
 
