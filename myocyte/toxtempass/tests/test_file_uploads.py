@@ -50,7 +50,7 @@ class FileUploadTests(TestCase):
 
         with patch(
             "toxtempass.forms.get_text_or_imagebytes_from_django_uploaded_file",
-            return_value=dummy_doc,
+            return_value=(dummy_doc, []),
         ) as mock_get_text, patch("toxtempass.forms.async_task") as mock_async:
             form = AssayAnswerForm(
                 data={f"earmarked_{question.id}": True},
@@ -102,3 +102,105 @@ class FileUploadTests(TestCase):
         # Flatten errors to a string for a robust assertion
         error_str = str(errors)
         self.assertIn("exceeds", error_str.lower())
+
+    def test_assayanswerform_rejects_legacy_doc_mime_type(self):
+        """
+        application/msword (.doc) is no longer in ALLOWED_MIME_TYPES because
+        the old Word format cannot be parsed.  Uploading such a file must
+        trigger a validation error at the form-cleaning stage.
+        """
+        f = SimpleUploadedFile(
+            "report.doc", b"PK\x03\x04dummy", content_type="application/msword"
+        )
+        files = MultiValueDict({"file_upload": [f]})
+
+        form = AssayAnswerForm(data={}, files=files, assay=self.assay, user=self.user)
+        self.assertFalse(form.is_valid())
+        error_str = str(form.errors)
+        self.assertIn("unsupported file type", error_str.lower())
+
+    def test_assayanswerform_save_warns_on_unreadable_file(self):
+        """
+        When get_text_or_imagebytes_from_django_uploaded_file reports that a
+        file could not be parsed, save() must add a user-visible alert on the
+        assay and still proceed if at least one other file was readable.
+        """
+        qs = QuestionSet.objects.create(
+            display_name="test-qs", created_by=self.assay.study.investigation.owner
+        )
+        section = Section.objects.create(question_set=qs, title="Sec")
+        subsection = Subsection.objects.create(section=section, title="Subsec")
+        question = Question.objects.create(subsection=subsection, question_text="Q1?")
+        Answer.objects.get_or_create(assay=self.assay, question=question)
+        self.assay.question_set = qs
+        self.assay.save()
+
+        dummy_doc = {
+            "good.txt": {
+                "text": "readable content",
+                "source_document": "good.txt",
+                "origin": "document",
+            }
+        }
+
+        f1 = SimpleUploadedFile("good.txt", b"readable", content_type="text/plain")
+        f2 = SimpleUploadedFile("bad.pdf", b"corrupt", content_type="application/pdf")
+        files = MultiValueDict({"file_upload": [f1, f2]})
+
+        with patch(
+            "toxtempass.forms.get_text_or_imagebytes_from_django_uploaded_file",
+            return_value=(dummy_doc, ["bad.pdf"]),
+        ), patch("toxtempass.forms.async_task"):
+            form = AssayAnswerForm(
+                data={f"earmarked_{question.id}": True},
+                files=files,
+                assay=self.assay,
+                user=self.user,
+            )
+            self.assertTrue(form.is_valid(), msg=f"Form errors: {form.errors}")
+            result = form.save()
+
+        self.assertTrue(result)
+        self.assay.refresh_from_db()
+        alerts = self.assay.user_alerts or []
+        alert_messages = [a["message"] for a in alerts]
+        self.assertTrue(
+            any("bad.pdf" in msg for msg in alert_messages),
+            msg=f"Expected 'bad.pdf' warning in user_alerts, got: {alert_messages}",
+        )
+
+    def test_assayanswerform_save_blocks_when_all_files_unreadable(self):
+        """
+        When every uploaded file fails to parse (all unreadable), save() must
+        add a form error and return False instead of queuing an async task.
+        """
+        qs = QuestionSet.objects.create(
+            display_name="test-qs2", created_by=self.assay.study.investigation.owner
+        )
+        section = Section.objects.create(question_set=qs, title="Sec2")
+        subsection = Subsection.objects.create(section=section, title="Subsec2")
+        question = Question.objects.create(subsection=subsection, question_text="Q2?")
+        Answer.objects.get_or_create(assay=self.assay, question=question)
+        self.assay.question_set = qs
+        self.assay.save()
+
+        f = SimpleUploadedFile("broken.pdf", b"notapdf", content_type="application/pdf")
+        files = MultiValueDict({"file_upload": [f]})
+
+        with patch(
+            "toxtempass.forms.get_text_or_imagebytes_from_django_uploaded_file",
+            return_value=({}, ["broken.pdf"]),
+        ), patch("toxtempass.forms.async_task") as mock_async:
+            form = AssayAnswerForm(
+                data={f"earmarked_{question.id}": True},
+                files=files,
+                assay=self.assay,
+                user=self.user,
+            )
+            self.assertTrue(form.is_valid(), msg=f"Form errors: {form.errors}")
+            result = form.save()
+
+        self.assertFalse(result)
+        mock_async.assert_not_called()
+        error_str = str(form.errors)
+        self.assertIn("none of the uploaded files could be read", error_str.lower())

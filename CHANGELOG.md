@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.6.3 (2026-04-29)
+
+### Bug Fixes
+
+- Reduce height of desciption boxes to 15vh
+  ([`06dc4a8`](https://github.com/johannehouweling/ToxTempAssistant/commit/06dc4a8311d555c9f9d190c15fca78c235b0d26e))
+
+
 ## v3.6.2 (2026-04-29)
 
 ### Bug Fixes

@@ -108,8 +108,7 @@ COPY myocyte/ $APP_HOME
 RUN mkdir -p $APP_HOME/logs && \
     touch $APP_HOME/logs/django_logfile.log && \
     # Location for file interchanges
-    mkdir -p $APP_HOME/static && \
-    mkdir -p $APP_HOME/media
+    mkdir -p $APP_HOME/static
 
 # write git hash to the image
 # This is useful for debugging and version control

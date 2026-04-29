@@ -1320,9 +1320,16 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                             AnswerFile.objects.bulk_create(pairs, ignore_conflicts=True)
             # If files were uploaded and either overwrite is True or no existing
             if files and (overwrite or not answers_exist):
-                doc_dict = get_text_or_imagebytes_from_django_uploaded_file(
+                doc_dict, unreadable = get_text_or_imagebytes_from_django_uploaded_file(
                     files, extract_images=False
                 )
+                if unreadable:
+                    for name in unreadable:
+                        add_user_alert(
+                            assay,
+                            f"'{name}' could not be read and was not used to generate answers.",
+                            level="warning",
+                        )
                 try:
                     # Set assay status to busy and hand it off to the async worker
                     assay.status = LLMStatus.SCHEDULED
