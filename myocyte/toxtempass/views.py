@@ -2123,6 +2123,7 @@ def delete_workspace(request: HttpRequest, pk: int) -> HttpResponseRedirect:
             "investigation"
         )
     )
+    shared_inv_ids = {winv.investigation_id for winv in shared_invs}
     non_owner_members = list(
         WorkspaceMember.objects.filter(workspace=workspace)
         .exclude(role=WorkspaceRole.OWNER)
@@ -2131,18 +2132,22 @@ def delete_workspace(request: HttpRequest, pk: int) -> HttpResponseRedirect:
 
     for member in non_owner_members:
         # Workspaces this user belongs to *other* than the one being deleted.
-        other_workspace_ids = (
+        other_workspace_ids = list(
             WorkspaceMember.objects.filter(user=member.user)
             .exclude(workspace=workspace)
             .values_list("workspace_id", flat=True)
         )
-        for winv in shared_invs:
-            # Keep the perm if another workspace still shares this investigation
-            # with the user.
-            if WorkspaceInvestigation.objects.filter(
-                investigation=winv.investigation,
+        # Single batch query: which of the shared investigations does this member
+        # still have access to via another workspace?  Set lookup avoids O(N×M)
+        # individual existence queries.
+        retained_inv_ids = set(
+            WorkspaceInvestigation.objects.filter(
+                investigation_id__in=shared_inv_ids,
                 workspace_id__in=other_workspace_ids,
-            ).exists():
+            ).values_list("investigation_id", flat=True)
+        )
+        for winv in shared_invs:
+            if winv.investigation_id in retained_inv_ids:
                 continue
             try:
                 remove_perm("view_investigation", member.user, winv.investigation)
