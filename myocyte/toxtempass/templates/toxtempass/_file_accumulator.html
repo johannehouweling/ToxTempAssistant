@@ -35,10 +35,13 @@ react (e.g. refresh a Save button).
             fire();
         }
 
-        function removeOne(name) {
+        function removeFile(target) {
+            // Compare by File-object identity, not by name: two different files
+            // with the same basename (e.g. "data.csv" from different folders)
+            // are distinct File instances, so === avoids removing the wrong one.
             var newDt = new DataTransfer();
             Array.from(accumulator.files)
-                .filter(function(f) { return f.name !== name; })
+                .filter(function(f) { return f !== target; })
                 .forEach(function(f) { newDt.items.add(f); });
             accumulator = newDt;
             var inp = input();
@@ -60,7 +63,7 @@ react (e.g. refresh a Save button).
                 btn.type = 'button';
                 btn.className = 'btn-close btn-close-white scale-75';
                 btn.setAttribute('aria-label', 'Remove ' + f.name);
-                btn.addEventListener('click', function() { removeOne(f.name); });
+                btn.addEventListener('click', function() { removeFile(f); });
                 tag.appendChild(nameSpan);
                 tag.appendChild(btn);
                 list.appendChild(tag);
