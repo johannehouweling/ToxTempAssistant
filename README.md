@@ -14,6 +14,7 @@ ToxTemp "was developed (i) to fulfill all requirements of GD211, (ii) to guide t
     - [MinIO setup](#minio-setup)
   - [License](#license)
   - [Maintainer](#maintainer)
+  - [How to cite](#how-to-cite)
   - [References](#references)
   - [Contribute](#contribute)
     - [Poetry for Dependency Management](#poetry-for-dependency-management)
@@ -190,6 +191,9 @@ This project is licensed under the GNU Affero General Public License, see the LI
 ## Maintainer
 - Jente Houweling | firstname.lastname@rivm.nl
 - Matthias Arras | firstname.lastname@gmail.com
+
+## How to cite
+Houweling, J. M., Arras, M. M. L., Willighagen, E. L., Jennen, D. G. J., Evelo, C. T., & Kienhuis, A. S. (2026). ToxTempAssistant: using large language models to standardise cell-based toxicological test method descriptions. Evidence-Based Toxicology, 4(1). https://doi.org/10.1080/2833373X.2026.2638036
   
 ## References
 [1]: Krebs, Alice, et al. "Template for the description of cell-based toxicological test methods to allow evaluation and regulatory use of the data." ALTEX-Alternatives to animal experimentation 36.4 (2019): 682-699. https://dx.doi.org/10.14573/altex.1909271
