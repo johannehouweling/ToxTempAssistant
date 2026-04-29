@@ -60,11 +60,7 @@ class ExportFilenameTests(TestCase):
         """JSON export filename ends with the suffix from EXPORT_MIME_SUFFIX."""
         from toxtempass.export import export_assay_to_file
 
-        with (
-            patch(
-                "toxtempass.export.generate_json_from_assay", return_value={}
-            ),
-        ):
+        with patch("toxtempass.export.generate_json_from_assay", return_value={}):
             response = export_assay_to_file(self.request, self.assay, "json")
         content_disp = response.headers.get("Content-Disposition", "")
         _release_file_response(response)

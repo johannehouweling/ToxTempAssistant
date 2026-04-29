@@ -345,9 +345,6 @@ def export_assay_to_file(
                     status=500,
                 )
 
-        if export_data is None:
-            return JsonResponse({"error": "Assay or file_type not found"}, status=404)
-
         # Read the output file into memory so it can be served after the temp
         # directory is cleaned up.
         file_content = file_path.read_bytes()
