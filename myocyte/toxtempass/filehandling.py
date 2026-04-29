@@ -643,11 +643,20 @@ def convert_to_temporary(file: InMemoryUploadedFile) -> tuple[str, Path]:
 def get_text_or_imagebytes_from_django_uploaded_file(
     files: UploadedFile,
     extract_images: bool = False,
-) -> dict[str, dict[str, str]]:
+) -> tuple[dict[str, dict[str, str]], list[str]]:
     """Get text dictionary from uploaded files.
 
     {Path(filename.pdf): {'text': 'lorem ipsum'} or {"encodedbytes": "dskhasdhak"}
+
+    Returns:
+        A tuple of ``(text_dict, unreadable_names)`` where ``unreadable_names``
+        is a list of original display file names that could not be parsed
+        (unsupported format, read error, or no extractable content).
+
     """
+    # Map each temp file path back to the original display name so we can
+    # report human-readable names when a file fails to produce any output.
+    original_names: dict[str, str] = {}
     temp_files = []
     for file in files:
         if isinstance(file, TemporaryUploadedFile):
@@ -656,13 +665,29 @@ def get_text_or_imagebytes_from_django_uploaded_file(
             # Copy the temporary file to destination retaining the user-provided filename
             shutil.copy(src_path, dest_path)
             temp_files.append(str(dest_path))
+            original_names[str(dest_path)] = file.name
         elif isinstance(file, InMemoryUploadedFile):
             temp_path_str = convert_to_temporary(file)
             temp_files.append(temp_path_str)
+            original_names[temp_path_str] = file.name
 
     # md5_dict = calculate_md5_multiplefiles(temp_files)
     text_dict = get_text_or_bytes_perfile_dict(temp_files, extract_images=extract_images)
-    return text_dict
+
+    # Determine which input files produced no output entry at all.
+    # Every successfully processed file leaves at least one entry whose
+    # "source_document" value equals the temp file path.
+    processed_sources = {
+        entry.get("source_document")
+        for entry in text_dict.values()
+    }
+    unreadable = [
+        display_name
+        for temp_path, display_name in original_names.items()
+        if temp_path not in processed_sources
+    ]
+
+    return text_dict, unreadable
 
 
 def split_doc_dict_by_type(

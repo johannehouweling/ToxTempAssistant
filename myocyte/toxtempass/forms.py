@@ -618,10 +618,27 @@ class AssayAnswerForm(forms.Form):
         self.async_enqueued = False
 
         if uploaded_files:
-            doc_dict = get_text_or_imagebytes_from_django_uploaded_file(
+            doc_dict, unreadable = get_text_or_imagebytes_from_django_uploaded_file(
                 uploaded_files, extract_images=False
             )
             logger.debug(f"Received {len(uploaded_files)} uploaded files for processing.")
+            if unreadable:
+                from toxtempass.utilities import add_user_alert
+
+                for name in unreadable:
+                    add_user_alert(
+                        self.assay,
+                        f"'{name}' could not be read and was not used to generate answers.",
+                        level="warning",
+                    )
+                if not doc_dict:
+                    self.add_error(
+                        "file_upload",
+                        "None of the uploaded files could be read. "
+                        "Please check that the files are not corrupted or password-protected.",
+                    )
+                    self.assay.save(update_fields=["user_alerts"])
+                    return False
         else:
             doc_dict = {}
             logger.debug("No files uploaded.")
@@ -701,7 +718,7 @@ class AssayAnswerForm(forms.Form):
                     extract_images,
                     answer_ids,
                 )
-                self.assay.save(update_fields=["status"])
+                self.assay.save(update_fields=["status", "user_alerts"])
                 self.async_enqueued = True
                 logger.info(
                     "Queued asynchronous update for answers %s on assay %s.",
