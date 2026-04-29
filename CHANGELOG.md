@@ -2,6 +2,30 @@
 
 <!-- version list -->
 
+## v3.7.0 (2026-04-29)
+
+### Bug Fixes
+
+- Address code review - remove redundant export_data check; clean up test syntax
+  ([`8f80067`](https://github.com/johannehouweling/ToxTempAssistant/commit/8f800675f224cf066b9bb3f267827c379fcb2194))
+
+- Address code review feedback on file parse error surfacing
+  ([`68f57e4`](https://github.com/johannehouweling/ToxTempAssistant/commit/68f57e4a9b36d888401d4eb6f7c9f0a563b13a93))
+
+### Documentation
+
+- Document storage architecture (MinIO for persistent, tempfile for ephemeral exports)
+  ([`81b43dd`](https://github.com/johannehouweling/ToxTempAssistant/commit/81b43dd6f59279080d50024b8406465314888026))
+
+### Features
+
+- Add error messages when TTA is unable to read uploaded files
+  ([`972104e`](https://github.com/johannehouweling/ToxTempAssistant/commit/972104edbd57bd6580fba0a045cd8a0dc191e673))
+
+- Remove media folder; use tempfile for exports, MinIO for all uploads
+  ([`a527e3e`](https://github.com/johannehouweling/ToxTempAssistant/commit/a527e3ec59362eb12fb2c9da4a6859d7491a29d9))
+
+
 ## v3.6.3 (2026-04-29)
 
 ### Bug Fixes
