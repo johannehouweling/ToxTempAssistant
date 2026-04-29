@@ -365,6 +365,9 @@ class StartingForm(forms.Form):
         return cleaned_data
 
 
+_DESCRIPTION_TEXTAREA_ATTRS = {"style": "min-height: 25vh;"}
+
+
 # Form to create an Investigation
 class InvestigationForm(forms.ModelForm):
     class Meta:
@@ -372,6 +375,7 @@ class InvestigationForm(forms.ModelForm):
         fields = ["title", "description", "public_release_date"]
         widgets = {
             "public_release_date": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "description": forms.Textarea(attrs=_DESCRIPTION_TEXTAREA_ATTRS),
         }
     def __init__(self, *args, user: Person, **kwargs):
         """Add owner indication for users who are not the owner to mark provenance."""
@@ -387,6 +391,9 @@ class StudyForm(forms.ModelForm):
     class Meta:
         model = Study
         fields = ["investigation", "title", "description"]
+        widgets = {
+            "description": forms.Textarea(attrs=_DESCRIPTION_TEXTAREA_ATTRS),
+        }
 
     def __init__(self, *args, user: Person = None, **kwargs):
         """Filter the 'investigation' field.
@@ -420,6 +427,9 @@ class AssayForm(forms.ModelForm):
     class Meta:
         model = Assay
         fields = ["study", "title", "description"]
+        widgets = {
+            "description": forms.Textarea(attrs=_DESCRIPTION_TEXTAREA_ATTRS),
+        }
         help_texts = {
             "description": (
                 "Please provide a concise description of the assay that"
