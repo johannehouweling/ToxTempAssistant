@@ -9,8 +9,7 @@ Required context vars (pass via `{% include "..." with input_id="..." prefix="..
              (e.g. "files", "fileUpload") — must match what page-level callers use
 
 Globals exposed on window:
-  {prefix}AccumulatorClear()         — clear all accumulated files
-  {prefix}AccumulatorRemove(name)    — remove a single file (called by badge ×)
+  {prefix}AccumulatorClear()    — clear all accumulated files
 
 After each state change (add / remove / clear), dispatches a
 'fileAccumulator:changed' CustomEvent on the file input — listen for it to
@@ -55,17 +54,20 @@ react (e.g. refresh a Save button).
             Array.from(accumulator.files).forEach(function(f) {
                 var tag = document.createElement('span');
                 tag.className = 'badge bg-secondary me-1 mb-1 d-inline-flex align-items-center gap-1';
-                var safeName = f.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-                tag.innerHTML = f.name +
-                    ' <button type="button" class="btn-close btn-close-white scale-75"' +
-                    ' onclick="window.{{ prefix }}AccumulatorRemove(\'' + safeName + '\')"></button>';
+                var nameSpan = document.createElement('span');
+                nameSpan.textContent = f.name;
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn-close btn-close-white scale-75';
+                btn.setAttribute('aria-label', 'Remove ' + f.name);
+                btn.addEventListener('click', function() { removeOne(f.name); });
+                tag.appendChild(nameSpan);
+                tag.appendChild(btn);
                 list.appendChild(tag);
             });
         }
 
-        // Expose so inline onclick handlers and external pages can call them.
         window.{{ prefix }}AccumulatorClear = clearAll;
-        window.{{ prefix }}AccumulatorRemove = removeOne;
 
         document.addEventListener('DOMContentLoaded', function() {
             var inp = input();
