@@ -2102,14 +2102,24 @@ def delete_workspace(request: HttpRequest, pk: int) -> HttpResponseRedirect:
     prefetchers, link scanners, or cross-site image/link tags.
 
     Before deleting the workspace we explicitly revoke the guardian
-    ``view_investigation`` permissions that were granted to non-owner
-    members via this workspace.  The CASCADE delete of WorkspaceMember /
-    WorkspaceInvestigation rows removes the DB records but does **not**
-    clean up guardian's object-level permission rows — without this step,
-    ex-members would retain read access to the shared investigations.
+    ``view_investigation`` permissions that were granted to workspace members
+    (including the workspace owner) via this workspace.  The CASCADE delete of
+    WorkspaceMember / WorkspaceInvestigation rows removes the DB records but
+    does **not** clean up guardian's object-level permission rows — without
+    this step, ex-members would retain read access to the shared
+    investigations.
 
-    We preserve access for members who still have the same investigation
-    shared through a *different* workspace they belong to.
+    Two exceptions apply when deciding whether to revoke a perm:
+
+    1. The member is the *owner* of that investigation — their
+       ``view_investigation`` perm was granted by ``Investigation.save()`` as
+       baseline access and is not workspace-derived.
+    2. The member still has the same investigation shared through a *different*
+       workspace they belong to.
+
+    The whole revoke+delete block runs inside a single DB transaction so a
+    partial failure cannot leave permissions inconsistent with the workspace
+    membership state.
     """
     workspace = get_object_or_404(Workspace, pk=pk)
     if workspace.owner != request.user:
@@ -2117,77 +2127,83 @@ def delete_workspace(request: HttpRequest, pk: int) -> HttpResponseRedirect:
 
         raise PermissionDenied("You do not own this workspace.")
 
-    # Snapshot investigations and non-owner members *before* the CASCADE delete.
-    shared_invs = list(
-        WorkspaceInvestigation.objects.filter(workspace=workspace).select_related(
-            "investigation"
-        )
-    )
-    shared_inv_ids = {winv.investigation_id for winv in shared_invs}
-    non_owner_members = list(
-        WorkspaceMember.objects.filter(workspace=workspace)
-        .exclude(role=WorkspaceRole.OWNER)
-        .select_related("user")
-    )
-
-    if non_owner_members and shared_inv_ids:
-        member_user_ids = [m.user_id for m in non_owner_members]
-
-        # Batch 1: other workspace IDs for all non-owner members (single query).
-        user_other_workspaces: dict[int, set[int]] = {}
-        for row in (
-            WorkspaceMember.objects.filter(user_id__in=member_user_ids)
-            .exclude(workspace=workspace)
-            .values("user_id", "workspace_id")
-        ):
-            user_other_workspaces.setdefault(row["user_id"], set()).add(
-                row["workspace_id"]
+    with transaction.atomic():
+        # Snapshot investigations and ALL members *before* the CASCADE delete.
+        # We include the workspace owner because they can also receive
+        # workspace-derived view_investigation perms when other members share
+        # their own investigations into this workspace.
+        shared_invs = list(
+            WorkspaceInvestigation.objects.filter(workspace=workspace).select_related(
+                "investigation"
             )
+        )
+        shared_inv_ids = {winv.investigation_id for winv in shared_invs}
+        members = list(
+            WorkspaceMember.objects.filter(workspace=workspace).select_related("user")
+        )
 
-        all_other_workspace_ids = {
-            wid
-            for ws_ids in user_other_workspaces.values()
-            for wid in ws_ids
-        }
+        if members and shared_inv_ids:
+            member_user_ids = [m.user_id for m in members]
 
-        # Batch 2: which of the shared investigations are accessible from those
-        # other workspaces (single query).
-        workspace_inv_map: dict[int, set[int]] = {}
-        if all_other_workspace_ids:
-            for row in WorkspaceInvestigation.objects.filter(
-                investigation_id__in=shared_inv_ids,
-                workspace_id__in=all_other_workspace_ids,
-            ).values("workspace_id", "investigation_id"):
-                workspace_inv_map.setdefault(row["workspace_id"], set()).add(
-                    row["investigation_id"]
+            # Batch 1: other workspace IDs for all members (single query).
+            user_other_workspaces: dict[int, set[int]] = {}
+            for row in (
+                WorkspaceMember.objects.filter(user_id__in=member_user_ids)
+                .exclude(workspace=workspace)
+                .values("user_id", "workspace_id")
+            ):
+                user_other_workspaces.setdefault(row["user_id"], set()).add(
+                    row["workspace_id"]
                 )
 
-        for member in non_owner_members:
-            # Investigation IDs still accessible to this member via other workspaces.
-            retained_inv_ids: set[int] = set()
-            for ws_id in user_other_workspaces.get(member.user_id, set()):
-                retained_inv_ids.update(workspace_inv_map.get(ws_id, set()))
+            all_other_workspace_ids = {
+                wid
+                for ws_ids in user_other_workspaces.values()
+                for wid in ws_ids
+            }
 
-            for winv in shared_invs:
-                if winv.investigation_id in retained_inv_ids:
-                    continue
-                # Never revoke the investigation owner's own perm — it was
-                # granted by Investigation.save() and is baseline access, not
-                # workspace-derived.
-                if member.user_id == winv.investigation.owner_id:
-                    continue
-                try:
-                    remove_perm("view_investigation", member.user, winv.investigation)
-                except Exception:
-                    logger.exception(
-                        "Failed to remove view_investigation perm for user %s on "
-                        "investigation %s during workspace %s deletion",
-                        getattr(member.user, "email", None),
-                        getattr(winv.investigation, "id", None),
-                        pk,
+            # Batch 2: which of the shared investigations are accessible from
+            # those other workspaces (single query).
+            workspace_inv_map: dict[int, set[int]] = {}
+            if all_other_workspace_ids:
+                for row in WorkspaceInvestigation.objects.filter(
+                    investigation_id__in=shared_inv_ids,
+                    workspace_id__in=all_other_workspace_ids,
+                ).values("workspace_id", "investigation_id"):
+                    workspace_inv_map.setdefault(row["workspace_id"], set()).add(
+                        row["investigation_id"]
                     )
 
-    workspace.delete()
+            for member in members:
+                # Investigation IDs still accessible to this member via other
+                # workspaces.
+                retained_inv_ids: set[int] = set()
+                for ws_id in user_other_workspaces.get(member.user_id, set()):
+                    retained_inv_ids.update(workspace_inv_map.get(ws_id, set()))
+
+                for winv in shared_invs:
+                    if winv.investigation_id in retained_inv_ids:
+                        continue
+                    # Never revoke the investigation owner's own perm — it was
+                    # granted by Investigation.save() and is baseline access,
+                    # not workspace-derived.
+                    if member.user_id == winv.investigation.owner_id:
+                        continue
+                    try:
+                        remove_perm(
+                            "view_investigation", member.user, winv.investigation
+                        )
+                    except Exception:
+                        logger.exception(
+                            "Failed to remove view_investigation perm for user %s "
+                            "on investigation %s during workspace %s deletion",
+                            getattr(member.user, "email", None),
+                            getattr(winv.investigation, "id", None),
+                            pk,
+                        )
+                        raise
+
+        workspace.delete()
     return redirect("overview")
 
 
@@ -2354,6 +2370,9 @@ def remove_workspace_member(request: HttpRequest, pk: int, user_id: int) -> Json
                 investigation=winv.investigation, workspace_id__in=other_workspace_ids
             ).exists():
                 continue  # user still has access via another workspace — keep the perm
+            # Never revoke the investigation owner's baseline perm.
+            if member_to_remove.user_id == winv.investigation.owner_id:
+                continue
             try:
                 remove_perm(
                     "view_investigation", member_to_remove.user, winv.investigation
@@ -2443,6 +2462,9 @@ def remove_workspace_member_by_email(request: HttpRequest, pk: int) -> JsonRespo
                 investigation=winv.investigation, workspace_id__in=other_workspace_ids
             ).exists():
                 continue  # user still has access via another workspace — keep the perm
+            # Never revoke the investigation owner's baseline perm.
+            if user.id == winv.investigation.owner_id:
+                continue
             try:
                 remove_perm("view_investigation", user, winv.investigation)
             except Exception:
@@ -2568,6 +2590,9 @@ def remove_workspace_assay(request: HttpRequest, pk: int, assay_id: int) -> Json
     # retain access to the same investigation via another workspace.
     members = WorkspaceMember.objects.filter(workspace=workspace).select_related("user")
     for member in members:
+        # Never revoke the investigation owner's baseline perm.
+        if member.user_id == investigation.owner_id:
+            continue
         other_workspace_ids = (
             WorkspaceMember.objects.filter(user=member.user)
             .exclude(workspace=workspace)

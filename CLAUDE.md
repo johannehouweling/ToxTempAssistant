@@ -131,12 +131,32 @@ Key rules to observe when working in this area:
 * **Investigation ownership is permanent.** `Investigation.save()` always grants
   the owner `view_investigation` / `change_investigation` / `delete_investigation`
   guardian permissions. These are *baseline* permissions and must **not** be
-  revoked by workspace lifecycle operations (create, delete, member add/remove).
+  revoked by any workspace lifecycle operation — including workspace deletion,
+  investigation removal (`remove_workspace_assay`), and member removal
+  (`remove_workspace_member` / `remove_workspace_member_by_email`).
 
-* **Workspace access is additive.** Adding an investigation to a workspace grants
-  `view_investigation` to all current workspace members. Removing it (or deleting
-  the workspace) revokes that perm — *unless* the member also owns the investigation
-  or still has access via another workspace that shares the same investigation.
+* **The owner check is universal.** Whenever any workspace operation would call
+  `remove_perm("view_investigation", user, investigation)`, first check
+  `user.id == investigation.owner_id`. If true, skip the revocation — the perm
+  is baseline, not workspace-derived, and must be preserved regardless of which
+  user's role is being acted upon (including the workspace OWNER themselves).
+
+* **Workspace access is additive.** Adding an investigation to a workspace
+  (`add_workspace_assay`) grants `view_investigation` to **all** current
+  workspace members, including the workspace owner. Adding a member
+  (`add_workspace_member`) grants them `view_investigation` for all
+  investigations already shared into the workspace.
+
+* **Removing the sharing link revokes the derived perm** — with two exceptions:
+  1. The user is the *owner* of that investigation (baseline perm, never revoke).
+  2. The user still has the same investigation shared through a *different*
+     workspace they belong to (retained via cross-workspace access).
+
+  This rule applies equally to:
+  - `delete_workspace` — all members (including workspace OWNER) may lose perms
+  - `remove_workspace_assay` — all members may lose perm for the removed investigation
+  - `remove_workspace_member` / `remove_workspace_member_by_email` — the removed
+    user may lose perms for all investigations in that workspace
 
 * **Studies and Assays created inside a shared investigation are owned by their
   creator** (`created_by` FK), not by the investigation owner. However, **access
@@ -146,15 +166,17 @@ Key rules to observe when working in this area:
   it. This is by design — the investigation is the root that defines the access
   boundary.
 
-* **Workspace dissolution (`delete_workspace`) cleanup order:**
-  1. Snapshot `WorkspaceMember` (non-owner) + `WorkspaceInvestigation` rows.
-  2. For each non-owner member × shared investigation: skip if the member owns
+* **`delete_workspace` cleanup order (runs inside `transaction.atomic()`):**
+  1. Snapshot all `WorkspaceMember` + `WorkspaceInvestigation` rows.
+  2. For each member × shared investigation: skip if the member owns
      the investigation *or* still has access via another workspace; otherwise
      revoke `view_investigation`.
   3. Call `workspace.delete()` (CASCADE removes members + investigations rows).
 
-  Never revoke permissions on an investigation whose `owner_id` matches the
-  workspace member being processed — their perm is baseline, not workspace-derived.
+  Note: the workspace OWNER is included in step 2 because they can also hold
+  workspace-derived perms (e.g. another member shared their own investigation
+  into the workspace). Their baseline perm on *their own* investigations is
+  protected by the owner check in step 2.
 
 ### Async tasks
 

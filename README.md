@@ -215,8 +215,9 @@ When a workspace is deleted:
 
 1. All `WorkspaceMember` and shared-Investigation links for that workspace are
    removed.
-2. Each non-owner member loses their `view_investigation` permission on every
-   Investigation that was shared exclusively through this workspace.
+2. Every workspace member (including the workspace owner) loses their
+   `view_investigation` permission on every Investigation that was shared
+   exclusively through this workspace.
    - Exception: if you **own** the Investigation (you created it), your access
      is never removed — it is a baseline permission attached to ownership.
    - Exception: if the same Investigation is also shared through a **different

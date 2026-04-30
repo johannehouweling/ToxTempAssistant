@@ -305,16 +305,67 @@ class TestDeleteWorkspace:
     def test_delete_workspace_owner_retains_own_investigation_access(
         self, client, owner, workspace, investigation
     ):
-        """Deleting the workspace does not affect the owner's own investigation."""
+        """Deleting the workspace does not revoke the workspace owner's baseline perm on their own investigation."""
         WorkspaceInvestigation.objects.create(
             workspace=workspace, investigation=investigation, added_by=owner
+        )
+
+        # investigation is owned by owner, so Investigation.save() already set the perm.
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=owner.pk), investigation
         )
 
         client.force_login(owner)
         client.post(reverse("delete_workspace", kwargs={"pk": workspace.pk}))
 
-        # The investigation itself should still exist (only workspace is gone)
+        # The investigation itself and the owner's baseline perm must be intact.
         assert Investigation.objects.filter(pk=investigation.pk).exists()
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=owner.pk), investigation
+        )
+
+    def test_delete_workspace_revokes_workspace_owner_perm_for_member_investigation(
+        self, client, owner, workspace, admin_user
+    ):
+        """Workspace owner loses workspace-derived view perm when the workspace is deleted.
+
+        When another member shares *their own* investigation into the workspace,
+        the workspace owner also receives ``view_investigation`` via
+        ``add_workspace_assay``.  Deleting the workspace must remove that derived
+        perm from the workspace owner while preserving the investigation owner's
+        baseline access.
+        """
+        owned_investigation = InvestigationFactory.create(owner=admin_user)
+        WorkspaceMemberFactory.create(
+            workspace=workspace, user=admin_user, role=WorkspaceRole.ADMIN
+        )
+        # Use the real view so all members (including workspace owner) receive
+        # view_investigation exactly as production does.
+        client.force_login(admin_user)
+        client.post(
+            reverse("add_workspace_assay", kwargs={"pk": workspace.pk}),
+            data={"investigation": owned_investigation.pk},
+        )
+
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=owner.pk), owned_investigation
+        )
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=admin_user.pk), owned_investigation
+        )
+
+        client.force_login(owner)
+        client.post(reverse("delete_workspace", kwargs={"pk": workspace.pk}))
+
+        assert not Workspace.objects.filter(pk=workspace.pk).exists()
+        # Workspace owner loses the workspace-derived perm.
+        assert "view_investigation" not in get_perms(
+            Person.objects.get(pk=owner.pk), owned_investigation
+        )
+        # Investigation owner retains their baseline perm.
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=admin_user.pk), owned_investigation
+        )
 
     def test_delete_workspace_with_admin_member_revokes_admin_perm(
         self, client, owner, workspace, investigation, admin_user
@@ -651,6 +702,79 @@ class TestRemoveWorkspaceMember:
         assert resp.status_code == 404
         assert resp.json()["success"] is False
 
+    def test_remove_member_preserves_perm_for_investigation_owner(
+        self, client, owner, workspace, admin_user
+    ):
+        """Removing a member who owns a shared investigation must not revoke their baseline perm.
+
+        Only the owner of an investigation can add it to a workspace.  If that
+        member is later removed from the workspace their ``view_investigation``
+        perm must be preserved because it was set by ``Investigation.save()``,
+        not by the workspace sharing operation.
+        """
+        owned_investigation = InvestigationFactory.create(owner=admin_user)
+        WorkspaceMemberFactory.create(
+            workspace=workspace, user=admin_user, role=WorkspaceRole.ADMIN
+        )
+        # Use the real view so all members receive view_investigation as production does.
+        client.force_login(admin_user)
+        client.post(
+            reverse("add_workspace_assay", kwargs={"pk": workspace.pk}),
+            data={"investigation": owned_investigation.pk},
+        )
+
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=admin_user.pk), owned_investigation
+        )
+
+        client.force_login(owner)
+        client.post(
+            reverse(
+                "remove_workspace_member",
+                kwargs={"pk": workspace.pk, "user_id": admin_user.pk},
+            )
+        )
+
+        # Membership removed but baseline perm must remain.
+        assert not WorkspaceMember.objects.filter(
+            workspace=workspace, user=admin_user
+        ).exists()
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=admin_user.pk), owned_investigation
+        )
+
+    def test_remove_member_by_email_preserves_perm_for_investigation_owner(
+        self, client, owner, workspace, admin_user
+    ):
+        """Removing a member by email who owns a shared investigation must not revoke their baseline perm."""
+        owned_investigation = InvestigationFactory.create(owner=admin_user)
+        WorkspaceMemberFactory.create(
+            workspace=workspace, user=admin_user, role=WorkspaceRole.ADMIN
+        )
+        # Use the real view so perms are granted exactly as production does.
+        client.force_login(admin_user)
+        client.post(
+            reverse("add_workspace_assay", kwargs={"pk": workspace.pk}),
+            data={"investigation": owned_investigation.pk},
+        )
+
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=admin_user.pk), owned_investigation
+        )
+
+        client.force_login(owner)
+        client.post(
+            reverse("remove_workspace_member_by_email", kwargs={"pk": workspace.pk}),
+            data={"email": admin_user.email},
+        )
+
+        assert not WorkspaceMember.objects.filter(
+            workspace=workspace, user=admin_user
+        ).exists()
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=admin_user.pk), owned_investigation
+        )
+
 
 # ---------------------------------------------------------------------------
 # TestWorkspaceInvestigationSharing
@@ -793,6 +917,91 @@ class TestWorkspaceInvestigationSharing:
         )
         assert resp.status_code == 404
         assert resp.json()["success"] is False
+
+    def test_remove_investigation_preserves_investigation_owner_perm(
+        self, client, owner, workspace, admin_user
+    ):
+        """Removing an investigation from a workspace must not revoke the investigation owner's baseline perm.
+
+        Only the owner can share an investigation into a workspace, so when the
+        investigation is removed, the investigation owner's ``view_investigation``
+        perm (set by ``Investigation.save()``) must be preserved.
+        """
+        owned_investigation = InvestigationFactory.create(owner=admin_user)
+        WorkspaceMemberFactory.create(
+            workspace=workspace, user=admin_user, role=WorkspaceRole.ADMIN
+        )
+        # Add investigation through the view so all members receive the perm.
+        client.force_login(admin_user)
+        client.post(
+            reverse("add_workspace_assay", kwargs={"pk": workspace.pk}),
+            data={"investigation": owned_investigation.pk},
+        )
+
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=admin_user.pk), owned_investigation
+        )
+
+        # Workspace owner removes the investigation.
+        client.force_login(owner)
+        resp = client.post(
+            reverse(
+                "remove_workspace_assay",
+                kwargs={"pk": workspace.pk, "assay_id": owned_investigation.pk},
+            )
+        )
+        assert resp.status_code == 200
+        assert not WorkspaceInvestigation.objects.filter(
+            workspace=workspace, investigation=owned_investigation
+        ).exists()
+        # Investigation owner must still have their baseline perm.
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=admin_user.pk), owned_investigation
+        )
+
+    def test_remove_investigation_revokes_non_owner_member_perm(
+        self, client, owner, workspace, admin_user, member_user
+    ):
+        """Removing an investigation revokes access for all workspace members who don't own it."""
+        owned_investigation = InvestigationFactory.create(owner=admin_user)
+        WorkspaceMemberFactory.create(
+            workspace=workspace, user=admin_user, role=WorkspaceRole.ADMIN
+        )
+        WorkspaceMemberFactory.create(
+            workspace=workspace, user=member_user, role=WorkspaceRole.MEMBER
+        )
+        # Add investigation — grants perm to all members including workspace owner.
+        client.force_login(admin_user)
+        client.post(
+            reverse("add_workspace_assay", kwargs={"pk": workspace.pk}),
+            data={"investigation": owned_investigation.pk},
+        )
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=owner.pk), owned_investigation
+        )
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=member_user.pk), owned_investigation
+        )
+
+        # Remove investigation — workspace owner revokes it.
+        client.force_login(owner)
+        client.post(
+            reverse(
+                "remove_workspace_assay",
+                kwargs={"pk": workspace.pk, "assay_id": owned_investigation.pk},
+            )
+        )
+        # Workspace owner and regular member lose access.
+        assert "view_investigation" not in get_perms(
+            Person.objects.get(pk=owner.pk), owned_investigation
+        )
+        assert "view_investigation" not in get_perms(
+            Person.objects.get(pk=member_user.pk), owned_investigation
+        )
+        # Investigation owner retains baseline access.
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=admin_user.pk), owned_investigation
+        )
 
 
 # ---------------------------------------------------------------------------
