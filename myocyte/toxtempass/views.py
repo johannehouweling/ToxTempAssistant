@@ -2128,18 +2128,24 @@ def delete_workspace(request: HttpRequest, pk: int) -> HttpResponseRedirect:
         raise PermissionDenied("You do not own this workspace.")
 
     with transaction.atomic():
+        # Lock the workspace row first so delete is serialized against
+        # concurrent membership / sharing changes for this workspace.
+        workspace = Workspace.objects.select_for_update().get(pk=workspace.pk)
+
         # Snapshot investigations and ALL members *before* the CASCADE delete.
         # We include the workspace owner because they can also receive
         # workspace-derived view_investigation perms when other members share
         # their own investigations into this workspace.
         shared_invs = list(
-            WorkspaceInvestigation.objects.filter(workspace=workspace).select_related(
-                "investigation"
-            )
+            WorkspaceInvestigation.objects.select_for_update()
+            .filter(workspace=workspace)
+            .select_related("investigation")
         )
         shared_inv_ids = {winv.investigation_id for winv in shared_invs}
         members = list(
-            WorkspaceMember.objects.filter(workspace=workspace).select_related("user")
+            WorkspaceMember.objects.select_for_update()
+            .filter(workspace=workspace)
+            .select_related("user")
         )
 
         if members and shared_inv_ids:
