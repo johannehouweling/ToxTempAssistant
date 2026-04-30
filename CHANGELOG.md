@@ -2,6 +2,42 @@
 
 <!-- version list -->
 
+## v3.8.1 (2026-04-30)
+
+### Bug Fixes
+
+- Enforce consistent investigation-owner guard across all workspace ops
+  ([`4665211`](https://github.com/johannehouweling/ToxTempAssistant/commit/4665211826b1d7d5cb0b844946020fd03463ada8))
+
+- Preserve investigation owner's perm on workspace deletion; add ownership docs
+  ([`f12de39`](https://github.com/johannehouweling/ToxTempAssistant/commit/f12de39a2411eb928d601de2f517e2fbc19f8a40))
+
+- Revoke guardian view_investigation perms on workspace deletion
+  ([`23c994e`](https://github.com/johannehouweling/ToxTempAssistant/commit/23c994edd3ba04553c6391f72dc88081f4d98f8a))
+
+- Row-lock during workspace deletion
+  ([`03937a8`](https://github.com/johannehouweling/ToxTempAssistant/commit/03937a86c22be35d9f05bbc508d119c918512006))
+
+- Use real add_workspace_assay view in test instead of direct assign_perm
+  ([`7e7677e`](https://github.com/johannehouweling/ToxTempAssistant/commit/7e7677eb5d58cef666fe0f81631579a467d53c80))
+
+- Use real views in _give_member_access; fix README ownership text and admonition style
+  ([`d7a7265`](https://github.com/johannehouweling/ToxTempAssistant/commit/d7a7265d5b190915b9d4474d5efdbcd49ee011d2))
+
+### Documentation
+
+- Add workspace ownership model section to README
+  ([`eb47e37`](https://github.com/johannehouweling/ToxTempAssistant/commit/eb47e37a0353845eced72737bb9b0c2009d8fc6a))
+
+### Performance Improvements
+
+- Further optimize delete_workspace to O(2) DB queries pre-loop
+  ([`f82d3d1`](https://github.com/johannehouweling/ToxTempAssistant/commit/f82d3d1d598afd28bea5ac16e10e15f85f7cec40))
+
+- Optimize delete_workspace perm revocation to O(members) queries
+  ([`d63ae2d`](https://github.com/johannehouweling/ToxTempAssistant/commit/d63ae2dafc54fdd1eec0680db059db7554e9f62b))
+
+
 ## v3.8.0 (2026-04-29)
 
 ### Features
