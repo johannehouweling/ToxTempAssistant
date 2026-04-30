@@ -191,8 +191,8 @@ workspaces, so you do not inadvertently lose access to work you have created.
 Every piece of work in ToxTempAssistant lives inside an **Investigation**.
 Ownership of an Investigation never changes — the user who created it remains
 the owner regardless of whether the Investigation is shared into a workspace.
-When another user adds your Investigation to their workspace, you keep full
-ownership and control over it.
+When you add your own Investigation to a workspace, ownership stays with you —
+no other user can share your Investigation into a workspace on your behalf.
 
 ### Studies and Assays: creator ≠ owner of the Investigation
 
@@ -202,7 +202,8 @@ When you are a workspace member and you create a Study or Assay inside
 belong to its original owner. Your access to that work is granted **through
 the workspace** — it is not a direct ownership right.
 
-> **Important:** If the workspace is dissolved (deleted), you will lose access
+> [!IMPORTANT]
+> If the workspace is dissolved (deleted), you will lose access
 > to any Studies and Assays you created inside an Investigation you do not own.
 > The Investigation is the root that defines who may access the data inside it.
 > Before accepting an invitation to a shared workspace, make sure you understand
