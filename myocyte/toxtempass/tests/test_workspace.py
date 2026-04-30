@@ -5,7 +5,7 @@ from django.db import IntegrityError
 from django.test import Client
 from django.urls import reverse
 
-from guardian.shortcuts import assign_perm, get_perms
+from guardian.shortcuts import get_perms
 
 from toxtempass.models import (
     Answer,
@@ -244,6 +244,189 @@ class TestDeleteWorkspace:
         resp = client.get(reverse("delete_workspace", kwargs={"pk": workspace.pk}))
         assert resp.status_code == 405
         assert Workspace.objects.filter(pk=workspace.pk).exists()
+
+    def test_delete_workspace_revokes_member_guardian_perm(
+        self, client, owner, workspace, investigation, member_user
+    ):
+        """Deleting the workspace revokes view_investigation for non-owner members."""
+        _give_member_access(client, workspace, investigation, owner, member_user)
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=member_user.pk), investigation
+        )
+
+        client.force_login(owner)
+        client.post(reverse("delete_workspace", kwargs={"pk": workspace.pk}))
+
+        assert not Workspace.objects.filter(pk=workspace.pk).exists()
+        assert "view_investigation" not in get_perms(
+            Person.objects.get(pk=member_user.pk), investigation
+        )
+
+    def test_delete_workspace_member_cannot_view_assay_after_deletion(
+        self, client, owner, workspace, investigation, member_user
+    ):
+        """After workspace deletion, ex-member is denied access to shared assays."""
+        _give_member_access(client, workspace, investigation, owner, member_user)
+        study = StudyFactory.create(investigation=investigation)
+        assay = AssayFactory.create(study=study)
+
+        client.force_login(owner)
+        client.post(reverse("delete_workspace", kwargs={"pk": workspace.pk}))
+
+        client.force_login(member_user)
+        resp = client.get(
+            reverse("answer_assay_questions", kwargs={"assay_id": assay.pk})
+        )
+        assert resp.status_code == 403
+
+    def test_delete_workspace_preserves_perm_if_member_has_other_workspace(
+        self, client, owner, member_user, investigation
+    ):
+        """Member retains view_investigation if another workspace still shares the same investigation."""
+        workspace_a = WorkspaceFactory.create(owner=owner)
+        workspace_b = WorkspaceFactory.create(owner=owner)
+
+        _give_member_access(client, workspace_a, investigation, owner, member_user)
+        _give_member_access(client, workspace_b, investigation, owner, member_user)
+
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=member_user.pk), investigation
+        )
+
+        # Delete workspace_a — member still has access via workspace_b
+        client.force_login(owner)
+        client.post(reverse("delete_workspace", kwargs={"pk": workspace_a.pk}))
+
+        assert not Workspace.objects.filter(pk=workspace_a.pk).exists()
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=member_user.pk), investigation
+        )
+
+    def test_delete_workspace_owner_retains_own_investigation_access(
+        self, client, owner, workspace, investigation
+    ):
+        """Deleting the workspace does not revoke the workspace owner's baseline perm on their own investigation."""
+        WorkspaceInvestigation.objects.create(
+            workspace=workspace, investigation=investigation, added_by=owner
+        )
+
+        # investigation is owned by owner, so Investigation.save() already set the perm.
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=owner.pk), investigation
+        )
+
+        client.force_login(owner)
+        client.post(reverse("delete_workspace", kwargs={"pk": workspace.pk}))
+
+        # The investigation itself and the owner's baseline perm must be intact.
+        assert Investigation.objects.filter(pk=investigation.pk).exists()
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=owner.pk), investigation
+        )
+
+    def test_delete_workspace_revokes_workspace_owner_perm_for_member_investigation(
+        self, client, owner, workspace, admin_user
+    ):
+        """Workspace owner loses workspace-derived view perm when the workspace is deleted.
+
+        When another member shares *their own* investigation into the workspace,
+        the workspace owner also receives ``view_investigation`` via
+        ``add_workspace_assay``.  Deleting the workspace must remove that derived
+        perm from the workspace owner while preserving the investigation owner's
+        baseline access.
+        """
+        owned_investigation = InvestigationFactory.create(owner=admin_user)
+        WorkspaceMemberFactory.create(
+            workspace=workspace, user=admin_user, role=WorkspaceRole.ADMIN
+        )
+        # Use the real view so all members (including workspace owner) receive
+        # view_investigation exactly as production does.
+        client.force_login(admin_user)
+        client.post(
+            reverse("add_workspace_assay", kwargs={"pk": workspace.pk}),
+            data={"investigation": owned_investigation.pk},
+        )
+
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=owner.pk), owned_investigation
+        )
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=admin_user.pk), owned_investigation
+        )
+
+        client.force_login(owner)
+        client.post(reverse("delete_workspace", kwargs={"pk": workspace.pk}))
+
+        assert not Workspace.objects.filter(pk=workspace.pk).exists()
+        # Workspace owner loses the workspace-derived perm.
+        assert "view_investigation" not in get_perms(
+            Person.objects.get(pk=owner.pk), owned_investigation
+        )
+        # Investigation owner retains their baseline perm.
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=admin_user.pk), owned_investigation
+        )
+
+    def test_delete_workspace_with_admin_member_revokes_admin_perm(
+        self, client, owner, workspace, investigation, admin_user
+    ):
+        """ADMIN-role members also lose view_investigation when the workspace is deleted."""
+        WorkspaceMemberFactory.create(
+            workspace=workspace, user=admin_user, role=WorkspaceRole.ADMIN
+        )
+        # Use the real view to share the investigation — grants perm to all members.
+        client.force_login(owner)
+        client.post(
+            reverse("add_workspace_assay", kwargs={"pk": workspace.pk}),
+            data={"investigation": investigation.pk},
+        )
+
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=admin_user.pk), investigation
+        )
+
+        client.post(reverse("delete_workspace", kwargs={"pk": workspace.pk}))
+
+        assert not Workspace.objects.filter(pk=workspace.pk).exists()
+        assert "view_investigation" not in get_perms(
+            Person.objects.get(pk=admin_user.pk), investigation
+        )
+
+    def test_delete_workspace_preserves_perm_for_member_who_owns_investigation(
+        self, client, owner, workspace, admin_user
+    ):
+        """Deleting a workspace must not revoke the view perm of a member who owns the shared investigation.
+
+        A workspace member (with ADMIN role here, but the same applies to any
+        non-owner role) can share *their own* investigation into the workspace.
+        When the workspace is later deleted the investigation owner must retain
+        their baseline ``view_investigation`` permission — it was granted by
+        ``Investigation.save()`` and is not workspace-derived.
+        """
+        owned_investigation = InvestigationFactory.create(owner=admin_user)
+        WorkspaceMemberFactory.create(
+            workspace=workspace, user=admin_user, role=WorkspaceRole.ADMIN
+        )
+        WorkspaceInvestigation.objects.create(
+            workspace=workspace,
+            investigation=owned_investigation,
+            added_by=admin_user,
+        )
+
+        # Investigation.save() already assigned the perm; confirm it exists.
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=admin_user.pk), owned_investigation
+        )
+
+        client.force_login(owner)
+        client.post(reverse("delete_workspace", kwargs={"pk": workspace.pk}))
+
+        assert not Workspace.objects.filter(pk=workspace.pk).exists()
+        assert Investigation.objects.filter(pk=owned_investigation.pk).exists()
+        # Owner must still be able to see their own investigation.
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=admin_user.pk), owned_investigation
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -520,6 +703,79 @@ class TestRemoveWorkspaceMember:
         assert resp.status_code == 404
         assert resp.json()["success"] is False
 
+    def test_remove_member_preserves_perm_for_investigation_owner(
+        self, client, owner, workspace, admin_user
+    ):
+        """Removing a member who owns a shared investigation must not revoke their baseline perm.
+
+        Only the owner of an investigation can add it to a workspace.  If that
+        member is later removed from the workspace their ``view_investigation``
+        perm must be preserved because it was set by ``Investigation.save()``,
+        not by the workspace sharing operation.
+        """
+        owned_investigation = InvestigationFactory.create(owner=admin_user)
+        WorkspaceMemberFactory.create(
+            workspace=workspace, user=admin_user, role=WorkspaceRole.ADMIN
+        )
+        # Use the real view so all members receive view_investigation as production does.
+        client.force_login(admin_user)
+        client.post(
+            reverse("add_workspace_assay", kwargs={"pk": workspace.pk}),
+            data={"investigation": owned_investigation.pk},
+        )
+
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=admin_user.pk), owned_investigation
+        )
+
+        client.force_login(owner)
+        client.post(
+            reverse(
+                "remove_workspace_member",
+                kwargs={"pk": workspace.pk, "user_id": admin_user.pk},
+            )
+        )
+
+        # Membership removed but baseline perm must remain.
+        assert not WorkspaceMember.objects.filter(
+            workspace=workspace, user=admin_user
+        ).exists()
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=admin_user.pk), owned_investigation
+        )
+
+    def test_remove_member_by_email_preserves_perm_for_investigation_owner(
+        self, client, owner, workspace, admin_user
+    ):
+        """Removing a member by email who owns a shared investigation must not revoke their baseline perm."""
+        owned_investigation = InvestigationFactory.create(owner=admin_user)
+        WorkspaceMemberFactory.create(
+            workspace=workspace, user=admin_user, role=WorkspaceRole.ADMIN
+        )
+        # Use the real view so perms are granted exactly as production does.
+        client.force_login(admin_user)
+        client.post(
+            reverse("add_workspace_assay", kwargs={"pk": workspace.pk}),
+            data={"investigation": owned_investigation.pk},
+        )
+
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=admin_user.pk), owned_investigation
+        )
+
+        client.force_login(owner)
+        client.post(
+            reverse("remove_workspace_member_by_email", kwargs={"pk": workspace.pk}),
+            data={"email": admin_user.email},
+        )
+
+        assert not WorkspaceMember.objects.filter(
+            workspace=workspace, user=admin_user
+        ).exists()
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=admin_user.pk), owned_investigation
+        )
+
 
 # ---------------------------------------------------------------------------
 # TestWorkspaceInvestigationSharing
@@ -663,27 +919,114 @@ class TestWorkspaceInvestigationSharing:
         assert resp.status_code == 404
         assert resp.json()["success"] is False
 
+    def test_remove_investigation_preserves_investigation_owner_perm(
+        self, client, owner, workspace, admin_user
+    ):
+        """Removing an investigation from a workspace must not revoke the investigation owner's baseline perm.
+
+        Only the owner can share an investigation into a workspace, so when the
+        investigation is removed, the investigation owner's ``view_investigation``
+        perm (set by ``Investigation.save()``) must be preserved.
+        """
+        owned_investigation = InvestigationFactory.create(owner=admin_user)
+        WorkspaceMemberFactory.create(
+            workspace=workspace, user=admin_user, role=WorkspaceRole.ADMIN
+        )
+        # Add investigation through the view so all members receive the perm.
+        client.force_login(admin_user)
+        client.post(
+            reverse("add_workspace_assay", kwargs={"pk": workspace.pk}),
+            data={"investigation": owned_investigation.pk},
+        )
+
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=admin_user.pk), owned_investigation
+        )
+
+        # Workspace owner removes the investigation.
+        client.force_login(owner)
+        resp = client.post(
+            reverse(
+                "remove_workspace_assay",
+                kwargs={"pk": workspace.pk, "assay_id": owned_investigation.pk},
+            )
+        )
+        assert resp.status_code == 200
+        assert not WorkspaceInvestigation.objects.filter(
+            workspace=workspace, investigation=owned_investigation
+        ).exists()
+        # Investigation owner must still have their baseline perm.
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=admin_user.pk), owned_investigation
+        )
+
+    def test_remove_investigation_revokes_non_owner_member_perm(
+        self, client, owner, workspace, admin_user, member_user
+    ):
+        """Removing an investigation revokes access for all workspace members who don't own it."""
+        owned_investigation = InvestigationFactory.create(owner=admin_user)
+        WorkspaceMemberFactory.create(
+            workspace=workspace, user=admin_user, role=WorkspaceRole.ADMIN
+        )
+        WorkspaceMemberFactory.create(
+            workspace=workspace, user=member_user, role=WorkspaceRole.MEMBER
+        )
+        # Add investigation — grants perm to all members including workspace owner.
+        client.force_login(admin_user)
+        client.post(
+            reverse("add_workspace_assay", kwargs={"pk": workspace.pk}),
+            data={"investigation": owned_investigation.pk},
+        )
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=owner.pk), owned_investigation
+        )
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=member_user.pk), owned_investigation
+        )
+
+        # Remove investigation — workspace owner revokes it.
+        client.force_login(owner)
+        client.post(
+            reverse(
+                "remove_workspace_assay",
+                kwargs={"pk": workspace.pk, "assay_id": owned_investigation.pk},
+            )
+        )
+        # Workspace owner and regular member lose access.
+        assert "view_investigation" not in get_perms(
+            Person.objects.get(pk=owner.pk), owned_investigation
+        )
+        assert "view_investigation" not in get_perms(
+            Person.objects.get(pk=member_user.pk), owned_investigation
+        )
+        # Investigation owner retains baseline access.
+        assert "view_investigation" in get_perms(
+            Person.objects.get(pk=admin_user.pk), owned_investigation
+        )
+
 
 # ---------------------------------------------------------------------------
 # Shared helper: set up a workspace member with guardian perm on investigation
 # ---------------------------------------------------------------------------
 
 
-def _give_member_access(workspace, investigation, owner, member_user):
-    """Create WorkspaceMember + WorkspaceInvestigation + grant guardian perm.
+def _give_member_access(client, workspace, investigation, owner, member_user):
+    """Grant workspace member access via the real add_workspace_assay / add_workspace_member views.
 
-    This mirrors what the views do when adding a member AFTER sharing an
-    investigation, without going through HTTP.
+    Logs in as ``owner`` (the investigation owner and workspace OWNER/ADMIN)
+    to perform both operations, which is the only path that grants guardian
+    ``view_investigation`` perms in production.  Both calls are idempotent —
+    a 400 response (already shared / already a member) is silently ignored.
     """
-    WorkspaceMember.objects.get_or_create(
-        workspace=workspace, user=member_user,
-        defaults={"role": WorkspaceRole.MEMBER},
+    client.force_login(owner)
+    client.post(
+        reverse("add_workspace_assay", kwargs={"pk": workspace.pk}),
+        data={"investigation": investigation.pk},
     )
-    WorkspaceInvestigation.objects.get_or_create(
-        workspace=workspace, investigation=investigation,
-        defaults={"added_by": owner},
+    client.post(
+        reverse("add_workspace_member", kwargs={"pk": workspace.pk}),
+        data={"user": member_user.pk, "role": WorkspaceRole.MEMBER},
     )
-    assign_perm("view_investigation", member_user, investigation)
 
 
 # ---------------------------------------------------------------------------
@@ -703,7 +1046,7 @@ class TestWorkspaceMemberAccess:
         We POST (returns JSON) rather than GET (renders a template requiring static assets
         that are not present in the test environment).
         """
-        _give_member_access(workspace, investigation, owner, member_user)
+        _give_member_access(client, workspace, investigation, owner, member_user)
         study = StudyFactory.create(investigation=investigation)
         assay = AssayFactory.create(study=study)
 
@@ -732,7 +1075,7 @@ class TestWorkspaceMemberAccess:
         self, client, owner, workspace, investigation, member_user
     ):
         """MEMBER can POST to create_study inside a shared investigation."""
-        _give_member_access(workspace, investigation, owner, member_user)
+        _give_member_access(client, workspace, investigation, owner, member_user)
 
         client.force_login(member_user)
         resp = client.post(
@@ -768,7 +1111,7 @@ class TestWorkspaceMemberAccess:
         self, client, owner, workspace, investigation, member_user
     ):
         """Study.is_accessible_by(change) has no workspace override → 403 for members."""
-        _give_member_access(workspace, investigation, owner, member_user)
+        _give_member_access(client, workspace, investigation, owner, member_user)
         study = StudyFactory.create(investigation=investigation)
 
         client.force_login(member_user)
@@ -786,7 +1129,7 @@ class TestWorkspaceMemberAccess:
         self, client, owner, workspace, investigation, member_user
     ):
         """Study.is_accessible_by(delete) also has no workspace override → 403."""
-        _give_member_access(workspace, investigation, owner, member_user)
+        _give_member_access(client, workspace, investigation, owner, member_user)
         study = StudyFactory.create(investigation=investigation)
 
         client.force_login(member_user)
@@ -797,7 +1140,7 @@ class TestWorkspaceMemberAccess:
         self, client, owner, workspace, investigation, member_user
     ):
         """Assay.is_accessible_by(change) has workspace override → members CAN edit assays."""
-        _give_member_access(workspace, investigation, owner, member_user)
+        _give_member_access(client, workspace, investigation, owner, member_user)
         study = StudyFactory.create(investigation=investigation)
         assay = AssayFactory.create(study=study)
 
@@ -819,7 +1162,7 @@ class TestWorkspaceMemberAccess:
         self, client, owner, workspace, investigation, member_user
     ):
         """MEMBER can POST answers on a shared assay (no question_set → form valid with no fields)."""
-        _give_member_access(workspace, investigation, owner, member_user)
+        _give_member_access(client, workspace, investigation, owner, member_user)
         study = StudyFactory.create(investigation=investigation)
         assay = AssayFactory.create(study=study)  # no question_set → no question fields
 
@@ -835,7 +1178,7 @@ class TestWorkspaceMemberAccess:
         self, client, owner, workspace, investigation, admin_user
     ):
         """ADMIN has identical data-access as MEMBER (role only governs workspace management)."""
-        _give_member_access(workspace, investigation, owner, admin_user)
+        _give_member_access(client, workspace, investigation, owner, admin_user)
         # Promote to ADMIN
         WorkspaceMember.objects.filter(
             workspace=workspace, user=admin_user
@@ -857,7 +1200,7 @@ class TestWorkspaceMemberAccess:
         self, client, owner, workspace, investigation, admin_user
     ):
         """ADMIN can edit an assay (workspace override in Assay.is_accessible_by)."""
-        _give_member_access(workspace, investigation, owner, admin_user)
+        _give_member_access(client, workspace, investigation, owner, admin_user)
         WorkspaceMember.objects.filter(
             workspace=workspace, user=admin_user
         ).update(role=WorkspaceRole.ADMIN)
@@ -877,7 +1220,7 @@ class TestWorkspaceMemberAccess:
         self, client, owner, workspace, investigation, admin_user
     ):
         """ADMIN also cannot edit existing studies (same as MEMBER — no workspace override)."""
-        _give_member_access(workspace, investigation, owner, admin_user)
+        _give_member_access(client, workspace, investigation, owner, admin_user)
         WorkspaceMember.objects.filter(
             workspace=workspace, user=admin_user
         ).update(role=WorkspaceRole.ADMIN)
@@ -894,7 +1237,7 @@ class TestWorkspaceMemberAccess:
         self, client, owner, workspace, investigation, member_user
     ):
         """MEMBER must not delete an assay they did not create (created by the investigation owner)."""
-        _give_member_access(workspace, investigation, owner, member_user)
+        _give_member_access(client, workspace, investigation, owner, member_user)
         study = StudyFactory.create(investigation=investigation, created_by=owner)
         assay = AssayFactory.create(study=study, created_by=owner)
 
@@ -907,7 +1250,7 @@ class TestWorkspaceMemberAccess:
         self, client, owner, workspace, investigation, member_user
     ):
         """MEMBER CAN delete an assay they created themselves."""
-        _give_member_access(workspace, investigation, owner, member_user)
+        _give_member_access(client, workspace, investigation, owner, member_user)
         study = StudyFactory.create(investigation=investigation, created_by=owner)
         assay = AssayFactory.create(study=study, created_by=member_user)
 
@@ -921,7 +1264,7 @@ class TestWorkspaceMemberAccess:
         self, client, owner, workspace, investigation, member_user
     ):
         """Investigation owner can always delete any assay regardless of who created it."""
-        _give_member_access(workspace, investigation, owner, member_user)
+        _give_member_access(client, workspace, investigation, owner, member_user)
         study = StudyFactory.create(investigation=investigation, created_by=owner)
         assay = AssayFactory.create(study=study, created_by=member_user)
 
@@ -944,7 +1287,7 @@ class TestWorkspaceAccessRevocation:
         self, client, owner, workspace, investigation, member_user
     ):
         """Guardian view_investigation perm is explicitly revoked on member removal."""
-        _give_member_access(workspace, investigation, owner, member_user)
+        _give_member_access(client, workspace, investigation, owner, member_user)
         assert "view_investigation" in get_perms(
             Person.objects.get(pk=member_user.pk), investigation
         )
@@ -965,7 +1308,7 @@ class TestWorkspaceAccessRevocation:
         self, client, owner, workspace, investigation, member_user
     ):
         """After removal, ex-member is denied assay access (both guardian and workspace paths gone)."""
-        _give_member_access(workspace, investigation, owner, member_user)
+        _give_member_access(client, workspace, investigation, owner, member_user)
         study = StudyFactory.create(investigation=investigation)
         assay = AssayFactory.create(study=study)
 
@@ -989,7 +1332,7 @@ class TestWorkspaceAccessRevocation:
         self, client, owner, workspace, investigation, member_user
     ):
         """WorkspaceMember record is gone after removal — no half-state left in DB."""
-        _give_member_access(workspace, investigation, owner, member_user)
+        _give_member_access(client, workspace, investigation, owner, member_user)
         assert WorkspaceMember.objects.filter(
             workspace=workspace, user=member_user
         ).exists()
@@ -1010,7 +1353,7 @@ class TestWorkspaceAccessRevocation:
         self, client, owner, workspace, investigation, member_user
     ):
         """After removal, ex-member's investigation queryset is empty → study creation fails."""
-        _give_member_access(workspace, investigation, owner, member_user)
+        _give_member_access(client, workspace, investigation, owner, member_user)
 
         client.force_login(owner)
         client.post(
@@ -1035,7 +1378,7 @@ class TestWorkspaceAccessRevocation:
         self, client, owner, workspace, investigation, member_user
     ):
         """Studies created by a removed member are NOT deleted — they remain under the investigation."""
-        _give_member_access(workspace, investigation, owner, member_user)
+        _give_member_access(client, workspace, investigation, owner, member_user)
         study = StudyFactory.create(investigation=investigation, created_by=member_user)
         study_pk = study.pk
 
@@ -1055,7 +1398,7 @@ class TestWorkspaceAccessRevocation:
         self, client, owner, workspace, investigation, member_user
     ):
         """Removing by email (self-removal path) also revokes the guardian perm."""
-        _give_member_access(workspace, investigation, owner, member_user)
+        _give_member_access(client, workspace, investigation, owner, member_user)
         assert "view_investigation" in get_perms(
             Person.objects.get(pk=member_user.pk), investigation
         )
@@ -1085,7 +1428,7 @@ class TestCrossCreatedContent:
         self, client, owner, workspace, investigation, member_user
     ):
         """created_by on a member-created study is the member — not the investigation owner."""
-        _give_member_access(workspace, investigation, owner, member_user)
+        _give_member_access(client, workspace, investigation, owner, member_user)
 
         client.force_login(member_user)
         client.post(
@@ -1105,7 +1448,7 @@ class TestCrossCreatedContent:
         self, client, owner, workspace, investigation, member_user
     ):
         """created_by on a member-created assay is the member."""
-        _give_member_access(workspace, investigation, owner, member_user)
+        _give_member_access(client, workspace, investigation, owner, member_user)
         study = StudyFactory.create(investigation=investigation)
 
         client.force_login(member_user)
@@ -1145,7 +1488,7 @@ class TestCrossCreatedContent:
         self, client, owner, workspace, investigation, member_user
     ):
         """After removal, member cannot edit the study they created (no lingering change perm)."""
-        _give_member_access(workspace, investigation, owner, member_user)
+        _give_member_access(client, workspace, investigation, owner, member_user)
 
         # Member creates study
         client.force_login(member_user)
@@ -1215,7 +1558,7 @@ class TestCollaborationLastWriteWins:
         """When two users save the same question's answer, the last writer's text wins."""
         assay, question = question_setup
         investigation = assay.study.investigation
-        _give_member_access(workspace, investigation, owner, member_user)
+        _give_member_access(client, workspace, investigation, owner, member_user)
 
         # Owner saves first
         client.force_login(owner)
@@ -1242,7 +1585,7 @@ class TestCollaborationLastWriteWins:
         """The original answer text is retrievable from django-simple-history after being overwritten."""
         assay, question = question_setup
         investigation = assay.study.investigation
-        _give_member_access(workspace, investigation, owner, member_user)
+        _give_member_access(client, workspace, investigation, owner, member_user)
 
         client.force_login(owner)
         client.post(
@@ -1271,7 +1614,7 @@ class TestCollaborationLastWriteWins:
         """Re-saving with identical text does NOT add a new history record (no-op in forms.py:658)."""
         assay, question = question_setup
         investigation = assay.study.investigation
-        _give_member_access(workspace, investigation, owner, member_user)
+        _give_member_access(client, workspace, investigation, owner, member_user)
 
         client.force_login(owner)
         client.post(
@@ -1295,7 +1638,7 @@ class TestCollaborationLastWriteWins:
         """Workspace member with view access can open the version history page for an answer."""
         assay, question = question_setup
         investigation = assay.study.investigation
-        _give_member_access(workspace, investigation, owner, member_user)
+        _give_member_access(client, workspace, investigation, owner, member_user)
 
         # Create an initial answer so the view doesn't 404
         Answer.objects.create(assay=assay, question=question, answer_text="Initial text")
@@ -1342,8 +1685,8 @@ class TestMultiWorkspacePermOverlap:
         workspace_a = WorkspaceFactory.create(owner=owner)
         workspace_b = WorkspaceFactory.create(owner=owner)
 
-        _give_member_access(workspace_a, investigation, owner, member_user)
-        _give_member_access(workspace_b, investigation, owner, member_user)
+        _give_member_access(client, workspace_a, investigation, owner, member_user)
+        _give_member_access(client, workspace_b, investigation, owner, member_user)
 
         # Confirm perm exists before removal
         assert "view_investigation" in get_perms(
@@ -1371,7 +1714,7 @@ class TestMultiWorkspacePermOverlap:
         """Sanity check: removing from the only shared workspace DOES revoke the perm."""
         workspace_a = WorkspaceFactory.create(owner=owner)
 
-        _give_member_access(workspace_a, investigation, owner, member_user)
+        _give_member_access(client, workspace_a, investigation, owner, member_user)
         assert "view_investigation" in get_perms(
             Person.objects.get(pk=member_user.pk), investigation
         )
@@ -1394,8 +1737,8 @@ class TestMultiWorkspacePermOverlap:
         workspace_a = WorkspaceFactory.create(owner=owner)
         workspace_b = WorkspaceFactory.create(owner=owner)
 
-        _give_member_access(workspace_a, investigation, owner, member_user)
-        _give_member_access(workspace_b, investigation, owner, member_user)
+        _give_member_access(client, workspace_a, investigation, owner, member_user)
+        _give_member_access(client, workspace_b, investigation, owner, member_user)
 
         client.force_login(owner)
         client.post(
@@ -1415,8 +1758,8 @@ class TestMultiWorkspacePermOverlap:
         workspace_a = WorkspaceFactory.create(owner=owner)
         workspace_b = WorkspaceFactory.create(owner=owner)
 
-        _give_member_access(workspace_a, investigation, owner, member_user)
-        _give_member_access(workspace_b, investigation, owner, member_user)
+        _give_member_access(client, workspace_a, investigation, owner, member_user)
+        _give_member_access(client, workspace_b, investigation, owner, member_user)
 
         client.force_login(owner)
         client.post(

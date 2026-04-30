@@ -11,6 +11,7 @@ ToxTemp "was developed (i) to fulfill all requirements of GD211, (ii) to guide t
     - [Get ORCID iD credentials](#get-orcid-id-credentials)
     - [Create Certificate](#create-certificate)
     - [MinIO setup](#minio-setup)
+  - [Workspaces and data ownership](#workspaces-and-data-ownership)
   - [License](#license)
   - [Maintainer](#maintainer)
   - [How to cite](#how-to-cite)
@@ -189,6 +190,62 @@ MinIO provides local S3-compatible object storage for the app.
 - Start the stack with `docker compose -f docker-compose.yml up` and open the MinIO console at `http://127.0.0.1:9001`.
 - Log in with the root credentials, create a user for Django with the access keys above, and create the bucket(s) needed by your deployment.
 - The MinIO API is available inside the Docker network on port `9000`; only the console is exposed to the host.
+
+## Workspaces and data ownership
+
+Workspaces let you collaborate with other users by sharing Investigations with
+them. It is important to understand how ownership and access work before using
+workspaces, so you do not inadvertently lose access to work you have created.
+
+### Investigations define the ownership boundary
+
+Every piece of work in ToxTempAssistant lives inside an **Investigation**.
+Ownership of an Investigation never changes — the user who created it remains
+the owner regardless of whether the Investigation is shared into a workspace.
+When you add your own Investigation to a workspace, ownership stays with you —
+no other user can share your Investigation into a workspace on your behalf.
+
+### Studies and Assays: creator ≠ owner of the Investigation
+
+When you are a workspace member and you create a Study or Assay inside
+**someone else's** Investigation, you are the *creator* of that Study/Assay
+(recorded in its `created_by` field), but the Investigation continues to
+belong to its original owner. Your access to that work is granted **through
+the workspace** — it is not a direct ownership right.
+
+> [!IMPORTANT]
+> If the workspace is dissolved (deleted), you will lose access
+> to any Studies and Assays you created inside an Investigation you do not own.
+> The Investigation is the root that defines who may access the data inside it.
+> Before accepting an invitation to a shared workspace, make sure you understand
+> that work you create inside another user's Investigation may become
+> inaccessible to you if the workspace is later removed.
+
+### What happens when a workspace is deleted
+
+When a workspace is deleted:
+
+1. All `WorkspaceMember` and shared-Investigation links for that workspace are
+   removed.
+2. Every workspace member (including the workspace owner) loses their
+   `view_investigation` permission on every Investigation that was shared
+   exclusively through this workspace.
+   - Exception: if you **own** the Investigation (you created it), your access
+     is never removed — it is a baseline permission attached to ownership.
+   - Exception: if the same Investigation is also shared through a **different
+     workspace** you belong to, your access is preserved.
+3. Once a member loses access to an Investigation, they also lose access to all
+   Studies and Assays inside it — including Studies/Assays they created
+   themselves.
+
+### Summary
+
+| Scenario | After workspace deletion |
+|---|---|
+| You own the Investigation | ✅ Full access retained |
+| You are a member, but the same Investigation is in another workspace you belong to | ✅ Access retained via the other workspace |
+| You are a member and this was the only workspace sharing that Investigation | ❌ Access lost |
+| You created a Study/Assay inside someone else's Investigation | ❌ Access lost if the workspace is dissolved and you are not the Investigation owner |
 
 ## License
 This project is licensed under the GNU Affero General Public License, see the LICENSE file for details.

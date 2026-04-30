@@ -120,6 +120,64 @@ Object-level permissions go through `django-guardian`. The abstract `AccessibleM
 
 `Person.preferences` is a JSONField holding multiple semantically distinct keys (beta state, tour progress, llm pref). All writes must go through `utilities.update_prefs_atomic(user, mutate)`, which serialises with `SELECT FOR UPDATE` — the naive read-modify-write pattern races and clobbers other keys.
 
+### Workspace ownership model
+
+Workspaces are a collaboration mechanism and **do not transfer ownership**. The
+ownership chain is always rooted at the `Investigation.owner` field and never
+changes when an investigation is shared into a workspace.
+
+Key rules to observe when working in this area:
+
+* **Investigation ownership is permanent.** `Investigation.save()` always grants
+  the owner `view_investigation` / `change_investigation` / `delete_investigation`
+  guardian permissions. These are *baseline* permissions and must **not** be
+  revoked by any workspace lifecycle operation — including workspace deletion,
+  investigation removal (`remove_workspace_assay`), and member removal
+  (`remove_workspace_member` / `remove_workspace_member_by_email`).
+
+* **The owner check is universal.** Whenever any workspace operation would call
+  `remove_perm("view_investigation", user, investigation)`, first check
+  `user.id == investigation.owner_id`. If true, skip the revocation — the perm
+  is baseline, not workspace-derived, and must be preserved regardless of which
+  user's role is being acted upon (including the workspace OWNER themselves).
+
+* **Workspace access is additive.** Adding an investigation to a workspace
+  (`add_workspace_assay`) grants `view_investigation` to **all** current
+  workspace members, including the workspace owner. Adding a member
+  (`add_workspace_member`) grants them `view_investigation` for all
+  investigations already shared into the workspace.
+
+* **Removing the sharing link revokes the derived perm** — with two exceptions:
+  1. The user is the *owner* of that investigation (baseline perm, never revoke).
+  2. The user still has the same investigation shared through a *different*
+     workspace they belong to (retained via cross-workspace access).
+
+  This rule applies equally to:
+  - `delete_workspace` — all members (including workspace OWNER) may lose perms
+  - `remove_workspace_assay` — all members may lose perm for the removed investigation
+  - `remove_workspace_member` / `remove_workspace_member_by_email` — the removed
+    user may lose perms for all investigations in that workspace
+
+* **Studies and Assays created inside a shared investigation are owned by their
+  creator** (`created_by` FK), not by the investigation owner. However, **access
+  to those objects is gated entirely by the investigation's sharing status.** If
+  a workspace is dissolved and a member no longer has access to the parent
+  investigation, they also lose access to every Study/Assay they created inside
+  it. This is by design — the investigation is the root that defines the access
+  boundary.
+
+* **`delete_workspace` cleanup order (runs inside `transaction.atomic()`):**
+  1. Snapshot all `WorkspaceMember` + `WorkspaceInvestigation` rows.
+  2. For each member × shared investigation: skip if the member owns
+     the investigation *or* still has access via another workspace; otherwise
+     revoke `view_investigation`.
+  3. Call `workspace.delete()` (CASCADE removes members + investigations rows).
+
+  Note: the workspace OWNER is included in step 2 because they can also hold
+  workspace-derived perms (e.g. another member shared their own investigation
+  into the workspace). Their baseline perm on *their own* investigations is
+  protected by the owner check in step 2.
+
 ### Async tasks
 
 `django-q2` runs in-process via `manage.py qcluster` (started by `django_startup.sh` unless `TESTING=true`). The cluster uses the Django ORM as its broker (`Q_CLUSTER["orm"] = "default"`). When `DEBUG` or `TESTING` is true, `Q_CLUSTER["sync"] = True` so tasks execute inline. Email is the primary task type today (`tasks.queue_email`).
