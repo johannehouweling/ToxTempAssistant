@@ -374,16 +374,17 @@ class TestDeleteWorkspace:
         WorkspaceMemberFactory.create(
             workspace=workspace, user=admin_user, role=WorkspaceRole.ADMIN
         )
-        WorkspaceInvestigation.objects.create(
-            workspace=workspace, investigation=investigation, added_by=owner
+        # Use the real view to share the investigation — grants perm to all members.
+        client.force_login(owner)
+        client.post(
+            reverse("add_workspace_assay", kwargs={"pk": workspace.pk}),
+            data={"investigation": investigation.pk},
         )
-        assign_perm("view_investigation", admin_user, investigation)
 
         assert "view_investigation" in get_perms(
             Person.objects.get(pk=admin_user.pk), investigation
         )
 
-        client.force_login(owner)
         client.post(reverse("delete_workspace", kwargs={"pk": workspace.pk}))
 
         assert not Workspace.objects.filter(pk=workspace.pk).exists()
