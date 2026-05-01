@@ -229,7 +229,17 @@ def generate_markdown_from_assay(assay: Assay) -> str:
 def get_create_meta_data_yaml(
     request: HttpRequest, assay: Assay, file_path: Path, export_type: str = "pdf"
 ) -> Path:
-    """Create meta data yaml file for pandoc."""
+    """Create meta data yaml file for pandoc.
+
+    Args:
+        request: The current HTTP request (used for author metadata).
+        assay: The assay being exported.
+        file_path: Destination file path; the YAML file is written alongside it.
+        export_type: The export format (e.g. ``"pdf"``, ``"tex"``).  When
+            ``"tex"``, fontspec and unicode-math are wrapped in an ``iftex``
+            conditional so the generated ``.tex`` file also compiles with
+            pdfLaTeX.
+    """
     # get date:
     # Define the Amsterdam timezone (UTC+1)
     amsterdam_tz = timezone.get_fixed_timezone(1)  # 1 means UTC+1
@@ -265,6 +275,7 @@ def get_create_meta_data_yaml(
     else:
         header_includes = [
             r"\usepackage{amsmath}",
+            r"\usepackage{fontspec}",
             r"\usepackage{unicode-math}",
             r"\setmainfont{TeX Gyre Termes}",
             r"\setmathfont{TeX Gyre Termes Math}",
