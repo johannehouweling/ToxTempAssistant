@@ -1824,6 +1824,9 @@ def answer_assay_questions(
             "export_docx_url": reverse(
                 "export_assay", kwargs=dict(assay_id=assay.id, export_type="docx")
             ),
+            "export_tex_url": reverse(
+                "export_assay", kwargs=dict(assay_id=assay.id, export_type="tex")
+            ),
         },
     )
 

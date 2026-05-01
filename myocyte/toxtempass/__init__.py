@@ -175,6 +175,7 @@ class Config:
         "docx": MappingProxyType({"mime_type": _mime_type_docx, "suffix": ".docx"}),
         "json": MappingProxyType({"mime_type": "application/json", "suffix": ".json"}),
         "md": MappingProxyType({"mime_type": "text/markdown", "suffix": ".md"}),
+        "tex": MappingProxyType({"mime_type": "application/x-tex", "suffix": ".tex"}),
     })
     EXPORT_MAPPING: Final[Mapping[str, tuple[str, ...]]] = MappingProxyType({
         "json": (),
@@ -183,6 +184,7 @@ class Config:
         "docx": ("--to=docx+auto_identifiers",),
         "html": ("--embed-resources", "--standalone", "--to=html5+smart"),
         "xml": ("--to=docbook",),
+        "tex": ("--to=latex", "--standalone"),
     })
     # Subset of EXPORT_MAPPING types that require Pandoc (JSON is serialized inline).
     PANDOC_EXPORT_TYPES: Final[frozenset[str]] = frozenset(EXPORT_MAPPING) - {"json"}

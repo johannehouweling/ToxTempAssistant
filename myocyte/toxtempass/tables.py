@@ -126,6 +126,7 @@ class AssayTable(tables.Table):
                     <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='xml' %}">XML</a></li>
                     <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='docx' %}">DOCX</a></li>
                     <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='html' %}">HTML</a></li>
+                    <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='tex' %}">TEX</a></li>
                 </ul>
             </div>
             <a class="btn btn-sm btn-outline-danger js-delete-link"
