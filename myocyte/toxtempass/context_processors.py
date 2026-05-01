@@ -1,7 +1,7 @@
 import logging
 from typing import Dict
 
-from .views import get_workspace_list
+from .workspace import get_workspace_list
 from django.utils.functional import SimpleLazyObject
 from toxtempass import config
 
