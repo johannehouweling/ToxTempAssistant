@@ -191,6 +191,10 @@ class Config:
     status_error_max_len = 8192
     license_url = "https://www.gnu.org/licenses/agpl-3.0.html"
     version = os.getenv("GIT_TAG", "") + "-beta"
+    reference_toxtempassistant_paper = "https://doi.org/10.1080/2833373X.2026.2638036"
+    reference_toxtempassistant_paper_svg = (
+        "https://zenodo.org/badge/DOI/10.1080/2833373X.2026.2638036.svg"
+    )
     reference_toxtempassistant_zenodo_code = "https://doi.org/10.5281/zenodo.15607642"
     reference_toxtempassistant_zenodo_code_svg = (
         "https://zenodo.org/badge/DOI/10.5281/zenodo.15607642.svg"
