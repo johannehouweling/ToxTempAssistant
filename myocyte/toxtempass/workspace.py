@@ -15,7 +15,7 @@ from django.http import HttpRequest, HttpResponseRedirect
 from django.http.response import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.views.decorators.http import require_POST
-from guardian.shortcuts import assign_perm, get_objects_for_user, remove_perm
+from guardian.shortcuts import assign_perm, remove_perm
 
 from toxtempass.forms import (
     WorkspaceForm,
@@ -62,14 +62,6 @@ def get_workspace_list(request: HttpRequest) -> dict:
         setattr(ws, "current_user_role", m.role)
         member_workspaces.append(ws)
 
-    # Provide investigations accessible to this user so the inline "Add investigation" modal can show options
-    accessible_investigations = get_objects_for_user(
-        request.user,
-        "toxtempass.view_investigation",
-        klass=Investigation,
-        use_groups=False,
-        any_perm=False,
-    )
     # Only show investigations owned by the current user in the Add modal to avoid allowing
     # users to share investigations they do not own via the UI. Server-side check will also enforce ownership.
     owned_investigations = Investigation.objects.filter(owner=request.user)
@@ -266,27 +258,48 @@ def add_workspace_member(request: HttpRequest, pk: int) -> JsonResponse:
         user = form.cleaned_data["user"]
         role = form.cleaned_data["role"]
 
+        # Only the actual workspace owner may hold the OWNER role.
+        if role == WorkspaceRole.OWNER and workspace.owner_id != getattr(user, "id", None):
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Only the workspace owner may be assigned the owner role",
+                },
+                status=400,
+            )
+
         if WorkspaceMember.objects.filter(workspace=workspace, user=user).exists():
             return JsonResponse(
                 {"success": False, "error": "User is already a member"}, status=400
             )
 
-        WorkspaceMember.objects.create(workspace=workspace, user=user, role=role)
+        try:
+            with transaction.atomic():
+                WorkspaceMember.objects.create(workspace=workspace, user=user, role=role)
 
-        # Ensure the newly added member receives object permissions for any
-        # Investigations already shared into this workspace.
-        shared_invs = WorkspaceInvestigation.objects.filter(
-            workspace=workspace
-        ).select_related("investigation")
-        for winv in shared_invs:
-            try:
-                assign_perm("view_investigation", user, winv.investigation)
-            except Exception:
-                logger.exception(
-                    "Failed to assign view_investigation perm for user %s on investigation %s",
-                    getattr(user, "email", None),
-                    getattr(winv.investigation, "id", None),
-                )
+                # Ensure the newly added member receives object permissions for any
+                # Investigations already shared into this workspace.
+                shared_invs = WorkspaceInvestigation.objects.filter(
+                    workspace=workspace
+                ).select_related("investigation")
+                for winv in shared_invs:
+                    try:
+                        assign_perm("view_investigation", user, winv.investigation)
+                    except Exception:
+                        logger.exception(
+                            "Failed to assign view_investigation perm for user %s on investigation %s",
+                            getattr(user, "email", None),
+                            getattr(winv.investigation, "id", None),
+                        )
+                        raise
+        except Exception:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Failed to add member and assign investigation permissions",
+                },
+                status=500,
+            )
 
         return JsonResponse({"success": True, "errors": {}})
     else:
@@ -334,25 +347,42 @@ def add_workspace_member_by_email(request: HttpRequest, pk: int) -> JsonResponse
             {"success": False, "error": "User is already a member"}, status=400
         )
 
-    # normalize role
-    if role not in dict(WorkspaceRole.choices):
+    # normalize role — do not allow creating extra OWNER-role memberships via this
+    # endpoint; those cannot be removed through the member-management flow.
+    if role not in dict(WorkspaceRole.choices) or role == WorkspaceRole.OWNER:
         role = WorkspaceRole.MEMBER
 
-    WorkspaceMember.objects.create(workspace=workspace, user=user, role=role)
+    try:
+        with transaction.atomic():
+            WorkspaceMember.objects.create(workspace=workspace, user=user, role=role)
 
-    # Assign view permissions for all investigations already shared into this workspace
-    shared_invs = WorkspaceInvestigation.objects.filter(
-        workspace=workspace
-    ).select_related("investigation")
-    for winv in shared_invs:
-        try:
-            assign_perm("view_investigation", user, winv.investigation)
-        except Exception:
-            logger.exception(
-                "Failed to assign view_investigation perm for user %s on investigation %s",
-                getattr(user, "email", None),
-                getattr(winv.investigation, "id", None),
-            )
+            # Assign view permissions for all investigations already shared into this workspace
+            shared_invs = WorkspaceInvestigation.objects.filter(
+                workspace=workspace
+            ).select_related("investigation")
+            for winv in shared_invs:
+                try:
+                    assign_perm("view_investigation", user, winv.investigation)
+                except Exception:
+                    logger.exception(
+                        "Failed to assign view_investigation perm for user %s on investigation %s",
+                        getattr(user, "email", None),
+                        getattr(winv.investigation, "id", None),
+                    )
+                    raise
+    except Exception:
+        logger.exception(
+            "Failed to add workspace member %s to workspace %s with investigation permissions",
+            getattr(user, "email", None),
+            getattr(workspace, "id", None),
+        )
+        return JsonResponse(
+            {
+                "success": False,
+                "error": "Failed to add member and assign investigation permissions",
+            },
+            status=500,
+        )
 
     return JsonResponse({"success": True, "member_email": user.email})
 
@@ -390,41 +420,44 @@ def remove_workspace_member(request: HttpRequest, pk: int, user_id: int) -> Json
 
     # Revoke any object-level permissions the user received due to this workspace,
     # but only if the user does not retain access via another workspace that also shares
-    # the same investigation.
+    # the same investigation. Revocation and membership deletion must succeed or fail
+    # together so we do not leave stale access behind.
     try:
-        other_workspace_ids = (
-            WorkspaceMember.objects.filter(user=member_to_remove.user)
-            .exclude(workspace=workspace)
-            .values_list("workspace_id", flat=True)
-        )
-        shared_invs = WorkspaceInvestigation.objects.filter(
-            workspace=workspace
-        ).select_related("investigation")
-        for winv in shared_invs:
-            if WorkspaceInvestigation.objects.filter(
-                investigation=winv.investigation, workspace_id__in=other_workspace_ids
-            ).exists():
-                continue  # user still has access via another workspace — keep the perm
-            # Never revoke the investigation owner's baseline perm.
-            if member_to_remove.user_id == winv.investigation.owner_id:
-                continue
-            try:
+        with transaction.atomic():
+            other_workspace_ids = (
+                WorkspaceMember.objects.filter(user=member_to_remove.user)
+                .exclude(workspace=workspace)
+                .values_list("workspace_id", flat=True)
+            )
+            shared_invs = WorkspaceInvestigation.objects.filter(
+                workspace=workspace
+            ).select_related("investigation")
+            for winv in shared_invs:
+                if WorkspaceInvestigation.objects.filter(
+                    investigation=winv.investigation, workspace_id__in=other_workspace_ids
+                ).exists():
+                    continue  # user still has access via another workspace — keep the perm
+                # Never revoke the investigation owner's baseline perm.
+                if member_to_remove.user_id == winv.investigation.owner_id:
+                    continue
                 remove_perm(
                     "view_investigation", member_to_remove.user, winv.investigation
                 )
-            except Exception:
-                logger.exception(
-                    "Failed to remove view_investigation perm for user %s on investigation %s",
-                    getattr(member_to_remove.user, "email", None),
-                    getattr(winv.investigation, "id", None),
-                )
+
+            member_to_remove.delete()
     except Exception:
         logger.exception(
             "Failed while revoking workspace-based permissions for removed member %s",
             user_id,
         )
+        return JsonResponse(
+            {
+                "success": False,
+                "error": "Failed to remove member because permission cleanup did not complete",
+            },
+            status=500,
+        )
 
-    member_to_remove.delete()
     return JsonResponse({"success": True, "errors": {}})
 
 
@@ -482,39 +515,41 @@ def remove_workspace_member_by_email(request: HttpRequest, pk: int) -> JsonRespo
 
     # Revoke permissions granted via this workspace for the removed user,
     # but only if the user does not retain access via another workspace that also shares
-    # the same investigation.
+    # the same investigation. If revocation fails, do not delete the membership.
     try:
-        other_workspace_ids = (
-            WorkspaceMember.objects.filter(user=user)
-            .exclude(workspace=workspace)
-            .values_list("workspace_id", flat=True)
-        )
-        shared_invs = WorkspaceInvestigation.objects.filter(
-            workspace=workspace
-        ).select_related("investigation")
-        for winv in shared_invs:
-            if WorkspaceInvestigation.objects.filter(
-                investigation=winv.investigation, workspace_id__in=other_workspace_ids
-            ).exists():
-                continue  # user still has access via another workspace — keep the perm
-            # Never revoke the investigation owner's baseline perm.
-            if user.id == winv.investigation.owner_id:
-                continue
-            try:
+        with transaction.atomic():
+            other_workspace_ids = (
+                WorkspaceMember.objects.filter(user=user)
+                .exclude(workspace=workspace)
+                .values_list("workspace_id", flat=True)
+            )
+            shared_invs = WorkspaceInvestigation.objects.filter(
+                workspace=workspace
+            ).select_related("investigation")
+            for winv in shared_invs:
+                if WorkspaceInvestigation.objects.filter(
+                    investigation=winv.investigation, workspace_id__in=other_workspace_ids
+                ).exists():
+                    continue  # user still has access via another workspace — keep the perm
+                # Never revoke the investigation owner's baseline perm.
+                if user.id == winv.investigation.owner_id:
+                    continue
                 remove_perm("view_investigation", user, winv.investigation)
-            except Exception:
-                logger.exception(
-                    "Failed to remove view_investigation perm for user %s on investigation %s",
-                    getattr(user, "email", None),
-                    getattr(winv.investigation, "id", None),
-                )
+
+            gm.delete()
     except Exception:
         logger.exception(
-            "Failed while revoking workspace-based permissions for removed member %s",
+            "Failed while revoking workspace-based permissions for removed member %s; membership was not deleted",
             user.id,
         )
+        return JsonResponse(
+            {
+                "success": False,
+                "error": "Failed to revoke permissions; membership was not removed",
+            },
+            status=500,
+        )
 
-    gm.delete()
     return JsonResponse({"success": True})
 
 
@@ -577,13 +612,28 @@ def add_workspace_assay(request: HttpRequest, pk: int) -> JsonResponse:
             status=400,
         )
 
-    workspace_inv = WorkspaceInvestigation.objects.create(
-        workspace=workspace, investigation=investigation, added_by=request.user
-    )
+    try:
+        with transaction.atomic():
+            workspace_inv = WorkspaceInvestigation.objects.create(
+                workspace=workspace, investigation=investigation, added_by=request.user
+            )
 
-    members = WorkspaceMember.objects.filter(workspace=workspace).select_related("user")
-    for member in members:
-        assign_perm("view_investigation", member.user, investigation)
+            members = WorkspaceMember.objects.filter(workspace=workspace).select_related("user")
+            for member in members:
+                assign_perm("view_investigation", member.user, investigation)
+    except Exception:
+        logger.exception(
+            "Failed to share investigation %s with workspace %s",
+            investigation.pk,
+            workspace.pk,
+        )
+        return JsonResponse(
+            {
+                "success": False,
+                "error": "Unable to share investigation with workspace members.",
+            },
+            status=500,
+        )
 
     return JsonResponse({"success": True, "workspace_investigation_id": workspace_inv.id})
 
@@ -619,24 +669,43 @@ def remove_workspace_assay(request: HttpRequest, pk: int, assay_id: int) -> Json
         )
 
     investigation = workspace_inv.investigation
-    workspace_inv.delete()
 
-    # Revoke view_investigation perm from each member, but only if they do not
-    # retain access to the same investigation via another workspace.
-    members = WorkspaceMember.objects.filter(workspace=workspace).select_related("user")
-    for member in members:
-        # Never revoke the investigation owner's baseline perm.
-        if member.user_id == investigation.owner_id:
-            continue
-        other_workspace_ids = (
-            WorkspaceMember.objects.filter(user=member.user)
-            .exclude(workspace=workspace)
-            .values_list("workspace_id", flat=True)
+    with transaction.atomic():
+        workspace_inv.delete()
+
+        # Revoke view_investigation perm from each member, but only if they do not
+        # retain access to the same investigation via another workspace.
+        # Batch the cross-workspace lookups to avoid N+1 queries.
+        members = list(
+            WorkspaceMember.objects.filter(workspace=workspace).select_related("user")
         )
-        if WorkspaceInvestigation.objects.filter(
-            investigation=investigation, workspace_id__in=other_workspace_ids
-        ).exists():
-            continue  # member still has access via another workspace — keep the perm
-        remove_perm("view_investigation", member.user, investigation)
+        member_user_ids = [m.user_id for m in members]
+
+        # All other-workspace memberships for current members in a single query.
+        other_memberships = WorkspaceMember.objects.filter(
+            user_id__in=member_user_ids
+        ).exclude(workspace=workspace)
+
+        # Which workspaces share this same investigation (single query).
+        investigation_workspace_ids = set(
+            WorkspaceInvestigation.objects.filter(
+                investigation=investigation
+            ).values_list("workspace_id", flat=True)
+        )
+
+        # Users who still have access via another workspace.
+        users_with_other_access = {
+            user_id
+            for user_id, ws_id in other_memberships.values_list("user_id", "workspace_id")
+            if ws_id in investigation_workspace_ids
+        }
+
+        for member in members:
+            # Never revoke the investigation owner's baseline perm.
+            if member.user_id == investigation.owner_id:
+                continue
+            if member.user_id in users_with_other_access:
+                continue  # member still has access via another workspace — keep the perm
+            remove_perm("view_investigation", member.user, investigation)
 
     return JsonResponse({"success": True, "errors": {}})
