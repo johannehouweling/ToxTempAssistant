@@ -73,6 +73,7 @@ from toxtempass.models import (
     Answer,
     AnswerFile,
     Assay,
+    AssayCost,
     Feedback,
     Investigation,
     LLMStatus,
@@ -769,7 +770,10 @@ def generate_answer(
 
         try:
             resp = chatopenai.invoke(messages)
-            return ans.id, (resp.content or "")
+            usage = getattr(resp, "usage_metadata", None) or {}
+            input_tokens = usage.get("input_tokens", 0) or 0
+            output_tokens = usage.get("output_tokens", 0) or 0
+            return ans.id, (resp.content or ""), input_tokens, output_tokens
 
         except RateLimitError as e:
             # parse “try again in Xs” if present
@@ -799,14 +803,81 @@ def generate_answer(
                 delta_ans,
                 exc,
             )
-            return ans.id, ""
+            return ans.id, "", 0, 0
 
         except Exception as exc:
             logger.exception(
                 f"LLM error for answer {ans.id} [{max_ans_id - ans.id} "
                 "of {delta_ans}]: {exc}"
             )
-            return ans.id, ""
+            return ans.id, "", 0, 0
+
+
+def _save_assay_cost(
+    assay_id: int,
+    model_key: str,
+    input_tokens: int,
+    output_tokens: int,
+) -> None:
+    """Persist (or update) an ``AssayCost`` row for a completed LLM run.
+
+    Looks up cost-per-million-token rates from the Azure registry and
+    calculates the estimated USD costs.  Cost fields are left ``None``
+    when the model has no pricing tags configured.
+    """
+    from decimal import Decimal
+
+    from toxtempass.azure_registry import get_model as get_azure_model_entry
+
+    cost_input_per_1m = None
+    cost_output_per_1m = None
+    model_id = ""
+
+    try:
+        idx_s, tag = model_key.split(":", 1)
+        result = get_azure_model_entry(int(idx_s), tag)
+        if result is not None:
+            _ep, _m = result
+            model_id = _m.model_id
+            cip = _m.cost_input_per_1m_tokens
+            cop = _m.cost_output_per_1m_tokens
+            if cip is not None:
+                cost_input_per_1m = Decimal(str(cip))
+            if cop is not None:
+                cost_output_per_1m = Decimal(str(cop))
+    except Exception as exc:
+        logger.warning("Could not resolve cost rates for model %r: %s", model_key, exc)
+
+    cost_input = None
+    cost_output = None
+    if cost_input_per_1m is not None:
+        cost_input = cost_input_per_1m * Decimal(input_tokens) / Decimal("1000000")
+    if cost_output_per_1m is not None:
+        cost_output = cost_output_per_1m * Decimal(output_tokens) / Decimal("1000000")
+
+    AssayCost.objects.update_or_create(
+        assay_id=assay_id,
+        model_key=model_key,
+        defaults=dict(
+            model_id=model_id,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cost_input_per_1m=cost_input_per_1m,
+            cost_output_per_1m=cost_output_per_1m,
+            cost_input=cost_input,
+            cost_output=cost_output,
+        ),
+    )
+    logger.info(
+        "AssayCost saved: assay=%s model=%s input_tok=%d output_tok=%d "
+        "cost_input=%s cost_output=%s",
+        assay_id,
+        model_key,
+        input_tokens,
+        output_tokens,
+        cost_input,
+        cost_output,
+    )
 
 
 def process_llm_async(
@@ -1009,6 +1080,10 @@ def process_llm_async(
             """Fast existence check used to short-circuit deleted assays."""
             return Assay.objects.filter(pk=assay_id).exists()
 
+        # Accumulate token usage across all rounds.
+        total_input_tokens = 0
+        total_output_tokens = 0
+
         for rnd in rounds:
             # Gate every round on the assay still existing. Prevents round N+1
             # from firing LLM calls after the user deleted mid-run.
@@ -1045,9 +1120,11 @@ def process_llm_async(
                 ) as pbar:
                     for future in as_completed(futures):
                         try:
-                            aid, text = (
+                            aid, text, in_tok, out_tok = (
                                 future.result()
                             )  # optionally: future.result(timeout=...)
+                            total_input_tokens += in_tok
+                            total_output_tokens += out_tok
                         except TimeoutError as te:
                             logger.error(str(te))
                             continue
@@ -1092,6 +1169,23 @@ def process_llm_async(
 
         assay.status = LLMStatus.DONE
         assay.save()
+
+        # ── Persist token usage & cost ─────────────────────────────────────────
+        if llm_model and ":" in llm_model and (total_input_tokens or total_output_tokens):
+            try:
+                _save_assay_cost(
+                    assay_id=assay_id,
+                    model_key=llm_model,
+                    input_tokens=total_input_tokens,
+                    output_tokens=total_output_tokens,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "Failed to persist AssayCost for assay %s model %s: %s",
+                    assay_id,
+                    llm_model,
+                    exc,
+                )
 
     except Exception as e:
         logger.exception(f"Fatal error in process_llm_async: {e}")

@@ -5,7 +5,7 @@ from django.utils.safestring import SafeText, mark_safe
 
 from django.urls import reverse
 
-from toxtempass.models import Answer, Assay, LLMStatus, AssayView, Person
+from toxtempass.models import Answer, Assay, AssayCost, LLMStatus, AssayView, Person
 from django.utils.dateparse import parse_datetime
 from django.contrib.humanize.templatetags.humanize import naturaltime
 
@@ -72,6 +72,16 @@ class AssayTable(tables.Table):
         attrs={
             "th": {"class": "no-link-header d-none d-lg-table-cell"},
             "td": {"class": "align-middle d-none d-lg-table-cell"},
+        },
+    )
+
+    cost = tables.Column(
+        verbose_name="Cost (est.)",
+        orderable=False,
+        empty_values=(),
+        attrs={
+            "th": {"class": "no-link-header d-none d-lg-table-cell"},
+            "td": {"class": "align-middle d-none d-lg-table-cell text-center"},
         },
     )
 
@@ -238,12 +248,66 @@ class AssayTable(tables.Table):
             draft_str=draft_but_not_accepted_string,
         )
 
+    def render_cost(self, value, record: Assay) -> SafeText:
+        """Render admin-only estimated LLM cost with Bootstrap5 popover breakdown."""
+        cost_rows = AssayCost.objects.filter(assay=record)
+        if not cost_rows.exists():
+            return mark_safe('<span class="text-muted">—</span>')
+
+        total = sum(
+            (r.total_cost or 0) for r in cost_rows
+        )
+
+        # Build popover HTML content with per-model breakdown
+        breakdown_rows = []
+        for r in cost_rows:
+            row_total = r.total_cost
+            cost_str = f"${row_total:.4f}" if row_total is not None else "no pricing data"
+            in_str = f"{r.input_tokens:,}" if r.input_tokens else "0"
+            out_str = f"{r.output_tokens:,}" if r.output_tokens else "0"
+            breakdown_rows.append(
+                f"<tr><td class='pe-2'><code>{escape(r.model_key)}</code></td>"
+                f"<td class='pe-2'>{escape(r.model_id)}</td>"
+                f"<td class='pe-2'>{in_str}&nbsp;in</td>"
+                f"<td class='pe-2'>{out_str}&nbsp;out</td>"
+                f"<td><b>{cost_str}</b></td></tr>"
+            )
+        popover_content = (
+            '<table class="table table-sm mb-0">'
+            "<thead><tr>"
+            "<th>Key</th><th>Model</th><th>Input tokens</th>"
+            "<th>Output tokens</th><th>Est. cost</th>"
+            "</tr></thead><tbody>"
+            + "".join(breakdown_rows)
+            + "</tbody></table>"
+        )
+
+        total_str = f"${total:.4f}" if any(r.total_cost is not None for r in cost_rows) else "—"
+
+        return format_html(
+            '<span tabindex="0" role="button"'
+            ' data-bs-toggle="popover"'
+            ' data-bs-trigger="focus"'
+            ' data-bs-placement="left"'
+            ' data-bs-html="true"'
+            ' data-bs-title="Cost breakdown"'
+            ' data-bs-content="{content}"'
+            ' class="badge bg-secondary text-decoration-underline cursor-pointer"'
+            ' style="cursor:pointer">'
+            "{total}"
+            "</span>",
+            content=popover_content,
+            total=total_str,
+        )
+
     def before_render(self, request):
         """Override get_table to conditionally exclude 'confidential' column."""
         if request.user.is_superuser:
             self.columns.show("owner")
+            self.columns.show("cost")
         else:
             self.columns.hide("owner")
+            self.columns.hide("cost")
 
     class Meta:
         model = Assay
@@ -255,6 +319,7 @@ class AssayTable(tables.Table):
             "last_changed",
             "progress",
             "owner",
+            "cost",
             "action",
         )
         # Use the Bootstrap5 template so it picks up your existing styling
