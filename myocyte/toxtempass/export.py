@@ -227,7 +227,7 @@ def generate_markdown_from_assay(assay: Assay) -> str:
 
 
 def get_create_meta_data_yaml(
-    request: HttpRequest, assay: Assay, file_path: Path
+    request: HttpRequest, assay: Assay, file_path: Path, export_type: str = "pdf"
 ) -> Path:
     """Create meta data yaml file for pandoc."""
     # get date:
@@ -240,6 +240,37 @@ def get_create_meta_data_yaml(
     # Optionally, you can extract the date from the current_time if needed
     current_date = current_time.date()
 
+    # For .tex output the user will compile themselves, wrap fontspec/unicode-math
+    # in \ifPDFTeX…\else…\fi so the file also compiles with pdfLaTeX (which does
+    # not support fontspec).  All other export types are processed by LuaLaTeX
+    # inside the app, so the unconditional fontspec/unicode-math packages are fine.
+    if export_type == "tex":
+        font_block = (
+            "\\usepackage{iftex}\n"
+            "\\ifPDFTeX\n"
+            "  \\usepackage[T1]{fontenc}\n"
+            "  \\usepackage[utf8]{inputenc}\n"
+            "\\else\n"
+            "  \\usepackage{fontspec}\n"
+            "  \\usepackage{unicode-math}\n"
+            "  \\setmainfont{TeX Gyre Termes}\n"
+            "  \\setmathfont{TeX Gyre Termes Math}\n"
+            "\\fi"
+        )
+        header_includes = [
+            r"\usepackage{amsmath}",
+            font_block,
+            r"\usepackage[a4paper, margin=3cm]{geometry}",
+        ]
+    else:
+        header_includes = [
+            r"\usepackage{amsmath}",
+            r"\usepackage{unicode-math}",
+            r"\setmainfont{TeX Gyre Termes}",
+            r"\setmathfont{TeX Gyre Termes Math}",
+            r"\usepackage[a4paper, margin=3cm]{geometry}",
+        ]
+
     metadata_dict = {
         "author": f"{request.user.first_name} {request.user.last_name}",  # Example author; replace as needed
         "date": str(current_date),  # Current date;
@@ -248,13 +279,7 @@ def get_create_meta_data_yaml(
             "cell-based toxicological test methods, "
             "New Approach Methodologies"
         ),  # Example keywords; customize as required
-        "header-includes": [
-            r"\usepackage{amsmath}",
-            r"\usepackage{unicode-math}",
-            r"\setmainfont{TeX Gyre Termes}",
-            r"\setmathfont{TeX Gyre Termes Math}",
-            r"\usepackage[a4paper, margin=3cm]{geometry}",
-        ],
+        "header-includes": header_includes,
         "title": f"ToxTemp for Test Method: {assay.title}",
         "toc": "true",
         "toc-title": "Table of Contents",
@@ -300,7 +325,9 @@ def export_assay_to_file(
             with md_file_path.open("w", encoding="utf-8") as md_file:
                 md_file.write(export_data)
 
-            yaml_metadata_file_path = get_create_meta_data_yaml(request, assay, file_path)
+            yaml_metadata_file_path = get_create_meta_data_yaml(
+                request, assay, file_path, export_type
+            )
 
             # Convert the markdown file to the requested format using Pandoc
             pandoc_command = [
