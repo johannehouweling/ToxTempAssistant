@@ -204,6 +204,7 @@
                     >
                     Update selected questions
                   </a></li>
+                  <li><a class="dropdown-item" href="#" type="button" id="btn_mark_open_gpt_update">Mark all open for &#39;GPT Update&#39;</a></li>
                   {% endwith %}
                 </ul>
               </div>
@@ -235,6 +236,7 @@
 {% include "answer_extras/marked_modal.html" %}
 {% include "answer_extras/scroll_spy.html"%}
 {% include "answer_extras/get_next_unaccepted.html" %}
+{% include "answer_extras/mark_open_for_gpt_update.html" %}
 {% include "answer_extras/deselect_accepted_onchange.html" %}
 {% include "answer_extras/resize_textarea.html" %}
 {% include "answer_extras/feedback_export.html" %}
