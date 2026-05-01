@@ -221,6 +221,60 @@ def set_beta_admitted(
     update_prefs_atomic(person, mutate)
 
 
+# ---------------------------------------------------------------------------
+# Password reset rate-limiting helpers
+# ---------------------------------------------------------------------------
+
+# Minimum wait in seconds between consecutive reset requests.
+# Index 0 → wait before 2nd attempt, index 1 → before 3rd, etc.
+# Schedule: 1 min → 5 min → 1 hour → 1 day
+_PW_RESET_WAIT_PERIODS: list[int] = [60, 300, 3600, 86400]
+_PW_RESET_MAX_STORED = 10  # keep only the most recent N attempt timestamps
+
+
+def get_password_reset_wait_seconds(person: "Person") -> float:
+    """Return seconds the user must still wait before a new reset request.
+
+    Returns 0.0 if the user is allowed to request immediately.
+    The wait schedule (between consecutive attempts) is:
+    1 min → 5 min → 1 hour → 1 day.
+    """
+    import datetime
+
+    prefs = person.preferences or {}
+    attempts: list[str] = prefs.get("pw_reset_attempts", [])
+    if not attempts:
+        return 0.0
+
+    try:
+        last_attempt = datetime.datetime.fromisoformat(attempts[-1])
+    except (ValueError, TypeError):
+        return 0.0
+
+    if last_attempt.tzinfo is None:
+        last_attempt = last_attempt.replace(tzinfo=datetime.timezone.utc)
+
+    from django.utils import timezone as tz
+
+    elapsed = (tz.now() - last_attempt).total_seconds()
+    idx = min(len(attempts) - 1, len(_PW_RESET_WAIT_PERIODS) - 1)
+    required_wait = _PW_RESET_WAIT_PERIODS[idx]
+    return max(0.0, required_wait - elapsed)
+
+
+def record_password_reset_attempt(person: "Person") -> None:
+    """Append a timestamp for a new password reset attempt to the user's preferences."""
+    from django.utils import timezone as tz
+
+    def mutate(prefs: dict) -> bool:
+        attempts = list(prefs.get("pw_reset_attempts", []))
+        attempts.append(tz.now().isoformat())
+        prefs["pw_reset_attempts"] = attempts[-_PW_RESET_MAX_STORED:]
+        return True
+
+    update_prefs_atomic(person, mutate)
+
+
 def provenance_label_for_item(
     item: Model,
     current_user: Person | None,
