@@ -11,6 +11,7 @@ ToxTemp "was developed (i) to fulfill all requirements of GD211, (ii) to guide t
     - [Get ORCID iD credentials](#get-orcid-id-credentials)
     - [Create Certificate](#create-certificate)
     - [MinIO setup](#minio-setup)
+  - [Backup architecture](#backup-architecture)
   - [Workspaces and data ownership](#workspaces-and-data-ownership)
   - [License](#license)
   - [Maintainer](#maintainer)
@@ -190,6 +191,195 @@ MinIO provides local S3-compatible object storage for the app.
 - Start the stack with `docker compose -f docker-compose.yml up` and open the MinIO console at `http://127.0.0.1:9001`.
 - Log in with the root credentials, create a user for Django with the access keys above, and create the bucket(s) needed by your deployment.
 - The MinIO API is available inside the Docker network on port `9000`; only the console is exposed to the host.
+
+## Backup architecture
+
+ToxTempAssistant ships a `backup` Docker Compose service that automatically backs up both the Postgres database and MinIO object storage on a configurable cron schedule. Backups are written to a directory on the host machine and older ones are pruned automatically.
+
+### How it works
+
+```
+┌──────────────────────────────────────────────┐
+│  backup service (alpine + supercronic)        │
+│                                               │
+│  entrypoint.sh                                │
+│    └─ installs cron job (BACKUP_SCHEDULE)     │
+│         └─ runs backup.sh on schedule         │
+│              ├─ pg_dump → gzip → .sql.gz      │
+│              └─ mc mirror → MinIO objects     │
+└──────────────────────────────────────────────┘
+         │ bind-mounted
+         ▼
+   ./backups/<YYYY-MM-DD_HHMMSS>/
+     ├── postgres_<db>.sql.gz   (logical Postgres dump)
+     ├── minio/                 (object-level MinIO mirror)
+     │     └── <bucket>/…
+     ├── manifest.txt           (run metadata)
+     └── files.txt              (directory listing)
+```
+
+The `backup` service:
+
+1. Reads your `.env` at startup (mounted read-only at `/work/.env`).
+2. Installs a `supercronic` cron job using `BACKUP_SCHEDULE`.
+3. On each run, `backup.sh`:
+   - Executes `pg_dump` inside the running Postgres container and pipes the output through `gzip`.
+   - Spawns a short-lived `minio/mc` container on the same Docker network to mirror all buckets (or a specific bucket) into the backup directory.
+   - Writes a `manifest.txt` (timestamp, services, config values) and a `files.txt` (directory listing).
+   - Deletes timestamped backup directories older than `RETENTION_DAYS`.
+
+### Enabling the backup service
+
+The `backup` service is part of the `prod` profile and starts automatically when you bring up the production stack:
+
+```bash
+docker compose -f docker-compose.yml --profile prod up -d
+```
+
+The `backup` service requires the Docker socket and the host `.env` to be mounted (see `docker-compose.yml`). No additional setup is needed — the service discovers all Postgres and MinIO settings from the same `.env` file used by the rest of the stack.
+
+### `.env` configuration reference
+
+The backup system re-uses existing Postgres and MinIO keys from `.env` — no additional entries are required for a basic setup. The optional keys below let you tune the behaviour.
+
+#### Required (already set for the main stack)
+
+| Variable | Description |
+|---|---|
+| `POSTGRES_USER` | Postgres superuser used by `pg_dump` |
+| `POSTGRES_PASSWORD` | Password for that user |
+| `POSTGRES_DB` | Database name to dump |
+| `POSTGRES_HOST` | Docker Compose service name for Postgres (e.g. `postgres_for_django`) |
+| `AWS_S3_ENDPOINT_URL` | MinIO endpoint **using the service name as host** (e.g. `http://minio:9000`) |
+| `MINIO_ROOT_USER` | MinIO root / admin username |
+| `MINIO_ROOT_PASSWORD` | MinIO root / admin password |
+
+#### Optional backup-specific keys
+
+| Variable | Default | Description |
+|---|---|---|
+| `BACKUP_ROOT` | `backups` (next to `backup.sh`) | Host-side directory where timestamped backup folders are written. A relative path is resolved relative to the directory that contains `backup.sh` (i.e. the repo root). An absolute path is used as-is. |
+| `BACKUP_RETENTION_DAYS` | `14` | Timestamped backup directories older than this many days are deleted at the end of each run. |
+| `MINIO_BUCKET` | *(empty — all buckets)* | Set to a single bucket name to limit MinIO mirroring to that bucket only. Leave empty to mirror all buckets. |
+
+#### Setting the backup schedule (`BACKUP_SCHEDULE`)
+
+`BACKUP_SCHEDULE` is a standard cron expression consumed by the `backup` container's `entrypoint.sh`. The default is `0 2 * * *` (every day at 02:00 local time).
+
+Set it via the `environment` section in `docker-compose.yml` or by exporting it before bringing up the stack:
+
+```yaml
+# docker-compose.yml  (backup service, environment block)
+environment:
+  TZ: Europe/Amsterdam       # affects cron schedule interpretation
+  BACKUP_SCHEDULE: "0 2 * * *"   # daily at 02:00 Amsterdam time
+  BACKUP_CMD: "/work/backup.sh"
+  CRON_LOG: "/logs/backup-cron.log"
+```
+
+Common schedule expressions:
+
+| Expression | Meaning |
+|---|---|
+| `0 2 * * *` | Every day at 02:00 *(default)* |
+| `0 */6 * * *` | Every 6 hours |
+| `0 2 * * 0` | Every Sunday at 02:00 |
+| `0 2 1 * *` | First day of every month at 02:00 |
+
+> **Note — timezone:** `supercronic` uses the container's system clock. Set the `TZ` environment variable on the `backup` service to ensure the schedule fires at the intended wall-clock time (e.g. `TZ: Europe/Amsterdam` as shown in the example `docker-compose.yml` above).
+
+### Backup directory layout
+
+Each run creates a new subdirectory under `BACKUP_ROOT` named with the UTC timestamp at the time of the run:
+
+```
+backups/
+└── 2026-05-01_020001/
+    ├── postgres_toxtempass.sql.gz   ← gzip-compressed logical Postgres dump
+    ├── minio/
+    │   └── toxtemp/                 ← mirrored MinIO bucket contents
+    │       └── <object-key> …
+    ├── manifest.txt                 ← run metadata (timestamp, services, config)
+    └── files.txt                    ← directory listing of this backup
+```
+
+Backup directories that are older than `RETENTION_DAYS` days and whose names match the `YYYY-MM-DD_HHMMSS` pattern are deleted automatically at the end of each run. Directories with other names are never touched.
+
+### Running a manual backup
+
+To trigger a backup immediately without waiting for the next scheduled run:
+
+```bash
+# From the repo root (requires a running prod stack)
+bash backup.sh
+```
+
+Or, if you want to run it inside the backup container:
+
+```bash
+docker compose exec backup /work/backup.sh
+```
+
+### Restore procedures
+
+#### Restore Postgres
+
+```bash
+# Replace <STAMP>, <POSTGRES_DB>, <POSTGRES_USER>, and <POSTGRES_HOST> with your values
+gunzip -c backups/<STAMP>/postgres_<POSTGRES_DB>.sql.gz \
+  | docker compose exec -T <POSTGRES_HOST> psql -U <POSTGRES_USER> <POSTGRES_DB>
+```
+
+For example:
+
+```bash
+gunzip -c backups/2026-05-01_020001/postgres_toxtempass.sql.gz \
+  | docker compose exec -T postgres_for_django psql -U postgres toxtempass
+```
+
+> **Warning:** This replaces the contents of the live database. Stop or fence off the Django app before restoring to avoid write conflicts.
+
+#### Restore MinIO
+
+Mirror the backup back to MinIO by setting the `mc` alias and performing the mirror in a single container invocation. Replace `<MINIO_ROOT_USER>`, `<MINIO_ROOT_PASSWORD>`, and `<STAMP>` with your actual values:
+
+```bash
+# Restore all buckets
+docker run --rm \
+  --network toxtempass_data_network \
+  -v "$(pwd)/backups/<STAMP>/minio":/backup:ro \
+  -e MINIO_USER=<MINIO_ROOT_USER> \
+  -e MINIO_PASS=<MINIO_ROOT_PASSWORD> \
+  --entrypoint /bin/sh \
+  minio/mc:latest \
+  -lc '
+    mc alias set local http://minio:9000 "$MINIO_USER" "$MINIO_PASS" >/dev/null
+    mc mirror --overwrite /backup local/
+  '
+
+# Restore a single bucket
+docker run --rm \
+  --network toxtempass_data_network \
+  -v "$(pwd)/backups/<STAMP>/minio/<bucket>":/backup:ro \
+  -e MINIO_USER=<MINIO_ROOT_USER> \
+  -e MINIO_PASS=<MINIO_ROOT_PASSWORD> \
+  --entrypoint /bin/sh \
+  minio/mc:latest \
+  -lc '
+    mc alias set local http://minio:9000 "$MINIO_USER" "$MINIO_PASS" >/dev/null
+    mc mirror --overwrite /backup local/<bucket>
+  '
+```
+
+#### Verify a backup (without restoring)
+
+```bash
+# List Postgres dump tables
+gunzip -c backups/<STAMP>/postgres_<DB>.sql.gz | grep -E '^(CREATE TABLE|COPY )'
+
+# List MinIO backup objects
+ls -lR backups/<STAMP>/minio/
+```
 
 ## Workspaces and data ownership
 
