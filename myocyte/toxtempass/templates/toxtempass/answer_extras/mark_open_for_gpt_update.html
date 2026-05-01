@@ -1,0 +1,58 @@
+<script>
+    // Toggle-able "Mark all open for GPT Update" behaviour.
+    // First click  → checks every earmarked_ checkbox whose paired accepted_
+    //                switch is NOT checked (i.e. the answer is still "open").
+    // Second click → unchecks ALL earmarked_ checkboxes, reverting the batch.
+    (function () {
+        var btn = document.getElementById('btn_mark_open_gpt_update');
+        var markAllActive = false;
+        // Guard so the global change listener ignores programmatic unchecks.
+        var isProgrammatic = false;
+
+        var earmarkedSelector = 'input[type="checkbox"][name^="earmarked_"]';
+
+        btn.addEventListener('click', function () {
+            var earmarkedCheckboxes = document.querySelectorAll(earmarkedSelector);
+            isProgrammatic = true;
+            if (!markAllActive) {
+                // Mark all open (non-accepted) questions for GPT Update.
+                earmarkedCheckboxes.forEach(function (earmarkedCb) {
+                    var questionId = earmarkedCb.name.replace('earmarked_', '');
+                    var acceptedCb = document.getElementById('id_accepted_' + questionId);
+                    if (acceptedCb && !acceptedCb.checked) {
+                        earmarkedCb.checked = true;
+                        earmarkedCb.dispatchEvent(new Event('change'));
+                    }
+                });
+                markAllActive = true;
+                btn.textContent = "Deselect all from 'GPT Update'";
+            } else {
+                // Deselect all earmarked_ checkboxes.
+                earmarkedCheckboxes.forEach(function (earmarkedCb) {
+                    if (earmarkedCb.checked) {
+                        earmarkedCb.checked = false;
+                        earmarkedCb.dispatchEvent(new Event('change'));
+                    }
+                });
+                markAllActive = false;
+                btn.textContent = "Mark all open for 'GPT Update'";
+            }
+            isProgrammatic = false;
+        });
+
+        // If a user manually unchecks an earmarked checkbox while the batch
+        // is active, flip the button back to the inactive label so they aren't
+        // confused about what a second click will do.
+        document.addEventListener('change', function (e) {
+            if (
+                !isProgrammatic &&
+                markAllActive &&
+                e.target.matches(earmarkedSelector) &&
+                !e.target.checked
+            ) {
+                markAllActive = false;
+                btn.textContent = "Mark all open for 'GPT Update'";
+            }
+        });
+    })();
+</script>
