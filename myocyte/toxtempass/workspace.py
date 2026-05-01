@@ -283,15 +283,7 @@ def add_workspace_member(request: HttpRequest, pk: int) -> JsonResponse:
                     workspace=workspace
                 ).select_related("investigation")
                 for winv in shared_invs:
-                    try:
-                        assign_perm("view_investigation", user, winv.investigation)
-                    except Exception:
-                        logger.exception(
-                            "Failed to assign view_investigation perm for user %s on investigation %s",
-                            getattr(user, "email", None),
-                            getattr(winv.investigation, "id", None),
-                        )
-                        raise
+                    assign_perm("view_investigation", user, winv.investigation)
         except Exception:
             return JsonResponse(
                 {
@@ -361,15 +353,7 @@ def add_workspace_member_by_email(request: HttpRequest, pk: int) -> JsonResponse
                 workspace=workspace
             ).select_related("investigation")
             for winv in shared_invs:
-                try:
-                    assign_perm("view_investigation", user, winv.investigation)
-                except Exception:
-                    logger.exception(
-                        "Failed to assign view_investigation perm for user %s on investigation %s",
-                        getattr(user, "email", None),
-                        getattr(winv.investigation, "id", None),
-                    )
-                    raise
+                assign_perm("view_investigation", user, winv.investigation)
     except Exception:
         logger.exception(
             "Failed to add workspace member %s to workspace %s with investigation permissions",
