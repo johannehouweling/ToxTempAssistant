@@ -2,6 +2,44 @@
 
 <!-- version list -->
 
+## v3.9.0 (2026-05-01)
+
+### Bug Fixes
+
+- Add explicit fontspec and export_type docstring to metadata yaml helper
+  ([`e065fd8`](https://github.com/johannehouweling/ToxTempAssistant/commit/e065fd8cd629e6acafc204cdd51dea14bfd5c181))
+
+- Address reviewer feedback on workspace.py
+  ([`86f8ac4`](https://github.com/johannehouweling/ToxTempAssistant/commit/86f8ac4fb166d2b58fd3f9bcae9b1be7c40f31a4))
+
+- Correct return type annotation for create_or_update_workspace
+  ([`0b8f06c`](https://github.com/johannehouweling/ToxTempAssistant/commit/0b8f06c5cea5b908459053c1fd7ae3c602606140))
+
+- Logger __name__
+  ([`33400c3`](https://github.com/johannehouweling/ToxTempAssistant/commit/33400c3a2a269289456502e1fd6ecd9092dcae36))
+
+- Make tex export compile with pdflatex via iftex conditional
+  ([`3fe868e`](https://github.com/johannehouweling/ToxTempAssistant/commit/3fe868eec9f8afa8c4480edb29ebca5aa5d8457e))
+
+- Remove redundant inner try-except blocks in add_workspace_member*
+  ([`bcc5c90`](https://github.com/johannehouweling/ToxTempAssistant/commit/bcc5c908b5470936268009cd8148db7c4461a6b3))
+
+### Documentation
+
+- Correct comment
+  ([`3276495`](https://github.com/johannehouweling/ToxTempAssistant/commit/3276495cbe0ce9153693fd9c5b7b85f14c6b5a25))
+
+### Features
+
+- Add TEX export format for assay templates
+  ([`8363187`](https://github.com/johannehouweling/ToxTempAssistant/commit/8363187fa91935a4abcb7be345e5b37b2e5a7c91))
+
+### Refactoring
+
+- Extract workspace views into toxtempass/workspace.py
+  ([`d51d3e9`](https://github.com/johannehouweling/ToxTempAssistant/commit/d51d3e9c900cf601a1791045deaaea3636df7233))
+
+
 ## v3.8.1 (2026-04-30)
 
 ### Bug Fixes
