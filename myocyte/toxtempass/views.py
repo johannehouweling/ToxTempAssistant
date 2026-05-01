@@ -324,7 +324,7 @@ class PasswordResetRequestView(DjangoPasswordResetView):
       4th+ attempt:      1 day wait
     """
 
-    template_name = "password_reset.html"
+    template_name = "toxtempass/password_reset.html"
     email_template_name = "toxtempass/email/password_reset_email.txt"
     html_email_template_name = "toxtempass/email/password_reset_email.html"
     subject_template_name = "toxtempass/email/password_reset_subject.txt"
