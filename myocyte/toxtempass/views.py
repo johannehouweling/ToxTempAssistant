@@ -771,6 +771,7 @@ def generate_answer(
         try:
             resp = chatopenai.invoke(messages)
             usage = getattr(resp, "usage_metadata", None) or {}
+            # `or 0` guards against providers that explicitly return None for these keys.
             input_tokens = usage.get("input_tokens", 0) or 0
             output_tokens = usage.get("output_tokens", 0) or 0
             return ans.id, (resp.content or ""), input_tokens, output_tokens
@@ -1171,6 +1172,9 @@ def process_llm_async(
         assay.save()
 
         # ── Persist token usage & cost ─────────────────────────────────────────
+        # Only persist when we actually received token counts from the LLM API.
+        # Zero-token runs (e.g. test fakes with no usage_metadata) are skipped
+        # to avoid creating spurious cost rows with no data.
         if llm_model and ":" in llm_model and (total_input_tokens or total_output_tokens):
             try:
                 _save_assay_cost(

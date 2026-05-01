@@ -550,17 +550,24 @@ class LLMConfigAdmin(admin.ModelAdmin):
         total = len(all_models)
         if with_pricing == total:
             return format_html(
-                '<span style="color:#198754">✓ {}/{} priced</span>', with_pricing, total,
+                '<span style="color:#198754"'
+                ' title="All models have pricing configured">'
+                "&#10003; {}/{} priced</span>",
+                with_pricing, total,
             )
         elif with_pricing == 0:
             return format_html(
-                '<span style="color:#a75d00" title="Add cost-input-1mtoken and '
-                'cost-output-1mtoken tags to AZURE_E*_TAGS_* to enable cost tracking">'
-                "⚠️ 0/{} priced</span>",
+                '<span style="color:#a75d00"'
+                ' title="Add cost-input-1mtoken and cost-output-1mtoken tags to '
+                'AZURE_E*_TAGS_* to enable cost tracking">'
+                "&#9888; 0/{} priced</span>",
                 total,
             )
         return format_html(
-            '<span style="color:#fd7e14">⚠️ {}/{} priced</span>', with_pricing, total,
+            '<span style="color:#fd7e14"'
+            ' title="{} of {} models are missing pricing tags">'
+            "&#9888; {}/{} priced</span>",
+            total - with_pricing, total, with_pricing, total,
         )
     pricing_summary.short_description = "Pricing"
 
