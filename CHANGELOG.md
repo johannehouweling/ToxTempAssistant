@@ -2,6 +2,27 @@
 
 <!-- version list -->
 
+## v3.10.0 (2026-05-01)
+
+### Bug Fixes
+
+- Dispatch change events with bubbles:true so document listener receives them
+  ([`abd44ff`](https://github.com/johannehouweling/ToxTempAssistant/commit/abd44ff58e4d6b2e46d48da720f520e04f1c0ec5))
+
+### Chores
+
+- Change DOI link to reference the paper
+  ([`1f61e42`](https://github.com/johannehouweling/ToxTempAssistant/commit/1f61e42307ff3f994e48c6e0fb1b353ca253fda5))
+
+- Update referecne from zenodo to Toxtempassistant paper
+  ([`eedd15f`](https://github.com/johannehouweling/ToxTempAssistant/commit/eedd15f5aaa2a2d19bf7b68e331f61a22b615743))
+
+### Features
+
+- Add Mark all open for GPT Update toggle to Options dropdown
+  ([`8d57416`](https://github.com/johannehouweling/ToxTempAssistant/commit/8d57416146d8fd8496e5b33a7fcb670af2c9a7d5))
+
+
 ## v3.9.0 (2026-05-01)
 
 ### Bug Fixes
