@@ -250,8 +250,8 @@ class AssayTable(tables.Table):
 
     def render_cost(self, value, record: Assay) -> SafeText:
         """Render admin-only estimated LLM cost with Bootstrap5 popover breakdown."""
-        cost_rows = AssayCost.objects.filter(assay=record)
-        if not cost_rows.exists():
+        cost_rows = list(AssayCost.objects.filter(assay=record))
+        if not cost_rows:
             return mark_safe('<span class="text-muted">—</span>')
 
         total = sum(

@@ -688,8 +688,13 @@ def generate_answer(
     full_pdf_context: str,
     assay: Assay,
     chatopenai: ChatOpenAI,
-) -> tuple[int, str]:
-    """Generate an answer for a single Answer instance."""
+) -> tuple[int, str, int, int]:
+    """Generate an answer for a single Answer instance.
+
+    Returns a 4-tuple of ``(answer_id, answer_text, input_tokens, output_tokens)``.
+    ``input_tokens`` and ``output_tokens`` are 0 when the LLM response does not
+    include usage metadata.
+    """
     ## some variables for logging and deadline handling
     # compute a soft deadline based on Django‑Q timeout (90% of it)
     q_timeout = settings.Q_CLUSTER.get("timeout", None)
