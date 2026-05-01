@@ -31,7 +31,7 @@ from toxtempass.models import (
     WorkspaceRole,
 )
 
-logger = logging.getLogger("workspace")
+logger = logging.getLogger(__name__)
 
 
 @login_required(login_url="/login/")
