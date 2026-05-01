@@ -2003,7 +2003,7 @@ def assay_feedback(request: HttpRequest, assay_id: int) -> JsonResponse:
 
 # ---------------------------------------------------------------------------
 # Workspace views — extracted to toxtempass/workspace.py
-# Re-exported here so that existing imports (urls.py, context_processors.py)
+# Re-exported here so that existing imports (for example, urls.py)
 # that reference toxtempass.views continue to work.
 # ---------------------------------------------------------------------------
 from toxtempass.workspace import (  # noqa: E402
