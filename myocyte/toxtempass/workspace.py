@@ -84,7 +84,7 @@ def get_workspace_list(request: HttpRequest) -> dict:
 @login_required(login_url="/login/")
 def create_or_update_workspace(
     request: HttpRequest, pk: int | None = None
-) -> JsonResponse | HttpResponseRedirect:
+) -> JsonResponse:
     """Create or update a Workspace."""
     if pk:
         workspace = get_object_or_404(Workspace, pk=pk)
