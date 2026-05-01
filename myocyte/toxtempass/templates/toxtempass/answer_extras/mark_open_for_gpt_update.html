@@ -21,7 +21,7 @@
                     var acceptedCb = document.getElementById('id_accepted_' + questionId);
                     if (acceptedCb && !acceptedCb.checked) {
                         earmarkedCb.checked = true;
-                        earmarkedCb.dispatchEvent(new Event('change'));
+                        earmarkedCb.dispatchEvent(new Event('change', { bubbles: true }));
                     }
                 });
                 markAllActive = true;
@@ -31,7 +31,7 @@
                 earmarkedCheckboxes.forEach(function (earmarkedCb) {
                     if (earmarkedCb.checked) {
                         earmarkedCb.checked = false;
-                        earmarkedCb.dispatchEvent(new Event('change'));
+                        earmarkedCb.dispatchEvent(new Event('change', { bubbles: true }));
                     }
                 });
                 markAllActive = false;
