@@ -123,8 +123,8 @@ def test_save_assay_cost_calculates_cost_from_registry(assay_with_questions):
         deployment_name="test-deployment",
         model_id="test-model",
         tags={
-            "cost-input-1Mtoken": "2.00",
-            "cost-output-1Mtoken": "8.00",
+            "cost-input-1mtoken": "2.00",
+            "cost-output-1mtoken": "8.00",
             "cost-unit": "Eur",
         },
     )
@@ -224,7 +224,7 @@ def test_model_entry_cost_properties_parse_tags():
         tag="T1",
         deployment_name="dep",
         model_id="gpt-4o",
-        tags={"cost-input-1Mtoken": "2.50", "cost-output-1Mtoken": "10.00"},
+        tags={"cost-input-1mtoken": "2.50", "cost-output-1mtoken": "10.00"},
     )
     assert m.cost_input_per_1m_tokens == 2.50
     assert m.cost_output_per_1m_tokens == 10.00
@@ -247,7 +247,7 @@ def test_model_entry_cost_properties_return_none_on_invalid():
         tag="T3",
         deployment_name="dep",
         model_id="gpt-4o",
-        tags={"cost-input-1Mtoken": "notanumber", "cost-output-1Mtoken": "also-bad"},
+        tags={"cost-input-1mtoken": "notanumber", "cost-output-1mtoken": "also-bad"},
     )
     assert m.cost_input_per_1m_tokens is None
     assert m.cost_output_per_1m_tokens is None

@@ -297,20 +297,20 @@ def _render_deployments_table(
                 cost_html = format_html(
                     '<span style="color:#198754;font-family:monospace">'
                     'in&nbsp;{sym}{cip}/1M</span>'
-                    '<span style="color:#a75d00" title="Missing cost-output-1Mtoken tag"> ⚠️</span>',
+                    '<span style="color:#a75d00" title="Missing cost-output-1mtoken tag"> ⚠️</span>',
                     sym=cost_sym, cip=cip,
                 )
             elif cop is not None:
                 cost_html = format_html(
                     '<span style="color:#198754;font-family:monospace">'
                     'out&nbsp;{sym}{cop}/1M</span>'
-                    '<span style="color:#a75d00" title="Missing cost-input-1Mtoken tag"> ⚠️</span>',
+                    '<span style="color:#a75d00" title="Missing cost-input-1mtoken tag"> ⚠️</span>',
                     sym=cost_sym, cop=cop,
                 )
             else:
                 cost_html = mark_safe(
-                    '<span style="color:#a75d00" title="No cost-input-1Mtoken / '
-                    'cost-output-1Mtoken tags set on this model">'
+                    '<span style="color:#a75d00" title="No cost-input-1mtoken / '
+                    'cost-output-1mtoken tags set on this model">'
                     "⚠️ no pricing</span>"
                 )
 
@@ -560,7 +560,7 @@ class LLMConfigAdmin(admin.ModelAdmin):
         elif with_pricing == 0:
             return format_html(
                 '<span style="color:#a75d00"'
-                ' title="Add cost-input-1Mtoken and cost-output-1Mtoken tags to '
+                ' title="Add cost-input-1mtoken and cost-output-1mtoken tags to '
                 'AZURE_E*_TAGS_* to enable cost tracking">'
                 "&#9888; 0/{} priced</span>",
                 total,
