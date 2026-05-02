@@ -2,6 +2,44 @@
 
 <!-- version list -->
 
+## v3.11.0 (2026-05-02)
+
+### Bug Fixes
+
+- Address code review feedback on cost tracking feature
+  ([`4fdbcb5`](https://github.com/johannehouweling/ToxTempAssistant/commit/4fdbcb550c9febb29751583252399dc96fea327d))
+
+- Rename cost tag keys to use capital M (1Mtoken) for million
+  ([`e94414e`](https://github.com/johannehouweling/ToxTempAssistant/commit/e94414e717889044741782f5cb3f2af860623304))
+
+- Update generate_answer return type annotation and fix N+1 query in render_cost
+  ([`8be5be5`](https://github.com/johannehouweling/ToxTempAssistant/commit/8be5be5f53250d39c102c8798e98148fa09ce521))
+
+- Use EUR currency for cost tracking, move cost column after Answers Accepted
+  ([`d6da458`](https://github.com/johannehouweling/ToxTempAssistant/commit/d6da458c25537d308e6e419755efa2227e049461))
+
+### Chores
+
+- **deps-dev**: Bump jupyterlab from 4.5.6 to 4.5.7
+  ([`3b82d27`](https://github.com/johannehouweling/ToxTempAssistant/commit/3b82d27b7fb28af2bbc56b695d030212f93c89fe))
+
+### Documentation
+
+- Add Backup architecture section to README
+  ([`4b8df2a`](https://github.com/johannehouweling/ToxTempAssistant/commit/4b8df2a0ad6f3f0c9c9d23054de9a42b412c8208))
+
+- Fix RETENTION_DAYS refs and timestamp timezone in backup section
+  ([`04e7d4f`](https://github.com/johannehouweling/ToxTempAssistant/commit/04e7d4fdae2d4ed7b0192879cf3110fccd6b1b94))
+
+### Features
+
+- Add cost-unit tag, store in AssayCost and use in cost display
+  ([`a836407`](https://github.com/johannehouweling/ToxTempAssistant/commit/a836407949d13a7052c151236d7c1061567bb1da))
+
+- Add LLM cost tracking per assay draft
+  ([`2e7a753`](https://github.com/johannehouweling/ToxTempAssistant/commit/2e7a753d0143dacfe303e1111aa6fd7a4afe11a2))
+
+
 ## v3.10.0 (2026-05-01)
 
 ### Bug Fixes
