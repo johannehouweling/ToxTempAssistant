@@ -226,7 +226,7 @@ The `backup` service:
    - Executes `pg_dump` inside the running Postgres container and pipes the output through `gzip`.
    - Spawns a short-lived `minio/mc` container on the same Docker network to mirror all buckets (or a specific bucket) into the backup directory.
    - Writes a `manifest.txt` (timestamp, services, config values) and a `files.txt` (directory listing).
-   - Deletes timestamped backup directories older than `RETENTION_DAYS`.
+   - Deletes timestamped backup directories older than `BACKUP_RETENTION_DAYS`.
 
 ### Enabling the backup service
 
@@ -290,7 +290,7 @@ Common schedule expressions:
 
 ### Backup directory layout
 
-Each run creates a new subdirectory under `BACKUP_ROOT` named with the UTC timestamp at the time of the run:
+Each run creates a new subdirectory under `BACKUP_ROOT` named with a local-time timestamp (influenced by the container's `TZ` setting):
 
 ```
 backups/
@@ -303,7 +303,7 @@ backups/
     └── files.txt                    ← directory listing of this backup
 ```
 
-Backup directories that are older than `RETENTION_DAYS` days and whose names match the `YYYY-MM-DD_HHMMSS` pattern are deleted automatically at the end of each run. Directories with other names are never touched.
+Backup directories that are older than `BACKUP_RETENTION_DAYS` days and whose names match the `YYYY-MM-DD_HHMMSS` pattern are deleted automatically at the end of each run. Directories with other names are never touched.
 
 ### Running a manual backup
 
