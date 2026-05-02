@@ -233,6 +233,14 @@ class Config:
     _orcid_client_id = os.getenv("ORCID_CLIENT_ID")
     _orcid_client_secret = os.getenv("ORCID_CLIENT_SECRET")
 
+    # ── Password reset rate-limiting ──────────────────────────────────────────
+    # Minimum wait in seconds between consecutive reset requests.
+    # Index 0 → wait before 2nd attempt, index 1 → before 3rd, etc.
+    # Schedule: 1 min → 5 min → 1 hour → 1 day
+    _pw_reset_wait_periods: Final[tuple[int, ...]] = (60, 300, 3600, 86400)
+    # Keep only the most recent N attempt timestamps in Person.preferences.
+    _pw_reset_max_stored: int = 10
+
     # Validation settings
     # These are used in the validation pipeline to estimate performance of the LLM
     # Not used in the actual application, but for validation purposes only.

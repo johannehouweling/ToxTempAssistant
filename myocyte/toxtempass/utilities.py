@@ -225,12 +225,6 @@ def set_beta_admitted(
 # Password reset rate-limiting helpers
 # ---------------------------------------------------------------------------
 
-# Minimum wait in seconds between consecutive reset requests.
-# Index 0 → wait before 2nd attempt, index 1 → before 3rd, etc.
-# Schedule: 1 min → 5 min → 1 hour → 1 day
-_PW_RESET_WAIT_PERIODS: list[int] = [60, 300, 3600, 86400]
-_PW_RESET_MAX_STORED = 10  # keep only the most recent N attempt timestamps
-
 
 def get_password_reset_wait_seconds(person: "Person") -> float:
     """Return seconds the user must still wait before a new reset request.
@@ -240,6 +234,8 @@ def get_password_reset_wait_seconds(person: "Person") -> float:
     1 min → 5 min → 1 hour → 1 day.
     """
     import datetime
+
+    from toxtempass import Config
 
     prefs = person.preferences or {}
     attempts: list[str] = prefs.get("pw_reset_attempts", [])
@@ -257,8 +253,8 @@ def get_password_reset_wait_seconds(person: "Person") -> float:
     from django.utils import timezone as tz
 
     elapsed = (tz.now() - last_attempt).total_seconds()
-    idx = min(len(attempts) - 1, len(_PW_RESET_WAIT_PERIODS) - 1)
-    required_wait = _PW_RESET_WAIT_PERIODS[idx]
+    idx = min(len(attempts) - 1, len(Config._pw_reset_wait_periods) - 1)
+    required_wait = Config._pw_reset_wait_periods[idx]
     return max(0.0, required_wait - elapsed)
 
 
@@ -266,10 +262,12 @@ def record_password_reset_attempt(person: "Person") -> None:
     """Append a timestamp for a new password reset attempt to the user's preferences."""
     from django.utils import timezone as tz
 
+    from toxtempass import Config
+
     def mutate(prefs: dict) -> bool:
         attempts = list(prefs.get("pw_reset_attempts", []))
         attempts.append(tz.now().isoformat())
-        prefs["pw_reset_attempts"] = attempts[-_PW_RESET_MAX_STORED:]
+        prefs["pw_reset_attempts"] = attempts[-Config._pw_reset_max_stored :]
         return True
 
     update_prefs_atomic(person, mutate)
