@@ -16,7 +16,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.contrib.auth.views import PasswordResetView as DjangoPasswordResetView
 from django.contrib.humanize.templatetags.humanize import naturaltime
-from django.db import models, transaction
+from django.db import close_old_connections, models, transaction
 from django.db.models import QuerySet
 from django.http import (
     FileResponse,
@@ -969,6 +969,7 @@ def process_llm_async(
     Each question can override or replace instructions,
     and can scope context to specific subsections or use the PDFs.
     """
+    close_old_connections()
     try:
         try:
             assay = Assay.objects.get(pk=assay_id)
@@ -1273,6 +1274,8 @@ def process_llm_async(
             logger.info(
                 f"Assay with id {assay_id} does not exist; skipping error status update."
             )
+    finally:
+        close_old_connections()
 
 
 @method_decorator(user_passes_test(is_logged_in, login_url="/login/"), name="dispatch")
