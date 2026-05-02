@@ -72,8 +72,20 @@ def _parse_tags(raw: str) -> dict[str, str]:
 KNOWN_TAG_KEYS = {
     "tier", "residency", "provider", "direct-from-azure",
     "version", "label", "api", "retirement-date", "default",
-    "context-window",
+    "context-window", "cost-input-1Mtoken", "cost-output-1Mtoken", "cost-unit",
 }
+
+# Maps uppercase ISO 4217 currency codes to display symbols.
+COST_UNIT_SYMBOLS: dict[str, str] = {"EUR": "€", "USD": "$", "GBP": "£"}
+
+
+def cost_unit_symbol(unit: str) -> str:
+    """Return the display symbol for a currency unit code (e.g. ``Eur`` → ``€``).
+
+    Falls back to the raw ``unit`` string for unrecognised codes, and to ``€``
+    when ``unit`` is empty.
+    """
+    return COST_UNIT_SYMBOLS.get(unit.upper(), unit or "€")
 
 # Number of days before retirement when a model starts showing as "retiring soon".
 RETIRING_SOON_DAYS = 30
@@ -183,6 +195,38 @@ class ModelEntry:
         except ValueError:
             logger.warning("Invalid context-window %r on tag %s", raw, self.tag)
             return None
+
+    @property
+    def cost_input_per_1m_tokens(self) -> float | None:
+        """Cost in EUR per 1 million input tokens, parsed from the ``cost-input-1Mtoken`` tag."""
+        raw = self.tags.get("cost-input-1Mtoken", "").strip()
+        if not raw:
+            return None
+        try:
+            return float(raw)
+        except ValueError:
+            logger.warning("Invalid cost-input-1Mtoken %r on tag %s", raw, self.tag)
+            return None
+
+    @property
+    def cost_output_per_1m_tokens(self) -> float | None:
+        """Cost in EUR per 1 million output tokens, parsed from the ``cost-output-1Mtoken`` tag."""
+        raw = self.tags.get("cost-output-1Mtoken", "").strip()
+        if not raw:
+            return None
+        try:
+            return float(raw)
+        except ValueError:
+            logger.warning("Invalid cost-output-1Mtoken %r on tag %s", raw, self.tag)
+            return None
+
+    @property
+    def cost_unit(self) -> str:
+        """Currency unit from the ``cost-unit`` tag (e.g. ``Eur``, ``USD``).
+
+        Returns an empty string when the tag is absent.
+        """
+        return self.tags.get("cost-unit", "").strip()
 
     @property
     def retirement_date(self) -> "date | None":

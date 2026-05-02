@@ -20,6 +20,7 @@ from toxtempass.filehandling import download_assay_files_as_zip
 from toxtempass.models import (
     Answer,
     Assay,
+    AssayCost,
     Feedback,
     Investigation,
     LLMConfig,
@@ -281,6 +282,38 @@ def _render_deployments_table(
                 else mark_safe("")
             )
 
+            # Cost per 1M tokens display
+            cip = m.cost_input_per_1m_tokens
+            cop = m.cost_output_per_1m_tokens
+            from toxtempass.azure_registry import cost_unit_symbol as _sym
+            cost_sym = _sym(m.cost_unit)
+            if cip is not None and cop is not None:
+                cost_html = format_html(
+                    '<span style="color:#198754;font-family:monospace">'
+                    'in&nbsp;{sym}{cip}/1M&nbsp;·&nbsp;out&nbsp;{sym}{cop}/1M</span>',
+                    sym=cost_sym, cip=cip, cop=cop,
+                )
+            elif cip is not None:
+                cost_html = format_html(
+                    '<span style="color:#198754;font-family:monospace">'
+                    'in&nbsp;{sym}{cip}/1M</span>'
+                    '<span style="color:#a75d00" title="Missing cost-output-1Mtoken tag"> ⚠️</span>',
+                    sym=cost_sym, cip=cip,
+                )
+            elif cop is not None:
+                cost_html = format_html(
+                    '<span style="color:#198754;font-family:monospace">'
+                    'out&nbsp;{sym}{cop}/1M</span>'
+                    '<span style="color:#a75d00" title="Missing cost-input-1Mtoken tag"> ⚠️</span>',
+                    sym=cost_sym, cop=cop,
+                )
+            else:
+                cost_html = mark_safe(
+                    '<span style="color:#a75d00" title="No cost-input-1Mtoken / '
+                    'cost-output-1Mtoken tags set on this model">'
+                    "⚠️ no pricing</span>"
+                )
+
             rows.append(format_html(
                 '<tr style="{0}">'
                 '<td style="padding:9px 12px;text-align:center">'
@@ -294,6 +327,7 @@ def _render_deployments_table(
                 '<td style="padding:9px 12px">{12}</td>'
                 '<td style="padding:9px 12px;font-family:monospace;color:#666">{13}</td>'
                 '<td style="padding:9px 12px">{14}</td>'
+                '<td style="padding:9px 12px">{16}</td>'
                 "</tr>",
                 row_style,
                 key, default_checked, disabled_attr, allowed_checked,
@@ -307,6 +341,7 @@ def _render_deployments_table(
                 m.api,
                 status_html,
                 env_default_html,
+                cost_html,
             ))
 
     table = format_html(
@@ -321,6 +356,7 @@ def _render_deployments_table(
         '<th style="padding:10px 12px">Data handling</th>'
         '<th style="padding:10px 12px">API</th>'
         '<th style="padding:10px 12px">Status</th>'
+        '<th style="padding:10px 12px">Pricing (EUR)</th>'
         "</tr></thead><tbody>{}</tbody></table>",
         mark_safe("".join(rows)),
     )
@@ -430,6 +466,7 @@ class LLMConfigAdmin(admin.ModelAdmin):
     list_display = (
         "current_default",
         "discovered_endpoints_count",
+        "pricing_summary",
         "health_summary",
         "updated_at",
     )
@@ -502,6 +539,40 @@ class LLMConfigAdmin(admin.ModelAdmin):
         return f"{len(registry)} endpoint(s), {total_models} model(s)"
     discovered_endpoints_count.short_description = "Discovered"
 
+    def pricing_summary(self, obj):
+        """Show how many models have pricing tags configured."""
+        registry = get_registry()
+        all_models = [m for ep in registry for m in ep.models]
+        if not all_models:
+            return "—"
+        with_pricing = sum(
+            1 for m in all_models
+            if m.cost_input_per_1m_tokens is not None and m.cost_output_per_1m_tokens is not None
+        )
+        total = len(all_models)
+        if with_pricing == total:
+            return format_html(
+                '<span style="color:#198754"'
+                ' title="All models have pricing configured">'
+                "&#10003; {}/{} priced</span>",
+                with_pricing, total,
+            )
+        elif with_pricing == 0:
+            return format_html(
+                '<span style="color:#a75d00"'
+                ' title="Add cost-input-1Mtoken and cost-output-1Mtoken tags to '
+                'AZURE_E*_TAGS_* to enable cost tracking">'
+                "&#9888; 0/{} priced</span>",
+                total,
+            )
+        return format_html(
+            '<span style="color:#fd7e14"'
+            ' title="{} of {} models are missing pricing tags">'
+            "&#9888; {}/{} priced</span>",
+            total - with_pricing, total, with_pricing, total,
+        )
+    pricing_summary.short_description = "Pricing"
+
     def health_summary(self, obj):
         """Compact ✓/✗ counter for the list view."""
         results = obj.last_health_check or {}
@@ -552,3 +623,61 @@ class LLMConfigAdmin(admin.ModelAdmin):
         obj.allowed_models = [v for v in post.getlist("allowed_models") if v]
         obj.updated_by = request.user
         super().save_model(request, obj, form, change)
+
+
+@admin.register(AssayCost)
+class AssayCostAdmin(admin.ModelAdmin):
+    """Read-only admin view for per-assay LLM cost records."""
+
+    list_display = (
+        "assay",
+        "model_key",
+        "model_id",
+        "input_tokens",
+        "output_tokens",
+        "cost_input_display",
+        "cost_output_display",
+        "total_cost_display",
+        "updated_at",
+    )
+    list_filter = ("model_key",)
+    search_fields = ("assay__title", "model_key", "model_id")
+    ordering = ("-updated_at",)
+    readonly_fields = (
+        "assay",
+        "model_key",
+        "model_id",
+        "input_tokens",
+        "output_tokens",
+        "cost_input_per_1m",
+        "cost_output_per_1m",
+        "cost_input",
+        "cost_output",
+        "created_at",
+        "updated_at",
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def cost_input_display(self, obj):
+        if obj.cost_input is None:
+            return mark_safe('<span style="color:#888">—</span>')
+        return f"{obj.cost_unit_symbol}{obj.cost_input:.6f}"
+    cost_input_display.short_description = "Input cost"
+
+    def cost_output_display(self, obj):
+        if obj.cost_output is None:
+            return mark_safe('<span style="color:#888">—</span>')
+        return f"{obj.cost_unit_symbol}{obj.cost_output:.6f}"
+    cost_output_display.short_description = "Output cost"
+
+    def total_cost_display(self, obj):
+        total = obj.total_cost
+        if total is None:
+            return mark_safe('<span style="color:#888">—</span>')
+        return format_html('<b>{sym}{total}</b>', sym=obj.cost_unit_symbol, total=f"{total:.6f}")
+    total_cost_display.short_description = "Total cost"

@@ -832,3 +832,98 @@ class LLMConfig(models.Model):
 
 
 
+class AssayCost(models.Model):
+    """Records the token usage and estimated cost for one LLM generation run on an assay.
+
+    One row is created (or updated) per (assay, model_key) combination each time
+    ``process_llm_async`` completes.  Cost fields are derived from the
+    ``cost-input-1Mtoken`` / ``cost-output-1Mtoken`` tags on the model at the time
+    the run executes; they stay ``None`` when those tags are absent.
+    """
+
+    assay = models.ForeignKey(
+        "Assay",
+        on_delete=models.CASCADE,
+        related_name="costs",
+        help_text="The assay this cost record belongs to.",
+    )
+    model_key = models.CharField(
+        max_length=64,
+        help_text='Deployment key used, e.g. "1:GPT4O".',
+    )
+    model_id = models.CharField(
+        max_length=128,
+        blank=True,
+        default="",
+        help_text='Underlying model id at run time, e.g. "gpt-4o".',
+    )
+    input_tokens = models.PositiveBigIntegerField(
+        default=0,
+        help_text="Total prompt tokens consumed across all questions in this run.",
+    )
+    output_tokens = models.PositiveBigIntegerField(
+        default=0,
+        help_text="Total completion tokens produced across all questions in this run.",
+    )
+    cost_input_per_1m = models.DecimalField(
+        max_digits=12,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        help_text="Snapshot of input price (EUR / 1 M tokens) at run time.",
+    )
+    cost_output_per_1m = models.DecimalField(
+        max_digits=12,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        help_text="Snapshot of output price (EUR / 1 M tokens) at run time.",
+    )
+    cost_input = models.DecimalField(
+        max_digits=12,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        help_text="Calculated input cost in EUR for this run.",
+    )
+    cost_output = models.DecimalField(
+        max_digits=12,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        help_text="Calculated output cost in EUR for this run.",
+    )
+    cost_unit = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text='Currency unit from the cost-unit tag at run time, e.g. "Eur".',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Assay LLM Cost"
+        verbose_name_plural = "Assay LLM Costs"
+        unique_together = ("assay", "model_key")
+        ordering = ["-updated_at"]
+
+    def __str__(self) -> str:
+        total = self.total_cost
+        sym = self.cost_unit_symbol
+        if total is not None:
+            return f"AssayCost assay={self.assay_id} model={self.model_key} total={sym}{total:.6f}"
+        return f"AssayCost assay={self.assay_id} model={self.model_key}"
+
+    @property
+    def cost_unit_symbol(self) -> str:
+        """Return a display symbol for the stored cost unit (e.g. ``€`` for ``Eur``)."""
+        from toxtempass.azure_registry import cost_unit_symbol as _sym
+        return _sym(self.cost_unit)
+
+    @property
+    def total_cost(self):
+        """Return combined input + output cost, or ``None`` if cost data is absent."""
+        if self.cost_input is None and self.cost_output is None:
+            return None
+        return (self.cost_input or 0) + (self.cost_output or 0)
