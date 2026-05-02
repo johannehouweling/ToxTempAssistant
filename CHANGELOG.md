@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.12.1 (2026-05-02)
+
+### Bug Fixes
+
+- Normalize token tag names to lowercase in configuration and related code
+  ([`66c13e4`](https://github.com/johannehouweling/ToxTempAssistant/commit/66c13e40553d7cc7b017c912e4fb6c831e027add))
+
+
 ## v3.12.0 (2026-05-02)
 
 ### Bug Fixes
