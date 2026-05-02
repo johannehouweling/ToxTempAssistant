@@ -2,6 +2,34 @@
 
 <!-- version list -->
 
+## v3.12.0 (2026-05-02)
+
+### Bug Fixes
+
+- Disable Forgot password link until email setup is complete
+  ([#140](https://github.com/johannehouweling/ToxTempAssistant/pull/140),
+  [`758de81`](https://github.com/johannehouweling/ToxTempAssistant/commit/758de8138742528b58bdfbde08ef6d40f8a6f0c0))
+
+- Update test to reference Config._pw_reset_max_stored after constant move
+  ([`3cbdabc`](https://github.com/johannehouweling/ToxTempAssistant/commit/3cbdabc2295b97fc4de26ed297942d8f8b7cd2de))
+
+- Use toxtempass/ prefix for password reset template names
+  ([`6d20dab`](https://github.com/johannehouweling/ToxTempAssistant/commit/6d20dabd8ea06068ac347fe7ad73b6ecff60a6b7))
+
+### Features
+
+- Implement password reset with rate limiting spam protection
+  ([`888ab39`](https://github.com/johannehouweling/ToxTempAssistant/commit/888ab39e02d949f06fbd462cfecc1205c0173447))
+
+### Refactoring
+
+- Mark _pw_reset_max_stored as Final[int] for consistency
+  ([`98ad553`](https://github.com/johannehouweling/ToxTempAssistant/commit/98ad553ac947a5d0e41d86d8637513456e457ffa))
+
+- Move pw reset rate-limit constants from utilities.py to Config
+  ([`07b29ef`](https://github.com/johannehouweling/ToxTempAssistant/commit/07b29efbeb8faad7e73880213b73585fb7ea7f6b))
+
+
 ## v3.11.0 (2026-05-02)
 
 ### Bug Fixes
