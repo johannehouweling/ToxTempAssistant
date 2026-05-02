@@ -14,6 +14,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
+from django.contrib.auth.views import PasswordResetView as DjangoPasswordResetView
 from django.contrib.humanize.templatetags.humanize import naturaltime
 from django.db import models, transaction
 from django.db.models import QuerySet
@@ -25,7 +26,7 @@ from django.http import (
 )
 from django.http.response import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
@@ -87,8 +88,10 @@ from toxtempass.models import (
 from toxtempass.tables import AssayTable
 from toxtempass.utilities import (
     add_user_alert,
+    get_password_reset_wait_seconds,
     log_processing_event,
     provenance_label_for_item,
+    record_password_reset_attempt,
     update_prefs_atomic,
 )
 
@@ -292,7 +295,65 @@ def beta_wait(request: HttpRequest) -> HttpResponse:
     return render(request, "toxtempass/beta_wait.html")
 
 
-# --- Admin beta management -----------------------------------------------
+# --- Password reset ----------------------------------------------------------
+
+
+def _format_wait_duration(seconds: float) -> str:
+    """Return a human-readable wait duration string."""
+    seconds = int(seconds)
+    if seconds < 60:
+        return f"{seconds} second{'s' if seconds != 1 else ''}"
+    minutes = (seconds + 59) // 60
+    if minutes < 60:
+        return f"{minutes} minute{'s' if minutes != 1 else ''}"
+    hours = (minutes + 59) // 60
+    if hours < 24:
+        return f"{hours} hour{'s' if hours != 1 else ''}"
+    days = (hours + 23) // 24
+    return f"{days} day{'s' if days != 1 else ''}"
+
+
+class PasswordResetRequestView(DjangoPasswordResetView):
+    """Password reset view with rate-limiting spam protection.
+
+    Extends Django's built-in PasswordResetView. Before dispatching to the
+    built-in form processing, checks whether the requesting user has exceeded
+    the allowed frequency of reset requests. The rate-limit schedule is:
+      1st → 2nd attempt: 1 minute wait
+      2nd → 3rd attempt: 5 minutes wait
+      3rd → 4th attempt: 1 hour wait
+      4th+ attempt:      1 day wait
+    """
+
+    template_name = "toxtempass/password_reset.html"
+    email_template_name = "toxtempass/email/password_reset_email.txt"
+    html_email_template_name = "toxtempass/email/password_reset_email.html"
+    subject_template_name = "toxtempass/email/password_reset_subject.txt"
+    success_url = reverse_lazy("password_reset_done")
+
+    def form_valid(self, form):
+        """Check rate-limiting before sending the reset email."""
+        email = form.cleaned_data.get("email", "").strip().lower()
+        try:
+            user = Person.objects.get(email__iexact=email)
+        except Person.DoesNotExist:
+            # Do not reveal whether the account exists; proceed normally.
+            return super().form_valid(form)
+
+        wait_seconds = get_password_reset_wait_seconds(user)
+        if wait_seconds > 0:
+            wait_str = _format_wait_duration(wait_seconds)
+            form.add_error(
+                None,
+                f"Too many password reset requests. "
+                f"Please wait {wait_str} before trying again.",
+            )
+            return self.form_invalid(form)
+
+        record_password_reset_attempt(user)
+        return super().form_valid(form)
+
+
 @method_decorator(user_passes_test(is_admin, login_url="/login/"), name="dispatch")
 class AdminBetaUserListView(SingleTableView):
     """Admin-only SingleTableView listing persons who requested beta access.

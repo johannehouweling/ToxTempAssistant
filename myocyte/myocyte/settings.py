@@ -235,6 +235,9 @@ AUTH_PASSWORD_VALIDATORS = [
 
 AUTH_USER_MODEL = "toxtempass.Person"
 
+# Password reset link validity: 1 hour
+PASSWORD_RESET_TIMEOUT = 3600
+
 # Logging
 # The "errors" handler writes to a Docker-volume-mounted path (./myocyte/logs
 # on the host) so tracebacks survive container rebuilds. Correlation IDs in
