@@ -837,7 +837,7 @@ class AssayCost(models.Model):
 
     One row is created (or updated) per (assay, model_key) combination each time
     ``process_llm_async`` completes.  Cost fields are derived from the
-    ``cost-input-1mtoken`` / ``cost-output-1mtoken`` tags on the model at the time
+    ``cost-input-1Mtoken`` / ``cost-output-1Mtoken`` tags on the model at the time
     the run executes; they stay ``None`` when those tags are absent.
     """
 

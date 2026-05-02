@@ -72,7 +72,7 @@ def _parse_tags(raw: str) -> dict[str, str]:
 KNOWN_TAG_KEYS = {
     "tier", "residency", "provider", "direct-from-azure",
     "version", "label", "api", "retirement-date", "default",
-    "context-window", "cost-input-1mtoken", "cost-output-1mtoken",
+    "context-window", "cost-input-1Mtoken", "cost-output-1Mtoken",
 }
 
 # Number of days before retirement when a model starts showing as "retiring soon".
@@ -186,26 +186,26 @@ class ModelEntry:
 
     @property
     def cost_input_per_1m_tokens(self) -> float | None:
-        """Cost in EUR per 1 million input tokens, parsed from the ``cost-input-1mtoken`` tag."""
-        raw = self.tags.get("cost-input-1mtoken", "").strip()
+        """Cost in EUR per 1 million input tokens, parsed from the ``cost-input-1Mtoken`` tag."""
+        raw = self.tags.get("cost-input-1Mtoken", "").strip()
         if not raw:
             return None
         try:
             return float(raw)
         except ValueError:
-            logger.warning("Invalid cost-input-1mtoken %r on tag %s", raw, self.tag)
+            logger.warning("Invalid cost-input-1Mtoken %r on tag %s", raw, self.tag)
             return None
 
     @property
     def cost_output_per_1m_tokens(self) -> float | None:
-        """Cost in EUR per 1 million output tokens, parsed from the ``cost-output-1mtoken`` tag."""
-        raw = self.tags.get("cost-output-1mtoken", "").strip()
+        """Cost in EUR per 1 million output tokens, parsed from the ``cost-output-1Mtoken`` tag."""
+        raw = self.tags.get("cost-output-1Mtoken", "").strip()
         if not raw:
             return None
         try:
             return float(raw)
         except ValueError:
-            logger.warning("Invalid cost-output-1mtoken %r on tag %s", raw, self.tag)
+            logger.warning("Invalid cost-output-1Mtoken %r on tag %s", raw, self.tag)
             return None
 
     @property
