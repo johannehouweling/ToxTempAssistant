@@ -1,18 +1,16 @@
 import logging
 import os
 from collections.abc import Sequence
-from pathlib import Path
 
 from django.conf import settings
 from django.core.mail import EmailMessage, EmailMultiAlternatives
+from django.db import close_old_connections
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django_q.tasks import async_task
 
-from toxtempass import utilities
+from toxtempass import config, utilities
 from toxtempass.models import Person
-from toxtempass import config 
-
 
 _LOG = logging.getLogger(__name__)
 
@@ -34,46 +32,50 @@ def send_email_task(
     (if `template_html` or `template_text` is provided). Raises on failure so
     django-q2 will retry according to Q_CLUSTER settings.
     """
-    if not body and not template_html and not template_text:
-        raise ValueError(
-            "Provide `body` for plain text or a template_* for templated email."
-        )
+    close_old_connections()
+    try:
+        if not body and not template_html and not template_text:
+            raise ValueError(
+                "Provide `body` for plain text or a template_* for templated email."
+            )
 
-    # A) Plain text only
-    if body:
-        msg = EmailMessage(
-            subject=subject,
-            body=body,
-            to=list(to),
-        )
-    else:
-        # B) Template path(s)
-        ctx = context or {}
-        text_body = render_to_string(template_text, ctx) if template_text else ""
-        html_body = render_to_string(template_html, ctx) if template_html else None
-
-        # choose best base: have text? use EmailMultiAlternatives for alt HTML; else use HTML as base
-        if text_body:
-            msg = EmailMultiAlternatives(subject=subject, body=text_body, to=list(to))
-            if html_body is not None:
-                msg.attach_alternative(html_body, "text/html")
+        # A) Plain text only
+        if body:
+            msg = EmailMessage(
+                subject=subject,
+                body=body,
+                to=list(to),
+            )
         else:
-            # HTML only: still send as HTML
-            msg = EmailMultiAlternatives(
-                subject=subject, body=html_body or "", to=list(to)
-            )
-            msg.attach_alternative(html_body or "", "text/html")
+            # B) Template path(s)
+            ctx = context or {}
+            text_body = render_to_string(template_text, ctx) if template_text else ""
+            html_body = render_to_string(template_html, ctx) if template_html else None
 
-    # Attachments (both modes)
-    for att in attachments or ():
-        if att.path is not None:
-            msg.attach_file(str(att.path))
-        elif att.filename and att.content is not None:
-            msg.attach(
-                att.filename, att.content, att.mimetype or "application/octet-stream"
-            )
+            # choose best base: have text? use EmailMultiAlternatives for alt HTML; else use HTML as base
+            if text_body:
+                msg = EmailMultiAlternatives(subject=subject, body=text_body, to=list(to))
+                if html_body is not None:
+                    msg.attach_alternative(html_body, "text/html")
+            else:
+                # HTML only: still send as HTML
+                msg = EmailMultiAlternatives(
+                    subject=subject, body=html_body or "", to=list(to)
+                )
+                msg.attach_alternative(html_body or "", "text/html")
 
-    msg.send()
+        # Attachments (both modes)
+        for att in attachments or ():
+            if att.path is not None:
+                msg.attach_file(str(att.path))
+            elif att.filename and att.content is not None:
+                msg.attach(
+                    att.filename, att.content, att.mimetype or "application/octet-stream"
+                )
+
+        msg.send()
+    finally:
+        close_old_connections()
 
 
 def on_email_done(task: any) -> None:
@@ -132,50 +134,54 @@ def send_beta_signup_notification(person_id: int) -> str:
         toxtempass/email/beta_signup_email.html  (optional)
 
     """
+    close_old_connections()
     try:
-        person = Person.objects.get(pk=person_id)
-    except Person.DoesNotExist:
-        _LOG.error("send_beta_signup_notification: Person %s does not exist", person_id)
-        raise
+        try:
+            person = Person.objects.get(pk=person_id)
+        except Person.DoesNotExist:
+            _LOG.error("send_beta_signup_notification: Person %s does not exist", person_id)
+            raise
 
-    # Generate token and approval path
-    token = utilities.generate_beta_token(person_id)
-    approve_path = reverse("approve_beta", args=[token])
+        # Generate token and approval path
+        token = utilities.generate_beta_token(person_id)
+        approve_path = reverse("approve_beta", args=[token])
 
-    # Prefer explicit SITE_URL from environment or settings; fall back to relative path
-    site_root = os.getenv("SITE_URL") or getattr(settings, "SITE_URL", "")
-    if site_root:
-        # Ensure trailing slash handling
-        if site_root.endswith("/"):
-            site_root = site_root[:-1]
-        approve_url = f"{site_root}{approve_path}"
-    else:
-        approve_url = approve_path
-        _LOG.warning(
-            "SITE_URL not set; sending relative approve link for person %s: %s",
-            person_id,
-            approve_path,
+        # Prefer explicit SITE_URL from environment or settings; fall back to relative path
+        site_root = os.getenv("SITE_URL") or getattr(settings, "SITE_URL", "")
+        if site_root:
+            # Ensure trailing slash handling
+            if site_root.endswith("/"):
+                site_root = site_root[:-1]
+            approve_url = f"{site_root}{approve_path}"
+        else:
+            approve_url = approve_path
+            _LOG.warning(
+                "SITE_URL not set; sending relative approve link for person %s: %s",
+                person_id,
+                approve_path,
+            )
+
+        # Recipient: maintainer defined in toxtempass.config, else settings.EMAIL_HOST_USER
+        recipient_email = getattr(config, "maintainer_email", None)
+        if not recipient_email:
+            _LOG.error("No maintainer email configured; cannot send beta notification.")
+
+        context = {
+            "person": person,
+            "approve_url": approve_url,
+        }
+
+        subject = f"[ToxTempAssistant Beta signup] {person.email or person.username} requested beta access"
+        task_id = queue_email(
+            to=[recipient_email],
+            subject=subject,
+            template_text="toxtempass/email/beta_signup_email.txt",
+            template_html="toxtempass/email/beta_signup_email.html",
+            context=context,
+            group="emails",
         )
-
-    # Recipient: maintainer defined in toxtempass.config, else settings.EMAIL_HOST_USER
-    recipient_email = getattr(config, "maintainer_email", None)
-    if not recipient_email:
-        _LOG.error("No maintainer email configured; cannot send beta notification.")
-
-    context = {
-        "person": person,
-        "approve_url": approve_url,
-    }
-
-    subject = f"[ToxTempAssistant Beta signup] {person.email or person.username} requested beta access"
-    task_id = queue_email(
-        to=[recipient_email],
-        subject=subject,
-        template_text="toxtempass/email/beta_signup_email.txt",
-        template_html="toxtempass/email/beta_signup_email.html",
-        context=context,
-        group="emails",
-    )
-    _LOG.info("Queued beta signup notification for person %s to %s (task %s)", person_id, recipient_email, task_id)
-    return task_id
+        _LOG.info("Queued beta signup notification for person %s to %s (task %s)", person_id, recipient_email, task_id)
+        return task_id
+    finally:
+        close_old_connections()
 
