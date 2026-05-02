@@ -239,7 +239,7 @@ class Config:
     # Schedule: 1 min → 5 min → 1 hour → 1 day
     _pw_reset_wait_periods: Final[tuple[int, ...]] = (60, 300, 3600, 86400)
     # Keep only the most recent N attempt timestamps in Person.preferences.
-    _pw_reset_max_stored: int = 10
+    _pw_reset_max_stored: Final[int] = 10
 
     # Validation settings
     # These are used in the validation pipeline to estimate performance of the LLM
