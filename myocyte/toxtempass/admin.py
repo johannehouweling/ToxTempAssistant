@@ -285,25 +285,27 @@ def _render_deployments_table(
             # Cost per 1M tokens display
             cip = m.cost_input_per_1m_tokens
             cop = m.cost_output_per_1m_tokens
+            from toxtempass.azure_registry import cost_unit_symbol as _sym
+            cost_sym = _sym(m.cost_unit)
             if cip is not None and cop is not None:
                 cost_html = format_html(
                     '<span style="color:#198754;font-family:monospace">'
-                    'in&nbsp;€{}/1M&nbsp;·&nbsp;out&nbsp;€{}/1M</span>',
-                    cip, cop,
+                    'in&nbsp;{sym}{cip}/1M&nbsp;·&nbsp;out&nbsp;{sym}{cop}/1M</span>',
+                    sym=cost_sym, cip=cip, cop=cop,
                 )
             elif cip is not None:
                 cost_html = format_html(
                     '<span style="color:#198754;font-family:monospace">'
-                    'in&nbsp;€{}/1M</span>'
+                    'in&nbsp;{sym}{cip}/1M</span>'
                     '<span style="color:#a75d00" title="Missing cost-output-1Mtoken tag"> ⚠️</span>',
-                    cip,
+                    sym=cost_sym, cip=cip,
                 )
             elif cop is not None:
                 cost_html = format_html(
                     '<span style="color:#198754;font-family:monospace">'
-                    'out&nbsp;€{}/1M</span>'
+                    'out&nbsp;{sym}{cop}/1M</span>'
                     '<span style="color:#a75d00" title="Missing cost-input-1Mtoken tag"> ⚠️</span>',
-                    cop,
+                    sym=cost_sym, cop=cop,
                 )
             else:
                 cost_html = mark_safe(
@@ -664,18 +666,18 @@ class AssayCostAdmin(admin.ModelAdmin):
     def cost_input_display(self, obj):
         if obj.cost_input is None:
             return mark_safe('<span style="color:#888">—</span>')
-        return f"€{obj.cost_input:.6f}"
-    cost_input_display.short_description = "Input cost (EUR)"
+        return f"{obj.cost_unit_symbol}{obj.cost_input:.6f}"
+    cost_input_display.short_description = "Input cost"
 
     def cost_output_display(self, obj):
         if obj.cost_output is None:
             return mark_safe('<span style="color:#888">—</span>')
-        return f"€{obj.cost_output:.6f}"
-    cost_output_display.short_description = "Output cost (EUR)"
+        return f"{obj.cost_unit_symbol}{obj.cost_output:.6f}"
+    cost_output_display.short_description = "Output cost"
 
     def total_cost_display(self, obj):
         total = obj.total_cost
         if total is None:
             return mark_safe('<span style="color:#888">—</span>')
-        return format_html('<b>€{}</b>', f"{total:.6f}")
-    total_cost_display.short_description = "Total cost (EUR)"
+        return format_html('<b>{sym}{total}</b>', sym=obj.cost_unit_symbol, total=f"{total:.6f}")
+    total_cost_display.short_description = "Total cost"

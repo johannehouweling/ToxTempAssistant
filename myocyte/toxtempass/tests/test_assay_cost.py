@@ -125,6 +125,7 @@ def test_save_assay_cost_calculates_cost_from_registry(assay_with_questions):
         tags={
             "cost-input-1Mtoken": "2.00",
             "cost-output-1Mtoken": "8.00",
+            "cost-unit": "Eur",
         },
     )
 
@@ -148,6 +149,8 @@ def test_save_assay_cost_calculates_cost_from_registry(assay_with_questions):
     assert row.cost_input == Decimal("2.000000")
     assert row.cost_output == Decimal("4.000000")
     assert row.total_cost == Decimal("6.000000")
+    assert row.cost_unit == "Eur"
+    assert row.cost_unit_symbol == "€"
 
 
 @pytest.mark.django_db
@@ -248,3 +251,37 @@ def test_model_entry_cost_properties_return_none_on_invalid():
     )
     assert m.cost_input_per_1m_tokens is None
     assert m.cost_output_per_1m_tokens is None
+
+
+def test_model_entry_cost_unit_property():
+    """ModelEntry.cost_unit reads the cost-unit tag."""
+    from toxtempass.azure_registry import ModelEntry
+
+    m_with = ModelEntry(
+        tag="T4", deployment_name="dep", model_id="gpt-4o",
+        tags={"cost-unit": "Eur"},
+    )
+    assert m_with.cost_unit == "Eur"
+
+    m_without = ModelEntry(tag="T5", deployment_name="dep", model_id="gpt-4o", tags={})
+    assert m_without.cost_unit == ""
+
+
+def test_assay_cost_cost_unit_symbol():
+    """AssayCost.cost_unit_symbol maps known units to symbols and falls back gracefully."""
+    from toxtempass.models import AssayCost
+
+    for unit, expected_sym in [("Eur", "€"), ("EUR", "€"), ("USD", "$"), ("GBP", "£")]:
+        obj = AssayCost.__new__(AssayCost)
+        obj.cost_unit = unit
+        assert obj.cost_unit_symbol == expected_sym, f"unit={unit!r}"
+
+    # Unknown unit — returns the raw unit string
+    obj2 = AssayCost.__new__(AssayCost)
+    obj2.cost_unit = "JPY"
+    assert obj2.cost_unit_symbol == "JPY"
+
+    # Empty unit — falls back to €
+    obj3 = AssayCost.__new__(AssayCost)
+    obj3.cost_unit = ""
+    assert obj3.cost_unit_symbol == "€"

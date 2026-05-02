@@ -254,15 +254,16 @@ class AssayTable(tables.Table):
         if not cost_rows:
             return mark_safe('<span class="text-muted">—</span>')
 
-        total = sum(
-            (r.total_cost or 0) for r in cost_rows
-        )
+        # Determine whether all rows share the same cost unit (safe to sum).
+        units = {r.cost_unit for r in cost_rows}
+        mixed_currencies = len(units) > 1
 
         # Build popover HTML content with per-model breakdown
         breakdown_rows = []
         for r in cost_rows:
             row_total = r.total_cost
-            cost_str = f"€{row_total:.4f}" if row_total is not None else "no pricing data"
+            sym = r.cost_unit_symbol
+            cost_str = f"{sym}{row_total:.4f}" if row_total is not None else "no pricing data"
             in_str = f"{r.input_tokens:,}" if r.input_tokens else "0"
             out_str = f"{r.output_tokens:,}" if r.output_tokens else "0"
             breakdown_rows.append(
@@ -282,7 +283,15 @@ class AssayTable(tables.Table):
             + "</tbody></table>"
         )
 
-        total_str = f"€{total:.4f}" if any(r.total_cost is not None for r in cost_rows) else "—"
+        has_any_cost = any(r.total_cost is not None for r in cost_rows)
+        if mixed_currencies:
+            total_str = "mixed" if has_any_cost else "—"
+        elif has_any_cost:
+            unit_sym = cost_rows[0].cost_unit_symbol
+            total = sum((r.total_cost or 0) for r in cost_rows)
+            total_str = f"{unit_sym}{total:.4f}"
+        else:
+            total_str = "—"
 
         return format_html(
             '<span tabindex="0" role="button"'

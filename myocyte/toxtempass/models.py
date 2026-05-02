@@ -893,6 +893,12 @@ class AssayCost(models.Model):
         blank=True,
         help_text="Calculated output cost in EUR for this run.",
     )
+    cost_unit = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text='Currency unit from the cost-unit tag at run time, e.g. "Eur".',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -904,9 +910,16 @@ class AssayCost(models.Model):
 
     def __str__(self) -> str:
         total = self.total_cost
+        sym = self.cost_unit_symbol
         if total is not None:
-            return f"AssayCost assay={self.assay_id} model={self.model_key} total=€{total:.6f}"
+            return f"AssayCost assay={self.assay_id} model={self.model_key} total={sym}{total:.6f}"
         return f"AssayCost assay={self.assay_id} model={self.model_key}"
+
+    @property
+    def cost_unit_symbol(self) -> str:
+        """Return a display symbol for the stored cost unit (e.g. ``€`` for ``Eur``)."""
+        from toxtempass.azure_registry import cost_unit_symbol as _sym
+        return _sym(self.cost_unit)
 
     @property
     def total_cost(self):

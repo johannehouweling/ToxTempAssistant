@@ -828,8 +828,9 @@ def _save_assay_cost(
     """Persist (or update) an ``AssayCost`` row for a completed LLM run.
 
     Looks up cost-per-million-token rates from the Azure registry and
-    calculates the estimated EUR costs.  Cost fields are left ``None``
-    when the model has no pricing tags configured.
+    calculates the estimated costs.  Cost fields are left ``None``
+    when the model has no pricing tags configured.  The ``cost_unit``
+    field stores the currency code from the ``cost-unit`` tag (e.g. ``Eur``).
     """
     from decimal import Decimal
 
@@ -837,6 +838,7 @@ def _save_assay_cost(
 
     cost_input_per_1m = None
     cost_output_per_1m = None
+    cost_unit = ""
     model_id = ""
 
     try:
@@ -845,6 +847,7 @@ def _save_assay_cost(
         if result is not None:
             _ep, _m = result
             model_id = _m.model_id
+            cost_unit = _m.cost_unit
             cip = _m.cost_input_per_1m_tokens
             cop = _m.cost_output_per_1m_tokens
             if cip is not None:
@@ -872,17 +875,19 @@ def _save_assay_cost(
             cost_output_per_1m=cost_output_per_1m,
             cost_input=cost_input,
             cost_output=cost_output,
+            cost_unit=cost_unit,
         ),
     )
     logger.info(
         "AssayCost saved: assay=%s model=%s input_tok=%d output_tok=%d "
-        "cost_input=%s cost_output=%s",
+        "cost_input=%s cost_output=%s cost_unit=%r",
         assay_id,
         model_key,
         input_tokens,
         output_tokens,
         cost_input,
         cost_output,
+        cost_unit,
     )
 
 
