@@ -186,7 +186,7 @@ class ModelEntry:
 
     @property
     def cost_input_per_1m_tokens(self) -> float | None:
-        """Cost in USD per 1 million input tokens, parsed from the ``cost-input-1mtoken`` tag."""
+        """Cost in EUR per 1 million input tokens, parsed from the ``cost-input-1mtoken`` tag."""
         raw = self.tags.get("cost-input-1mtoken", "").strip()
         if not raw:
             return None
@@ -198,7 +198,7 @@ class ModelEntry:
 
     @property
     def cost_output_per_1m_tokens(self) -> float | None:
-        """Cost in USD per 1 million output tokens, parsed from the ``cost-output-1mtoken`` tag."""
+        """Cost in EUR per 1 million output tokens, parsed from the ``cost-output-1mtoken`` tag."""
         raw = self.tags.get("cost-output-1mtoken", "").strip()
         if not raw:
             return None

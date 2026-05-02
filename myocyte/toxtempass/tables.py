@@ -75,6 +75,13 @@ class AssayTable(tables.Table):
         },
     )
 
+    progress = tables.Column(
+        verbose_name="Answers Accepted",
+        orderable=False,
+        empty_values=(),
+        attrs={"td": {"class": "align-middle"}},
+    )
+
     cost = tables.Column(
         verbose_name="Cost (est.)",
         orderable=False,
@@ -83,13 +90,6 @@ class AssayTable(tables.Table):
             "th": {"class": "no-link-header d-none d-lg-table-cell"},
             "td": {"class": "align-middle d-none d-lg-table-cell text-center"},
         },
-    )
-
-    progress = tables.Column(
-        verbose_name="Answers Accepted",
-        orderable=False,
-        empty_values=(),
-        attrs={"td": {"class": "align-middle"}},
     )
 
     action = tables.TemplateColumn(
@@ -262,7 +262,7 @@ class AssayTable(tables.Table):
         breakdown_rows = []
         for r in cost_rows:
             row_total = r.total_cost
-            cost_str = f"${row_total:.4f}" if row_total is not None else "no pricing data"
+            cost_str = f"€{row_total:.4f}" if row_total is not None else "no pricing data"
             in_str = f"{r.input_tokens:,}" if r.input_tokens else "0"
             out_str = f"{r.output_tokens:,}" if r.output_tokens else "0"
             breakdown_rows.append(
@@ -282,7 +282,7 @@ class AssayTable(tables.Table):
             + "</tbody></table>"
         )
 
-        total_str = f"${total:.4f}" if any(r.total_cost is not None for r in cost_rows) else "—"
+        total_str = f"€{total:.4f}" if any(r.total_cost is not None for r in cost_rows) else "—"
 
         return format_html(
             '<span tabindex="0" role="button"'

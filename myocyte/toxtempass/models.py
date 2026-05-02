@@ -870,28 +870,28 @@ class AssayCost(models.Model):
         decimal_places=6,
         null=True,
         blank=True,
-        help_text="Snapshot of input price (USD / 1 M tokens) at run time.",
+        help_text="Snapshot of input price (EUR / 1 M tokens) at run time.",
     )
     cost_output_per_1m = models.DecimalField(
         max_digits=12,
         decimal_places=6,
         null=True,
         blank=True,
-        help_text="Snapshot of output price (USD / 1 M tokens) at run time.",
+        help_text="Snapshot of output price (EUR / 1 M tokens) at run time.",
     )
     cost_input = models.DecimalField(
         max_digits=12,
         decimal_places=6,
         null=True,
         blank=True,
-        help_text="Calculated input cost in USD for this run.",
+        help_text="Calculated input cost in EUR for this run.",
     )
     cost_output = models.DecimalField(
         max_digits=12,
         decimal_places=6,
         null=True,
         blank=True,
-        help_text="Calculated output cost in USD for this run.",
+        help_text="Calculated output cost in EUR for this run.",
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -905,7 +905,7 @@ class AssayCost(models.Model):
     def __str__(self) -> str:
         total = self.total_cost
         if total is not None:
-            return f"AssayCost assay={self.assay_id} model={self.model_key} total=${total:.6f}"
+            return f"AssayCost assay={self.assay_id} model={self.model_key} total=€{total:.6f}"
         return f"AssayCost assay={self.assay_id} model={self.model_key}"
 
     @property

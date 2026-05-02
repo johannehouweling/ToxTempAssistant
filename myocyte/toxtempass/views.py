@@ -828,7 +828,7 @@ def _save_assay_cost(
     """Persist (or update) an ``AssayCost`` row for a completed LLM run.
 
     Looks up cost-per-million-token rates from the Azure registry and
-    calculates the estimated USD costs.  Cost fields are left ``None``
+    calculates the estimated EUR costs.  Cost fields are left ``None``
     when the model has no pricing tags configured.
     """
     from decimal import Decimal
