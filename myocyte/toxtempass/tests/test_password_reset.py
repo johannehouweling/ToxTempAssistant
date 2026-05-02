@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
-from toxtempass import utilities
+from toxtempass import Config, utilities
 from toxtempass.tests.fixtures.factories import PersonFactory
 
 
@@ -133,7 +133,7 @@ class PasswordResetRateLimitTests(TestCase):
     def test_record_attempt_prunes_old_entries(self):
         """record_password_reset_attempt prunes the list to _PW_RESET_MAX_STORED."""
         person = PersonFactory.create()
-        max_stored = utilities._PW_RESET_MAX_STORED
+        max_stored = Config._pw_reset_max_stored
 
         # Pre-populate with more than max_stored entries.
         old_ts = (timezone.now() - datetime.timedelta(days=365)).isoformat()
