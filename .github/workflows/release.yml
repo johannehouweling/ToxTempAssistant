@@ -22,6 +22,11 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: true
+          # Persist the PAT (not the default GITHUB_TOKEN) so that the tag
+          # push from `semantic-release version` triggers downstream
+          # workflows like publish-image.yml. GITHUB_TOKEN-pushed tags
+          # don't fire `on: push: tags` by GitHub policy.
+          token: ${{ secrets.PA_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v6
