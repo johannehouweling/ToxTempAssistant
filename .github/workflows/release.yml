@@ -45,4 +45,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PA_TOKEN }}
         run: |
-          semantic-release version
+          # --no-vcs-release: do NOT create the GitHub Release here. The
+          # `release` job in publish-image.yml creates it AFTER the images
+          # are pushed, so deploy.yml's `release: published` trigger doesn't
+          # fire while publish-image is still building (race condition).
+          semantic-release version --no-vcs-release
