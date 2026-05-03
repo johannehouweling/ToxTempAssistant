@@ -86,7 +86,7 @@ services:
       # to the postgres+minio overlay network).
       - /var/run/docker.sock:/var/run/docker.sock
       - ./backups:/work/backups
-      - ./myocyte/logs/backup:/logs
+      - ./myocyte/logs:/logs
     restart: unless-stopped
 
   # Django app

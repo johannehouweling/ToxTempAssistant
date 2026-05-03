@@ -3,13 +3,26 @@ name: Deploy
 on:
   release:
     types: [published] # fires whenever a new GitHub Release is published
+  # Manual trigger for ad-hoc swarm-side smoke tests without cutting a release.
+  # Always pick an existing tag (image must already be on ghcr.io for this tag).
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to deploy (e.g. v3.14.1)"
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
-  deploy:
+  deploy-legacy:
+    name: Deploy to legacy server
+    # Legacy serves real traffic — only fire on actual releases, never on the
+    # manual workflow_dispatch (which is for swarm-side smoke testing).
+    if: ${{ github.event_name == 'release' }}
     runs-on: ubuntu-latest
+    environment: legacy-server
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -49,13 +62,86 @@ jobs:
             git checkout "$GIT_TAG"
             GIT_HASH=$(git rev-parse HEAD)
             export GIT_HASH GIT_TAG
-            # Pull the new djangoapp image (and any other registry images),
-            # then start without --build. `backup` still builds locally
-            # because it has no `image:` directive in compose.
+            # Pull all registry images (djangoapp, backup, minio_init, plus
+            # the off-the-shelf postgres / minio images), then start without
+            # --build. Every prod service has an `image:` directive now, so
+            # nothing builds on this server.
             sudo --preserve-env=GIT_HASH,GIT_TAG docker compose --profile prod pull
             sudo --preserve-env=GIT_HASH,GIT_TAG docker compose --profile prod up -d
             # connect to default bridge network to allow communication with other containers
             sudo docker network connect bridge djangoapp 2>/dev/null || true
             # If remote access to minio console is needed, uncomment the following line
             # sudo docker network connect bridge minio
+
+  deploy-swarm:
+    name: Deploy to Swarm cluster
+    runs-on: ubuntu-latest
+    environment: tgx1-server
+    # During cutover, swarm failures must not block the legacy deploy. Once
+    # swarm is the canonical target, remove this and delete deploy-legacy.
+    continue-on-error: true
+    steps:
+      - name: Resolve target tag
+        # Single source of truth for the tag we're deploying — release tag for
+        # automatic runs, the workflow_dispatch input for manual smoke tests.
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout the target tag
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.tag.outputs.value }}
+
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          # Cluster-specific deploy key (distinct from legacy's GIT_ACTIONS).
+          # Public counterpart must be in ~jhouweling/.ssh/authorized_keys on
+          # the manager.
+          echo "${{ secrets.TGX1_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ vars.TGX1_IP_ADDRESS }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Stage compose files on manager and deploy
+        # Secrets stay on the cluster: prod .env lives at
+        # /mnt/gluster/docker/toxtempassistant/config/.env (mode 600, owned by
+        # jhouweling). The runner pushes ONLY the two compose files into a
+        # temp dir on the manager and runs `docker stack deploy` over SSH
+        # with ENV_FILE pointing at the gluster-resident .env. Rendering
+        # happens on the manager, so secrets never traverse GitHub.
+        env:
+          REMOTE: ${{ vars.TGX1_USERNAME }}@${{ vars.TGX1_IP_ADDRESS }}
+          GIT_HASH: ${{ github.sha }}
+          GIT_TAG: ${{ steps.tag.outputs.value }}
+        run: |
+          set -euo pipefail
+          DEPLOY_DIR="/tmp/toxtempass-deploy-${GIT_TAG}"
+          SSH_OPTS="-i $HOME/.ssh/id_ed25519 -o StrictHostKeyChecking=yes"
+
+          # Push the two compose files to a fresh temp dir on the manager.
+          ssh $SSH_OPTS "$REMOTE" "rm -rf '$DEPLOY_DIR' && mkdir -p '$DEPLOY_DIR'"
+          scp $SSH_OPTS docker-compose.yml docker-stack.yml "$REMOTE:$DEPLOY_DIR/"
+
+          # Run `docker stack deploy` ON the manager so it can read .env from
+          # gluster. `docker stack deploy` ignores compose profiles, so render
+          # via `compose config --profile prod` first and pipe to deploy.
+          # `compose config` inlines env_file content into `environment:`, so
+          # the rendered output passed to stack deploy carries no env_file
+          # references.
+          ssh $SSH_OPTS "$REMOTE" "
+            set -eu
+            cd '$DEPLOY_DIR'
+            export ENV_FILE=/mnt/gluster/docker/toxtempassistant/config/.env
+            export GIT_HASH='$GIT_HASH' GIT_TAG='$GIT_TAG'
+            docker compose --profile prod \
+              -f docker-compose.yml -f docker-stack.yml config \
+              | docker stack deploy -c - toxtempass
+            rm -rf '$DEPLOY_DIR'
+          "
 

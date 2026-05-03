@@ -1,8 +1,12 @@
 # docker-stack.yml
 #
-# Swarm overlay for docker-compose.yml. Re-points every persistent location to
-# /mnt/gluster/toxtempassistant (mounted on every Swarm node), so a rescheduled
-# task finds its data wherever it lands.
+# Swarm overlay for docker-compose.yml. Adds:
+#   1. Persistent storage rooted at /mnt/gluster/docker/toxtempassistant/data/
+#      (and configuration at /mnt/gluster/docker/toxtempassistant/config/),
+#      following the cluster developer-guide convention.
+#   2. Off-cluster backup target at /mnt/hidrive/docker/toxtempassistant/backups/
+#   3. Traefik ingress + the cluster's `core` overlay network for djangoapp
+#   4. Restart policies for long-running services
 #
 # Deploy:
 #   docker stack deploy \
@@ -10,29 +14,30 @@
 #     -c docker-stack.yml \
 #     toxtempass
 #
+# (Render with profiles enabled if your toolchain supports it; otherwise pipe
+# `docker compose --profile prod -f base -f overlay config | docker stack deploy -c -`.)
+#
 # Legacy single-host compose stays unaffected — `docker compose up` only loads
 # docker-compose.yml unless this file is explicitly added with `-f`.
 #
-# ─── Pre-deploy: create the gluster directory layout ─────────────────────────
-# One-shot busybox container, no sudo (docker daemon writes as root inside).
-# Run on any Swarm node — gluster is shared, so the layout propagates.
+# ─── Cutover strategy ────────────────────────────────────────────────────────
+# During the migration, the swarm version is reachable at
+#   https://toxtempassistant.cloud.vhp4safety.nl
+# while legacy keeps serving the canonical
+#   https://toxtempassistant.vhp4safety.nl
+# After cutover, swap the Host(...) rule below to the canonical hostname and
+# stop legacy.
 #
-#   ssh jhouweling@81.169.246.233 '
-#     docker run --rm \
-#       -v /mnt/gluster/toxtempassistant:/glust \
-#       busybox sh -c "
-#         mkdir -p /glust/db_data /glust/minio_blob_data \
-#                  /glust/backups \
-#                  /glust/myocyte/logs/backup /glust/myocyte/static
-#       "
+# ─── Pre-deploy: create the gluster + hidrive directory layout ───────────────
+# Run once on any Swarm node — gluster + hidrive are shared, so the layout
+# propagates. Both paths follow the cluster's `<filesystem>/docker/<service>`
+# convention; jhouweling has user-level write access on each:
+#
+#   ssh <user>@<swarm-manager> '
+    # mkdir -p /mnt/gluster/docker/toxtempassistant/data/{db_data,minio_blob_data} \
+    #          /mnt/gluster/docker/toxtempassistant/data/myocyte/{logs,static} \
+#              /mnt/hidrive/docker/toxtempassistant/backups
 #   '
-#
-# init.sh is no longer needed on gluster — it's baked into the
-# `toxtempassistant-minio-init` image published to ghcr.io.
-#
-# Assumes /mnt/gluster/toxtempassistant already exists on the node (i.e.
-# gluster is mounted there). If it doesn't, the gluster mount itself needs
-# admin attention — docker can't create the mount-point.
 #
 # ─── KNOWN GAP — backup is not yet Swarm-correct ─────────────────────────────
 # `backup.sh` still uses /var/run/docker.sock to reach postgres + minio. On
@@ -48,6 +53,12 @@
 #
 # ─────────────────────────────────────────────────────────────────────────────
 
+networks:
+  # Cluster-managed overlay network where Traefik attaches and routes ingress.
+  # Created by the cluster admin; we just join it.
+  core:
+    external: true
+
 volumes:
   # Bind-backed named volumes — same names as in docker-compose.yml so service
   # references (`db_data:/var/lib/postgresql/data`, …) resolve unchanged.
@@ -56,28 +67,63 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /mnt/gluster/toxtempassistant/db_data
+      device: /mnt/gluster/docker/toxtempassistant/data/db_data
   minio_blob_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /mnt/gluster/toxtempassistant/minio_blob_data
+      device: /mnt/gluster/docker/toxtempassistant/data/minio_blob_data
 
 services:
   djangoapp:
-    # `!override` forces a full list replacement instead of compose's default
-    # per-target merge. Without it, the base's `./test-results:` bind leaks
-    # through (CI-only, not wanted in prod). Requires compose v2.20+.
+    # Replace the entire base list — drops the `./test-results` CI-only bind.
+    # Requires compose v2.20+.
     volumes: !override
-      - /mnt/gluster/toxtempassistant/myocyte/logs:/home/myocyte/logs
-      - /mnt/gluster/toxtempassistant/myocyte/static:/home/myocyte/static
+      - /mnt/gluster/docker/toxtempassistant/data/myocyte/logs:/home/myocyte/logs
+      - /mnt/gluster/docker/toxtempassistant/data/myocyte/static:/home/myocyte/static
+    # Drop the host port binding — Traefik handles ingress on 80/443.
+    ports: !override []
+    networks:
+      - db_network
+      - data_network
+      - core
+    deploy:
+      restart_policy:
+        condition: on-failure
+      labels:
+        - "traefik.enable=true"
+        # During cutover: legacy serves canonical hostname, swarm serves cloud.*
+        - "traefik.http.routers.toxtempassistant.rule=Host(`toxtempassistant.cloud.vhp4safety.nl`)"
+        - "traefik.http.routers.toxtempassistant.entrypoints=websecure"
+        - "traefik.http.routers.toxtempassistant.tls=true"
+        - "traefik.http.routers.toxtempassistant.tls.certresolver=letsencrypt"
+        # gunicorn binds 0.0.0.0:8000 (see compose `command:`).
+        - "traefik.http.services.toxtempassistant.loadbalancer.server.port=8000"
+        - "traefik.docker.network=core"
+
+  postgres_for_django:
+    deploy:
+      restart_policy:
+        condition: on-failure
+
+  minio:
+    deploy:
+      restart_policy:
+        condition: on-failure
 
   backup:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /mnt/gluster/toxtempassistant/backups:/work/backups
-      - /mnt/gluster/toxtempassistant/myocyte/logs/backup:/logs
+      # Backup output → off-cluster HiDrive, per cluster storage docs.
+      - /mnt/hidrive/docker/toxtempassistant/backups:/work/backups
+      # Operational logs (the cron supercronic stdout/stderr, ~KB/day) live
+      # alongside gunicorn's logs in myocyte/logs/. backup-cron.log lands
+      # there as a sibling of gunicorn-*.log.
+      - /mnt/gluster/docker/toxtempassistant/data/myocyte/logs:/logs
+    deploy:
+      restart_policy:
+        condition: on-failure
     # Stopgap pin — see KNOWN GAP comment above. Uncomment once a node is
     # labelled `storage=true`. Postgres and minio should also be pinned to
     # the same label so the docker.sock approach keeps working in single-node
