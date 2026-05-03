@@ -29,6 +29,9 @@ jobs:
           - image: toxtempassistant-backup
             dockerfile: myocyte/dockerfiles/backup-scheduler/Dockerfile
             description: "ToxTempAssistant backup scheduler"
+          - image: toxtempassistant-minio-init
+            dockerfile: myocyte/dockerfiles/minio/Dockerfile
+            description: "ToxTempAssistant MinIO bucket/user/policy initializer"
     steps:
       - uses: actions/checkout@v6
         with:

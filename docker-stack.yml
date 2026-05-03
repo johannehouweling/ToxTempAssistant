@@ -1,0 +1,101 @@
+# docker-stack.yml
+#
+# Swarm overlay for docker-compose.yml. Re-points every persistent location to
+# /mnt/gluster/toxtempassistant (mounted on every Swarm node), so a rescheduled
+# task finds its data wherever it lands.
+#
+# Deploy:
+#   docker stack deploy \
+#     -c docker-compose.yml \
+#     -c docker-stack.yml \
+#     toxtempass
+#
+# Legacy single-host compose stays unaffected — `docker compose up` only loads
+# docker-compose.yml unless this file is explicitly added with `-f`.
+#
+# ─── Pre-deploy: create the gluster directory layout ─────────────────────────
+# One-shot busybox container, no sudo (docker daemon writes as root inside).
+# Run on any Swarm node — gluster is shared, so the layout propagates.
+#
+#   ssh jhouweling@81.169.246.233 '
+#     docker run --rm \
+#       -v /mnt/gluster/toxtempassistant:/glust \
+#       busybox sh -c "
+#         mkdir -p /glust/db_data /glust/minio_blob_data \
+#                  /glust/backups \
+#                  /glust/myocyte/logs/backup /glust/myocyte/static
+#       "
+#   '
+#
+# init.sh is no longer needed on gluster — it's baked into the
+# `toxtempassistant-minio-init` image published to ghcr.io.
+#
+# Assumes /mnt/gluster/toxtempassistant already exists on the node (i.e.
+# gluster is mounted there). If it doesn't, the gluster mount itself needs
+# admin attention — docker can't create the mount-point.
+#
+# ─── KNOWN GAP — backup is not yet Swarm-correct ─────────────────────────────
+# `backup.sh` still uses /var/run/docker.sock to reach postgres + minio. On
+# Swarm the host socket only sees containers on the local node, so backup and
+# postgres landing on different nodes would break it.
+#
+# Stopgap until backup.sh is rewritten to use TCP (pg_dump -h postgres_for_django
+# and mc against the minio service DNS): label one node as `storage=true` and
+# uncomment the placement block on the `backup` service below to pin both the
+# backup and postgres tasks there.
+#
+#   docker node update --label-add storage=true <storage-node-hostname>
+#
+# ─────────────────────────────────────────────────────────────────────────────
+
+volumes:
+  # Bind-backed named volumes — same names as in docker-compose.yml so service
+  # references (`db_data:/var/lib/postgresql/data`, …) resolve unchanged.
+  db_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/gluster/toxtempassistant/db_data
+  minio_blob_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/gluster/toxtempassistant/minio_blob_data
+
+services:
+  djangoapp:
+    # `!override` forces a full list replacement instead of compose's default
+    # per-target merge. Without it, the base's `./test-results:` bind leaks
+    # through (CI-only, not wanted in prod). Requires compose v2.20+.
+    volumes: !override
+      - /mnt/gluster/toxtempassistant/myocyte/logs:/home/myocyte/logs
+      - /mnt/gluster/toxtempassistant/myocyte/static:/home/myocyte/static
+
+  backup:
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /mnt/gluster/toxtempassistant/backups:/work/backups
+      - /mnt/gluster/toxtempassistant/myocyte/logs/backup:/logs
+    # Stopgap pin — see KNOWN GAP comment above. Uncomment once a node is
+    # labelled `storage=true`. Postgres and minio should also be pinned to
+    # the same label so the docker.sock approach keeps working in single-node
+    # mode within the Swarm.
+    # deploy:
+    #   placement:
+    #     constraints:
+    #       - node.labels.storage == true
+
+  # Pin postgres + minio to the same node as backup until backup.sh is
+  # refactored. Uncomment with the same label trick described above.
+  # postgres_for_django:
+  #   deploy:
+  #     placement:
+  #       constraints:
+  #         - node.labels.storage == true
+  # minio:
+  #   deploy:
+  #     placement:
+  #       constraints:
+  #         - node.labels.storage == true

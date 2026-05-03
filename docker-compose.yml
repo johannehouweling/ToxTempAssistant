@@ -51,17 +51,19 @@ services:
 
   minio_init:
     profiles: ["prod","test"]
-    image: minio/mc:latest
+    # Custom image bakes init.sh in (Dockerfile sets ENTRYPOINT). No bind
+    # mount, no entrypoint override — the container is self-contained.
+    image: ghcr.io/johannehouweling/toxtempassistant-minio-init:${GIT_TAG:-latest}
+    build:
+      context: .
+      dockerfile: myocyte/dockerfiles/minio/Dockerfile
     container_name: minio_init
     depends_on:
       - minio
     env_file:
       - ${ENV_FILE:-./.env}
-    volumes:
-      - ./myocyte/dockerfiles/minio/init.sh:/init.sh:ro
     networks:
       - data_network
-    entrypoint: /init.sh
     restart: "no"
 
   backup:
