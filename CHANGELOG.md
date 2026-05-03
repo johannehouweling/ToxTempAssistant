@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v3.13.0 (2026-05-03)
+
+### Bug Fixes
+
+- **ci**: Add write rights for gha cache
+  ([`ccae47c`](https://github.com/johannehouweling/ToxTempAssistant/commit/ccae47ced01cc7f373fb90fc630883e5465c2ece))
+
+### Documentation
+
+- Revise security policy for clarity and updates
+  ([`9bad503`](https://github.com/johannehouweling/ToxTempAssistant/commit/9bad50341f4397e040662fd811036377cbee938d))
+
+### Features
+
+- **ci**: Push to ghcr
+  ([`0d84d39`](https://github.com/johannehouweling/ToxTempAssistant/commit/0d84d39dc13a1e849b04f7243c7ea0aa4c1919c6))
+
+
 ## v3.12.1 (2026-05-02)
 
 ### Bug Fixes
