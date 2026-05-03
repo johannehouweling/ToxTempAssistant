@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.14.0 (2026-05-03)
+
+### Features
+
+- **ci**: Change backup image and store backup image as well
+  ([`a5fc9e5`](https://github.com/johannehouweling/ToxTempAssistant/commit/a5fc9e5f374afc9b9acffaea74671eda0b89c3b5))
+
+
 ## v3.13.0 (2026-05-03)
 
 ### Bug Fixes
