@@ -8,14 +8,14 @@
 #   3. Traefik ingress + the cluster's `core` overlay network for djangoapp
 #   4. Restart policies for long-running services
 #
-# Deploy:
-#   docker stack deploy \
-#     -c docker-compose.yml \
-#     -c docker-stack.yml \
-#     toxtempass
+# Deploy: render with `compose config` (resolves profiles + `!override` here),
+# then pipe to `docker stack deploy`. This base+overlay stack uses Compose-only
+# features (`profiles:`, `!override`) that `docker stack deploy` doesn't honor
+# directly, so the render step is mandatory:
 #
-# (Render with profiles enabled if your toolchain supports it; otherwise pipe
-# `docker compose --profile prod -f base -f overlay config | docker stack deploy -c -`.)
+#   docker compose --profile prod \
+#     -f docker-compose.yml -f docker-stack.yml config \
+#     | docker stack deploy -c - toxtempass
 #
 # Legacy single-host compose stays unaffected — `docker compose up` only loads
 # docker-compose.yml unless this file is explicitly added with `-f`.
@@ -58,6 +58,16 @@ networks:
   # Created by the cluster admin; we just join it.
   core:
     external: true
+  # The base compose declares db_network/data_network as `bridge` (single-node).
+  # Swarm services land on different nodes, so they need overlay networking
+  # for inter-service DNS to work cluster-wide. `attachable: true` keeps the
+  # ability to `docker run --network <net>` a debug container against them.
+  db_network:
+    driver: overlay
+    attachable: true
+  data_network:
+    driver: overlay
+    attachable: true
 
 volumes:
   # Bind-backed named volumes — same names as in docker-compose.yml so service

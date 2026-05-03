@@ -77,9 +77,11 @@ jobs:
     name: Deploy to Swarm cluster
     runs-on: ubuntu-latest
     environment: tgx1-server
-    # During cutover, swarm failures must not block the legacy deploy. Once
-    # swarm is the canonical target, remove this and delete deploy-legacy.
-    continue-on-error: true
+    # On `release` events: swarm is being exercised in parallel with legacy
+    # during cutover, so a swarm failure must not block the workflow (legacy
+    # is still the canonical target). On `workflow_dispatch`: it's a manual
+    # smoke test and we want it to fail loudly so regressions don't sneak by.
+    continue-on-error: ${{ github.event_name == 'release' }}
     steps:
       - name: Resolve target tag
         # Single source of truth for the tag we're deploying — release tag for
@@ -97,6 +99,14 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ steps.tag.outputs.value }}
+
+      - name: Resolve commit SHA of the target tag
+        # Use the checked-out tag's commit, not github.sha. On `workflow_dispatch`
+        # github.sha is the workflow ref's HEAD (typically main), which can be
+        # ahead of the tag we're deploying. Read from the freshly-checked-out
+        # working tree so labels/env reflect the real deployed revision.
+        id: sha
+        run: echo "value=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Set up SSH key
         run: |
@@ -117,7 +127,7 @@ jobs:
         # happens on the manager, so secrets never traverse GitHub.
         env:
           REMOTE: ${{ vars.TGX1_USERNAME }}@${{ vars.TGX1_IP_ADDRESS }}
-          GIT_HASH: ${{ github.sha }}
+          GIT_HASH: ${{ steps.sha.outputs.value }}
           GIT_TAG: ${{ steps.tag.outputs.value }}
         run: |
           set -euo pipefail

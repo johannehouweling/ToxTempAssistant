@@ -76,7 +76,7 @@ services:
       context: .
       dockerfile: myocyte/dockerfiles/backup-scheduler/Dockerfile
     env_file:
-      - ./.env
+      - ${ENV_FILE:-./.env}
     environment:
       TZ: Europe/Amsterdam
       CRON_LOG: "/logs/backup-cron.log"
