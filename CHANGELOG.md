@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.15.0 (2026-05-03)
+
+### Features
+
+- **ci**: Bake minio init.sh into a custom ghcr.io image
+  ([`079c1b6`](https://github.com/johannehouweling/ToxTempAssistant/commit/079c1b65702e3305b0dbc6273d1ecbcda2d1ac90))
+
+
 ## v3.14.2 (2026-05-03)
 
 ### Bug Fixes
