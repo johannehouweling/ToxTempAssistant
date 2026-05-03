@@ -28,9 +28,11 @@ RUN curl -fsSLO "$SUPERCRONIC_URL" \
 
 WORKDIR /work
 
-
-
+# Bake the backup script into the image so the container is self-contained:
+# no `./:/work:ro` mount of the host repo is needed at runtime. Required for
+# Docker Swarm, where each node has no notion of "the repo on this server".
+COPY backup.sh /usr/local/bin/backup.sh
 COPY myocyte/dockerfiles/backup-scheduler/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN chmod +x /usr/local/bin/backup.sh /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]

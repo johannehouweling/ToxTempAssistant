@@ -30,29 +30,28 @@ set -euo pipefail
 #   (e.g. /work/backups/<stamp>/minio), so data is persistent via your bind mount.
 ###############################################################################
 
-# -------------------- Load .env (next to this script) --------------------
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_FILE="$SCRIPT_DIR/.env"
-
-if [[ -f "$ENV_FILE" ]]; then
+# -------------------- Environment --------------------
+# Required env vars come from the container's environment (Compose injects
+# them via `env_file:` / `environment:`). When running ad-hoc on the host,
+# source a sibling .env if present so the script keeps working there too.
+_self_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$_self_dir/.env" ]]; then
   set -a
-  # Load KEY=VALUE lines, ignore comments and blank lines.
   # shellcheck disable=SC1090
-  source <(grep -v '^\s*#' "$ENV_FILE" | sed '/^\s*$/d')
+  source <(grep -v '^\s*#' "$_self_dir/.env" | sed '/^\s*$/d')
   set +a
-else
-  echo "ERROR: .env not found at: $ENV_FILE" >&2
-  exit 1
 fi
 
-# -------------------- Defaults (do NOT require new .env keys) --------------------
-BACKUP_ROOT="${BACKUP_ROOT:-$SCRIPT_DIR/backups}"
+# -------------------- Defaults --------------------
+# Inside the container `/work/backups` is the standard bind target. On host,
+# override via BACKUP_ROOT (must be absolute).
+BACKUP_ROOT="${BACKUP_ROOT:-/work/backups}"
 RETENTION_DAYS="${RETENTION_DAYS:-${BACKUP_RETENTION_DAYS:-14}}"
 MINIO_BUCKET="${MINIO_BUCKET:-}"
 
-# If BACKUP_ROOT is relative, make it relative to the script directory
 if [[ "$BACKUP_ROOT" != /* ]]; then
-  BACKUP_ROOT="$SCRIPT_DIR/$BACKUP_ROOT"
+  echo "ERROR: BACKUP_ROOT must be an absolute path: '$BACKUP_ROOT'" >&2
+  exit 1
 fi
 
 # -------------------- Validate required existing .env keys --------------------
@@ -104,9 +103,10 @@ PG_OUT="$OUTDIR/postgres_${POSTGRES_DB}.sql.gz"
 
 log "Backing up Postgres via pg_dump (service=$PG_SERVICE db=$POSTGRES_DB user=$POSTGRES_USER) ..."
 
-docker compose exec -T \
-  -e GIT_HASH="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')" \
-  -e GIT_TAG="$(git describe --tags --abbrev=0 2>/dev/null || echo 'unknown')" \
+# `docker exec` against the named container (set via `container_name:` in
+# compose). Avoids `docker compose exec`, which would require the compose
+# file to live next to the script — which it doesn't, post-bake.
+docker exec -i \
   -e PGPASSWORD="$POSTGRES_PASSWORD" \
   "$PG_SERVICE" \
   pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" \
@@ -124,11 +124,13 @@ log "Backing up MinIO via mc mirror (endpoint=$MINIO_ENDPOINT) ..."
 MINIO_HOST="$(printf "%s" "$MINIO_ENDPOINT" | sed -E 's#^https?://([^/:]+).*#\1#')"
 MINIO_SERVICE="${MINIO_HOST:-minio}"
 
-MINIO_CONTAINER_ID="$(docker compose ps -q "$MINIO_SERVICE" || true)"
+# Match the container by exact name (`container_name:` in compose). Anchored
+# regex to avoid matching `${MINIO_SERVICE}_init` and similar.
+MINIO_CONTAINER_ID="$(docker ps -q --filter "name=^${MINIO_SERVICE}$" || true)"
 if [[ -z "$MINIO_CONTAINER_ID" ]]; then
-  echo "ERROR: Could not find a running container for MinIO service '$MINIO_SERVICE'." >&2
+  echo "ERROR: Could not find a running container named '$MINIO_SERVICE'." >&2
   echo "This was derived from AWS_S3_ENDPOINT_URL host='$MINIO_HOST'." >&2
-  echo "Fix by setting AWS_S3_ENDPOINT_URL to use the docker-compose service name as host (e.g. http://minio:9000)." >&2
+  echo "Fix by setting AWS_S3_ENDPOINT_URL to use the compose container_name as host (e.g. http://minio:9000)." >&2
   exit 1
 fi
 

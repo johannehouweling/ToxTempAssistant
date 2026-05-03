@@ -40,15 +40,20 @@ jobs:
           key_path: /home/runner/.ssh/github_action
           script: |
             cd "${{ vars.REMOTE_SERVER_PATH }}"
-            # make sure the tag is present locally
+            # Refresh the working tree to the released tag — we still need the
+            # compose file at the right version; the djangoapp image itself is
+            # pulled from ghcr.io rather than rebuilt on this server.
             git pull origin main
             git fetch --tags
-            git checkout "$(git describe --tags --abbrev=0)"
-            # inject both hash and tag into the environment for Docker Compose
+            GIT_TAG="${{ github.event.release.tag_name }}"
+            git checkout "$GIT_TAG"
             GIT_HASH=$(git rev-parse HEAD)
-            GIT_TAG=$(git tag --sort=creatordate | tail -n1)
-            export GIT_HASH GIT_TAG  
-            sudo --preserve-env=GIT_HASH,GIT_TAG docker compose --profile prod up --build -d 
+            export GIT_HASH GIT_TAG
+            # Pull the new djangoapp image (and any other registry images),
+            # then start without --build. `backup` still builds locally
+            # because it has no `image:` directive in compose.
+            sudo --preserve-env=GIT_HASH,GIT_TAG docker compose --profile prod pull
+            sudo --preserve-env=GIT_HASH,GIT_TAG docker compose --profile prod up -d
             # connect to default bridge network to allow communication with other containers
             sudo docker network connect bridge djangoapp 2>/dev/null || true
             # If remote access to minio console is needed, uncomment the following line

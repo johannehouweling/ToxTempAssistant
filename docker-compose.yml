@@ -69,6 +69,7 @@ services:
     depends_on:
       - postgres_for_django
       - minio
+    image: ghcr.io/johannehouweling/toxtempassistant-backup:${GIT_TAG:-latest}
     build:
       context: .
       dockerfile: myocyte/dockerfiles/backup-scheduler/Dockerfile
@@ -76,12 +77,12 @@ services:
       - ./.env
     environment:
       TZ: Europe/Amsterdam
-      BACKUP_CMD: "/work/backup.sh"
       CRON_LOG: "/logs/backup-cron.log"
     volumes:
+      # docker.sock approach is single-node only; will be replaced when
+      # migrating to Docker Swarm (cross-node service discovery / direct TCP
+      # to the postgres+minio overlay network).
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./:/work:ro
-      - ./.env:/work/.env:ro
       - ./backups:/work/backups
       - ./myocyte/logs/backup:/logs
     restart: unless-stopped
@@ -89,6 +90,12 @@ services:
   # Django app
   djangoapp:
     profiles: ["test", "prod"]
+    # Pull from ghcr.io in prod (set by deploy.yml via GIT_TAG=vX.Y.Z).
+    # Local dev / CI builds still work because `build:` below is honoured
+    # whenever the image isn't present locally and `--build` is passed
+    # (or by `compose build`). When GIT_TAG is unset the tag falls back
+    # to `latest` for convenience in dev.
+    image: ghcr.io/johannehouweling/toxtempassistant:${GIT_TAG:-latest}
     build:
       context: .
       dockerfile: myocyte/dockerfiles/djangoapp/Dockerfile
