@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.14.1 (2026-05-03)
+
+### Bug Fixes
+
+- **ci**: Trigger release after malformed message
+  ([`16f5420`](https://github.com/johannehouweling/ToxTempAssistant/commit/16f54208a3205a66bb9c94a617d79c061c120765))
+
+
 ## v3.14.0 (2026-05-03)
 
 ### Features
