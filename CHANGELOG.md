@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.14.2 (2026-05-03)
+
+### Bug Fixes
+
+- **ci**: No --vsc-release
+  ([`648bb8a`](https://github.com/johannehouweling/ToxTempAssistant/commit/648bb8a7861c57a78fb686dc28e45f78c380602d))
+
+
 ## v3.14.1 (2026-05-03)
 
 ### Bug Fixes
