@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.16.5 (2026-05-04)
+
+### Bug Fixes
+
+- **ci**: Adjust backup location on swarm
+  ([`c936ec5`](https://github.com/johannehouweling/ToxTempAssistant/commit/c936ec50bf4ff12721f0eb7f41595ba3b878dc87))
+
+
 ## v3.16.4 (2026-05-04)
 
 ### Bug Fixes
