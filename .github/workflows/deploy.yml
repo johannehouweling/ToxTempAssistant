@@ -159,7 +159,7 @@ jobs:
             export GIT_HASH='$GIT_HASH' GIT_TAG='$GIT_TAG'
             docker compose --profile prod \
               -f docker-compose.yml -f docker-stack.yml config \
-              | python3 -c 'import yaml, sys; d = yaml.safe_load(sys.stdin); [s.pop(\"profiles\", None) for s in d.get(\"services\", {}).values()]; sys.stdout.write(yaml.safe_dump(d, sort_keys=False))' \
+              | python3 -c 'import yaml, sys; d = yaml.safe_load(sys.stdin); d.pop(\"name\", None); [s.pop(k, None) for s in d.get(\"services\", {}).values() for k in (\"profiles\", \"develop\", \"pull_policy\", \"attach\")]; sys.stdout.write(yaml.safe_dump(d, sort_keys=False))' \
               | docker stack deploy -c - toxtempass
             rm -rf '$DEPLOY_DIR'
           "
