@@ -144,20 +144,22 @@ jobs:
           # `compose config` inlines env_file content into `environment:`, so
           # the rendered output passed to stack deploy carries no env_file
           # references.
+          # Render + filter + deploy on the manager. Comments are deliberately
+          # kept OUT of the ssh-string body — bash on the runner expands
+          # backticks inside double-quoted strings, which trashed an earlier
+          # attempt. Two transforms applied to the rendered config before
+          # stack deploy: (1) the overlay drops depends_on via !reset because
+          # compose config rewrites it into a v2-map form stack deploy
+          # rejects; (2) we strip the `profiles:` field (also rejected by
+          # stack deploy) via a tiny python filter on the manager.
           ssh $SSH_OPTS "$REMOTE" "
             set -eu
             cd '$DEPLOY_DIR'
             export ENV_FILE=/mnt/gluster/docker/toxtempassistant/config/.env
             export GIT_HASH='$GIT_HASH' GIT_TAG='$GIT_TAG'
-            # `compose config` rewrites `depends_on` from list-form to
-            # the v2 compose-spec map-form, which `docker stack deploy`
-            # rejects with 'depends_on must be a list'. The overlay uses
-            # `!reset` to drop depends_on entirely from the rendered output;
-            # Swarm starts services in parallel anyway and django_startup.sh
-            # already waits for postgres, so depends_on is purely cosmetic
-            # here.
             docker compose --profile prod \
               -f docker-compose.yml -f docker-stack.yml config \
+              | python3 -c 'import yaml, sys; d = yaml.safe_load(sys.stdin); [s.pop(\"profiles\", None) for s in d.get(\"services\", {}).values()]; sys.stdout.write(yaml.safe_dump(d, sort_keys=False))' \
               | docker stack deploy -c - toxtempass
             rm -rf '$DEPLOY_DIR'
           "
