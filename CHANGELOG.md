@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.16.1 (2026-05-04)
+
+### Bug Fixes
+
+- **ci**: Save one CI run and drop depends_on
+  ([`26d49e0`](https://github.com/johannehouweling/ToxTempAssistant/commit/26d49e007bdc6f15cb1c96f64913263126010f21))
+
+
 ## v3.16.0 (2026-05-04)
 
 ### Bug Fixes
