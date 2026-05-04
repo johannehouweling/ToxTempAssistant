@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v3.16.0 (2026-05-04)
+
+### Bug Fixes
+
+- **ci**: Small tweaks to docker setup
+  ([`4b924f4`](https://github.com/johannehouweling/ToxTempAssistant/commit/4b924f498d2a0791db28baf5dfbc97169df15da7))
+
+### Features
+
+- **ci**: Add Swarm overlay + parallel deploy-swarm job
+  ([`f2e39b8`](https://github.com/johannehouweling/ToxTempAssistant/commit/f2e39b840430203a8f999e5112b9d29a1a6c63ad))
+
+
 ## v3.15.0 (2026-05-03)
 
 ### Features
