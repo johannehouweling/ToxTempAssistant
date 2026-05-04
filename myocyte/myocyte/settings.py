@@ -104,6 +104,10 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Serves /static/* directly from gunicorn so the swarm side doesn't need
+    # an external nginx. Harmless on legacy because nginx intercepts /static/
+    # before requests ever reach gunicorn.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
