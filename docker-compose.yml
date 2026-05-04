@@ -76,7 +76,7 @@ services:
       context: .
       dockerfile: myocyte/dockerfiles/backup-scheduler/Dockerfile
     env_file:
-      - ./.env
+      - ${ENV_FILE:-./.env}
     environment:
       TZ: Europe/Amsterdam
       CRON_LOG: "/logs/backup-cron.log"
@@ -86,7 +86,7 @@ services:
       # to the postgres+minio overlay network).
       - /var/run/docker.sock:/var/run/docker.sock
       - ./backups:/work/backups
-      - ./myocyte/logs/backup:/logs
+      - ./myocyte/logs:/logs
     restart: unless-stopped
 
   # Django app
