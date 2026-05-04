@@ -5,6 +5,15 @@ on:
     branches: [main]
   push:
     branches: [main]
+    # Skip CI on pushes that touch ONLY workflow YAML or markdown — those
+    # don't change application behavior and shouldn't pay a 4–5 min test
+    # cycle. Code/dependency/Dockerfile changes still trigger normally.
+    # Iterating on deploy.yml? Use the Deploy workflow's `workflow_dispatch`
+    # against an existing tag — the workflow file from main is honored, so
+    # you don't need to release to test a deploy.yml change.
+    paths-ignore:
+      - '.github/workflows/**'
+      - '**.md'
 
 permissions:
   contents: read
