@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.16.2 (2026-05-04)
+
+### Bug Fixes
+
+- **ci**: Strip profiles + reset depends_on for stack deploy
+  ([`2d97b50`](https://github.com/johannehouweling/ToxTempAssistant/commit/2d97b5076b12dae5672ef41fdf6f8e8868ab0dc9))
+
+
 ## v3.16.1 (2026-05-04)
 
 ### Bug Fixes
