@@ -12,6 +12,7 @@ ToxTemp "was developed (i) to fulfill all requirements of GD211, (ii) to guide t
     - [Create Certificate](#create-certificate)
     - [MinIO setup](#minio-setup)
   - [Backup architecture](#backup-architecture)
+  - [Production deployment](#production-deployment)
   - [Workspaces and data ownership](#workspaces-and-data-ownership)
   - [License](#license)
   - [Maintainer](#maintainer)
@@ -380,6 +381,192 @@ gunzip -c backups/<STAMP>/postgres_<DB>.sql.gz | grep -E '^(CREATE TABLE|COPY )'
 # List MinIO backup objects
 ls -lR backups/<STAMP>/minio/
 ```
+
+## Production deployment
+
+The app currently runs on **two production targets in parallel** during a migration:
+
+- **Legacy** — single-host `docker compose` on `vhp-1` (`81.169.225.178`), with an external nginx serving HTTPS + `/static/*`. This is the canonical `https://toxtempassistant.vhp4safety.nl` until DNS cuts over.
+- **Swarm** — Docker Swarm on the VHP4Safety Strato cluster (`tgx1`/`tgx2`), with Traefik for ingress + Let's Encrypt and GlusterFS for shared storage. Reachable today only via `/etc/hosts` override; cutover is a DNS-only flip.
+
+For everything generic about the cluster — connecting via `ssh tgx1`/`ssh tgx2`, the `/mnt/gluster/docker/<service>/{data,config}/` convention, Traefik label patterns, the HiDrive backup-mirror cron, etc. — see the cluster docs at `/mnt/gluster/documentation/` (read on any swarm node):
+
+- `README.md` — cluster topology, server inventory, quick links
+- `operations/developer-workflow.md` — connecting, storage tiers, deploy patterns
+- `operations/publishing-container-images.md` — registry conventions
+- `operations/backup-strategy.md` + `operations/cronjobs.md` — `/mnt/gluster/backups/` → HiDrive sync
+- `architecture/storage-strategy.md` and `architecture/tls-ha-architecture.md`
+- `services/toxtempassistant.md` — service-registry entry for this app
+
+Outstanding cutover work lives in `docs/cutover.md`.
+
+### Service layout (stack `toxtempass`)
+
+Five services across `docker-compose.yml` (single-host base) and `docker-stack.yml` (Swarm overlay):
+
+| Service | Image | Replicas | Notes |
+| --- | --- | --- | --- |
+| `djangoapp` | `ghcr.io/johannehouweling/toxtempassistant:vX.Y.Z` | 1 | Gunicorn :8000, Traefik-exposed |
+| `postgres_for_django` | `postgres:17-alpine` | 1 | Stateful — single replica with gluster failover |
+| `minio` | `minio/minio:RELEASE.2025-09-07T16-13-09Z` | 1 | Single-node FS mode |
+| `minio_init` | `ghcr.io/johannehouweling/toxtempassistant-minio-init:vX.Y.Z` | 1 one-shot | Creates bucket / user / policy on each deploy, then exits |
+| `backup` | `ghcr.io/johannehouweling/toxtempassistant-backup:vX.Y.Z` | 1 | Supercronic; writes to `/mnt/gluster/backups/toxtempassistant/` (cluster cron mirrors that to HiDrive) |
+
+### App-specific paths on gluster
+
+```
+/mnt/gluster/docker/toxtempassistant/
+├── data/
+│   ├── db_data/              # postgres /var/lib/postgresql/data
+│   ├── minio_blob_data/      # minio /data
+│   └── myocyte/
+│       ├── logs/             # gunicorn-*.log + backup-cron.log
+│       └── static/           # collected static
+└── config/
+    └── .env                  # mode 600, owned by jhouweling
+
+/mnt/gluster/backups/toxtempassistant/   # postgres dumps + minio mirrors
+```
+
+### CI/CD chain
+
+A push to `main` self-drives the full release chain:
+
+```
+git push (feat:/fix:)
+  └─ CI                       → pytest in djangoapp container
+       └─ release.yml          → semantic-release tags vX.Y.Z (PAT-credentialed push)
+            └─ tag push triggers publish-image.yml
+                 ├─ matrix builds 3 images (djangoapp + backup + minio_init)
+                 └─ release job creates GitHub Release (gates deploy)
+                      └─ release-published triggers deploy.yml
+                           ├─ deploy-legacy → SSH to vhp-1, `compose pull && up -d`
+                           └─ deploy-swarm  → SSH to tgx1, render with `compose config |
+                                              python-strip-profiles | docker stack deploy`
+```
+
+Workflow files:
+
+- `.github/workflows/ci.yml` — tests; skips on bot-commits and on workflow-only/markdown-only pushes
+- `.github/workflows/release.yml` — `semantic-release version`; uses PAT so tag pushes trigger downstream workflows
+- `.github/workflows/publish-image.yml` — matrix builds + GH Release (gates deploy)
+- `.github/workflows/deploy.yml` — `deploy-legacy` (release events only) + `deploy-swarm` (release **and** workflow_dispatch). Swarm runs are non-blocking on release events during cutover; `workflow_dispatch` runs fail loudly.
+
+### `workflow_dispatch` for ad-hoc swarm deploys
+
+Repo → Actions → **Deploy** → Run workflow → branch `main` → tag input = an existing release tag. Use this to:
+
+- Re-deploy after editing `.env` on gluster (env edits don't auto-trigger redeploy)
+- Smoke-test deploy.yml changes without cutting a real release
+- Recover from a transient failure
+
+`deploy-legacy` is skipped on dispatch — no risk of accidentally re-deploying legacy.
+
+### App-specific configuration values
+
+- **GitHub `legacy-server` environment**: vars `REMOTE_SERVER_ADDRESS`/`REMOTE_SERVER_USERNAME`/`REMOTE_SERVER_PATH`, secrets `PA_TOKEN`/`GIT_ACTIONS`.
+- **GitHub `tgx1-server` environment**: vars `TGX1_IP_ADDRESS`/`TGX1_USERNAME`, secret `TGX1_DEPLOY_KEY` (private key whose pubkey is in `/mnt/gluster/ssh-keys/jhouweling/authorized_keys`).
+- **Repo-level `PA_TOKEN`** secret — Personal Access Token with `repo` scope. Used by `release.yml` to push tags so downstream workflows fire.
+
+### Cluster prep (one-time)
+
+```bash
+mkdir -p /mnt/gluster/docker/toxtempassistant/data/{db_data,minio_blob_data}
+mkdir -p /mnt/gluster/docker/toxtempassistant/data/myocyte/{logs,static}
+mkdir -p /mnt/gluster/docker/toxtempassistant/config
+mkdir -p /mnt/gluster/backups/toxtempassistant
+```
+
+`.env` lives at `/mnt/gluster/docker/toxtempassistant/config/.env` (mode 600). Pipe legacy's `.env` straight onto gluster (legacy can't reach tgx1 directly — laptop relay):
+
+```bash
+ssh vhp-1 'cat ~/ToxTempAssistant/.env' | \
+  ssh tgx1 'cat > /mnt/gluster/docker/toxtempassistant/config/.env && chmod 600 /mnt/gluster/docker/toxtempassistant/config/.env'
+```
+
+### Data hydration (legacy → swarm)
+
+Run on a fresh swarm where postgres is empty. Three steps.
+
+**1. Pull the most recent legacy backup tarball through your laptop to tgx1:**
+
+```bash
+TS=$(ssh vhp-1 'ls -t ~/ToxTempAssistant/backups | head -1')
+ssh vhp-1 "cd ~/ToxTempAssistant/backups/$TS && tar c ." | \
+  ssh tgx1 "mkdir -p /tmp/restore/$TS && cd /tmp/restore/$TS && tar x"
+```
+
+**2. Restore minio objects via mc mirror.** On tgx1 write the helper, then run it:
+
+```bash
+cat > /tmp/mirror.sh << 'EOF'
+set -e
+mc alias set local http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+mc mirror --overwrite --preserve /source/"$BUCKET"/ local/"$BUCKET"/
+mc ls local/"$BUCKET" | head
+EOF
+
+TS=$(ls -t /tmp/restore | head -1)
+set -a; source /mnt/gluster/docker/toxtempassistant/config/.env; set +a
+docker run --rm --network toxtempass_data_network -v /tmp/restore/$TS/minio:/source:ro -v /tmp/mirror.sh:/mirror.sh:ro -e MINIO_ROOT_USER -e MINIO_ROOT_PASSWORD -e BUCKET=$AWS_STORAGE_BUCKET_NAME --entrypoint sh minio/mc:latest /mirror.sh
+```
+
+**3. Restore postgres dump:**
+
+```bash
+TS=$(ls -t /tmp/restore | head -1)
+set -a; source /mnt/gluster/docker/toxtempassistant/config/.env; set +a
+gunzip -c /tmp/restore/$TS/postgres_*.sql.gz | docker run --rm -i --network toxtempass_db_network -e PGPASSWORD="$POSTGRES_PASSWORD" postgres:17-alpine psql -h postgres_for_django -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+```
+
+**Resetting state when creds drift:** postgres / minio only read root credentials on first init. If `.env` changes after the data dirs are populated, auth fails. Wipe and reinit:
+
+```bash
+docker service scale toxtempass_postgres_for_django=0
+docker run --rm -v /mnt/gluster/docker/toxtempassistant/data/db_data:/dest busybox sh -c 'rm -rf /dest/* /dest/.[!.]*'
+docker service scale toxtempass_postgres_for_django=1
+# Same pattern for toxtempass_minio + minio_blob_data; force-update minio_init after.
+```
+
+### Operations
+
+**Bouncing for env changes** — `.env` edits don't auto-redeploy. Trigger via **GitHub UI** → Actions → Deploy → Run workflow → tag input → Run. (Avoid `docker service update --force` for env changes — it doesn't re-render the spec from `.env`.)
+
+**Smoke-testing without DNS** — from your laptop:
+
+```bash
+sudo sh -c 'echo "81.169.246.233 toxtempassistant.vhp4safety.nl" >> /etc/hosts'
+# Visit https://toxtempassistant.vhp4safety.nl, accept the self-signed cert.
+# Don't forget to remove the override afterwards.
+```
+
+To bypass Traefik and hit djangoapp directly over the overlay (debugging):
+
+```bash
+docker run --rm --network core busybox wget -qO- http://djangoapp:8000/ | head
+```
+
+**Manually triggering a backup** (cron default is `0 2 * * *` Europe/Amsterdam):
+
+```bash
+docker exec $(docker ps -q -f label=com.docker.swarm.service.name=toxtempass_backup | head -1) /usr/local/bin/backup.sh
+```
+
+Run on the node where backup landed — `docker service ps toxtempass_backup --no-trunc` shows which node. Output goes to `/mnt/gluster/backups/toxtempassistant/<timestamp>/`.
+
+Cron stdout/stderr at `/mnt/gluster/docker/toxtempassistant/data/myocyte/logs/backup-cron.log`.
+
+**Scaling** — only `djangoapp` is safe to scale beyond 1; `postgres_for_django`, `minio`, and `backup` must stay singleton.
+
+```bash
+docker service scale toxtempass_djangoapp=3
+```
+
+### Known caveats
+
+- **`backup` uses `/var/run/docker.sock`** — single-node-coupled. If `backup` and `postgres_for_django` land on different swarm nodes, `docker exec postgres_for_django` from inside backup won't find postgres. Stopgap: pin both via `node.labels.storage == true` (commented placement blocks already in `docker-stack.yml`). Real fix (post-cutover): refactor `backup.sh` to use TCP (`pg_dump -h postgres_for_django`) and run minio mirror as a sibling task.
+- **GlusterFS POSIX locking quirks** — postgres uses file locks; rare network partitions can produce lock-contention errors. Recovery: scale postgres to 0, wait, scale back to 1.
+- **Compose-vs-stack-deploy compatibility layer** — the `compose config | python-strip-profiles | stack deploy` pipeline papers over schema differences. Intentionally temporary; remove after cutover (see `docs/cutover.md`).
 
 ## Workspaces and data ownership
 
