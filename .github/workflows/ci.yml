@@ -14,6 +14,14 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # Skip the CI run that fires on semantic-release's "X.Y.Z" version-bump
+    # commit — that commit only changes pyproject.toml + CHANGELOG.md, so
+    # there's nothing here we haven't already tested. release.yml uses
+    # `conclusion == 'success'` to gate; a skipped job leaves the workflow
+    # at conclusion `skipped`, so release.yml correctly doesn't re-fire.
+    # `pull_request` events have a null head_commit, so the != check
+    # passes (PRs run CI as normal).
+    if: ${{ github.event.head_commit.author.name != 'github-actions[bot]' }}
 
     steps:
       - name: Checkout code

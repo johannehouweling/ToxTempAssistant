@@ -149,6 +149,13 @@ jobs:
             cd '$DEPLOY_DIR'
             export ENV_FILE=/mnt/gluster/docker/toxtempassistant/config/.env
             export GIT_HASH='$GIT_HASH' GIT_TAG='$GIT_TAG'
+            # `compose config` rewrites `depends_on` from list-form to
+            # the v2 compose-spec map-form, which `docker stack deploy`
+            # rejects with 'depends_on must be a list'. The overlay uses
+            # `!reset` to drop depends_on entirely from the rendered output;
+            # Swarm starts services in parallel anyway and django_startup.sh
+            # already waits for postgres, so depends_on is purely cosmetic
+            # here.
             docker compose --profile prod \
               -f docker-compose.yml -f docker-stack.yml config \
               | docker stack deploy -c - toxtempass

@@ -94,6 +94,11 @@ services:
       - /mnt/gluster/docker/toxtempassistant/data/myocyte/static:/home/myocyte/static
     # Drop the host port binding — Traefik handles ingress on 80/443.
     ports: !override []
+    # `compose config` rewrites depends_on into the v2 compose-spec map
+    # form, which `docker stack deploy` rejects. !reset drops the field
+    # entirely from the rendered output. Swarm starts services in parallel
+    # anyway, and django_startup.sh waits for postgres on its own.
+    depends_on: !reset null
     networks:
       - db_network
       - data_network
@@ -122,7 +127,15 @@ services:
       restart_policy:
         condition: on-failure
 
+  minio_init:
+    # Drop depends_on (see djangoapp note). minio_init's init.sh already
+    # blocks on `mc alias set` until minio responds, so it's resilient to
+    # being scheduled before minio comes up.
+    depends_on: !reset null
+
   backup:
+    # See djangoapp's note about !reset — same reason here.
+    depends_on: !reset null
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       # Backup output → off-cluster HiDrive, per cluster storage docs.
