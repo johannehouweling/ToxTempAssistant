@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.16.3 (2026-05-04)
+
+### Bug Fixes
+
+- **ci**: Also strip top-level 'name' (and a few other modern-only fields) before stack deploy
+  ([`240ca2f`](https://github.com/johannehouweling/ToxTempAssistant/commit/240ca2f2d1a9bbf6926fba7a7ca573418d0babfe))
+
+
 ## v3.16.2 (2026-05-04)
 
 ### Bug Fixes
