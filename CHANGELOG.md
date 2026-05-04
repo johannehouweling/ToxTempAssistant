@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v3.16.4 (2026-05-04)
+
+### Bug Fixes
+
+- **ci**: Ignore github actions and documentation in CI cycle
+  ([`1446165`](https://github.com/johannehouweling/ToxTempAssistant/commit/14461652b08816cbceb805656d578d86d60a26b2))
+
+- **django**: Replace nginx dep on legcay with whitenoise container internal
+  ([`90481b5`](https://github.com/johannehouweling/ToxTempAssistant/commit/90481b57cb2a4472c3e2d179e7c3b677a66f7892))
+
+
 ## v3.16.3 (2026-05-04)
 
 ### Bug Fixes
