@@ -4,7 +4,9 @@
 #   1. Persistent storage rooted at /mnt/gluster/docker/toxtempassistant/data/
 #      (and configuration at /mnt/gluster/docker/toxtempassistant/config/),
 #      following the cluster developer-guide convention.
-#   2. Off-cluster backup target at /mnt/hidrive/docker/toxtempassistant/backups/
+#   2. Backup target at /mnt/gluster/backups/toxtempassistant/. The cluster's
+#      monthly cronjob mirrors /mnt/gluster/backups/ to hidrive automatically;
+#      services don't write to hidrive directly.
 #   3. Traefik ingress + the cluster's `core` overlay network for djangoapp
 #   4. Restart policies for long-running services
 #
@@ -21,12 +23,12 @@
 # docker-compose.yml unless this file is explicitly added with `-f`.
 #
 # ─── Cutover strategy ────────────────────────────────────────────────────────
-# During the migration, the swarm version is reachable at
-#   https://toxtempassistant.cloud.vhp4safety.nl
-# while legacy keeps serving the canonical
-#   https://toxtempassistant.vhp4safety.nl
-# After cutover, swap the Host(...) rule below to the canonical hostname and
-# stop legacy.
+# Traefik is configured for the canonical hostname directly. DNS still points
+# at legacy, so legacy keeps serving real traffic. Pre-cutover testing of the
+# swarm side is via `/etc/hosts` override on the tester's laptop. Cutover is a
+# pure DNS change at the registrar — no Traefik / config edit needed; once
+# DNS lands at the cluster IP, Traefik's Let's Encrypt resolver issues a real
+# cert and the swarm starts serving real traffic. Stop legacy after.
 #
 # ─── Pre-deploy: create the gluster + hidrive directory layout ───────────────
 # Run once on any Swarm node — gluster + hidrive are shared, so the layout
@@ -36,7 +38,7 @@
 #   ssh <user>@<swarm-manager> '
     # mkdir -p /mnt/gluster/docker/toxtempassistant/data/{db_data,minio_blob_data} \
     #          /mnt/gluster/docker/toxtempassistant/data/myocyte/{logs,static} \
-#              /mnt/hidrive/docker/toxtempassistant/backups
+#              /mnt/gluster/backups/toxtempassistant
 #   '
 #
 # ─── KNOWN GAP — backup is not yet Swarm-correct ─────────────────────────────
@@ -108,8 +110,12 @@ services:
         condition: on-failure
       labels:
         - "traefik.enable=true"
-        # During cutover: legacy serves canonical hostname, swarm serves cloud.*
-        - "traefik.http.routers.toxtempassistant.rule=Host(`toxtempassistant.cloud.vhp4safety.nl`)"
+        # Targets the canonical hostname directly. Pre-cutover (DNS still
+        # pointing at legacy) the swarm is only reachable via /etc/hosts
+        # override; Traefik serves a self-signed cert until DNS lands and
+        # Let's Encrypt's HTTP-01 challenge can succeed. Cutover is a pure
+        # DNS change after that — no Traefik config update needed.
+        - "traefik.http.routers.toxtempassistant.rule=Host(`toxtempassistant.vhp4safety.nl`)"
         - "traefik.http.routers.toxtempassistant.entrypoints=websecure"
         - "traefik.http.routers.toxtempassistant.tls=true"
         - "traefik.http.routers.toxtempassistant.tls.certresolver=letsencrypt"
@@ -139,7 +145,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       # Backup output → off-cluster HiDrive, per cluster storage docs.
-      - /mnt/hidrive/docker/toxtempassistant/backups:/work/backups
+      - /mnt/gluster/backups/toxtempassistant:/work/backups
       # Operational logs (the cron supercronic stdout/stderr, ~KB/day) live
       # alongside gunicorn's logs in myocyte/logs/. backup-cron.log lands
       # there as a sibling of gunicorn-*.log.
