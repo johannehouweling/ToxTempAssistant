@@ -443,10 +443,14 @@ class AssayForm(forms.ModelForm):
         }
         help_texts = {
             "description": (
-                "(1) Test purpose (e.g., cytotoxicity); "
-                "(2) Test system (e.g., human neural stem cells in a 2D monolayer); "
-                "(3) Measured endpoint (e.g., cell viability by formazan conversion)."
-            ),
+                "Please provide a concise description of the assay that"
+                " specifies: (1) the test purpose (e.g., cytotoxicity);"
+                " (2) the test system (e.g., human neural stem cells"
+                " differentiated into a neuron-astrocyte co-culture in a"
+                " 2D monolayer); and (3) the measured endpoint (e.g., "
+                "cell viability assessed by formazan conversion using "
+                "a luminescence assay)."
+            )
         }
 
     def __init__(self, *args, user: Person = None, **kwargs):
