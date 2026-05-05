@@ -441,6 +441,13 @@ class AssayForm(forms.ModelForm):
         widgets = {
             "description": forms.Textarea(attrs=_ASSAY_DESCRIPTION_TEXTAREA_ATTRS),
         }
+        help_texts = {
+            "description": (
+                "(1) Test purpose (e.g., cytotoxicity); "
+                "(2) Test system (e.g., human neural stem cells in a 2D monolayer); "
+                "(3) Measured endpoint (e.g., cell viability by formazan conversion)."
+            ),
+        }
 
     def __init__(self, *args, user: Person = None, **kwargs):
         """Filter the 'study' field based on accessible Investigations."""
