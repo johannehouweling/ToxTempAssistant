@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v3.16.6 (2026-05-06)
+
+### Bug Fixes
+
+- Restore original help_text for assay description field
+  ([`6807a35`](https://github.com/johannehouweling/ToxTempAssistant/commit/6807a35b413eb999d512b6a283215e71d2178f7f))
+
+- Show assay description instructions as help_text on all devices
+  ([`d2d0b0a`](https://github.com/johannehouweling/ToxTempAssistant/commit/d2d0b0acf30e3c886aed5e9cdf8dcf7543a66e89))
+
+### Documentation
+
+- **ci**: Swarm deploy docs
+  ([`d232717`](https://github.com/johannehouweling/ToxTempAssistant/commit/d2327176c910532a320da81beed0099a3410367e))
+
+
 ## v3.16.5 (2026-05-04)
 
 ### Bug Fixes
