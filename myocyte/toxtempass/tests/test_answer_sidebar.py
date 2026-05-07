@@ -68,5 +68,6 @@ def test_sidebar_renders_accepted_draft_and_missing_question_statuses(client):
     assert f'aria-label="{draft_question.question_text} (draft)"' in content
     assert f'aria-label="{not_found_question.question_text} (missing)"' in content
     assert f'aria-label="{empty_question.question_text} (missing)"' in content
-    assert content.count('title="Draft answer"') == 1
-    assert content.count('title="No answer yet"') == 2
+    assert content.count('data-question-status="accepted"') == 1
+    assert content.count('data-question-status="draft"') == 1
+    assert content.count('data-question-status="missing"') == 2
