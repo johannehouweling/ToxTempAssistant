@@ -1932,6 +1932,22 @@ def answer_assay_questions(
     sections = Section.objects.filter(question_set=assay.question_set).prefetch_related(
         "subsections__questions"
     )
+    answers_by_question_id = {
+        answer.question_id: answer for answer in assay.answers.select_related("question")
+    }
+    for section in sections:
+        for subsection in section.subsections.all():
+            for question in subsection.questions.all():
+                answer = answers_by_question_id.get(question.id)
+                answer_text = (answer.answer_text if answer else "").strip()
+                if answer and answer.accepted:
+                    question.sidebar_status = "accepted"
+                elif answer_text and (
+                    config.not_found_string.lower() not in answer_text.lower()
+                ):
+                    question.sidebar_status = "draft"
+                else:
+                    question.sidebar_status = "missing"
     if request.method == "POST":
         form = AssayAnswerForm(
             request.POST, request.FILES, assay=assay, user=request.user
