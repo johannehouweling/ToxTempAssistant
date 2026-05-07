@@ -78,8 +78,7 @@ def get_assay_export_author_names(assay: Assay) -> list[str]:
        edits and then by first contribution date.
     3. Assay owner is always listed last.
     """
-    owner = assay.owner
-    owner_id = owner.pk if owner is not None else None
+    owner_id = getattr(assay.owner, "pk", None)
     creator_id = assay.created_by_id
 
     historical_answer_model = assay.answers.model.history.model
@@ -98,7 +97,6 @@ def get_assay_export_author_names(assay: Assay) -> list[str]:
     contributor_ids = [
         row["history_user_id"]
         for row in contributor_rows
-        if row["history_user_id"] is not None
     ]
 
     first_author_id = creator_id if creator_id and creator_id != owner_id else None
@@ -119,7 +117,9 @@ def get_assay_export_author_names(assay: Assay) -> list[str]:
     if owner_id is not None:
         ordered_ids.append(owner_id)
 
-    people_by_id = Person.objects.in_bulk(ordered_ids)
+    people_by_id = Person.objects.only("first_name", "last_name", "email").in_bulk(
+        ordered_ids
+    )
     author_names: list[str] = []
     seen_names: set[str] = set()
     for user_id in ordered_ids:
@@ -135,7 +135,6 @@ def get_assay_export_author_metadata(assay: Assay) -> dict[str, str | list[str] 
     author_names = get_assay_export_author_names(assay)
     return {
         "author": author_names,
-        "authors": author_names,
         "main_author": author_names[0] if author_names else None,
         "co_authors": author_names[1:],
     }
