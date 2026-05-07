@@ -2,6 +2,29 @@
 
 <!-- version list -->
 
+## v3.16.7 (2026-05-07)
+
+### Bug Fixes
+
+- **ci**: Remove BACKUP_ROOT from .env file, now always stores to /work/backups inside docker (which
+  is mounted to a names location via docker comp
+  ([`0decf6b`](https://github.com/johannehouweling/ToxTempAssistant/commit/0decf6b7446a2c72336b40fa5e56ca8b750cb562))
+
+### Chores
+
+- **deps-dev**: Bump gitpython from 3.1.47 to 3.1.49
+  ([`7ed95d4`](https://github.com/johannehouweling/ToxTempAssistant/commit/7ed95d4db003615f349b2e1eabd9fbce1ff66d2c))
+
+- **deps-dev**: Bump jupyter-server from 2.17.0 to 2.18.0
+  ([`7500235`](https://github.com/johannehouweling/ToxTempAssistant/commit/7500235c3ed7dac1aaee5c111be4b479956993d9))
+
+- **deps-dev**: Bump mistune from 3.2.0 to 3.2.1
+  ([`5f489e8`](https://github.com/johannehouweling/ToxTempAssistant/commit/5f489e8c33609f19777b2b75657a1bbe6f712348))
+
+- **deps-dev**: Bump notebook from 7.5.5 to 7.5.6
+  ([`42d7b83`](https://github.com/johannehouweling/ToxTempAssistant/commit/42d7b83b56c63fff20097af19e717578f01925f0))
+
+
 ## v3.16.6 (2026-05-06)
 
 ### Bug Fixes
