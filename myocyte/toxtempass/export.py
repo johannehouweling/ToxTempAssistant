@@ -116,6 +116,7 @@ def get_assay_export_author_names(assay: Assay) -> list[str]:
     )
     if owner_id is not None:
         ordered_ids.append(owner_id)
+    ordered_ids = list(dict.fromkeys(ordered_ids))
 
     people_by_id = Person.objects.only("first_name", "last_name", "email").in_bulk(
         ordered_ids

@@ -40,7 +40,7 @@ class ExportMetadataAuthorTests(TestCase):
         answer_one = AnswerFactory(
             assay=assay,
             answer_text="draft",
-            question__subsection__section__question_set__label="metadata-authors",
+            question__subsection__section__question_set__label="test_author_tracking",
         )
 
         self._save_answer_with_user(
@@ -91,7 +91,7 @@ class ExportMetadataAuthorTests(TestCase):
         answer = AnswerFactory(
             assay=assay,
             answer_text="draft",
-            question__subsection__section__question_set__label="owner-dedupe",
+            question__subsection__section__question_set__label="test_owner_deduplication",
         )
         self._save_answer_with_user(answer, user=owner, answer_text="owner edit")
         self._save_answer_with_user(
