@@ -1933,9 +1933,7 @@ def answer_assay_questions(
         "subsections__questions"
     )
     not_found_lower = config.not_found_string.lower()
-    answers_by_question_id = {
-        answer.question_id: answer for answer in assay.answers.select_related("question")
-    }
+    answers_by_question_id = {answer.question_id: answer for answer in assay.answers.all()}
     for section in sections:
         for subsection in section.subsections.all():
             for question in subsection.questions.all():
