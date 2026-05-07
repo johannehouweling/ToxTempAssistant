@@ -9,12 +9,13 @@ from pathlib import Path
 
 import yaml
 from django.core.serializers import serialize
+from django.db.models import Count, Min
 from django.http import FileResponse, HttpRequest, JsonResponse
 from django.utils import timezone  # Import timezone utilities
 from django.utils.text import slugify
 
 from toxtempass import Config
-from toxtempass.models import Assay, Section
+from toxtempass.models import Assay, Person, Section
 from toxtempass.utilities import log_processing_event
 
 logger = logging.getLogger(__name__)
@@ -60,6 +61,86 @@ def quote_answer(text: str) -> str:
     return "\n".join(out) + "\n\n"
 
 
+def _person_export_name(person: Person | None) -> str | None:
+    """Return a display name suitable for export metadata."""
+    if person is None:
+        return None
+    full_name = person.get_full_name().strip()
+    return full_name or person.email
+
+
+def get_assay_export_author_names(assay: Assay) -> list[str]:
+    """Return ordered export author names for an assay.
+
+    Ordering rules:
+    1. First author is the assay creator when distinct from the assay owner.
+    2. Remaining contributors come from Answer.history, ranked by number of
+       edits and then by first contribution date.
+    3. Assay owner is always listed last.
+    """
+    owner = assay.owner
+    owner_id = owner.pk if owner is not None else None
+    creator_id = assay.created_by_id
+
+    historical_answer_model = assay.answers.model.history.model
+    contributor_rows = list(
+        historical_answer_model.objects.filter(
+            assay_id=assay.id,
+            history_user__isnull=False,
+        )
+        .values("history_user_id")
+        .annotate(
+            contribution_count=Count("history_id"),
+            first_contribution=Min("history_date"),
+        )
+        .order_by("-contribution_count", "first_contribution", "history_user_id")
+    )
+    contributor_ids = [
+        row["history_user_id"]
+        for row in contributor_rows
+        if row["history_user_id"] is not None
+    ]
+
+    first_author_id = creator_id if creator_id and creator_id != owner_id else None
+    if first_author_id is None:
+        first_author_id = next(
+            (user_id for user_id in contributor_ids if user_id != owner_id),
+            None,
+        )
+
+    ordered_ids: list[int] = []
+    if first_author_id is not None:
+        ordered_ids.append(first_author_id)
+    ordered_ids.extend(
+        user_id
+        for user_id in contributor_ids
+        if user_id not in {first_author_id, owner_id}
+    )
+    if owner_id is not None:
+        ordered_ids.append(owner_id)
+
+    people_by_id = Person.objects.in_bulk(ordered_ids)
+    author_names: list[str] = []
+    seen_names: set[str] = set()
+    for user_id in ordered_ids:
+        author_name = _person_export_name(people_by_id.get(user_id))
+        if author_name and author_name not in seen_names:
+            seen_names.add(author_name)
+            author_names.append(author_name)
+    return author_names
+
+
+def get_assay_export_author_metadata(assay: Assay) -> dict[str, str | list[str] | None]:
+    """Return export author metadata for an assay."""
+    author_names = get_assay_export_author_names(assay)
+    return {
+        "author": author_names,
+        "authors": author_names,
+        "main_author": author_names[0] if author_names else None,
+        "co_authors": author_names[1:],
+    }
+
+
 def generate_json_from_assay(assay: Assay) -> dict | None:
     """Generate Json from assay."""
     try:
@@ -72,6 +153,7 @@ def generate_json_from_assay(assay: Assay) -> dict | None:
         )  # Current time in Amsterdam timezone
 
         # Prepare the data structure
+        author_metadata = get_assay_export_author_metadata(assay)
         export_data = {
             "metadata": {
                 # Current date and time in ISO format
@@ -81,7 +163,8 @@ def generate_json_from_assay(assay: Assay) -> dict | None:
                 # Replace with your actual website name
                 "reference_toxtemp": getattr(Config, "reference_toxtemp", None),
                 "website": "toxtempassistant.vhp4safety.nl",
-                # Trimmed config for reproducibility (PII and developer-only fields omitted)
+                # Trimmed config for reproducibility
+                # (PII and developer-only fields omitted)
                 "config": {
                     "model": getattr(Config, "model", None),
                     "model_info_url": getattr(Config, "model_info_url", None),
@@ -90,14 +173,12 @@ def generate_json_from_assay(assay: Assay) -> dict | None:
                     ),
                     "reference_toxtemp": getattr(Config, "reference_toxtemp", None),
                     "website": "toxtempassistant.vhp4safety.nl",
-                    "reference_toxtempassistant": getattr(
-                        Config, "reference_toxtempassistant", None
-                    ),
                     "version": getattr(Config, "version", None),
                     "github_repo_url": getattr(Config, "github_repo_url", None),
                     "git_hash": getattr(Config, "git_hash", None),
                     "license_url": getattr(Config, "license_url", None),
                 },
+                **author_metadata,
             },
             "investigation": json.loads(serialize("json", [assay.study.investigation]))[
                 0
@@ -164,6 +245,14 @@ def generate_markdown_from_assay(assay: Assay) -> str:
     markdown.append(f"- **Creation Date:** {export_data['metadata']['creation_date']}\n")
     markdown.append(f"- **Filename:** {export_data['metadata']['filename']}\n")
     markdown.append(f"- **Website:** {export_data['metadata']['website']}\n")
+    if export_data["metadata"].get("main_author"):
+        markdown.append(f"- **Main Author:** {export_data['metadata']['main_author']}\n")
+    if export_data["metadata"].get("co_authors"):
+        markdown.append(
+            "- **Co-authors:** "
+            + ", ".join(export_data["metadata"]["co_authors"])
+            + "\n"
+        )
     markdown.append("\n## ToxTempAssistant configuration\n")
     for key, value in export_data["metadata"]["config"].items():
         markdown.append(f"- {key}: {value}\n")
@@ -239,6 +328,7 @@ def get_create_meta_data_yaml(
             ``"tex"``, fontspec and unicode-math are wrapped in an ``iftex``
             conditional so the generated ``.tex`` file also compiles with
             pdfLaTeX.
+
     """
     # get date:
     # Define the Amsterdam timezone (UTC+1)
@@ -282,8 +372,11 @@ def get_create_meta_data_yaml(
             r"\usepackage[a4paper, margin=3cm]{geometry}",
         ]
 
+    author_metadata = get_assay_export_author_metadata(assay)
     metadata_dict = {
-        "author": f"{request.user.first_name} {request.user.last_name}",  # Example author; replace as needed
+        "author": author_metadata["author"],
+        "main_author": author_metadata["main_author"],
+        "co_authors": author_metadata["co_authors"],
         "date": str(current_date),  # Current date;
         "keywords": (
             "metadata template, "
@@ -332,7 +425,9 @@ def export_assay_to_file(
         elif export_type in PANDOC_EXPORT_TYPES:
             # Generate the markdown file
             export_data = generate_markdown_from_assay(assay)
-            md_file_path = (file_path.with_name(f"{file_path.stem}_md")).with_suffix(".md")
+            md_file_path = file_path.with_name(f"{file_path.stem}_md").with_suffix(
+                ".md"
+            )
             with md_file_path.open("w", encoding="utf-8") as md_file:
                 md_file.write(export_data)
 
