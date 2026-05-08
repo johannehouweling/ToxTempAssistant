@@ -71,6 +71,48 @@ def generate_json_from_assay(assay: Assay) -> dict | None:
             amsterdam_tz
         )  # Current time in Amsterdam timezone
 
+        # Source the model identity from AssayCost (the source of truth recorded
+        # by process_llm_async), not Config.model — Config.model is the import-time
+        # registry default and does not reflect what actually ran on this assay.
+        # An assay regenerated with multiple models has multiple AssayCost rows.
+        # The info URL mirrors the link used by the off-canvas LLM signature
+        # badge (templates/.../user_offcanvas.html), so the export and the UI
+        # point at the same Azure catalog page.
+        from urllib.parse import quote
+
+        models_used: list[dict] = []
+        for c in assay.costs.order_by("updated_at"):
+            info_url = (
+                f"https://ai.azure.com/catalog/models/{quote(c.model_id, safe='')}"
+                if c.model_id
+                else ""
+            )
+            models_used.append(
+                {
+                    "model_key": c.model_key,
+                    "model_id": c.model_id,
+                    "info_url": info_url,
+                }
+            )
+
+        if models_used:
+            model_summary = ", ".join(
+                f"{m['model_id']} ({m['model_key']})"
+                if m["model_id"]
+                else m["model_key"]
+                for m in models_used
+            )
+            # De-duplicate URLs while preserving order; drop empties.
+            seen_urls: set[str] = set()
+            ordered_urls = [
+                u for m in models_used
+                if (u := m["info_url"]) and not (u in seen_urls or seen_urls.add(u))
+            ]
+            model_info_url_value = ", ".join(ordered_urls) if ordered_urls else ""
+        else:
+            model_summary = "Not recorded"
+            model_info_url_value = ""
+
         # Prepare the data structure
         export_data = {
             "metadata": {
@@ -81,18 +123,22 @@ def generate_json_from_assay(assay: Assay) -> dict | None:
                 # Replace with your actual website name
                 "reference_toxtemp": getattr(Config, "reference_toxtemp", None),
                 "website": "toxtempassistant.vhp4safety.nl",
+                # Structured per-run LLM identities (machine-readable companion to
+                # the human-readable `config.model` string).
+                "models_used": models_used,
                 # Trimmed config for reproducibility (PII and developer-only fields omitted)
                 "config": {
-                    "model": getattr(Config, "model", None),
-                    "model_info_url": getattr(Config, "model_info_url", None),
+                    "model": model_summary,
+                    "model_info_url": model_info_url_value
+                    or getattr(Config, "model_info_url", None),
+                    # Same DOI link the off-canvas uses for the ToxTempAssistant
+                    # paper badge. Config has no plain "reference_toxtempassistant"
+                    # attribute — the previous getattr silently resolved to None.
                     "reference_toxtempassistant": getattr(
-                        Config, "reference_toxtempassistant", None
+                        Config, "reference_toxtempassistant_paper", None
                     ),
                     "reference_toxtemp": getattr(Config, "reference_toxtemp", None),
                     "website": "toxtempassistant.vhp4safety.nl",
-                    "reference_toxtempassistant": getattr(
-                        Config, "reference_toxtempassistant", None
-                    ),
                     "version": getattr(Config, "version", None),
                     "github_repo_url": getattr(Config, "github_repo_url", None),
                     "git_hash": getattr(Config, "git_hash", None),

@@ -573,7 +573,7 @@ class AssayAnswerForm(forms.Form):
                     # Add a checkbox for earmarking the answer for GPT update.
                     earmarked_field_name = f"earmarked_{question.id}"
                     self.fields[earmarked_field_name] = forms.BooleanField(
-                        label="GPT Update",
+                        label="LLM Update",
                         required=False,
                     )
                     self.fields[earmarked_field_name].initial = False
