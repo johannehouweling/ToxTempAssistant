@@ -80,6 +80,42 @@ def test_ror_lookup_returns_suggestions():
     ]
 
 
+def test_ror_lookup_returns_suggestions_for_v2_payload():
+    """ROR v2 schema: names[] tagged with types, locations[].geonames_details."""
+    request = RequestFactory().get("/login/signup/ror-organizations/", {"q": "Leiden"})
+    mocked_response = Mock()
+    mocked_response.raise_for_status.return_value = None
+    mocked_response.json.return_value = {
+        "items": [
+            {
+                "id": "https://ror.org/027bh9e22",
+                "names": [
+                    {"types": ["acronym"], "value": "LU"},
+                    {
+                        "types": ["ror_display", "label"],
+                        "value": "Leiden University",
+                    },
+                ],
+                "locations": [
+                    {"geonames_details": {"country_name": "Netherlands"}}
+                ],
+            }
+        ]
+    }
+
+    with patch("toxtempass.views.requests.get", return_value=mocked_response):
+        response = ror_organization_lookup(request)
+
+    payload = json.loads(response.content.decode("utf-8"))
+    assert payload["items"] == [
+        {
+            "name": "Leiden University",
+            "label": "Leiden University (Netherlands)",
+            "id": "https://ror.org/027bh9e22",
+        }
+    ]
+
+
 def test_ror_lookup_returns_suggestions_for_nested_ror_payload():
     request = RequestFactory().get("/login/signup/ror-organizations/", {"q": "Leiden"})
     mocked_response = Mock()
