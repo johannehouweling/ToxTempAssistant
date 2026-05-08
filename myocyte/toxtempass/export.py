@@ -107,7 +107,7 @@ def _person_export_owner_entry(person: Person | None) -> ExportAuthor | None:
 
 
 def get_assay_export_authors(assay: Assay) -> list[ExportAuthor]:
-    """Return ordered structured export author metadata for an assay.
+    """Return ordered author entries with name and organization for an assay.
 
     Ordering rules:
     1. First author is the assay creator when available.
