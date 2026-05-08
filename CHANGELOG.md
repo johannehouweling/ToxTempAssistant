@@ -2,6 +2,38 @@
 
 <!-- version list -->
 
+## v3.17.6 (2026-05-08)
+
+### Bug Fixes
+
+- Harden ROR advanced query input handling
+  ([`dda8876`](https://github.com/johannehouweling/ToxTempAssistant/commit/dda8876b20d1b1db415e50d5079d07351908c3e3))
+
+- Improve ROR lookup with advanced and domain-first queries
+  ([`ee6d7f5`](https://github.com/johannehouweling/ToxTempAssistant/commit/ee6d7f5b87bdb584818a51423727aa9b29f922fd))
+
+- Keep email domain literal in ROR lookup
+  ([`8b405fb`](https://github.com/johannehouweling/ToxTempAssistant/commit/8b405fbb963007c764f8cecff001e681b228398a))
+
+- Tighten domain parsing in ROR advanced lookup flow
+  ([`80f975c`](https://github.com/johannehouweling/ToxTempAssistant/commit/80f975c1263795b98eafc943a85d60e11f2b6491))
+
+### Chores
+
+- Polish ROR lookup hardening details
+  ([`fbe9c08`](https://github.com/johannehouweling/ToxTempAssistant/commit/fbe9c088b0072a8d974a71a7a0ad49fb16cdb217))
+
+### Documentation
+
+- Clarify RFC-style domain validation intent
+  ([`1ae6b1c`](https://github.com/johannehouweling/ToxTempAssistant/commit/1ae6b1cbfe9112505c02bd331ec651c0a52d1b1b))
+
+### Testing
+
+- Cover ROR email-domain parsing and dedupe behavior
+  ([`0d68cb5`](https://github.com/johannehouweling/ToxTempAssistant/commit/0d68cb5096239e099239ed0c1c565bcdd25e5e22))
+
+
 ## v3.17.5 (2026-05-08)
 
 ### Bug Fixes
