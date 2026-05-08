@@ -83,7 +83,7 @@ class ExportMetadataAuthorTests(TestCase):
         )
         self.assertNotIn("Exporter Only", metadata["author"])
 
-    def test_owner_is_listed_once_at_the_end_when_creator_matches_owner(self):
+    def test_owner_is_listed_once_and_first_when_creator_matches_owner(self):
         owner = PersonFactory(first_name="Owner", last_name="Creator")
         contributor = PersonFactory(first_name="Middle", last_name="Editor")
         assay = AssayFactory(study__investigation__owner=owner, created_by=owner)
@@ -108,6 +108,6 @@ class ExportMetadataAuthorTests(TestCase):
             )
             metadata = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
 
-        self.assertEqual(metadata["author"], ["Middle Editor", "Owner Creator"])
-        self.assertEqual(metadata["main_author"], "Middle Editor")
-        self.assertEqual(metadata["co_authors"], ["Owner Creator"])
+        self.assertEqual(metadata["author"], ["Owner Creator", "Middle Editor"])
+        self.assertEqual(metadata["main_author"], "Owner Creator")
+        self.assertEqual(metadata["co_authors"], ["Middle Editor"])

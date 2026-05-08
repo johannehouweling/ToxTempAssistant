@@ -73,12 +73,12 @@ def get_assay_export_author_names(assay: Assay) -> list[str]:
     """Return ordered export author names for an assay.
 
     Ordering rules:
-    1. First author is the assay creator when distinct from the assay owner.
+    1. First author is the assay creator when available.
     2. Remaining contributors come from Answer.history, ranked by number of
        edits and then by first contribution date.
-    3. Assay owner is always listed last.
+    3. Assay owner is listed last unless they are already first as the creator.
     """
-    owner_id = getattr(assay.owner, "pk", None)
+    owner_id = assay.study.investigation.owner_id
     creator_id = assay.created_by_id
 
     historical_answer_model = assay.answers.model.history.model
@@ -99,7 +99,7 @@ def get_assay_export_author_names(assay: Assay) -> list[str]:
         for row in contributor_rows
     ]
 
-    first_author_id = creator_id if creator_id and creator_id != owner_id else None
+    first_author_id = creator_id
     if first_author_id is None:
         first_author_id = next(
             (user_id for user_id in contributor_ids if user_id != owner_id),
@@ -114,7 +114,7 @@ def get_assay_export_author_names(assay: Assay) -> list[str]:
         for user_id in contributor_ids
         if user_id not in {first_author_id, owner_id}
     )
-    if owner_id is not None:
+    if owner_id is not None and owner_id != first_author_id:
         ordered_ids.append(owner_id)
     ordered_ids = list(dict.fromkeys(ordered_ids))
 
