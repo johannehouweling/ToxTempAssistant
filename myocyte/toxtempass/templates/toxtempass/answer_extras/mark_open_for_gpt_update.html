@@ -1,5 +1,5 @@
 <script>
-    // Toggle-able "Mark all open for GPT Update" behaviour.
+    // Toggle-able "Mark all open for LLM Update" behaviour.
     // First click  → checks every earmarked_ checkbox whose paired accepted_
     //                switch is NOT checked (i.e. the answer is still "open").
     // Second click → unchecks ALL earmarked_ checkboxes, reverting the batch.
@@ -15,7 +15,7 @@
             var earmarkedCheckboxes = document.querySelectorAll(earmarkedSelector);
             isProgrammatic = true;
             if (!markAllActive) {
-                // Mark all open (non-accepted) questions for GPT Update.
+                // Mark all open (non-accepted) questions for LLM Update.
                 earmarkedCheckboxes.forEach(function (earmarkedCb) {
                     var questionId = earmarkedCb.name.replace('earmarked_', '');
                     var acceptedCb = document.getElementById('id_accepted_' + questionId);
@@ -25,7 +25,7 @@
                     }
                 });
                 markAllActive = true;
-                btn.textContent = "Deselect all from 'GPT Update'";
+                btn.textContent = "Deselect all from 'LLM Update'";
             } else {
                 // Deselect all earmarked_ checkboxes.
                 earmarkedCheckboxes.forEach(function (earmarkedCb) {
@@ -35,7 +35,7 @@
                     }
                 });
                 markAllActive = false;
-                btn.textContent = "Mark all open for 'GPT Update'";
+                btn.textContent = "Mark all open for 'LLM Update'";
             }
             isProgrammatic = false;
         });
@@ -51,7 +51,7 @@
                 !e.target.checked
             ) {
                 markAllActive = false;
-                btn.textContent = "Mark all open for 'GPT Update'";
+                btn.textContent = "Mark all open for 'LLM Update'";
             }
         });
     })();

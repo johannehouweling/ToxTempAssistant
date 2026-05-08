@@ -259,7 +259,7 @@
 
 ### Features
 
-- Add Mark all open for GPT Update toggle to Options dropdown
+- Add Mark all open for LLM Update toggle to Options dropdown
   ([`8d57416`](https://github.com/johannehouweling/ToxTempAssistant/commit/8d57416146d8fd8496e5b33a7fcb670af2c9a7d5))
 
 

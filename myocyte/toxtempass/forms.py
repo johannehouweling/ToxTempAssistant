@@ -582,7 +582,7 @@ class AssayAnswerForm(forms.Form):
                         answer.accepted if answer else False
                     )
 
-                    # Add a checkbox for earmarking the answer for GPT update.
+                    # Add a checkbox for earmarking the answer for LLM update.
                     earmarked_field_name = f"earmarked_{question.id}"
                     self.fields[earmarked_field_name] = forms.BooleanField(
                         label="LLM Update",
@@ -718,12 +718,12 @@ class AssayAnswerForm(forms.Form):
 
             if data.get("earmarked", False):
                 earmarked_answers.append(answer)
-                logger.info(f"Question id {qid} marked for GPT update.")
+                logger.info(f"Question id {qid} marked for LLM update.")
 
         if uploaded_files and not earmarked_answers:
             self.add_error(
                 "file_upload",
-                "Select at least one question for GPT update when uploading files.",
+                "Select at least one question for LLM update when uploading files.",
             )
             return False
 
