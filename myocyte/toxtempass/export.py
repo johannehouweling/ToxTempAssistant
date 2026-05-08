@@ -24,11 +24,16 @@ logger = logging.getLogger(__name__)
 EXPORT_MIME_SUFFIX = Config.EXPORT_MIME_SUFFIX
 EXPORT_MAPPING = Config.EXPORT_MAPPING
 PANDOC_EXPORT_TYPES = Config.PANDOC_EXPORT_TYPES
+UNKNOWN_AUTHOR_LABEL = "Unknown author"
 
 # simple regexes to catch display‐math delimiters
 
 MATH_BLOCK_START = re.compile(r"^\s*(\$\$|\\\[)")
 MATH_BLOCK_END = re.compile(r"(\$\$|\\\])\s*$")
+
+
+def _escape_pandoc_inline_footnote(text: str) -> str:
+    return text.replace("\\", "\\\\").replace("]", "\\]").replace("^", "\\^")
 
 
 def quote_answer(text: str) -> str:
@@ -283,14 +288,15 @@ def get_create_meta_data_yaml(
         ]
 
     author_name_parts = [
-        str(getattr(request.user, "first_name", "")).strip(),
-        str(getattr(request.user, "last_name", "")).strip(),
+        str(request.user.first_name).strip(),
+        str(request.user.last_name).strip(),
     ]
-    author_name = " ".join(part for part in author_name_parts if part).strip()
+    author_name = " ".join(part for part in author_name_parts if part)
     if not author_name:
-        author_name = str(getattr(request.user, "email", "Unknown author"))
-    organization = str(getattr(request.user, "organization", "") or "").strip()
-    author_entry = author_name if not organization else f"{author_name}^[{organization}]"
+        author_name = UNKNOWN_AUTHOR_LABEL
+    organization = str(request.user.organization or "").strip()
+    safe_organization = _escape_pandoc_inline_footnote(organization)
+    author_entry = author_name if not organization else f"{author_name}^[{safe_organization}]"
 
     metadata_dict = {
         "author": [author_entry],

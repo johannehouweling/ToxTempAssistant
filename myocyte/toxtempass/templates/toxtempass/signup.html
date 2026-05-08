@@ -37,9 +37,10 @@ document.addEventListener("DOMContentLoaded", function() {
   if (!orgInput || !suggestions) return;
 
   let timeoutId = null;
+  const DEBOUNCE_DELAY_MS = 300;
 
   orgInput.addEventListener("input", function() {
-    const value = orgInput.value.trim();
+    const value = orgInput.value;
     if (timeoutId) clearTimeout(timeoutId);
     if (value.length < 3) {
       suggestions.innerHTML = "";
@@ -47,7 +48,9 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     timeoutId = setTimeout(() => {
-      fetch("{% url 'ror_organization_lookup' %}?q=" + encodeURIComponent(value))
+      const query = value.trim();
+      const params = new URLSearchParams({ q: query });
+      fetch("{% url 'ror_organization_lookup' %}?" + params.toString())
         .then((response) => response.json())
         .then((data) => {
           suggestions.innerHTML = "";
@@ -61,7 +64,7 @@ document.addEventListener("DOMContentLoaded", function() {
         .catch(() => {
           suggestions.innerHTML = "";
         });
-    }, 250);
+    }, DEBOUNCE_DELAY_MS);
   });
 });
 </script>

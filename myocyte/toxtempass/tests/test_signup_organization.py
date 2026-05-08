@@ -42,6 +42,17 @@ def test_ror_lookup_ignores_short_query():
     mocked_get.assert_not_called()
 
 
+def test_ror_lookup_rejects_invalid_query_chars():
+    request = RequestFactory().get("/login/signup/ror-organizations/", {"q": "abc<script>"})
+
+    with patch("toxtempass.views.requests.get") as mocked_get:
+        response = ror_organization_lookup(request)
+
+    payload = json.loads(response.content.decode("utf-8"))
+    assert payload == {"items": []}
+    mocked_get.assert_not_called()
+
+
 def test_ror_lookup_returns_suggestions():
     request = RequestFactory().get("/login/signup/ror-organizations/", {"q": "Leiden"})
     mocked_response = Mock()

@@ -96,6 +96,10 @@ from toxtempass.utilities import (
 )
 
 logger = logging.getLogger("views")
+ROR_ORGANIZATION_API_URL = "https://api.ror.org/organizations"
+MAX_ROR_SUGGESTIONS = 10
+ROR_LOOKUP_TIMEOUT_SECONDS = 3
+MAX_ROR_QUERY_LENGTH = 120
 
 
 # Login stuff
@@ -230,15 +234,19 @@ def signup(request: HttpRequest) -> HttpResponse | JsonResponse:
 @require_GET
 def ror_organization_lookup(request: HttpRequest) -> JsonResponse:
     """Return organization suggestions from the public ROR API."""
-    query = (request.GET.get("q") or "").strip()
+    query = " ".join((request.GET.get("q") or "").split())
     if len(query) < 3:
+        return JsonResponse({"items": []})
+    if len(query) > MAX_ROR_QUERY_LENGTH:
+        return JsonResponse({"items": []})
+    if not re.fullmatch(r"[A-Za-z0-9 .,-]+", query):
         return JsonResponse({"items": []})
 
     try:
         response = requests.get(
-            "https://api.ror.org/organizations",
+            ROR_ORGANIZATION_API_URL,
             params={"query": query},
-            timeout=5,
+            timeout=ROR_LOOKUP_TIMEOUT_SECONDS,
         )
         response.raise_for_status()
         payload = response.json()
@@ -247,11 +255,11 @@ def ror_organization_lookup(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"items": []})
 
     suggestions = []
-    for item in payload.get("items", [])[:10]:
+    for item in payload.get("items", [])[:MAX_ROR_SUGGESTIONS]:
         organization_name = item.get("name")
         if not organization_name:
             continue
-        country_name = (item.get("country") or {}).get("country_name")
+        country_name = item.get("country", {}).get("country_name")
         display_label = (
             f"{organization_name} ({country_name})" if country_name else organization_name
         )

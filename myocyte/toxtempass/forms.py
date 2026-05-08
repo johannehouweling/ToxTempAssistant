@@ -114,14 +114,6 @@ class SignupFormOrcid(UserCreationForm):
             )
         return cleaned_data
 
-    def clean_organization(self) -> str:
-        """Require and normalize organization for signup."""
-        organization = (self.cleaned_data.get("organization") or "").strip()
-        if not organization:
-            raise forms.ValidationError("Organization is required.")
-        return organization
-
-
 class SignupForm(SignupFormOrcid):
     class Meta(SignupFormOrcid.Meta):
         fields = tuple(
