@@ -15,6 +15,10 @@ on:
 permissions:
   contents: read
 
+env:
+  SERVICE_BOOT_TIMEOUT_SECONDS: 300
+  SERVICE_BOOT_POLL_SECONDS: 10
+
 jobs:
   deploy-legacy:
     name: Deploy to legacy server
@@ -72,6 +76,31 @@ jobs:
             sudo docker network connect bridge djangoapp 2>/dev/null || true
             # If remote access to minio console is needed, uncomment the following line
             # sudo docker network connect bridge minio
+
+            ready=0
+            deadline=$((SECONDS + ${{ env.SERVICE_BOOT_TIMEOUT_SECONDS }}))
+            while [ "$SECONDS" -lt "$deadline" ]; do
+              if HTTP_CODE=$(sudo docker exec djangoapp python -c "from urllib.request import Request, urlopen; response = urlopen(Request('http://127.0.0.1:8000/', headers={'Host': 'localhost'}), timeout=5); print(response.status)" 2>/dev/null); then
+                case "$HTTP_CODE" in
+                  2*|3*)
+                    ready=1
+                    echo "djangoapp is serving HTTP ${HTTP_CODE}."
+                    break
+                    ;;
+                esac
+                echo "Waiting for djangoapp to return a success status (last HTTP ${HTTP_CODE})..."
+              else
+                echo "Waiting for djangoapp to accept HTTP requests..."
+              fi
+              sleep "${{ env.SERVICE_BOOT_POLL_SECONDS }}"
+            done
+
+            if [ "$ready" -ne 1 ]; then
+              echo "djangoapp did not start serving traffic within 5 minutes."
+              sudo --preserve-env=GIT_HASH,GIT_TAG docker compose --profile prod ps
+              sudo --preserve-env=GIT_HASH,GIT_TAG docker compose --profile prod logs --tail=200 djangoapp
+              exit 1
+            fi
 
   deploy-swarm:
     name: Deploy to Swarm cluster
@@ -164,3 +193,40 @@ jobs:
             rm -rf '$DEPLOY_DIR'
           "
 
+      - name: Verify Swarm djangoapp boot
+        env:
+          REMOTE: ${{ vars.TGX1_USERNAME }}@${{ vars.TGX1_IP_ADDRESS }}
+        run: |
+          set -euo pipefail
+          SSH_OPTS="-i $HOME/.ssh/id_ed25519 -o StrictHostKeyChecking=yes"
+          timeout_seconds=${{ env.SERVICE_BOOT_TIMEOUT_SECONDS }}
+          poll_seconds=${{ env.SERVICE_BOOT_POLL_SECONDS }}
+          deadline=$((SECONDS + timeout_seconds))
+          ready=0
+
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            replicas=$(ssh $SSH_OPTS "$REMOTE" "docker service ls --filter name=toxtempass_djangoapp --format '{{.Replicas}}'" | head -n1)
+            if [ "$replicas" = "1/1" ]; then
+              if HTTP_CODE=$(ssh $SSH_OPTS "$REMOTE" "docker run --rm --network toxtempass_db_network python:3.12-alpine python -c \"from urllib.request import Request, urlopen; response = urlopen(Request('http://toxtempass_djangoapp:8000/', headers={'Host': 'toxtempassistant.vhp4safety.nl'}), timeout=5); print(response.status)\"" 2>/dev/null); then
+                case "$HTTP_CODE" in
+                  2*|3*)
+                    ready=1
+                    echo "Swarm djangoapp is serving HTTP ${HTTP_CODE}."
+                    break
+                    ;;
+                esac
+                echo "Waiting for Swarm djangoapp to return a success status (last HTTP ${HTTP_CODE})..."
+              else
+                echo "Waiting for Swarm djangoapp to accept HTTP requests..."
+              fi
+            else
+              echo "Waiting for Swarm djangoapp replicas to converge (current: ${replicas:-unknown})..."
+            fi
+            sleep "$poll_seconds"
+          done
+
+          if [ "$ready" -ne 1 ]; then
+            echo "Swarm djangoapp did not start serving traffic within 5 minutes."
+            ssh $SSH_OPTS "$REMOTE" "docker service ls && docker service ps --no-trunc toxtempass_djangoapp && docker service logs --tail 200 toxtempass_djangoapp"
+            exit 1
+          fi
