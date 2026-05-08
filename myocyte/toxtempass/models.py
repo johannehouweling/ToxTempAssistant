@@ -685,6 +685,13 @@ class Feedback(AccessibleModel):
     user = models.ForeignKey(Person, on_delete=models.CASCADE, related_name="feedbacks")
     feedback_text = models.TextField()
     usefulness_rating = models.FloatField(null=True, blank=True)
+    time_spent_seconds = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text=(
+            "Automatically measured active time spent on the assay page, in seconds."
+        ),
+    )
     submission_date = models.DateTimeField(auto_now_add=True)
     assay = models.OneToOneField(Assay, on_delete=models.CASCADE, related_name="feedback")
 

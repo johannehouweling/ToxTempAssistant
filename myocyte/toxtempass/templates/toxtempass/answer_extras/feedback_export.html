@@ -79,7 +79,20 @@ function feedback_export(export_url,assay_id){
                     Selected rating: <strong id="ratingValue">3</strong / 5
                 </div>
             </div>
+            <!-- Time spent (auto-measured, read-only display) -->
+            <div class="mb-3" id="timeSpentRow" style="display:none;">
+                <label class="form-label">Estimated time spent on this assay</label>
+                <div class="form-text">
+                    Automatically measured active time (idle periods &gt; 5 min and inactive tabs are excluded).
+                </div>
+                <p class="mt-2 mb-0">
+                    <i class="bi bi-clock me-1" aria-hidden="true"></i>
+                    <strong id="timeSpentDisplay"></strong>
+                </p>
+            </div>
+
           <input type="hidden" id="assayIdInput" name="assay_id" />
+          <input type="hidden" id="timeSpentInput" name="time_spent_seconds" />
         </div>
         <div class="modal-footer">
           <button type="submit" class="btn btn-primary">Submit Feedback</button>
@@ -89,9 +102,35 @@ function feedback_export(export_url,assay_id){
   </div>
 
   <script>
+    function _formatTimeSpent(totalSeconds) {
+        if (totalSeconds < 60) {
+            return totalSeconds + ' second' + (totalSeconds !== 1 ? 's' : '');
+        }
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        if (minutes < 60) {
+            return minutes + ' min' + (seconds > 0 ? ' ' + seconds + ' sec' : '');
+        }
+        const hours = Math.floor(minutes / 60);
+        const remainingMinutes = minutes % 60;
+        return hours + ' h' + (remainingMinutes > 0 ? ' ' + remainingMinutes + ' min' : '');
+    }
+
     function openFeedbackModal(export_url, assay_id) {
         const modal = new bootstrap.Modal(document.getElementById('feedbackModal'));
         document.getElementById('assayIdInput').value = assay_id;
+
+        // Inject accumulated active time from localStorage
+        const storageKey = 'assay_time_' + assay_id;
+        const stored = parseInt(localStorage.getItem(storageKey) || '0', 10);
+        if (stored > 0) {
+            document.getElementById('timeSpentInput').value = stored;
+            document.getElementById('timeSpentDisplay').textContent = _formatTimeSpent(stored);
+            document.getElementById('timeSpentRow').style.display = '';
+        } else {
+            document.getElementById('timeSpentInput').value = '';
+            document.getElementById('timeSpentRow').style.display = 'none';
+        }
 
         // Store export_url globally
         window.pending_export_url = export_url;
@@ -128,6 +167,10 @@ function feedback_export(export_url,assay_id){
         })
         .then(data => {
             if (data.success) {
+                // Clear stored time for this assay after successful submission
+                const storageKey = 'assay_time_' + assay_id;
+                localStorage.removeItem(storageKey);
+
                 alert("Feedback submitted successfully!");
                 bootstrap.Modal.getInstance(document.getElementById('feedbackModal')).hide();
                 form.reset();

@@ -241,4 +241,82 @@
 {% include "answer_extras/resize_textarea.html" %}
 {% include "answer_extras/feedback_export.html" %}
 {% include "error_handling.html" %}
+
+<script>
+(function () {
+    // ---------------------------------------------------------------------------
+    // Active-time tracker for assay pages
+    // Measures time the user is actively engaged:
+    //   - Tab must be visible (Page Visibility API)
+    //   - Resets a 5-minute idle timer on every interaction
+    //   - Accumulates across page loads in localStorage
+    // ---------------------------------------------------------------------------
+    const ASSAY_ID = {{ assay.id }};
+    const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+    const SAVE_INTERVAL_MS = 10 * 1000;     // flush to localStorage every 10 s
+    const STORAGE_KEY = 'assay_time_' + ASSAY_ID;
+
+    let accumulatedSeconds = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
+    let sessionStart = null;      // timestamp when the current active interval began
+    let idleTimer = null;
+
+    function isTabVisible() {
+        return !document.hidden;
+    }
+
+    function startInterval() {
+        if (sessionStart === null && isTabVisible()) {
+            sessionStart = Date.now();
+        }
+    }
+
+    function pauseInterval() {
+        if (sessionStart !== null) {
+            accumulatedSeconds += Math.floor((Date.now() - sessionStart) / 1000);
+            sessionStart = null;
+            persist();
+        }
+    }
+
+    function persist() {
+        localStorage.setItem(STORAGE_KEY, String(accumulatedSeconds));
+    }
+
+    function resetIdleTimer() {
+        clearTimeout(idleTimer);
+        idleTimer = setTimeout(function () {
+            pauseInterval();
+        }, IDLE_TIMEOUT_MS);
+        startInterval();
+    }
+
+    // Periodic flush so progress is not lost if the tab is killed without unload
+    setInterval(function () {
+        if (sessionStart !== null) {
+            const partial = Math.floor((Date.now() - sessionStart) / 1000);
+            localStorage.setItem(STORAGE_KEY, String(accumulatedSeconds + partial));
+        }
+    }, SAVE_INTERVAL_MS);
+
+    // Page Visibility API
+    document.addEventListener('visibilitychange', function () {
+        if (document.hidden) {
+            pauseInterval();
+        } else {
+            resetIdleTimer();
+        }
+    });
+
+    // Interaction events that signal the user is active
+    ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll', 'click'].forEach(function (evt) {
+        document.addEventListener(evt, resetIdleTimer, { passive: true });
+    });
+
+    // Flush on page unload
+    window.addEventListener('beforeunload', pauseInterval);
+
+    // Start tracking immediately if the tab is already visible
+    resetIdleTimer();
+})();
+</script>
 {% endblock %}
