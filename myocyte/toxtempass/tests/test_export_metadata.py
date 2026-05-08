@@ -46,18 +46,21 @@ class ExportMetadataAuthorTests(TestCase):
             last_name="Author",
             organization="Creator Lab",
             orcid_id="0000-0000-0000-0002",
+            email="creator@test.com",
         )
         contributor_one = PersonFactory(
             first_name="Alice",
             last_name="Editor",
             organization="Alice Org",
             orcid_id="0000-0000-0000-0003",
+            email="alice@test.com",
         )
         contributor_two = PersonFactory(
             first_name="Bob",
             last_name="Reviewer",
             organization="Bob Center",
             orcid_id="0000-0000-0000-0004",
+            email="bob@test.com",
         )
         exporter = PersonFactory(first_name="Exporter", last_name="Only")
         assay = AssayFactory(study__investigation__owner=owner, created_by=creator)
@@ -110,37 +113,30 @@ class ExportMetadataAuthorTests(TestCase):
                     "name": "Creator Author",
                     "organization": "Creator Lab",
                     "orcid_id": "0000-0000-0000-0002",
+                    "email": "creator@test.com",
                 },
                 {
                     "name": "Alice Editor",
                     "organization": "Alice Org",
                     "orcid_id": "0000-0000-0000-0003",
+                    "email": "alice@test.com",
                 },
                 {
                     "name": "Bob Reviewer",
                     "organization": "Bob Center",
                     "orcid_id": "0000-0000-0000-0004",
+                    "email": "bob@test.com",
                 },
                 {
                     "name": "Owner Person",
                     "organization": "Owner Institute",
                     "orcid_id": "0000-0000-0000-0001",
+                    "email": "owner@test.com",
                 },
             ],
         )
-        self.assertEqual(
-            metadata["corresponding_author"],
-            {
-                "name": "Owner Person",
-                "organization": "Owner Institute",
-                "email": "owner@test.com",
-                "orcid_id": "0000-0000-0000-0001",
-            },
-        )
-        self.assertEqual(
-            metadata["investigation_owner"],
-            metadata["corresponding_author"],
-        )
+        self.assertNotIn("corresponding_author", metadata)
+        self.assertNotIn("investigation_owner", metadata)
         self.assertNotIn("Exporter Only", metadata["author"])
 
     def test_owner_is_listed_once_and_first_when_creator_matches_owner(self):
@@ -148,11 +144,13 @@ class ExportMetadataAuthorTests(TestCase):
             first_name="Owner",
             last_name="Creator",
             orcid_id="0000-0000-0000-0010",
+            email="ownercreator@test.com",
         )
         contributor = PersonFactory(
             first_name="Middle",
             last_name="Editor",
             orcid_id="0000-0000-0000-0011",
+            email="middle@test.com",
         )
         assay = AssayFactory(study__investigation__owner=owner, created_by=owner)
 
@@ -186,11 +184,13 @@ class ExportMetadataAuthorTests(TestCase):
                     "name": "Owner Creator",
                     "organization": None,
                     "orcid_id": "0000-0000-0000-0010",
+                    "email": "ownercreator@test.com",
                 },
                 {
                     "name": "Middle Editor",
                     "organization": None,
                     "orcid_id": "0000-0000-0000-0011",
+                    "email": "middle@test.com",
                 },
             ],
         )
@@ -208,12 +208,14 @@ class ExportMetadataAuthorTests(TestCase):
             last_name="Author",
             organization="Creator Lab",
             orcid_id="0000-0000-0000-0002",
+            email="creator@test.com",
         )
         contributor = PersonFactory(
             first_name="Alice",
             last_name="Editor",
             organization="Alice Org",
             orcid_id="0000-0000-0000-0003",
+            email="alice@test.com",
         )
         assay = AssayFactory(study__investigation__owner=owner, created_by=creator)
 
@@ -233,16 +235,19 @@ class ExportMetadataAuthorTests(TestCase):
                     "name": "Creator Author",
                     "organization": "Creator Lab",
                     "orcid_id": "0000-0000-0000-0002",
+                    "email": "creator@test.com",
                 },
                 {
                     "name": "Alice Editor",
                     "organization": "Alice Org",
                     "orcid_id": "0000-0000-0000-0003",
+                    "email": "alice@test.com",
                 },
                 {
                     "name": "Owner Person",
                     "organization": "Owner Institute",
                     "orcid_id": "0000-0000-0000-0001",
+                    "email": "owner@test.com",
                 },
             ],
         )
@@ -252,17 +257,13 @@ class ExportMetadataAuthorTests(TestCase):
             ["Alice Editor", "Owner Person"],
         )
         self.assertEqual(
-            export_data["metadata"]["corresponding_author"],
+            export_data["metadata"]["investigation_owner"],
             {
                 "name": "Owner Person",
                 "organization": "Owner Institute",
                 "email": "owner@test.com",
                 "orcid_id": "0000-0000-0000-0001",
             },
-        )
-        self.assertEqual(
-            export_data["metadata"]["investigation_owner"],
-            export_data["metadata"]["corresponding_author"],
         )
 
         markdown = generate_markdown_from_assay(assay)
@@ -279,8 +280,8 @@ class ExportMetadataAuthorTests(TestCase):
             "  - Owner Person (Owner Institute) — ORCID iD: 0000-0000-0000-0001",
             markdown,
         )
-        self.assertIn("- **Corresponding Author Email:** owner@test.com", markdown)
         self.assertIn(
-            "- **Corresponding Author ORCID iD:** 0000-0000-0000-0001",
+            "  - Owner Person (Owner Institute) — ORCID iD: 0000-0000-0000-0001"
+            " — Email: owner@test.com",
             markdown,
         )

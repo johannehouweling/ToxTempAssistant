@@ -89,7 +89,7 @@ def _export_optional_value(value: str | None) -> str | None:
 
 
 def _person_export_author_entry(person: Person | None) -> ExportAuthor | None:
-    """Return an export author entry with name, organization, and ORCID iD."""
+    """Return an export author entry with name, organization, ORCID iD, and email."""
     author_name = _person_export_name(person)
     if author_name is None:
         return None
@@ -97,6 +97,7 @@ def _person_export_author_entry(person: Person | None) -> ExportAuthor | None:
         "name": author_name,
         "organization": _export_optional_value(person.organization),
         "orcid_id": _export_optional_value(person.orcid_id),
+        "email": _export_optional_value(person.email),
     }
 
 
@@ -115,7 +116,7 @@ def _person_export_owner_entry(
 
 
 def get_assay_export_authors(assay: Assay) -> list[ExportAuthor]:
-    """Return ordered author entries with name, organization, and ORCID iD.
+    """Return ordered author entries with name, organization, ORCID iD, and email.
 
     Ordering rules:
     1. First author is the assay creator when available.
@@ -182,14 +183,13 @@ def get_assay_export_author_metadata(assay: Assay) -> ExportAuthorMetadata:
     """Return export author metadata for an assay."""
     authors = get_assay_export_authors(assay)
     author_names = [author["name"] for author in authors]
-    corresponding_author = _person_export_owner_entry(assay.study.investigation.owner)
+    investigation_owner = _person_export_owner_entry(assay.study.investigation.owner)
     return {
         "author": author_names,
         "authors": authors,
         "main_author": author_names[0] if author_names else None,
         "co_authors": author_names[1:],
-        "investigation_owner": corresponding_author,
-        "corresponding_author": corresponding_author,
+        "investigation_owner": investigation_owner,
     }
 
 
@@ -348,12 +348,15 @@ def generate_markdown_from_assay(assay: Assay) -> str:
     markdown.append(f"- **Website:** {export_data['metadata']['website']}\n")
     if export_data["metadata"].get("authors"):
         markdown.append("- **Authors:**\n")
-        for author in export_data["metadata"]["authors"]:
+        last_author_index = len(export_data["metadata"]["authors"]) - 1
+        for index, author in enumerate(export_data["metadata"]["authors"]):
             author_line = author["name"]
             if author.get("organization"):
                 author_line += f" ({author['organization']})"
             if author.get("orcid_id"):
                 author_line += f" — ORCID iD: {author['orcid_id']}"
+            if index == last_author_index and author.get("email"):
+                author_line += f" — Email: {author['email']}"
             markdown.append(f"  - {author_line}\n")
     if export_data["metadata"].get("main_author"):
         markdown.append(f"- **Main Author:** {export_data['metadata']['main_author']}\n")
@@ -363,27 +366,6 @@ def generate_markdown_from_assay(assay: Assay) -> str:
             + ", ".join(export_data["metadata"]["co_authors"])
             + "\n"
         )
-    corresponding_author = export_data["metadata"].get("corresponding_author")
-    if corresponding_author:
-        markdown.append(
-            f"- **Corresponding Author:** {corresponding_author['name']}\n"
-        )
-        if corresponding_author.get("organization"):
-            markdown.append(
-                "- **Corresponding Author Organization:** "
-                + corresponding_author["organization"]
-                + "\n"
-            )
-        if corresponding_author.get("email"):
-            markdown.append(
-                f"- **Corresponding Author Email:** {corresponding_author['email']}\n"
-            )
-        if corresponding_author.get("orcid_id"):
-            markdown.append(
-                "- **Corresponding Author ORCID iD:** "
-                + corresponding_author["orcid_id"]
-                + "\n"
-            )
     markdown.append("\n## ToxTempAssistant configuration\n")
     for key, value in export_data["metadata"]["config"].items():
         markdown.append(f"- {key}: {value}\n")
@@ -507,8 +489,6 @@ def get_create_meta_data_yaml(
     metadata_dict = {
         "author": author_metadata["author"],
         "authors": author_metadata["authors"],
-        "investigation_owner": author_metadata["investigation_owner"],
-        "corresponding_author": author_metadata["corresponding_author"],
         "date": str(current_date),  # Current date;
         "keywords": (
             "metadata template, "
