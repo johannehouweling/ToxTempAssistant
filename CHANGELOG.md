@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.17.3 (2026-05-08)
+
+### Bug Fixes
+
+- Support nested ROR organization lookup payloads
+  ([`91b7320`](https://github.com/johannehouweling/ToxTempAssistant/commit/91b73208684308bacc1aae65243e7ce04355ecf5))
+
+
 ## v3.17.2 (2026-05-08)
 
 ### Bug Fixes
