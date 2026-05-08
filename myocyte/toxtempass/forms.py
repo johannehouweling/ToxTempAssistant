@@ -3,11 +3,14 @@ import mimetypes
 from collections import defaultdict
 from datetime import datetime
 from decimal import Decimal
+from functools import partial
 
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import PermissionDenied
 from django.core.files.uploadedfile import UploadedFile
+from django.db import transaction
+from django.db.models import Sum
 from django.forms import widgets
 from django.utils.safestring import SafeText, mark_safe
 from django_q.tasks import async_task
@@ -20,6 +23,7 @@ from toxtempass.filehandling import (
 from toxtempass.models import (
     Answer,
     Assay,
+    AssayTimeLog,
     Investigation,
     LLMStatus,
     Person,
@@ -31,7 +35,6 @@ from toxtempass.models import (
     WorkspaceRole,
 )
 from toxtempass.utilities import add_user_alert, provenance_label_for_item
-from functools import partial
 from toxtempass.widgets import (
     BootstrapSelectWithButtonsWidget,
 )  # Import the custom widget
@@ -765,6 +768,35 @@ class AssayAnswerForm(forms.Form):
                 )
                 self.add_error("file_upload", str(exc))
                 return False
+
+        # Auto-capture completion time when all answers are first accepted.
+        # Skipped when an async LLM task is queued (answers will change again).
+        if (
+            not self.async_enqueued
+            and self.assay.completion_time_seconds is None
+            and self.assay.all_answers_accepted
+        ):
+            # Compute aggregate inside a transaction and use a conditional DB
+            # update to avoid a race when two collaborators accept the last
+            # answers simultaneously.
+            with transaction.atomic():
+                total = (
+                    AssayTimeLog.objects.filter(assay=self.assay).aggregate(
+                        total=Sum("seconds")
+                    )["total"]
+                    or 0
+                )
+                updated = Assay.objects.filter(
+                    pk=self.assay.pk,
+                    completion_time_seconds__isnull=True,
+                ).update(completion_time_seconds=total)
+            if updated:
+                self.assay.completion_time_seconds = total
+                logger.info(
+                    "Assay %s marked complete; completion_time_seconds=%s",
+                    self.assay.id,
+                    self.assay.completion_time_seconds,
+                )
 
         return self.async_enqueued
 

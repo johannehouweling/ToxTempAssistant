@@ -152,6 +152,11 @@ urlpatterns += [
 
 urlpatterns += [
     path(
+        "assay/<int:assay_id>/answer/time-sync/",
+        views.assay_time_sync,
+        name="assay_time_sync",
+    ),
+    path(
         "assay/<int:assay_id>/answer/hasfeedback/",
         views.assay_hasfeedback,
         name="assay_hasfeedback",
