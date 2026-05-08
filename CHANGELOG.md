@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v3.17.1 (2026-05-08)
+
+### Bug Fixes
+
+- **export**: Exports from overview page now go through feedback_export() the same wat the editing
+  pages does.
+  ([`365ee88`](https://github.com/johannehouweling/ToxTempAssistant/commit/365ee88e617f41f59e90f08afdb486d76aa05e00))
+
+- **export**: Remove dead md block
+  ([`11dd92f`](https://github.com/johannehouweling/ToxTempAssistant/commit/11dd92fcf5f324d22e7258611bc51735fd669c54))
+
+- **export**: Report actual LLMs used and resolve broken metadata fields
+  ([`56067f2`](https://github.com/johannehouweling/ToxTempAssistant/commit/56067f28be3ea831adef5ec0c42eb1b282b570b1))
+
+- **ui**: Rename GPT update wording to LLM update
+  ([`64c50e4`](https://github.com/johannehouweling/ToxTempAssistant/commit/64c50e44174250471ea4875fd7e25d52d23f9454))
+
+
 ## v3.17.0 (2026-05-08)
 
 ### Bug Fixes
