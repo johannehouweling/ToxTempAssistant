@@ -450,18 +450,24 @@ def export_assay_to_file(
 
     # Prepare the response for the generated file
     try:
-        response = FileResponse(
+        return FileResponse(
             io.BytesIO(file_content),
             as_attachment=True,
             filename=file_name,
             content_type=EXPORT_MIME_SUFFIX[export_type]["mime_type"],
         )
-        return response
-    except Exception:
-        JsonResponse(
-            dict(
-                success=False,
-                errors={"__all__": ["This export format is unsupported."]},
-            ),
+    except Exception as e:
+        corr_id = uuid.uuid4().hex[:8]
+        logger.exception(
+            "FileResponse construction failed [corr=%s] for assay %s",
+            corr_id, assay.id,
+        )
+        log_processing_event(assay, f"[{corr_id}] {type(e).__name__}: {e}")
+        assay.save()
+        return JsonResponse(
+            {
+                "error": f"Export failed (ref {corr_id}). "
+                "Please contact support if the issue persists."
+            },
             status=500,
         )
