@@ -130,9 +130,7 @@ class AssayTable(tables.Table):
                     <span class="ms-1 d-none d-lg-inline">Export</span>
                 </button>
                 <ul class="dropdown-menu">
-                    {# Route through feedback_export() so the feedback modal gates
-                       exports here too — same path the editing page (answer.html)
-                       uses. The partial is included once on overview.html. #}
+                    {% comment %}Route through feedback_export() so the feedback modal gates exports here too — same path the editing page (answer.html) uses. The partial is included once on overview.html.{% endcomment %}
                     <li><a class="dropdown-item" href="#" onclick="feedback_export('{% url 'export_assay' assay_id=record.id export_type='json' %}', {{ record.id }}); return false;">JSON</a></li>
                     <li><a class="dropdown-item" href="#" onclick="feedback_export('{% url 'export_assay' assay_id=record.id export_type='md' %}', {{ record.id }}); return false;">MD</a></li>
                     <li><a class="dropdown-item" href="#" onclick="feedback_export('{% url 'export_assay' assay_id=record.id export_type='pdf' %}', {{ record.id }}); return false;">PDF</a></li>
