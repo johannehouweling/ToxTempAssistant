@@ -102,7 +102,7 @@ function feedback_export(export_url,assay_id){
   </div>
 
   <script>
-    function _formatTimeSpent(totalSeconds) {
+    function formatTimeSpent(totalSeconds) {
         if (totalSeconds < 60) {
             return totalSeconds + ' second' + (totalSeconds !== 1 ? 's' : '');
         }
@@ -125,7 +125,7 @@ function feedback_export(export_url,assay_id){
         const stored = parseInt(localStorage.getItem(storageKey) || '0', 10);
         if (stored > 0) {
             document.getElementById('timeSpentInput').value = stored;
-            document.getElementById('timeSpentDisplay').textContent = _formatTimeSpent(stored);
+            document.getElementById('timeSpentDisplay').textContent = formatTimeSpent(stored);
             document.getElementById('timeSpentRow').style.display = '';
         } else {
             document.getElementById('timeSpentInput').value = '';

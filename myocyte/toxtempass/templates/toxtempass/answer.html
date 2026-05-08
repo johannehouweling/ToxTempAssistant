@@ -251,7 +251,7 @@
     //   - Resets a 5-minute idle timer on every interaction
     //   - Accumulates across page loads in localStorage
     // ---------------------------------------------------------------------------
-    const ASSAY_ID = {{ assay.id }};
+    const ASSAY_ID = parseInt('{{ assay.id }}', 10);
     const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
     const SAVE_INTERVAL_MS = 10 * 1000;     // flush to localStorage every 10 s
     const STORAGE_KEY = 'assay_time_' + ASSAY_ID;
@@ -291,7 +291,7 @@
     }
 
     // Periodic flush so progress is not lost if the tab is killed without unload
-    setInterval(function () {
+    const flushIntervalId = setInterval(function () {
         if (sessionStart !== null) {
             const partial = Math.floor((Date.now() - sessionStart) / 1000);
             localStorage.setItem(STORAGE_KEY, String(accumulatedSeconds + partial));
@@ -312,8 +312,11 @@
         document.addEventListener(evt, resetIdleTimer, { passive: true });
     });
 
-    // Flush on page unload
-    window.addEventListener('beforeunload', pauseInterval);
+    // Flush on page unload and clear the interval
+    window.addEventListener('beforeunload', function () {
+        clearInterval(flushIntervalId);
+        pauseInterval();
+    });
 
     // Start tracking immediately if the tab is already visible
     resetIdleTimer();
