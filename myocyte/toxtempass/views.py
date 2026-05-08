@@ -17,7 +17,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.views import PasswordResetView as DjangoPasswordResetView
 from django.contrib.humanize.templatetags.humanize import naturaltime
 from django.db import models, transaction
-from django.db.models import QuerySet
+from django.db.models import QuerySet, Sum
 from django.http import (
     FileResponse,
     HttpRequest,
@@ -75,6 +75,7 @@ from toxtempass.models import (
     AnswerFile,
     Assay,
     AssayCost,
+    AssayTimeLog,
     Feedback,
     Investigation,
     LLMStatus,
@@ -2133,6 +2134,42 @@ def export_assay(
                 "errors": {"__all__": ["No feedback has been provided yet."]},
             }
         )
+
+
+@login_required(login_url="/login/")
+@require_POST
+def assay_time_sync(request: HttpRequest, assay_id: int) -> JsonResponse:
+    """Sync a user's accumulated active time for an assay to the server.
+
+    Upserts one ``AssayTimeLog`` row per (user, assay) pair.  Returns the
+    aggregate total across all collaborators so the feedback modal can display
+    the combined team effort.
+
+    POST body: ``seconds=<non-negative integer>``
+    """
+    assay = get_object_or_404(Assay, id=assay_id)
+    if not assay.is_accessible_by(request.user):
+        return JsonResponse({"success": False, "error": "Forbidden"}, status=403)
+
+    raw = request.POST.get("seconds")
+    try:
+        seconds = int(raw)  # type: ignore[arg-type]
+        if seconds < 0:
+            raise ValueError("negative seconds")
+    except (ValueError, TypeError):
+        return JsonResponse({"success": False, "error": "Invalid seconds value"}, status=400)
+
+    AssayTimeLog.objects.update_or_create(
+        user=request.user,
+        assay=assay,
+        defaults={"seconds": seconds},
+    )
+
+    total: int = (
+        AssayTimeLog.objects.filter(assay=assay).aggregate(total=Sum("seconds"))["total"]
+        or 0
+    )
+    return JsonResponse({"success": True, "total_seconds": total})
 
 
 @login_required(login_url="/login/")

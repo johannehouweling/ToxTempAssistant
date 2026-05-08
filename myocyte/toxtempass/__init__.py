@@ -206,6 +206,10 @@ class Config:
     max_size_mb = 30
     single_answer_timeout = 60  # seconds
     max_workers_threading = 4
+    # How often (ms) the client syncs accumulated active time to the server.
+    # A value of 60 000 ms means at most ~1 min of time can be lost per
+    # collaborator if the browser is closed unexpectedly.
+    time_sync_interval_ms = 60_000
     # Tokens reserved for system messages, per-question instructions, and the
     # model's generated answer.  This headroom is subtracted from the model's
     # advertised context-window (``context-window`` tag) to derive the token

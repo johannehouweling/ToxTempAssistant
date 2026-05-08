@@ -455,6 +455,33 @@ class AssayView(models.Model):
         return f"AssayView(user={self.user.email}, assay={self.assay.title}, last_viewed={self.last_viewed})"
 
 
+class AssayTimeLog(models.Model):
+    """Server-side record of how many active seconds a single user spent on an assay.
+
+    One row per (user, assay) pair.  The client writes the cumulative total on
+    every periodic sync; the server derives the aggregate across all collaborators
+    by summing rows for the same assay.
+    """
+
+    user = models.ForeignKey(
+        Person, on_delete=models.CASCADE, related_name="assay_time_logs"
+    )
+    assay = models.ForeignKey(
+        Assay, on_delete=models.CASCADE, related_name="time_logs"
+    )
+    seconds = models.PositiveIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("user", "assay")
+
+    def __str__(self):
+        return (
+            f"AssayTimeLog(user={self.user.email}, assay={self.assay.id},"
+            f" seconds={self.seconds})"
+        )
+
+
 # Section, Subsection, and Question Models (fixed)
 class Section(AccessibleModel):
     question_set = models.ForeignKey(

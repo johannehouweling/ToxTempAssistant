@@ -79,11 +79,11 @@ function feedback_export(export_url,assay_id){
                     Selected rating: <strong id="ratingValue">3</strong / 5
                 </div>
             </div>
-            <!-- Time spent (auto-measured, read-only display) -->
+            <!-- Time spent (server-aggregated across all collaborators) -->
             <div class="mb-3" id="timeSpentRow" style="display:none;">
-                <label class="form-label">Your estimated time spent on this assay</label>
+                <label class="form-label">Estimated time spent on this assay</label>
                 <div class="form-text">
-                    Automatically measured active time for your sessions (idle periods &gt; 5 min and inactive tabs are excluded). In shared assays this reflects your personal contribution only.
+                    Total active time across all collaborators (idle periods &gt; 5 min and inactive tabs excluded; synced to server approximately every minute).
                 </div>
                 <p class="mt-2 mb-0">
                     <i class="bi bi-clock me-1" aria-hidden="true"></i>
@@ -121,23 +121,29 @@ function feedback_export(export_url,assay_id){
     function openFeedbackModal(export_url, assay_id) {
         const modal = new bootstrap.Modal(document.getElementById('feedbackModal'));
         document.getElementById('assayIdInput').value = assay_id;
-
-        // Inject accumulated active time from localStorage (key is user+assay scoped)
-        const storageKey = 'assay_time_' + FEEDBACK_USER_ID + '_' + assay_id;
-        const stored = parseInt(localStorage.getItem(storageKey) || '0', 10);
-        if (stored > 0) {
-            document.getElementById('timeSpentInput').value = stored;
-            document.getElementById('timeSpentDisplay').textContent = formatTimeSpent(stored);
-            document.getElementById('timeSpentRow').style.display = '';
-        } else {
-            document.getElementById('timeSpentInput').value = '';
-            document.getElementById('timeSpentRow').style.display = 'none';
-        }
-
-        // Store export_url globally
         window.pending_export_url = export_url;
 
-        modal.show();
+        // Trigger a final server sync, then show the aggregate total from the server
+        const doSync = (typeof window.assayTimeSyncNow === 'function')
+            ? window.assayTimeSyncNow()
+            : Promise.resolve(null);
+
+        doSync.then(function (data) {
+            const total = (data && data.total_seconds > 0) ? data.total_seconds : 0;
+            if (total > 0) {
+                document.getElementById('timeSpentInput').value = total;
+                document.getElementById('timeSpentDisplay').textContent = formatTimeSpent(total);
+                document.getElementById('timeSpentRow').style.display = '';
+            } else {
+                document.getElementById('timeSpentInput').value = '';
+                document.getElementById('timeSpentRow').style.display = 'none';
+            }
+            modal.show();
+        }).catch(function () {
+            document.getElementById('timeSpentInput').value = '';
+            document.getElementById('timeSpentRow').style.display = 'none';
+            modal.show();
+        });
     }
     
     document.getElementById('feedbackForm').addEventListener('submit', function(event) {
