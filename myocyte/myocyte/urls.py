@@ -46,6 +46,11 @@ urlpatterns += [
     path("logout/", views.logout_view, name="logout"),
     path("login/orcid/", views.orcid_login, name="orcid_login"),
     path("login/signup/", views.signup, name="signup"),
+    path(
+        "login/signup/ror-organizations/",
+        views.ror_organization_lookup,
+        name="ror_organization_lookup",
+    ),
     path("orcid/callback/", views.orcid_callback, name="orcid_callback"),
     path("orcid/signup/", views.orcid_signup, name="orcid_signup"),
     # Password reset

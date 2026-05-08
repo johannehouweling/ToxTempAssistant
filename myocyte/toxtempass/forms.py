@@ -65,6 +65,19 @@ class LoginForm(forms.Form):
 
 
 class SignupFormOrcid(UserCreationForm):
+    def __init__(self, *args, **kwargs):
+        """Initialize signup form fields."""
+        super().__init__(*args, **kwargs)
+        organization = self.fields["organization"]
+        organization.required = True
+        organization.help_text = "Type at least 3 characters to search ROR organizations."
+        organization.widget.attrs.update(
+            {
+                "autocomplete": "organization",
+                "list": "ror-organization-suggestions",
+            }
+        )
+
     class Meta:
         model = Person
         # Include fields you want the user to fill in.
@@ -100,7 +113,6 @@ class SignupFormOrcid(UserCreationForm):
                 "You must accept the terms of service to continue.",
             )
         return cleaned_data
-
 
 class SignupForm(SignupFormOrcid):
     class Meta(SignupFormOrcid.Meta):

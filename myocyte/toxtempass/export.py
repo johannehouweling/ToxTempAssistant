@@ -31,6 +31,10 @@ MATH_BLOCK_START = re.compile(r"^\s*(\$\$|\\\[)")
 MATH_BLOCK_END = re.compile(r"(\$\$|\\\])\s*$")
 
 
+def _escape_pandoc_inline_footnote(text: str) -> str:
+    return text.replace("\\", "\\\\").replace("]", "\\]").replace("^", "\\^")
+
+
 def quote_answer(text: str) -> str:
     r"""Take a multi-line answer_text, and return a Markdown fragment.
 
@@ -282,8 +286,19 @@ def get_create_meta_data_yaml(
             r"\usepackage[a4paper, margin=3cm]{geometry}",
         ]
 
+    author_name_parts = [
+        str(request.user.first_name).strip(),
+        str(request.user.last_name).strip(),
+    ]
+    author_name = " ".join(part for part in author_name_parts if part)
+    if not author_name:
+        author_name = str(request.user.email).strip()
+    organization = str(request.user.organization or "").strip()
+    safe_organization = _escape_pandoc_inline_footnote(organization)
+    author_entry = author_name if not organization else f"{author_name}^[{safe_organization}]"
+
     metadata_dict = {
-        "author": f"{request.user.first_name} {request.user.last_name}",  # Example author; replace as needed
+        "author": [author_entry],
         "date": str(current_date),  # Current date;
         "keywords": (
             "metadata template, "
