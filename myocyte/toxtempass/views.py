@@ -240,6 +240,8 @@ def ror_organization_lookup(request: HttpRequest) -> JsonResponse:
             return None
         if ".." in domain or len(domain) > 253:
             return None
+        # Domain labels must start/end with alphanumerics, allow internal hyphens,
+        # and contain at least one dot-separated suffix label.
         if not re.fullmatch(
             r"(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))+",
             domain,
@@ -256,7 +258,7 @@ def ror_organization_lookup(request: HttpRequest) -> JsonResponse:
         response.raise_for_status()
         return response.json()
 
-    def _quote_ror_advanced_value(value: str) -> str:
+    def _escape_ror_query_value(value: str) -> str:
         return value.replace("\\", "\\\\").replace('"', '\\"')
 
     query = " ".join((request.GET.get("q") or "").split())
@@ -266,12 +268,12 @@ def ror_organization_lookup(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"items": []})
     if not re.fullmatch(r"[A-Za-z0-9 .,-]+", query):
         return JsonResponse({"items": []})
-    quoted_query = _quote_ror_advanced_value(query)
+    quoted_query = _escape_ror_query_value(query)
     email_domain = _extract_email_domain(request.GET.get("email", ""))
 
     domain_queries = []
     if email_domain:
-        quoted_email_domain = _quote_ror_advanced_value(email_domain)
+        quoted_email_domain = _escape_ror_query_value(email_domain)
         domain_queries.append(
             f'links.value:"{quoted_email_domain}" AND names.value:"{quoted_query}"'
         )
@@ -322,7 +324,8 @@ def ror_organization_lookup(request: HttpRequest) -> JsonResponse:
                 if not organization_name:
                     continue
 
-                dedupe_key = organization.get("id") or organization_name
+                organization_id = organization.get("id")
+                dedupe_key = organization_id if organization_id is not None else organization_name
                 if dedupe_key in seen_organizations:
                     continue
                 seen_organizations.add(dedupe_key)
