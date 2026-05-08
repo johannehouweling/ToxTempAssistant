@@ -73,14 +73,8 @@ jobs:
             # If remote access to minio console is needed, uncomment the following line
             # sudo docker network connect bridge minio
 
-            dotenv_file=.env
-            readiness_value() {
-              sed -n "s/^$1=//p" "$2" 2>/dev/null \
-                | head -n1 \
-                | sed "s/[[:space:]]*#.*$//; s/^[[:space:]]*//; s/[[:space:]]*$//; s/^['\"]//; s/['\"]$//"
-            }
-            timeout_seconds=$(readiness_value SERVICE_BOOT_TIMEOUT_SECONDS "$dotenv_file")
-            poll_seconds=$(readiness_value SERVICE_BOOT_POLL_SECONDS "$dotenv_file")
+            timeout_seconds=$(sudo docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' djangoapp | awk -F= '$1=="SERVICE_BOOT_TIMEOUT_SECONDS"{print $2; exit}')
+            poll_seconds=$(sudo docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' djangoapp | awk -F= '$1=="SERVICE_BOOT_POLL_SECONDS"{print $2; exit}')
             case "$timeout_seconds" in
               ''|*[!0-9]*|0) timeout_seconds=300 ;;
             esac
@@ -228,17 +222,11 @@ jobs:
         run: |
           set -euo pipefail
           SSH_OPTS="-i $HOME/.ssh/id_ed25519 -o StrictHostKeyChecking=yes"
-          remote_env_file=/mnt/gluster/docker/toxtempassistant/config/.env
           read -r timeout_seconds poll_seconds <<< "$(
-            ssh $SSH_OPTS "$REMOTE" 'bash -s' -- "$remote_env_file" <<'EOF'
-            dotenv_file=$1
-            readiness_value() {
-              sed -n "s/^$1=//p" "$2" 2>/dev/null \
-                | head -n1 \
-                | sed "s/[[:space:]]*#.*$//; s/^[[:space:]]*//; s/[[:space:]]*$//; s/^['\"]//; s/['\"]$//"
-            }
-            timeout_seconds=$(readiness_value SERVICE_BOOT_TIMEOUT_SECONDS "$dotenv_file")
-            poll_seconds=$(readiness_value SERVICE_BOOT_POLL_SECONDS "$dotenv_file")
+            ssh $SSH_OPTS "$REMOTE" 'bash -s' <<'EOF'
+            env_dump=$(docker service inspect --format '{{range .Spec.TaskTemplate.ContainerSpec.Env}}{{println .}}{{end}}' toxtempass_djangoapp)
+            timeout_seconds=$(printf '%s\n' "$env_dump" | awk -F= '$1=="SERVICE_BOOT_TIMEOUT_SECONDS"{print $2; exit}')
+            poll_seconds=$(printf '%s\n' "$env_dump" | awk -F= '$1=="SERVICE_BOOT_POLL_SECONDS"{print $2; exit}')
             case "$timeout_seconds" in
               ''|*[!0-9]*|0) timeout_seconds=300 ;;
             esac
