@@ -240,7 +240,7 @@ def ror_organization_lookup(request: HttpRequest) -> JsonResponse:
             return None
         if ".." in domain or len(domain) > 253:
             return None
-        if not re.fullmatch(r"[a-z0-9.-]+", domain):
+        if not re.fullmatch(r"[a-z0-9]+([.-][a-z0-9]+)*", domain):
             return None
         return domain.removeprefix("www.")
 
@@ -266,11 +266,14 @@ def ror_organization_lookup(request: HttpRequest) -> JsonResponse:
     if email_domain:
         domain_queries.append(f'links.value:"{email_domain}" AND names.value:"{query}"')
         domain_queries.append(f'links.value:"{email_domain}"')
-    lookup_queries = [domain_queries, [f'names.value:"{query}"']]
+    query_batches = [domain_queries, [f'names.value:"{query}"']]
 
     seen_organizations: set[str] = set()
     suggestions = []
-    for idx, advanced_queries in enumerate(lookup_queries):
+    for advanced_queries, is_domain_batch in (
+        (query_batches[0], True),
+        (query_batches[1], False),
+    ):
         for advanced_query in advanced_queries:
             try:
                 payload = _fetch_ror_payload(advanced_query)
@@ -331,7 +334,7 @@ def ror_organization_lookup(request: HttpRequest) -> JsonResponse:
                 if len(suggestions) >= config.ror_max_suggestions:
                     return JsonResponse({"items": suggestions})
 
-        if email_domain and idx == 0 and suggestions:
+        if email_domain and is_domain_batch and suggestions:
             return JsonResponse({"items": suggestions})
     return JsonResponse({"items": suggestions})
 
