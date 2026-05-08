@@ -2,6 +2,49 @@
 
 <!-- version list -->
 
+## v3.17.4 (2026-05-08)
+
+### Bug Fixes
+
+- Harden deploy readiness helper
+  ([`2952587`](https://github.com/johannehouweling/ToxTempAssistant/commit/29525875d256155e094b985f02f9f3f19d7b4c75))
+
+- Read deploy probe timing from env file
+  ([`72153b4`](https://github.com/johannehouweling/ToxTempAssistant/commit/72153b461ed84e214e26cfc0b19c60f1820d669a))
+
+- Read deploy readiness settings from service env
+  ([`0aabd5d`](https://github.com/johannehouweling/ToxTempAssistant/commit/0aabd5d45f90276219163db225ee515fa84b3025))
+
+- Streamline deploy readiness helper
+  ([`5dc2388`](https://github.com/johannehouweling/ToxTempAssistant/commit/5dc2388977f43edec4dda6cd7da6df63acd7da9d))
+
+- Tighten deploy readiness probes
+  ([`f9623f7`](https://github.com/johannehouweling/ToxTempAssistant/commit/f9623f76f82c3ed952919d27856b5e55e6646f80))
+
+- Wait for deploy target to serve http
+  ([`f0acf61`](https://github.com/johannehouweling/ToxTempAssistant/commit/f0acf61805d1131d9ce1182fb3e8cdfb1b014ef1))
+
+### Chores
+
+- Improve deploy probe diagnostics
+  ([`03385ff`](https://github.com/johannehouweling/ToxTempAssistant/commit/03385ff42cc99e6c86732ee1e2c30db77ea556fa))
+
+- Narrow deploy env parsing
+  ([`8ea3f37`](https://github.com/johannehouweling/ToxTempAssistant/commit/8ea3f3733e4410f62567baec15332a71d57394ba))
+
+- Refine deploy readiness probes
+  ([`e39690f`](https://github.com/johannehouweling/ToxTempAssistant/commit/e39690f23590f3bb321e90700ef845e6521a17e0))
+
+- Sanitize deploy env parsing
+  ([`1c2c5a0`](https://github.com/johannehouweling/ToxTempAssistant/commit/1c2c5a01cb553862f99a11a4919f920c3738aeb0))
+
+- Simplify deploy probe piping
+  ([`b08d4d5`](https://github.com/johannehouweling/ToxTempAssistant/commit/b08d4d5ae06f9ba4645ede2f886fb283d7013878))
+
+- Tighten deploy status matching
+  ([`054ba2a`](https://github.com/johannehouweling/ToxTempAssistant/commit/054ba2a1e95309ea2df7756a447ea837dc07893b))
+
+
 ## v3.17.3 (2026-05-08)
 
 ### Bug Fixes
