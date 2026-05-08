@@ -234,3 +234,74 @@ def test_ror_lookup_falls_back_to_wide_query_when_domain_queries_are_empty():
     assert mocked_get.call_args_list[2].kwargs["params"] == {
         "query.advanced": 'names.value:"Leiden"'
     }
+
+
+def test_ror_lookup_ignores_invalid_email_domain():
+    request = RequestFactory().get(
+        "/login/signup/ror-organizations/",
+        {"q": "Leiden", "email": "person@localhost"},
+    )
+    mocked_response = Mock()
+    mocked_response.raise_for_status.return_value = None
+    mocked_response.json.return_value = {"items": []}
+
+    with patch("toxtempass.views.requests.get", return_value=mocked_response) as mocked_get:
+        ror_organization_lookup(request)
+
+    mocked_get.assert_called_once()
+    assert mocked_get.call_args.kwargs["params"] == {
+        "query.advanced": 'names.value:"Leiden"'
+    }
+
+
+def test_ror_lookup_strips_www_from_email_domain_query():
+    request = RequestFactory().get(
+        "/login/signup/ror-organizations/",
+        {"q": "Leiden", "email": "person@www.rivm.nl"},
+    )
+    first_response = Mock()
+    first_response.raise_for_status.return_value = None
+    first_response.json.return_value = {"items": []}
+    second_response = Mock()
+    second_response.raise_for_status.return_value = None
+    second_response.json.return_value = {"items": []}
+    third_response = Mock()
+    third_response.raise_for_status.return_value = None
+    third_response.json.return_value = {"items": []}
+
+    with patch(
+        "toxtempass.views.requests.get",
+        side_effect=[first_response, second_response, third_response],
+    ) as mocked_get:
+        ror_organization_lookup(request)
+
+    assert mocked_get.call_args_list[0].kwargs["params"] == {
+        "query.advanced": 'links.value:"rivm.nl" AND names.value:"Leiden"'
+    }
+    assert mocked_get.call_args_list[1].kwargs["params"] == {
+        "query.advanced": 'links.value:"rivm.nl"'
+    }
+
+
+def test_ror_lookup_deduplicates_same_name_without_id():
+    request = RequestFactory().get("/login/signup/ror-organizations/", {"q": "Leiden"})
+    mocked_response = Mock()
+    mocked_response.raise_for_status.return_value = None
+    mocked_response.json.return_value = {
+        "items": [
+            {"name": "Leiden University", "country": {"country_name": "Netherlands"}},
+            {"name": "Leiden University", "country": {"country_name": "Netherlands"}},
+        ]
+    }
+
+    with patch("toxtempass.views.requests.get", return_value=mocked_response):
+        response = ror_organization_lookup(request)
+
+    payload = json.loads(response.content.decode("utf-8"))
+    assert payload["items"] == [
+        {
+            "name": "Leiden University",
+            "label": "Leiden University (Netherlands)",
+            "id": None,
+        }
+    ]
