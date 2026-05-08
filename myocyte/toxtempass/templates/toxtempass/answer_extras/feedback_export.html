@@ -79,6 +79,10 @@ function feedback_export(export_url,assay_id){
                     Selected rating: <strong id="ratingValue">3</strong / 5
                 </div>
             </div>
+            <!-- Time spent field intentionally removed from the feedback form.
+                 Completion time is captured server-side automatically when all
+                 questions are accepted (see Assay.completion_time_seconds). -->
+
           <input type="hidden" id="assayIdInput" name="assay_id" />
         </div>
         <div class="modal-footer">
@@ -89,13 +93,12 @@ function feedback_export(export_url,assay_id){
   </div>
 
   <script>
+    const FEEDBACK_USER_ID = parseInt('{{ request.user.id }}', 10);
+
     function openFeedbackModal(export_url, assay_id) {
         const modal = new bootstrap.Modal(document.getElementById('feedbackModal'));
         document.getElementById('assayIdInput').value = assay_id;
-
-        // Store export_url globally
         window.pending_export_url = export_url;
-
         modal.show();
     }
     
@@ -128,6 +131,15 @@ function feedback_export(export_url,assay_id){
         })
         .then(data => {
             if (data.success) {
+                // Disable the beforeunload localStorage sync so it doesn't
+                // re-write the key we're about to clear.
+                if (typeof window.assayTimeDisableOnUnload === 'function') {
+                    window.assayTimeDisableOnUnload();
+                }
+                // Clear stored time for this assay (user-scoped key) after successful submission
+                const storageKey = 'assay_time_' + FEEDBACK_USER_ID + '_' + assay_id;
+                localStorage.removeItem(storageKey);
+
                 alert("Feedback submitted successfully!");
                 bootstrap.Modal.getInstance(document.getElementById('feedbackModal')).hide();
                 form.reset();

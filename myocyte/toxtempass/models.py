@@ -5,7 +5,7 @@ import uuid
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.validators import validate_email
 from django.db import models
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.utils import timezone
 from guardian.shortcuts import assign_perm
 from simple_history.models import HistoricalRecords
@@ -310,6 +310,15 @@ class Assay(AccessibleModel):
         null=True,
         help_text="Which version of the questionnaire this assay is using",
     )
+    completion_time_seconds = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text=(
+            "Aggregated active time (in seconds) across all collaborators at the "
+            "moment every answer was accepted for the first time. Set automatically; "
+            "never overwritten once captured."
+        ),
+    )
 
     def __str__(self) -> str:
         """Assay as string."""
@@ -338,6 +347,18 @@ class Assay(AccessibleModel):
         """Get number of accepted answers associtated with assay."""
         # Count all answers that are marked as accepted
         return self.answers.filter(accepted=True).count()
+
+    @property
+    def all_answers_accepted(self) -> bool:
+        """Return True when every existing answer row is accepted (at least one exists).
+
+        Uses a single aggregation query to avoid N+1.
+        """
+        agg = self.answers.aggregate(
+            total=Count("id"),
+            accepted_count=Count("id", filter=Q(accepted=True)),
+        )
+        return agg["total"] > 0 and agg["total"] == agg["accepted_count"]
 
     def get_parent(self) -> Study:
         """Get Study."""
@@ -453,6 +474,33 @@ class AssayView(models.Model):
 
     def __str__(self):
         return f"AssayView(user={self.user.email}, assay={self.assay.title}, last_viewed={self.last_viewed})"
+
+
+class AssayTimeLog(models.Model):
+    """Server-side record of how many active seconds a single user spent on an assay.
+
+    One row per (user, assay) pair.  The client writes the cumulative total on
+    every periodic sync; the server derives the aggregate across all collaborators
+    by summing rows for the same assay.
+    """
+
+    user = models.ForeignKey(
+        Person, on_delete=models.CASCADE, related_name="assay_time_logs"
+    )
+    assay = models.ForeignKey(
+        Assay, on_delete=models.CASCADE, related_name="time_logs"
+    )
+    seconds = models.PositiveIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("user", "assay")
+
+    def __str__(self):
+        return (
+            f"AssayTimeLog(user={self.user.email}, assay={self.assay.id},"
+            f" seconds={self.seconds})"
+        )
 
 
 # Section, Subsection, and Question Models (fixed)
@@ -685,6 +733,13 @@ class Feedback(AccessibleModel):
     user = models.ForeignKey(Person, on_delete=models.CASCADE, related_name="feedbacks")
     feedback_text = models.TextField()
     usefulness_rating = models.FloatField(null=True, blank=True)
+    time_spent_seconds = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text=(
+            "Automatically measured active time spent on the assay page, in seconds."
+        ),
+    )
     submission_date = models.DateTimeField(auto_now_add=True)
     assay = models.OneToOneField(Assay, on_delete=models.CASCADE, related_name="feedback")
 
