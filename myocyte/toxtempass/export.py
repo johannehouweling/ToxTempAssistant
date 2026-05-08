@@ -385,11 +385,6 @@ def export_assay_to_file(
             with file_path.open("w", encoding="utf-8") as json_file:
                 json.dump(export_data, json_file, indent=4)
 
-        # elif export_type == "md":
-        #     export_data = generate_markdown_from_assay(assay)
-        #     with file_path.open("w", encoding="utf-8") as md_file:
-        #         md_file.write(export_data)
-
         elif export_type in PANDOC_EXPORT_TYPES:
             # Generate the markdown file
             export_data = generate_markdown_from_assay(assay)
