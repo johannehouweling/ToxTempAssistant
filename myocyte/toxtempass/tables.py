@@ -130,13 +130,16 @@ class AssayTable(tables.Table):
                     <span class="ms-1 d-none d-lg-inline">Export</span>
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='json' %}">JSON</a></li>
-                    <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='md' %}">MD</a></li>
-                    <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='pdf' %}">PDF</a></li>
-                    <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='xml' %}">XML</a></li>
-                    <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='docx' %}">DOCX</a></li>
-                    <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='html' %}">HTML</a></li>
-                    <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='tex' %}">TEX</a></li>
+                    {# Route through feedback_export() so the feedback modal gates
+                       exports here too — same path the editing page (answer.html)
+                       uses. The partial is included once on overview.html. #}
+                    <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='json' %}" onclick="if (typeof feedback_export === 'function') { return feedback_export(this.href, {{ record.id }}); }">JSON</a></li>
+                    <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='md' %}" onclick="if (typeof feedback_export === 'function') { return feedback_export(this.href, {{ record.id }}); }">MD</a></li>
+                    <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='pdf' %}" onclick="if (typeof feedback_export === 'function') { return feedback_export(this.href, {{ record.id }}); }">PDF</a></li>
+                    <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='xml' %}" onclick="if (typeof feedback_export === 'function') { return feedback_export(this.href, {{ record.id }}); }">XML</a></li>
+                    <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='docx' %}" onclick="if (typeof feedback_export === 'function') { return feedback_export(this.href, {{ record.id }}); }">DOCX</a></li>
+                    <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='html' %}" onclick="if (typeof feedback_export === 'function') { return feedback_export(this.href, {{ record.id }}); }">HTML</a></li>
+                    <li><a class="dropdown-item" href="{% url 'export_assay' assay_id=record.id export_type='tex' %}" onclick="if (typeof feedback_export === 'function') { return feedback_export(this.href, {{ record.id }}); }">TEX</a></li>
                 </ul>
             </div>
             <a class="btn btn-sm btn-outline-danger js-delete-link"
