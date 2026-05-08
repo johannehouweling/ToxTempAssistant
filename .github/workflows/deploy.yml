@@ -74,13 +74,10 @@ jobs:
             # sudo docker network connect bridge minio
 
             dotenv_file=.env
-            if [ -f "$dotenv_file" ]; then
-              set -a
-              . "$dotenv_file"
-              set +a
-            fi
-            timeout_seconds="${SERVICE_BOOT_TIMEOUT_SECONDS:-300}"
-            poll_seconds="${SERVICE_BOOT_POLL_SECONDS:-10}"
+            timeout_seconds=$(awk -F= '/^SERVICE_BOOT_TIMEOUT_SECONDS=/{print $2; exit}' "$dotenv_file" 2>/dev/null || true)
+            poll_seconds=$(awk -F= '/^SERVICE_BOOT_POLL_SECONDS=/{print $2; exit}' "$dotenv_file" 2>/dev/null || true)
+            timeout_seconds="${timeout_seconds:-300}"
+            poll_seconds="${poll_seconds:-10}"
             http_probe=$(cat <<'PY'
             import sys
             from urllib.error import HTTPError, URLError
@@ -223,8 +220,7 @@ jobs:
           set -euo pipefail
           SSH_OPTS="-i $HOME/.ssh/id_ed25519 -o StrictHostKeyChecking=yes"
           remote_env_file=/mnt/gluster/docker/toxtempassistant/config/.env
-          timeout_seconds=$(ssh $SSH_OPTS "$REMOTE" "set -a; . '$remote_env_file'; set +a; printf '%s' \"\${SERVICE_BOOT_TIMEOUT_SECONDS:-300}\"")
-          poll_seconds=$(ssh $SSH_OPTS "$REMOTE" "set -a; . '$remote_env_file'; set +a; printf '%s' \"\${SERVICE_BOOT_POLL_SECONDS:-10}\"")
+          read -r timeout_seconds poll_seconds <<< "$(ssh $SSH_OPTS "$REMOTE" "timeout=\$(awk -F= '/^SERVICE_BOOT_TIMEOUT_SECONDS=/{print \$2; exit}' '$remote_env_file' 2>/dev/null || true); poll=\$(awk -F= '/^SERVICE_BOOT_POLL_SECONDS=/{print \$2; exit}' '$remote_env_file' 2>/dev/null || true); printf '%s %s' \"\${timeout:-300}\" \"\${poll:-10}\"")"
           http_probe=$(cat <<'PY'
           import sys
           from urllib.error import HTTPError, URLError
