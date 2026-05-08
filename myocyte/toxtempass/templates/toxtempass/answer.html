@@ -48,11 +48,6 @@
       scroll-margin-top: 130px; /* Adjust this value to match your sticky header height */
     	}
 
-    .question-status-icon {
-      font-size: 0.625rem;
-      vertical-align: middle;
-    }
-
     @media (min-width: 992px) {
       .bd-sidebar {
           position:-webkit-sticky;
@@ -84,8 +79,8 @@
                         <div class="small text-secondary px-3 pt-2">
                             <div class="fw-semibold mb-1">Question status</div>
                             <div class="mb-1">Accepted: no icon</div>
-                            <div class="mb-1"><i class="bi bi-circle-fill text-secondary question-status-icon me-1"></i>draft</div>
-                            <div><i class="bi bi-circle text-primary question-status-icon me-1"></i>missing</div>
+                            <div class="mb-1"><i class="bi bi-circle-fill text-secondary small me-1 align-text-bottom"></i>draft</div>
+                            <div><i class="bi bi-circle text-primary small me-1 align-text-bottom"></i>missing</div>
                         </div>
                         {% for section in sections %}
                             <a class="nav-link p-1 px-3 m-0 mt-3 fs-5{% if section.all_answers_accepted %} text-secondary {% endif %}" href="#section-{{ section.id }}">{{ section.title }}</a>
@@ -96,12 +91,12 @@
                                         {% for question in subsection.questions.all %}
                                             <a class="nav-link ms-5 p-1 px-3 small"
                                                href="#id_question_{{ question.id }}"
-                                               data-question-status="{{ question.sidebar_status }}"
+                                                data-question-status="{{ question.sidebar_status }}"
                                                aria-label="{{ question.question_text }} ({{ question.sidebar_status }})">
                                                 {% if question.sidebar_status == "draft" %}
-                                                    <i class="bi bi-circle-fill text-secondary question-status-icon me-2" aria-hidden="true" data-bs-toggle="tooltip" title="Draft answer"></i>
+                                                    <i class="bi bi-circle-fill text-secondary small me-2 align-text-bottom" aria-hidden="true" data-bs-toggle="tooltip" title="Draft answer"></i>
                                                 {% elif question.sidebar_status == "missing" %}
-                                                    <i class="bi bi-circle text-primary question-status-icon me-2" aria-hidden="true" data-bs-toggle="tooltip" title="No answer yet"></i>
+                                                    <i class="bi bi-circle text-primary small me-2 align-text-bottom" aria-hidden="true" data-bs-toggle="tooltip" title="No answer yet"></i>
                                                 {% endif %}
                                                 <span>{{ question.question_text }}</span>
                                             </a>
