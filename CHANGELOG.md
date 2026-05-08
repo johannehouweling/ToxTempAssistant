@@ -2,6 +2,27 @@
 
 <!-- version list -->
 
+## v3.17.0 (2026-05-08)
+
+### Bug Fixes
+
+- Harden ror lookup and affiliation export formatting
+  ([`034719a`](https://github.com/johannehouweling/ToxTempAssistant/commit/034719aa949c6f6a9c962ecb51f2275162f62c35))
+
+- Move ror constants to config and use email author fallback
+  ([`ab4cef0`](https://github.com/johannehouweling/ToxTempAssistant/commit/ab4cef0b561c41c11766fe2acc9db3c1098b233d))
+
+### Documentation
+
+- **agents**: Update conventions for coding agents.
+  ([`4e6a991`](https://github.com/johannehouweling/ToxTempAssistant/commit/4e6a991ee2716394c4dda7e544d4dccb585e102d))
+
+### Features
+
+- Add organization lookup and affiliation export metadata
+  ([`174804f`](https://github.com/johannehouweling/ToxTempAssistant/commit/174804fd79263a0cb46c82b6f6daaec4ea177a8a))
+
+
 ## v3.16.7 (2026-05-07)
 
 ### Bug Fixes
