@@ -240,7 +240,10 @@ def ror_organization_lookup(request: HttpRequest) -> JsonResponse:
             return None
         if ".." in domain or len(domain) > 253:
             return None
-        if not re.fullmatch(r"[a-z0-9]+([.-][a-z0-9]+)*", domain):
+        if not re.fullmatch(
+            r"(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))+",
+            domain,
+        ):
             return None
         return domain.removeprefix("www.")
 
@@ -253,6 +256,9 @@ def ror_organization_lookup(request: HttpRequest) -> JsonResponse:
         response.raise_for_status()
         return response.json()
 
+    def _quote_ror_advanced_value(value: str) -> str:
+        return value.replace("\\", "\\\\").replace('"', '\\"')
+
     query = " ".join((request.GET.get("q") or "").split())
     if len(query) < 3:
         return JsonResponse({"items": []})
@@ -260,20 +266,22 @@ def ror_organization_lookup(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"items": []})
     if not re.fullmatch(r"[A-Za-z0-9 .,-]+", query):
         return JsonResponse({"items": []})
+    quoted_query = _quote_ror_advanced_value(query)
     email_domain = _extract_email_domain(request.GET.get("email", ""))
 
     domain_queries = []
     if email_domain:
-        domain_queries.append(f'links.value:"{email_domain}" AND names.value:"{query}"')
-        domain_queries.append(f'links.value:"{email_domain}"')
-    query_batches = [domain_queries, [f'names.value:"{query}"']]
+        quoted_email_domain = _quote_ror_advanced_value(email_domain)
+        domain_queries.append(
+            f'links.value:"{quoted_email_domain}" AND names.value:"{quoted_query}"'
+        )
+        domain_queries.append(f'links.value:"{quoted_email_domain}"')
+    query_batches = [domain_queries, [f'names.value:"{quoted_query}"']]
 
     seen_organizations: set[str] = set()
     suggestions = []
-    for advanced_queries, is_domain_batch in (
-        (query_batches[0], True),
-        (query_batches[1], False),
-    ):
+    for batch_idx, advanced_queries in enumerate(query_batches):
+        is_domain_batch = batch_idx == 0 and bool(email_domain)
         for advanced_query in advanced_queries:
             try:
                 payload = _fetch_ror_payload(advanced_query)
