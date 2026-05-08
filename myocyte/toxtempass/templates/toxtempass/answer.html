@@ -252,9 +252,10 @@
     //   - Accumulates across page loads in localStorage
     // ---------------------------------------------------------------------------
     const ASSAY_ID = parseInt('{{ assay.id }}', 10);
+    const USER_ID = parseInt('{{ request.user.id }}', 10);
     const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
     const SAVE_INTERVAL_MS = 10 * 1000;     // flush to localStorage every 10 s
-    const STORAGE_KEY = 'assay_time_' + ASSAY_ID;
+    const STORAGE_KEY = 'assay_time_' + USER_ID + '_' + ASSAY_ID;
 
     let accumulatedSeconds = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
     let sessionStart = null;      // timestamp when the current active interval began

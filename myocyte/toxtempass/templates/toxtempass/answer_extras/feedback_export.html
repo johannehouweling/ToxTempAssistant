@@ -102,6 +102,8 @@ function feedback_export(export_url,assay_id){
   </div>
 
   <script>
+    const FEEDBACK_USER_ID = parseInt('{{ request.user.id }}', 10);
+
     function formatTimeSpent(totalSeconds) {
         if (totalSeconds < 60) {
             return totalSeconds + ' second' + (totalSeconds !== 1 ? 's' : '');
@@ -120,8 +122,8 @@ function feedback_export(export_url,assay_id){
         const modal = new bootstrap.Modal(document.getElementById('feedbackModal'));
         document.getElementById('assayIdInput').value = assay_id;
 
-        // Inject accumulated active time from localStorage
-        const storageKey = 'assay_time_' + assay_id;
+        // Inject accumulated active time from localStorage (key is user+assay scoped)
+        const storageKey = 'assay_time_' + FEEDBACK_USER_ID + '_' + assay_id;
         const stored = parseInt(localStorage.getItem(storageKey) || '0', 10);
         if (stored > 0) {
             document.getElementById('timeSpentInput').value = stored;
@@ -167,8 +169,8 @@ function feedback_export(export_url,assay_id){
         })
         .then(data => {
             if (data.success) {
-                // Clear stored time for this assay after successful submission
-                const storageKey = 'assay_time_' + assay_id;
+                // Clear stored time for this assay (user-scoped key) after successful submission
+                const storageKey = 'assay_time_' + FEEDBACK_USER_ID + '_' + assay_id;
                 localStorage.removeItem(storageKey);
 
                 alert("Feedback submitted successfully!");
