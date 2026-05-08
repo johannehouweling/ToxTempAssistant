@@ -5,7 +5,7 @@ import uuid
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.validators import validate_email
 from django.db import models
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.utils import timezone
 from guardian.shortcuts import assign_perm
 from simple_history.models import HistoricalRecords
@@ -310,6 +310,15 @@ class Assay(AccessibleModel):
         null=True,
         help_text="Which version of the questionnaire this assay is using",
     )
+    completion_time_seconds = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text=(
+            "Aggregated active time (in seconds) across all collaborators at the "
+            "moment every answer was accepted for the first time. Set automatically; "
+            "never overwritten once captured."
+        ),
+    )
 
     def __str__(self) -> str:
         """Assay as string."""
@@ -338,6 +347,18 @@ class Assay(AccessibleModel):
         """Get number of accepted answers associtated with assay."""
         # Count all answers that are marked as accepted
         return self.answers.filter(accepted=True).count()
+
+    @property
+    def all_answers_accepted(self) -> bool:
+        """Return True when every existing answer row is accepted (at least one exists).
+
+        Uses a single aggregation query to avoid N+1.
+        """
+        agg = self.answers.aggregate(
+            total=Count("id"),
+            accepted_count=Count("id", filter=Q(accepted=True)),
+        )
+        return agg["total"] > 0 and agg["total"] == agg["accepted_count"]
 
     def get_parent(self) -> Study:
         """Get Study."""

@@ -79,20 +79,11 @@ function feedback_export(export_url,assay_id){
                     Selected rating: <strong id="ratingValue">3</strong / 5
                 </div>
             </div>
-            <!-- Time spent (server-aggregated across all collaborators) -->
-            <div class="mb-3" id="timeSpentRow" style="display:none;">
-                <label class="form-label">Estimated time spent on this assay</label>
-                <div class="form-text">
-                    Total active time across all collaborators (idle periods &gt; 5 min and inactive tabs excluded; synced to server approximately every minute).
-                </div>
-                <p class="mt-2 mb-0">
-                    <i class="bi bi-clock me-1" aria-hidden="true"></i>
-                    <strong id="timeSpentDisplay"></strong>
-                </p>
-            </div>
+            <!-- Time spent field intentionally removed from the feedback form.
+                 Completion time is captured server-side automatically when all
+                 questions are accepted (see Assay.completion_time_seconds). -->
 
           <input type="hidden" id="assayIdInput" name="assay_id" />
-          <input type="hidden" id="timeSpentInput" name="time_spent_seconds" />
         </div>
         <div class="modal-footer">
           <button type="submit" class="btn btn-primary">Submit Feedback</button>
@@ -104,46 +95,11 @@ function feedback_export(export_url,assay_id){
   <script>
     const FEEDBACK_USER_ID = parseInt('{{ request.user.id }}', 10);
 
-    function formatTimeSpent(totalSeconds) {
-        if (totalSeconds < 60) {
-            return totalSeconds + ' second' + (totalSeconds !== 1 ? 's' : '');
-        }
-        const minutes = Math.floor(totalSeconds / 60);
-        const seconds = totalSeconds % 60;
-        if (minutes < 60) {
-            return minutes + ' min' + (seconds > 0 ? ' ' + seconds + ' sec' : '');
-        }
-        const hours = Math.floor(minutes / 60);
-        const remainingMinutes = minutes % 60;
-        return hours + ' h' + (remainingMinutes > 0 ? ' ' + remainingMinutes + ' min' : '');
-    }
-
     function openFeedbackModal(export_url, assay_id) {
         const modal = new bootstrap.Modal(document.getElementById('feedbackModal'));
         document.getElementById('assayIdInput').value = assay_id;
         window.pending_export_url = export_url;
-
-        // Trigger a final server sync, then show the aggregate total from the server
-        const doSync = (typeof window.assayTimeSyncNow === 'function')
-            ? window.assayTimeSyncNow()
-            : Promise.resolve(null);
-
-        doSync.then(function (data) {
-            const total = (data && data.total_seconds > 0) ? data.total_seconds : 0;
-            if (total > 0) {
-                document.getElementById('timeSpentInput').value = total;
-                document.getElementById('timeSpentDisplay').textContent = formatTimeSpent(total);
-                document.getElementById('timeSpentRow').style.display = '';
-            } else {
-                document.getElementById('timeSpentInput').value = '';
-                document.getElementById('timeSpentRow').style.display = 'none';
-            }
-            modal.show();
-        }).catch(function () {
-            document.getElementById('timeSpentInput').value = '';
-            document.getElementById('timeSpentRow').style.display = 'none';
-            modal.show();
-        });
+        modal.show();
     }
     
     document.getElementById('feedbackForm').addEventListener('submit', function(event) {

@@ -144,3 +144,148 @@ class TestAssayTimeLogModel:
         log = AssayTimeLog(user=user, assay=assay, seconds=42)
         assert str(log.user.email) in str(log)
         assert "42" in str(log)
+
+
+# ---------------------------------------------------------------------------
+# Completion-time auto-capture (AssayAnswerForm.save -> Assay.completion_time_seconds)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestCompletionTimeCapture:
+    """completion_time_seconds is auto-set when all answers are accepted."""
+
+    def _make_assay_with_questions(self, user, n=2):
+        """Helper: assay with *n* questions and empty answer rows."""
+        from toxtempass.models import Answer, Question, QuestionSet, Section, Subsection
+
+        investigation = InvestigationFactory.create(owner=user)
+        study = StudyFactory.create(investigation=investigation)
+        assay = AssayFactory.create(study=study)
+        qs = QuestionSet.objects.create(
+            display_name="completion-test-qs",
+            created_by=user,
+        )
+        section = Section.objects.create(question_set=qs, title="Sec")
+        subsection = Subsection.objects.create(section=section, title="Subsec")
+        questions = [
+            Question.objects.create(subsection=subsection, question_text=f"Q{i}?")
+            for i in range(n)
+        ]
+        answers = [Answer.objects.create(assay=assay, question=q) for q in questions]
+        assay.question_set = qs
+        assay.save(update_fields=["question_set"])
+        return assay, questions, answers
+
+    def test_completion_time_set_when_all_accepted(self, db):
+        """completion_time_seconds is populated the first time all answers are accepted."""
+        from toxtempass.forms import AssayAnswerForm
+
+        user = PersonFactory.create()
+        assay, questions, answers = self._make_assay_with_questions(user)
+
+        # Pre-seed AssayTimeLog to simulate ~10 min of tracked time
+        AssayTimeLog.objects.create(user=user, assay=assay, seconds=600)
+
+        # Accept all answers via the form
+        data = {}
+        for answer in answers:
+            answer.answer_text = "Some text"
+            answer.save(update_fields=["answer_text"])
+            data[f"question_{answer.question_id}"] = "Some text"
+            data[f"accepted_{answer.question_id}"] = True
+
+        form = AssayAnswerForm(data=data, assay=assay, user=user)
+        assert form.is_valid(), f"Form errors: {form.errors}"
+        form.save()
+
+        assay.refresh_from_db()
+        assert assay.completion_time_seconds == 600
+
+    def test_completion_time_not_set_when_some_unaccepted(self, db):
+        """completion_time_seconds stays None when at least one answer is not accepted."""
+        from toxtempass.forms import AssayAnswerForm
+
+        user = PersonFactory.create()
+        assay, questions, answers = self._make_assay_with_questions(user, n=2)
+
+        AssayTimeLog.objects.create(user=user, assay=assay, seconds=300)
+
+        # Accept only the first answer, leave the second un-accepted
+        answers[0].answer_text = "Done"
+        answers[0].save(update_fields=["answer_text"])
+        data = {
+            f"question_{answers[0].question_id}": "Done",
+            f"accepted_{answers[0].question_id}": True,
+            f"question_{answers[1].question_id}": "In progress",
+            # accepted_<id> intentionally absent → defaults to False
+        }
+
+        form = AssayAnswerForm(data=data, assay=assay, user=user)
+        assert form.is_valid(), f"Form errors: {form.errors}"
+        form.save()
+
+        assay.refresh_from_db()
+        assert assay.completion_time_seconds is None
+
+    def test_completion_time_not_overwritten_on_subsequent_saves(self, db):
+        """Once set, completion_time_seconds is not overwritten by later saves."""
+        from toxtempass.forms import AssayAnswerForm
+
+        user = PersonFactory.create()
+        assay, questions, answers = self._make_assay_with_questions(user, n=1)
+
+        AssayTimeLog.objects.create(user=user, assay=assay, seconds=120)
+
+        answer = answers[0]
+        answer.answer_text = "First pass"
+        answer.save(update_fields=["answer_text"])
+        data = {
+            f"question_{answer.question_id}": "First pass",
+            f"accepted_{answer.question_id}": True,
+        }
+        form = AssayAnswerForm(data=data, assay=assay, user=user)
+        assert form.is_valid()
+        form.save()
+
+        assay.refresh_from_db()
+        assert assay.completion_time_seconds == 120
+
+        # Simulate more time passing and a second save with all still accepted
+        AssayTimeLog.objects.filter(user=user, assay=assay).update(seconds=999)
+
+        form2 = AssayAnswerForm(data=data, assay=assay, user=user)
+        assert form2.is_valid()
+        form2.save()
+
+        assay.refresh_from_db()
+        # Must still be the original value
+        assert assay.completion_time_seconds == 120
+
+    def test_all_answers_accepted_property(self, db):
+        """Assay.all_answers_accepted returns True only when all rows are accepted."""
+        from toxtempass.models import Answer, Question, QuestionSet, Section, Subsection
+
+        user = PersonFactory.create()
+        assay, questions, answers = self._make_assay_with_questions(user, n=2)
+
+        # Nothing accepted yet
+        assert not assay.all_answers_accepted
+
+        # Accept first
+        answers[0].accepted = True
+        answers[0].save(update_fields=["accepted"])
+        assay.refresh_from_db()
+        assert not assay.all_answers_accepted
+
+        # Accept second
+        answers[1].accepted = True
+        answers[1].save(update_fields=["accepted"])
+        assay.refresh_from_db()
+        assert assay.all_answers_accepted
+
+        # Un-accept one → back to False
+        answers[0].accepted = False
+        answers[0].save(update_fields=["accepted"])
+        assay.refresh_from_db()
+        assert not assay.all_answers_accepted

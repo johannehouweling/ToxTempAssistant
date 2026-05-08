@@ -2186,20 +2186,12 @@ def assay_feedback(request: HttpRequest, assay_id: int) -> JsonResponse:
     if request.method == "POST":
         feedback_text = request.POST.get("feedback")
         usefulness_rating = request.POST.get("usefulness_rating")
-        time_spent_raw = request.POST.get("time_spent_seconds")
-        time_spent_seconds: int | None = None
-        if time_spent_raw is not None:
-            try:
-                parsed = int(time_spent_raw)
-                if parsed >= 0:
-                    time_spent_seconds = parsed
-            except (ValueError, TypeError):
-                pass
         if feedback_text and usefulness_rating:
             feedback = Feedback.objects.create(
                 feedback_text=feedback_text,
                 usefulness_rating=usefulness_rating,
-                time_spent_seconds=time_spent_seconds,
+                # Use the server-recorded completion time, not a client-submitted value.
+                time_spent_seconds=assay.completion_time_seconds,
                 assay=assay,
                 user=request.user,
             )
