@@ -281,7 +281,9 @@ class ExportMetadataAuthorTests(TestCase):
             markdown,
         )
         self.assertIn(
-            "  - Owner Person (Owner Institute) — ORCID iD: 0000-0000-0000-0001"
-            " — Email: owner@test.com",
+            (
+                "  - Owner Person (Owner Institute) — ORCID iD: "
+                "0000-0000-0000-0001 — Email: owner@test.com"
+            ),
             markdown,
         )
