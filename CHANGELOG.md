@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.17.5 (2026-05-08)
+
+### Bug Fixes
+
+- **ror**: Add v2 endpoint for ror lookup
+  ([`ee11947`](https://github.com/johannehouweling/ToxTempAssistant/commit/ee1194726ff4e96b0ac87d1d9767204a35d11a0f))
+
+
 ## v3.17.4 (2026-05-08)
 
 ### Bug Fixes
