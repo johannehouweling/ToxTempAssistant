@@ -82,59 +82,13 @@ jobs:
             case "$poll_seconds" in
               ''|*[!0-9]*|0) poll_seconds=10 ;;
             esac
-            probe_host=$(
-              CONTAINER_ENV="$container_env" python3 - <<'PY'
-              import os
-              from urllib.parse import urlparse
-
-              env = {}
-              for line in os.environ.get("CONTAINER_ENV", "").splitlines():
-                  if "=" in line:
-                      key, value = line.split("=", 1)
-                      env[key] = value
-
-              host = ""
-              site_url = env.get("SITE_URL", "").strip()
-              if site_url:
-                  try:
-                      host = urlparse(site_url).hostname or ""
-                  except ValueError:
-                      host = ""
-              if not host:
-                  for entry in env.get("ALLOWED_HOSTS", "").split(","):
-                      entry = entry.strip()
-                      if entry:
-                          host = entry.split(":", 1)[0]
-                          break
-              print(host or "localhost")
-              PY
-            )
-            http_probe=$(cat <<'PY'
-            import os
-            import sys
-            from urllib.error import HTTPError, URLError
-            from urllib.request import Request, urlopen
-
-            probe_host = os.environ["PROBE_HOST"]
-
-            try:
-                response = urlopen(
-                    Request("http://127.0.0.1:8000/", headers={"Host": probe_host}),
-                    timeout=5,
-                )
-            except HTTPError as exc:
-                print(f"HTTP {exc.code}: {exc.reason}", file=sys.stderr)
-                raise SystemExit(1) from exc
-            except (TimeoutError, URLError, OSError) as exc:
-                print(f"{type(exc).__name__}: {exc}", file=sys.stderr)
-                raise SystemExit(1) from exc
-            print(response.status)
-            PY
-            )
+            probe_host=$(printf '%s\n' "$container_env" | python3 .github/scripts/deploy_readiness_probe.py probe-host)
             ready=0
             deadline=$((SECONDS + timeout_seconds))
             while [ "$SECONDS" -lt "$deadline" ]; do
-              if probe_result=$(printf '%s' "$http_probe" | sudo docker exec -e PROBE_HOST="$probe_host" -i djangoapp python3 - 2>&1); then
+              # The helper lives only in the checked-out repo on the host, not inside
+              # the deploy image, so feed it to python3 over stdin when probing.
+              if probe_result=$(sudo docker exec -e PROBE_HOST="$probe_host" -e PROBE_MODE=http-status -e PROBE_URL=http://127.0.0.1:8000/ -i djangoapp python3 - < .github/scripts/deploy_readiness_probe.py 2>&1); then
                 case "$probe_result" in
                   2[0-9][0-9]|3[0-9][0-9])
                     ready=1
@@ -253,69 +207,16 @@ jobs:
         run: |
           set -euo pipefail
           SSH_OPTS="-i $HOME/.ssh/id_ed25519 -o StrictHostKeyChecking=yes"
-          read -r timeout_seconds poll_seconds probe_host <<< "$(
-            ssh $SSH_OPTS "$REMOTE" 'bash -s' <<'EOF'
-            env_dump=$(docker service inspect --format '{{range .Spec.TaskTemplate.ContainerSpec.Env}}{{println .}}{{end}}' toxtempass_djangoapp)
-            timeout_seconds=$(printf '%s\n' "$env_dump" | awk -F= '$1=="SERVICE_BOOT_TIMEOUT_SECONDS"{print $2; exit}')
-            poll_seconds=$(printf '%s\n' "$env_dump" | awk -F= '$1=="SERVICE_BOOT_POLL_SECONDS"{print $2; exit}')
-            case "$timeout_seconds" in
-              ''|*[!0-9]*|0) timeout_seconds=300 ;;
-            esac
-            case "$poll_seconds" in
-              ''|*[!0-9]*|0) poll_seconds=10 ;;
-            esac
-            probe_host=$(
-              ENV_DUMP="$env_dump" python3 - <<'PY'
-              import os
-              from urllib.parse import urlparse
-
-              env = {}
-              for line in os.environ.get("ENV_DUMP", "").splitlines():
-                  if "=" in line:
-                      key, value = line.split("=", 1)
-                      env[key] = value
-
-              host = ""
-              site_url = env.get("SITE_URL", "").strip()
-              if site_url:
-                  try:
-                      host = urlparse(site_url).hostname or ""
-                  except ValueError:
-                      host = ""
-              if not host:
-                  for entry in env.get("ALLOWED_HOSTS", "").split(","):
-                      entry = entry.strip()
-                      if entry:
-                          host = entry.split(":", 1)[0]
-                          break
-              print(host or "localhost")
-              PY
-            )
-            printf '%s %s %s' "$timeout_seconds" "$poll_seconds" "$probe_host"
-          EOF
-          )"
-          http_probe=$(cat <<'PY'
-          import os
-          import sys
-          from urllib.error import HTTPError, URLError
-          from urllib.request import Request, urlopen
-
-          probe_host = os.environ["PROBE_HOST"]
-
-          try:
-              response = urlopen(
-                  Request("http://127.0.0.1:8000/", headers={"Host": probe_host}),
-                  timeout=5,
-              )
-          except HTTPError as exc:
-              print(f"HTTP {exc.code}: {exc.reason}", file=sys.stderr)
-              raise SystemExit(1) from exc
-          except (TimeoutError, URLError, OSError) as exc:
-              print(f"{type(exc).__name__}: {exc}", file=sys.stderr)
-              raise SystemExit(1) from exc
-          print(response.status)
-          PY
-          )
+          env_dump=$(ssh $SSH_OPTS "$REMOTE" "docker service inspect --format '{{range .Spec.TaskTemplate.ContainerSpec.Env}}{{println .}}{{end}}' toxtempass_djangoapp")
+          timeout_seconds=$(printf '%s\n' "$env_dump" | awk -F= '$1=="SERVICE_BOOT_TIMEOUT_SECONDS"{print $2; exit}')
+          poll_seconds=$(printf '%s\n' "$env_dump" | awk -F= '$1=="SERVICE_BOOT_POLL_SECONDS"{print $2; exit}')
+          case "$timeout_seconds" in
+            ''|*[!0-9]*|0) timeout_seconds=300 ;;
+          esac
+          case "$poll_seconds" in
+            ''|*[!0-9]*|0) poll_seconds=10 ;;
+          esac
+          probe_host=$(printf '%s\n' "$env_dump" | python3 .github/scripts/deploy_readiness_probe.py probe-host)
           deadline=$((SECONDS + timeout_seconds))
           ready=0
 
@@ -324,7 +225,9 @@ jobs:
             if [ "$replicas" = "1/1" ]; then
               container_id=$(ssh $SSH_OPTS "$REMOTE" "docker ps --filter label=com.docker.swarm.service.name=toxtempass_djangoapp --format '{{.ID}}' | head -n1")
               if [ -n "$container_id" ]; then
-                if probe_result=$(printf '%s' "$http_probe" | ssh $SSH_OPTS "$REMOTE" "docker exec -e PROBE_HOST='$probe_host' -i $container_id python3 -" 2>&1); then
+                # The helper exists on the Actions runner, so stream it into python3
+                # inside the remote container rather than requiring it in the image.
+                if probe_result=$(ssh $SSH_OPTS "$REMOTE" "docker exec -e PROBE_HOST=\"$probe_host\" -e PROBE_MODE=http-status -e PROBE_URL=http://127.0.0.1:8000/ -i $container_id python3 -" < .github/scripts/deploy_readiness_probe.py 2>&1); then
                   case "$probe_result" in
                     2[0-9][0-9]|3[0-9][0-9])
                       ready=1
