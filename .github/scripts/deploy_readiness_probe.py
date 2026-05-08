@@ -33,7 +33,7 @@ def normalize_host_candidate(value: str) -> str:
         inner, separator, _rest = candidate[1:].partition("]")
         if not separator:
             return ""
-        candidate = inner
+        candidate = f"[{inner}]"
     elif candidate.count(":") == 1:
         # Unbracketed IPv6 literals contain multiple colons, so only treat a
         # single colon as a host:port separator.
@@ -42,6 +42,8 @@ def normalize_host_candidate(value: str) -> str:
     candidate = candidate.strip().strip(".")
     if not candidate or candidate == "*":
         return ""
+    if ":" in candidate and not candidate.startswith("["):
+        return f"[{candidate}]"
     return candidate
 
 
@@ -75,18 +77,17 @@ def command_http_status(url: str, timeout: float) -> int:
         )
         return 1
     try:
-        response = urlopen(
+        with urlopen(
             Request(url, headers={"Host": probe_host}),
             timeout=timeout,
-        )
+        ) as response:
+            print(response.status)
     except HTTPError as exc:
         print(f"HTTP {exc.code}: {exc.reason}", file=sys.stderr)
         return 1
     except (TimeoutError, URLError, OSError) as exc:
         print(f"{type(exc).__name__}: {exc}", file=sys.stderr)
         return 1
-
-    print(response.status)
     return 0
 
 

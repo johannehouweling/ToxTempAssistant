@@ -250,6 +250,6 @@ jobs:
 
           if [ "$ready" -ne 1 ]; then
             echo "Swarm djangoapp did not start serving traffic within ${timeout_seconds} seconds."
-            ssh $SSH_OPTS "$REMOTE" "docker service ls && docker service ps --no-trunc toxtempass_djangoapp && docker service logs --tail 200 toxtempass_djangoapp"
+            ssh $SSH_OPTS "$REMOTE" "docker service ls || true; docker service ps --no-trunc toxtempass_djangoapp || true; docker service logs --tail 200 toxtempass_djangoapp || true"
             exit 1
           fi
