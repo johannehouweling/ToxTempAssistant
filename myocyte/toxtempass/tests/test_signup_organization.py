@@ -254,7 +254,7 @@ def test_ror_lookup_ignores_invalid_email_domain():
     }
 
 
-def test_ror_lookup_strips_www_from_email_domain_query():
+def test_ror_lookup_keeps_email_domain_as_is():
     request = RequestFactory().get(
         "/login/signup/ror-organizations/",
         {"q": "Leiden", "email": "person@www.rivm.nl"},
@@ -276,10 +276,10 @@ def test_ror_lookup_strips_www_from_email_domain_query():
         ror_organization_lookup(request)
 
     assert mocked_get.call_args_list[0].kwargs["params"] == {
-        "query.advanced": 'links.value:"rivm.nl" AND names.value:"Leiden"'
+        "query.advanced": 'links.value:"www.rivm.nl" AND names.value:"Leiden"'
     }
     assert mocked_get.call_args_list[1].kwargs["params"] == {
-        "query.advanced": 'links.value:"rivm.nl"'
+        "query.advanced": 'links.value:"www.rivm.nl"'
     }
 
 

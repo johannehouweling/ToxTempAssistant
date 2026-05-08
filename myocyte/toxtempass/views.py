@@ -248,7 +248,7 @@ def ror_organization_lookup(request: HttpRequest) -> JsonResponse:
             domain,
         ):
             return None
-        return domain.removeprefix("www.")
+        return domain
 
     def _fetch_ror_payload(advanced_query: str) -> dict:
         response = requests.get(
