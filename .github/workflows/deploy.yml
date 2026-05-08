@@ -15,10 +15,6 @@ on:
 permissions:
   contents: read
 
-env:
-  SERVICE_BOOT_TIMEOUT_SECONDS: 300
-  SERVICE_BOOT_POLL_SECONDS: 10
-
 jobs:
   deploy-legacy:
     name: Deploy to legacy server
@@ -77,8 +73,14 @@ jobs:
             # If remote access to minio console is needed, uncomment the following line
             # sudo docker network connect bridge minio
 
-            timeout_seconds=${{ env.SERVICE_BOOT_TIMEOUT_SECONDS }}
-            poll_seconds=${{ env.SERVICE_BOOT_POLL_SECONDS }}
+            dotenv_file=.env
+            if [ -f "$dotenv_file" ]; then
+              set -a
+              . "$dotenv_file"
+              set +a
+            fi
+            timeout_seconds="${SERVICE_BOOT_TIMEOUT_SECONDS:-300}"
+            poll_seconds="${SERVICE_BOOT_POLL_SECONDS:-10}"
             http_probe=$(cat <<'PY'
             import sys
             from urllib.error import HTTPError, URLError
@@ -220,8 +222,9 @@ jobs:
         run: |
           set -euo pipefail
           SSH_OPTS="-i $HOME/.ssh/id_ed25519 -o StrictHostKeyChecking=yes"
-          timeout_seconds=${{ env.SERVICE_BOOT_TIMEOUT_SECONDS }}
-          poll_seconds=${{ env.SERVICE_BOOT_POLL_SECONDS }}
+          remote_env_file=/mnt/gluster/docker/toxtempassistant/config/.env
+          timeout_seconds=$(ssh $SSH_OPTS "$REMOTE" "set -a; . '$remote_env_file'; set +a; printf '%s' \"\${SERVICE_BOOT_TIMEOUT_SECONDS:-300}\"")
+          poll_seconds=$(ssh $SSH_OPTS "$REMOTE" "set -a; . '$remote_env_file'; set +a; printf '%s' \"\${SERVICE_BOOT_POLL_SECONDS:-10}\"")
           http_probe=$(cat <<'PY'
           import sys
           from urllib.error import HTTPError, URLError
