@@ -32,9 +32,10 @@ MATH_BLOCK_START = re.compile(r"^\s*(\$\$|\\\[)")
 MATH_BLOCK_END = re.compile(r"(\$\$|\\\])\s*$")
 
 ExportAuthor = dict[str, str | None]
+ExportInvestigationOwner = dict[str, str | None]
 ExportAuthorMetadata = dict[
     str,
-    str | list[str] | list[ExportAuthor] | ExportAuthor | None,
+    str | list[str] | list[ExportAuthor] | ExportInvestigationOwner | None,
 ]
 
 
@@ -84,7 +85,7 @@ def _export_optional_value(value: str | None) -> str | None:
 
 
 def _person_export_author_entry(person: Person | None) -> ExportAuthor | None:
-    """Return structured author metadata for exports."""
+    """Return an export author entry with ``name`` and ``organization`` keys."""
     author_name = _person_export_name(person)
     if author_name is None:
         return None
@@ -94,8 +95,10 @@ def _person_export_author_entry(person: Person | None) -> ExportAuthor | None:
     }
 
 
-def _person_export_owner_entry(person: Person | None) -> ExportAuthor | None:
-    """Return structured investigation owner metadata for exports."""
+def _person_export_owner_entry(
+    person: Person | None,
+) -> ExportInvestigationOwner | None:
+    """Return owner metadata with author fields plus ``email`` and ``orcid_id``."""
     author_entry = _person_export_author_entry(person)
     if author_entry is None:
         return None
@@ -107,7 +110,7 @@ def _person_export_owner_entry(person: Person | None) -> ExportAuthor | None:
 
 
 def get_assay_export_authors(assay: Assay) -> list[ExportAuthor]:
-    """Return ordered author entries with name and organization for an assay.
+    """Return ordered author entries with ``name`` and ``organization`` for an assay.
 
     Ordering rules:
     1. First author is the assay creator when available.
