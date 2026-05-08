@@ -2,6 +2,60 @@
 
 <!-- version list -->
 
+## v3.18.0 (2026-05-08)
+
+### Bug Fixes
+
+- Add contributor authors to export metadata
+  ([`162b780`](https://github.com/johannehouweling/ToxTempAssistant/commit/162b780ba2742c7bd7eb9076b38b6d9f32be6db5))
+
+- Align yaml export author metadata
+  ([`664ee54`](https://github.com/johannehouweling/ToxTempAssistant/commit/664ee548db396abb4ccaf4585b8dc87c31d4647b))
+
+- Flatten yaml export author metadata
+  ([`e1da9c8`](https://github.com/johannehouweling/ToxTempAssistant/commit/e1da9c83c4d102e20606d84640ca6c754d91d47d))
+
+- Respect investigation ownership in export authors
+  ([`8dca191`](https://github.com/johannehouweling/ToxTempAssistant/commit/8dca191d3183b1ee78b6a1127c5db60cdef1daff))
+
+### Chores
+
+- Address export metadata review feedback
+  ([`5890665`](https://github.com/johannehouweling/ToxTempAssistant/commit/5890665743e24aebec1d4126bc0e0f9bfcd727e1))
+
+- Tighten export author metadata lookup
+  ([`3d573d6`](https://github.com/johannehouweling/ToxTempAssistant/commit/3d573d6620c5d0e977d93467e6ab32711b02b7e9))
+
+### Documentation
+
+- Clarify export author metadata docstring
+  ([`0c45c89`](https://github.com/johannehouweling/ToxTempAssistant/commit/0c45c89349f4d936871dfdfed0cc684472beec73))
+
+- Clarify exported author metadata helpers
+  ([`8ef4531`](https://github.com/johannehouweling/ToxTempAssistant/commit/8ef4531f287944647aabf10ccdeb1b84c6efb86e))
+
+### Features
+
+- Enrich exported author metadata
+  ([`cb1a699`](https://github.com/johannehouweling/ToxTempAssistant/commit/cb1a6994a7836f164b603e8f7ba77942a945e86c))
+
+- Export corresponding author identity metadata
+  ([`fbde00b`](https://github.com/johannehouweling/ToxTempAssistant/commit/fbde00b8e5aede818b7c0da3ff18728bc008db6b))
+
+### Refactoring
+
+- Simplify export metadata typing
+  ([`0d98cce`](https://github.com/johannehouweling/ToxTempAssistant/commit/0d98ccecc6c02b5e21d46e8b04b758836a1b83d9))
+
+### Testing
+
+- Tidy export metadata assertion
+  ([`81248e3`](https://github.com/johannehouweling/ToxTempAssistant/commit/81248e3b0218132db58133ef6b9cece6e94383f4))
+
+- Use valid question set labels in export metadata tests
+  ([`64da1f1`](https://github.com/johannehouweling/ToxTempAssistant/commit/64da1f18f248d7010653867e332fa28a8e4aae07))
+
+
 ## v3.17.6 (2026-05-08)
 
 ### Bug Fixes
