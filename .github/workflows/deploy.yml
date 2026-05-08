@@ -101,7 +101,7 @@ jobs:
             ready=0
             deadline=$((SECONDS + timeout_seconds))
             while [ "$SECONDS" -lt "$deadline" ]; do
-              if probe_result=$(printf '%s\n' "$http_probe" | sudo docker exec -i djangoapp python - 2>&1); then
+              if probe_result=$(printf '%s' "$http_probe" | sudo docker exec -i djangoapp python - 2>&1); then
                 case "$probe_result" in
                   2[0-9][0-9]|3[0-9][0-9])
                     ready=1
@@ -250,7 +250,7 @@ jobs:
           while [ "$SECONDS" -lt "$deadline" ]; do
             replicas=$(ssh $SSH_OPTS "$REMOTE" "docker service ls --filter name=toxtempass_djangoapp --format '{{.Replicas}}'" | head -n1)
             if [ "$replicas" = "1/1" ]; then
-              if probe_result=$(printf '%s\n' "$http_probe" | ssh $SSH_OPTS "$REMOTE" "docker run --rm -i --network toxtempass_db_network python:3.12-alpine python -" 2>&1); then
+              if probe_result=$(printf '%s' "$http_probe" | ssh $SSH_OPTS "$REMOTE" "docker run --rm -i --network toxtempass_db_network python:3.12-alpine python -" 2>&1); then
                 case "$probe_result" in
                   2[0-9][0-9]|3[0-9][0-9])
                     ready=1
