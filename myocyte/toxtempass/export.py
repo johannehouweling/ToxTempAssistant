@@ -9,12 +9,13 @@ from pathlib import Path
 
 import yaml
 from django.core.serializers import serialize
+from django.db.models import Count, Min
 from django.http import FileResponse, HttpRequest, JsonResponse
 from django.utils import timezone  # Import timezone utilities
 from django.utils.text import slugify
 
 from toxtempass import Config
-from toxtempass.models import Assay, Section
+from toxtempass.models import Assay, Person, Section
 from toxtempass.utilities import log_processing_event
 
 logger = logging.getLogger(__name__)
@@ -29,6 +30,13 @@ PANDOC_EXPORT_TYPES = Config.PANDOC_EXPORT_TYPES
 
 MATH_BLOCK_START = re.compile(r"^\s*(\$\$|\\\[)")
 MATH_BLOCK_END = re.compile(r"(\$\$|\\\])\s*$")
+
+ExportAuthor = dict[str, str | None]
+ExportInvestigationOwner = dict[str, str | None]
+ExportAuthorMetadata = dict[
+    str,
+    str | list[str] | list[ExportAuthor] | ExportInvestigationOwner | None,
+]
 
 
 def _escape_pandoc_inline_footnote(text: str) -> str:
@@ -62,6 +70,127 @@ def quote_answer(text: str) -> str:
         out.append(f"> {line}" if line.strip() else ">")  # keep blank lines too
 
     return "\n".join(out) + "\n\n"
+
+
+def _person_export_name(person: Person | None) -> str | None:
+    """Return a display name suitable for export metadata."""
+    if person is None:
+        return None
+    full_name = person.get_full_name().strip()
+    return full_name or person.email
+
+
+def _export_optional_value(value: str | None) -> str | None:
+    """Normalize optional string metadata values for export."""
+    if value is None:
+        return None
+    value = value.strip()
+    return value or None
+
+
+def _person_export_author_entry(person: Person | None) -> ExportAuthor | None:
+    """Return an export author entry with name, organization, ORCID iD, and email."""
+    author_name = _person_export_name(person)
+    if author_name is None:
+        return None
+    return {
+        "name": author_name,
+        "organization": _export_optional_value(person.organization),
+        "orcid_id": _export_optional_value(person.orcid_id),
+        "email": _export_optional_value(person.email),
+    }
+
+
+def _person_export_owner_entry(
+    person: Person | None,
+) -> ExportInvestigationOwner | None:
+    """Return owner metadata with author fields plus ``email`` and ``orcid_id``."""
+    author_entry = _person_export_author_entry(person)
+    if author_entry is None:
+        return None
+    return {
+        **author_entry,
+        "email": _export_optional_value(person.email),
+        "orcid_id": _export_optional_value(person.orcid_id),
+    }
+
+
+def get_assay_export_authors(assay: Assay) -> list[ExportAuthor]:
+    """Return ordered author entries with name, organization, ORCID iD, and email.
+
+    Ordering rules:
+    1. First author is the assay creator when available.
+    2. Remaining contributors come from Answer.history, ranked by number of
+       edits and then by first contribution date.
+    3. Assay owner is listed last unless they are already first as the creator.
+    """
+    owner_id = assay.study.investigation.owner_id
+    creator_id = assay.created_by_id
+
+    historical_answer_model = assay.answers.model.history.model
+    contributor_rows = list(
+        historical_answer_model.objects.filter(
+            assay_id=assay.id,
+            history_user__isnull=False,
+        )
+        .values("history_user_id")
+        .annotate(
+            contribution_count=Count("history_id"),
+            first_contribution=Min("history_date"),
+        )
+        .order_by("-contribution_count", "first_contribution", "history_user_id")
+    )
+    contributor_ids = [
+        row["history_user_id"]
+        for row in contributor_rows
+    ]
+
+    first_author_id = creator_id
+    if first_author_id is None:
+        first_author_id = next(
+            (user_id for user_id in contributor_ids if user_id != owner_id),
+            None,
+        )
+
+    ordered_ids: list[int] = []
+    if first_author_id is not None:
+        ordered_ids.append(first_author_id)
+    ordered_ids.extend(
+        user_id
+        for user_id in contributor_ids
+        if user_id not in {first_author_id, owner_id}
+    )
+    if owner_id is not None and owner_id != first_author_id:
+        ordered_ids.append(owner_id)
+    ordered_ids = list(dict.fromkeys(ordered_ids))
+
+    people_by_id = Person.objects.only(
+        "first_name",
+        "last_name",
+        "email",
+        "organization",
+        "orcid_id",
+    ).in_bulk(ordered_ids)
+    authors: list[ExportAuthor] = []
+    for user_id in ordered_ids:
+        author_entry = _person_export_author_entry(people_by_id.get(user_id))
+        if author_entry is not None:
+            authors.append(author_entry)
+    return authors
+
+
+def get_assay_export_author_metadata(assay: Assay) -> ExportAuthorMetadata:
+    """Return export author metadata for an assay."""
+    authors = get_assay_export_authors(assay)
+    author_names = [author["name"] for author in authors]
+    investigation_owner = _person_export_owner_entry(assay.study.investigation.owner)
+    return {
+        "author": author_names,
+        "authors": authors,
+        "main_author": author_names[0] if author_names else None,
+        "co_authors": author_names[1:],
+        "investigation_owner": investigation_owner,
+    }
 
 
 def generate_json_from_assay(assay: Assay) -> dict | None:
@@ -118,6 +247,7 @@ def generate_json_from_assay(assay: Assay) -> dict | None:
             model_info_url_value = ""
 
         # Prepare the data structure
+        author_metadata = get_assay_export_author_metadata(assay)
         export_data = {
             "metadata": {
                 # Current date and time in ISO format
@@ -130,7 +260,8 @@ def generate_json_from_assay(assay: Assay) -> dict | None:
                 # Structured per-run LLM identities (machine-readable companion to
                 # the human-readable `config.model` string).
                 "models_used": models_used,
-                # Trimmed config for reproducibility (PII and developer-only fields omitted)
+                # Trimmed config for reproducibility
+                # (PII and developer-only fields omitted)
                 "config": {
                     "model": model_summary,
                     "model_info_url": model_info_url_value
@@ -148,6 +279,7 @@ def generate_json_from_assay(assay: Assay) -> dict | None:
                     "git_hash": getattr(Config, "git_hash", None),
                     "license_url": getattr(Config, "license_url", None),
                 },
+                **author_metadata,
             },
             "investigation": json.loads(serialize("json", [assay.study.investigation]))[
                 0
@@ -214,6 +346,26 @@ def generate_markdown_from_assay(assay: Assay) -> str:
     markdown.append(f"- **Creation Date:** {export_data['metadata']['creation_date']}\n")
     markdown.append(f"- **Filename:** {export_data['metadata']['filename']}\n")
     markdown.append(f"- **Website:** {export_data['metadata']['website']}\n")
+    if export_data["metadata"].get("authors"):
+        markdown.append("- **Authors:**\n")
+        last_author_index = len(export_data["metadata"]["authors"]) - 1
+        for index, author in enumerate(export_data["metadata"]["authors"]):
+            author_line = author["name"]
+            if author.get("organization"):
+                author_line += f" ({author['organization']})"
+            if author.get("orcid_id"):
+                author_line += f" — ORCID iD: {author['orcid_id']}"
+            if index == last_author_index and author.get("email"):
+                author_line += f" — Email: {author['email']}"
+            markdown.append(f"  - {author_line}\n")
+    if export_data["metadata"].get("main_author"):
+        markdown.append(f"- **Main Author:** {export_data['metadata']['main_author']}\n")
+    if export_data["metadata"].get("co_authors"):
+        markdown.append(
+            "- **Co-authors:** "
+            + ", ".join(export_data["metadata"]["co_authors"])
+            + "\n"
+        )
     markdown.append("\n## ToxTempAssistant configuration\n")
     for key, value in export_data["metadata"]["config"].items():
         markdown.append(f"- {key}: {value}\n")
@@ -289,6 +441,7 @@ def get_create_meta_data_yaml(
             ``"tex"``, fontspec and unicode-math are wrapped in an ``iftex``
             conditional so the generated ``.tex`` file also compiles with
             pdfLaTeX.
+
     """
     # get date:
     # Define the Amsterdam timezone (UTC+1)
@@ -332,19 +485,10 @@ def get_create_meta_data_yaml(
             r"\usepackage[a4paper, margin=3cm]{geometry}",
         ]
 
-    author_name_parts = [
-        str(request.user.first_name).strip(),
-        str(request.user.last_name).strip(),
-    ]
-    author_name = " ".join(part for part in author_name_parts if part)
-    if not author_name:
-        author_name = str(request.user.email).strip()
-    organization = str(request.user.organization or "").strip()
-    safe_organization = _escape_pandoc_inline_footnote(organization)
-    author_entry = author_name if not organization else f"{author_name}^[{safe_organization}]"
-
+    author_metadata = get_assay_export_author_metadata(assay)
     metadata_dict = {
-        "author": [author_entry],
+        "author": author_metadata["author"],
+        "authors": author_metadata["authors"],
         "date": str(current_date),  # Current date;
         "keywords": (
             "metadata template, "
@@ -388,7 +532,9 @@ def export_assay_to_file(
         elif export_type in PANDOC_EXPORT_TYPES:
             # Generate the markdown file
             export_data = generate_markdown_from_assay(assay)
-            md_file_path = (file_path.with_name(f"{file_path.stem}_md")).with_suffix(".md")
+            md_file_path = file_path.with_name(f"{file_path.stem}_md").with_suffix(
+                ".md"
+            )
             with md_file_path.open("w", encoding="utf-8") as md_file:
                 md_file.write(export_data)
 
