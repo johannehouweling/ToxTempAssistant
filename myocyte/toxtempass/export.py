@@ -89,13 +89,14 @@ def _export_optional_value(value: str | None) -> str | None:
 
 
 def _person_export_author_entry(person: Person | None) -> ExportAuthor | None:
-    """Return an export author entry with ``name`` and ``organization`` keys."""
+    """Return an export author entry with name, organization, and ORCID iD."""
     author_name = _person_export_name(person)
     if author_name is None:
         return None
     return {
         "name": author_name,
         "organization": _export_optional_value(person.organization),
+        "orcid_id": _export_optional_value(person.orcid_id),
     }
 
 
@@ -114,7 +115,7 @@ def _person_export_owner_entry(
 
 
 def get_assay_export_authors(assay: Assay) -> list[ExportAuthor]:
-    """Return ordered author entries with ``name`` and ``organization`` for an assay.
+    """Return ordered author entries with name, organization, and ORCID iD.
 
     Ordering rules:
     1. First author is the assay creator when available.
@@ -181,13 +182,14 @@ def get_assay_export_author_metadata(assay: Assay) -> ExportAuthorMetadata:
     """Return export author metadata for an assay."""
     authors = get_assay_export_authors(assay)
     author_names = [author["name"] for author in authors]
-    investigation_owner = _person_export_owner_entry(assay.study.investigation.owner)
+    corresponding_author = _person_export_owner_entry(assay.study.investigation.owner)
     return {
         "author": author_names,
         "authors": authors,
         "main_author": author_names[0] if author_names else None,
         "co_authors": author_names[1:],
-        "investigation_owner": investigation_owner,
+        "investigation_owner": corresponding_author,
+        "corresponding_author": corresponding_author,
     }
 
 
@@ -258,7 +260,8 @@ def generate_json_from_assay(assay: Assay) -> dict | None:
                 # Structured per-run LLM identities (machine-readable companion to
                 # the human-readable `config.model` string).
                 "models_used": models_used,
-                # Trimmed config for reproducibility (PII and developer-only fields omitted)
+                # Trimmed config for reproducibility
+                # (PII and developer-only fields omitted)
                 "config": {
                     "model": model_summary,
                     "model_info_url": model_info_url_value
@@ -346,10 +349,11 @@ def generate_markdown_from_assay(assay: Assay) -> str:
     if export_data["metadata"].get("authors"):
         markdown.append("- **Authors:**\n")
         for author in export_data["metadata"]["authors"]:
-            organization = author.get("organization")
             author_line = author["name"]
-            if organization:
-                author_line += f" ({organization})"
+            if author.get("organization"):
+                author_line += f" ({author['organization']})"
+            if author.get("orcid_id"):
+                author_line += f" — ORCID iD: {author['orcid_id']}"
             markdown.append(f"  - {author_line}\n")
     if export_data["metadata"].get("main_author"):
         markdown.append(f"- **Main Author:** {export_data['metadata']['main_author']}\n")
@@ -359,22 +363,26 @@ def generate_markdown_from_assay(assay: Assay) -> str:
             + ", ".join(export_data["metadata"]["co_authors"])
             + "\n"
         )
-    owner_metadata = export_data["metadata"].get("investigation_owner")
-    if owner_metadata:
-        markdown.append(f"- **Investigation Owner:** {owner_metadata['name']}\n")
-        if owner_metadata.get("organization"):
+    corresponding_author = export_data["metadata"].get("corresponding_author")
+    if corresponding_author:
+        markdown.append(
+            f"- **Corresponding Author:** {corresponding_author['name']}\n"
+        )
+        if corresponding_author.get("organization"):
             markdown.append(
-                "- **Investigation Owner Organization:** "
-                + owner_metadata["organization"]
+                "- **Corresponding Author Organization:** "
+                + corresponding_author["organization"]
                 + "\n"
             )
-        if owner_metadata.get("email"):
+        if corresponding_author.get("email"):
             markdown.append(
-                f"- **Investigation Owner Email:** {owner_metadata['email']}\n"
+                f"- **Corresponding Author Email:** {corresponding_author['email']}\n"
             )
-        if owner_metadata.get("orcid_id"):
+        if corresponding_author.get("orcid_id"):
             markdown.append(
-                f"- **Investigation Owner ORCID iD:** {owner_metadata['orcid_id']}\n"
+                "- **Corresponding Author ORCID iD:** "
+                + corresponding_author["orcid_id"]
+                + "\n"
             )
     markdown.append("\n## ToxTempAssistant configuration\n")
     for key, value in export_data["metadata"]["config"].items():
@@ -500,6 +508,7 @@ def get_create_meta_data_yaml(
         "author": author_metadata["author"],
         "authors": author_metadata["authors"],
         "investigation_owner": author_metadata["investigation_owner"],
+        "corresponding_author": author_metadata["corresponding_author"],
         "date": str(current_date),  # Current date;
         "keywords": (
             "metadata template, "
