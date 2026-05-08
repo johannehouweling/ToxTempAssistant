@@ -31,6 +31,12 @@ PANDOC_EXPORT_TYPES = Config.PANDOC_EXPORT_TYPES
 MATH_BLOCK_START = re.compile(r"^\s*(\$\$|\\\[)")
 MATH_BLOCK_END = re.compile(r"(\$\$|\\\])\s*$")
 
+ExportAuthor = dict[str, str | None]
+ExportAuthorMetadata = dict[
+    str,
+    str | list[str] | list[ExportAuthor] | ExportAuthor | None,
+]
+
 
 def quote_answer(text: str) -> str:
     r"""Take a multi-line answer_text, and return a Markdown fragment.
@@ -77,7 +83,7 @@ def _export_optional_value(value: str | None) -> str | None:
     return value or None
 
 
-def _person_export_author_entry(person: Person | None) -> dict[str, str | None] | None:
+def _person_export_author_entry(person: Person | None) -> ExportAuthor | None:
     """Return structured author metadata for exports."""
     author_name = _person_export_name(person)
     if author_name is None:
@@ -88,7 +94,7 @@ def _person_export_author_entry(person: Person | None) -> dict[str, str | None] 
     }
 
 
-def _person_export_owner_entry(person: Person | None) -> dict[str, str | None] | None:
+def _person_export_owner_entry(person: Person | None) -> ExportAuthor | None:
     """Return structured investigation owner metadata for exports."""
     author_entry = _person_export_author_entry(person)
     if author_entry is None:
@@ -100,7 +106,7 @@ def _person_export_owner_entry(person: Person | None) -> dict[str, str | None] |
     }
 
 
-def get_assay_export_authors(assay: Assay) -> list[dict[str, str | None]]:
+def get_assay_export_authors(assay: Assay) -> list[ExportAuthor]:
     """Return ordered structured export author metadata for an assay.
 
     Ordering rules:
@@ -156,7 +162,7 @@ def get_assay_export_authors(assay: Assay) -> list[dict[str, str | None]]:
         "organization",
         "orcid_id",
     ).in_bulk(ordered_ids)
-    authors: list[dict[str, str | None]] = []
+    authors: list[ExportAuthor] = []
     for user_id in ordered_ids:
         author_entry = _person_export_author_entry(people_by_id.get(user_id))
         if author_entry is not None:
@@ -164,12 +170,7 @@ def get_assay_export_authors(assay: Assay) -> list[dict[str, str | None]]:
     return authors
 
 
-def get_assay_export_author_metadata(
-    assay: Assay,
-) -> dict[
-    str,
-    str | list[str] | list[dict[str, str | None]] | dict[str, str | None] | None,
-]:
+def get_assay_export_author_metadata(assay: Assay) -> ExportAuthorMetadata:
     """Return export author metadata for an assay."""
     authors = get_assay_export_authors(assay)
     author_names = [author["name"] for author in authors]
