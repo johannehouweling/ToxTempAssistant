@@ -230,6 +230,38 @@ def signup(request: HttpRequest) -> HttpResponse | JsonResponse:
 @require_GET
 def ror_organization_lookup(request: HttpRequest) -> JsonResponse:
     """Return organization suggestions from the public ROR API."""
+    def _extract_email_domain(raw_email: str) -> str | None:
+        value = (raw_email or "").strip().lower()
+        if "@" not in value:
+            return None
+        _, _, domain = value.rpartition("@")
+        domain = domain.strip(".")
+        if not domain or "." not in domain:
+            return None
+        if ".." in domain or len(domain) > 253:
+            return None
+        # RFC 1035-style hostname check: labels start/end alphanumeric, may
+        # contain internal hyphens, max 63 chars per label, and include at
+        # least one dot-separated suffix label (e.g., example.org).
+        if not re.fullmatch(
+            r"(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))+",
+            domain,
+        ):
+            return None
+        return domain
+
+    def _fetch_ror_payload(advanced_query: str) -> dict:
+        response = requests.get(
+            config.ror_organization_api_url,
+            params={"query.advanced": advanced_query},
+            timeout=config.ror_lookup_timeout_seconds,
+        )
+        response.raise_for_status()
+        return response.json()
+
+    def _escape_ror_query_value(value: str) -> str:
+        return value.replace("\\", "\\\\").replace('"', '\\"')
+
     query = " ".join((request.GET.get("q") or "").split())
     if len(query) < 3:
         return JsonResponse({"items": []})
@@ -237,58 +269,85 @@ def ror_organization_lookup(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"items": []})
     if not re.fullmatch(r"[A-Za-z0-9 .,-]+", query):
         return JsonResponse({"items": []})
+    quoted_query = _escape_ror_query_value(query)
+    email_domain = _extract_email_domain(request.GET.get("email", ""))
 
-    try:
-        response = requests.get(
-            config.ror_organization_api_url,
-            params={"query": query},
-            timeout=config.ror_lookup_timeout_seconds,
+    domain_queries = []
+    if email_domain:
+        quoted_email_domain = _escape_ror_query_value(email_domain)
+        domain_queries.append(
+            f'links.value:"{quoted_email_domain}" AND names.value:"{quoted_query}"'
         )
-        response.raise_for_status()
-        payload = response.json()
-    except requests.RequestException:
-        logger.exception("ROR lookup failed for query '%s'", query)
-        return JsonResponse({"items": []})
+        domain_queries.append(f'links.value:"{quoted_email_domain}"')
+    query_batches = [domain_queries, [f'names.value:"{quoted_query}"']]
 
+    seen_organizations: set[str] = set()
     suggestions = []
-    for item in payload.get("items", [])[:config.ror_max_suggestions]:
-        # ROR API now returns v2 schema: names live in a `names[]` array tagged
-        # with `types` (preferred display = "ror_display"), country lives under
-        # `locations[].geonames_details.country_name`. Fall back to the legacy
-        # v1 flat shape for resilience.
-        organization = item.get("organization", item)
-        organization_name = organization.get("name")
-        country_name = (organization.get("country") or {}).get("country_name")
-        if not organization_name:
-            names = organization.get("names") or []
-            display_entry = next(
-                (n for n in names if "ror_display" in (n.get("types") or [])),
-                None,
-            )
-            label_entry = next(
-                (n for n in names if "label" in (n.get("types") or [])),
-                None,
-            )
-            entry = display_entry or label_entry or (names[0] if names else None)
-            organization_name = (entry or {}).get("value")
-        if not country_name:
-            locations = organization.get("locations") or []
-            if locations:
-                country_name = (
-                    locations[0].get("geonames_details") or {}
-                ).get("country_name")
-        if not organization_name:
-            continue
-        display_label = (
-            f"{organization_name} ({country_name})" if country_name else organization_name
-        )
-        suggestions.append(
-            {
-                "name": organization_name,
-                "label": display_label,
-                "id": organization.get("id"),
-            }
-        )
+    for batch_idx, advanced_queries in enumerate(query_batches):
+        is_domain_batch = batch_idx == 0 and bool(email_domain)
+        for advanced_query in advanced_queries:
+            try:
+                payload = _fetch_ror_payload(advanced_query)
+            except requests.RequestException:
+                logger.exception(
+                    "ROR lookup failed for query '%s' (advanced query: %s)",
+                    query,
+                    advanced_query,
+                )
+                continue
+
+            for item in payload.get("items", []):
+                # ROR API now returns v2 schema: names live in a `names[]` array tagged
+                # with `types` (preferred display = "ror_display"), country lives under
+                # `locations[].geonames_details.country_name`. Fall back to the legacy
+                # v1 flat shape for resilience.
+                organization = item.get("organization", item)
+                organization_name = organization.get("name")
+                country_name = (organization.get("country") or {}).get("country_name")
+                if not organization_name:
+                    names = organization.get("names") or []
+                    display_entry = next(
+                        (n for n in names if "ror_display" in (n.get("types") or [])),
+                        None,
+                    )
+                    label_entry = next(
+                        (n for n in names if "label" in (n.get("types") or [])),
+                        None,
+                    )
+                    entry = display_entry or label_entry or (names[0] if names else None)
+                    organization_name = (entry or {}).get("value")
+                if not country_name:
+                    locations = organization.get("locations") or []
+                    if locations:
+                        country_name = (
+                            locations[0].get("geonames_details") or {}
+                        ).get("country_name")
+                if not organization_name:
+                    continue
+
+                organization_id = organization.get("id")
+                dedupe_key = organization_id if organization_id is not None else organization_name
+                if dedupe_key in seen_organizations:
+                    continue
+                seen_organizations.add(dedupe_key)
+
+                display_label = (
+                    f"{organization_name} ({country_name})"
+                    if country_name
+                    else organization_name
+                )
+                suggestions.append(
+                    {
+                        "name": organization_name,
+                        "label": display_label,
+                        "id": organization.get("id"),
+                    }
+                )
+                if len(suggestions) >= config.ror_max_suggestions:
+                    return JsonResponse({"items": suggestions})
+
+        if email_domain and is_domain_batch and suggestions:
+            return JsonResponse({"items": suggestions})
     return JsonResponse({"items": suggestions})
 
 
