@@ -23,10 +23,49 @@
       <div id="non-field-errors"></div>
       {% csrf_token %}
       {% bootstrap_form form %}
+      <datalist id="ror-organization-suggestions"></datalist>
       <button type="submit" class="btn w-100 btn-primary">Sign Up</button>
     </form>
   </div>
 </div>
 {% include "terms_of_service_modal.html"%}
 {% include "error_handling.html" %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const orgInput = document.getElementById("id_organization");
+  const suggestions = document.getElementById("ror-organization-suggestions");
+  if (!orgInput || !suggestions) return;
+
+  let timeoutId = null;
+  const DEBOUNCE_DELAY_MS = 300;
+
+  orgInput.addEventListener("input", function() {
+    const value = orgInput.value;
+    if (timeoutId) clearTimeout(timeoutId);
+    if (value.length < 3) {
+      suggestions.innerHTML = "";
+      return;
+    }
+
+    timeoutId = setTimeout(() => {
+      const query = value.trim();
+      const params = new URLSearchParams({ q: query });
+      fetch("{% url 'ror_organization_lookup' %}?" + params.toString())
+        .then((response) => response.json())
+        .then((data) => {
+          suggestions.innerHTML = "";
+          (data.items || []).forEach((item) => {
+            const option = document.createElement("option");
+            option.value = item.name;
+            option.label = item.label || item.name;
+            suggestions.appendChild(option);
+          });
+        })
+        .catch(() => {
+          suggestions.innerHTML = "";
+        });
+    }, DEBOUNCE_DELAY_MS);
+  });
+});
+</script>
 {% endblock %}

@@ -65,6 +65,19 @@ class LoginForm(forms.Form):
 
 
 class SignupFormOrcid(UserCreationForm):
+    def __init__(self, *args, **kwargs):
+        """Initialize signup form fields."""
+        super().__init__(*args, **kwargs)
+        organization = self.fields["organization"]
+        organization.required = True
+        organization.help_text = "Type at least 3 characters to search ROR organizations."
+        organization.widget.attrs.update(
+            {
+                "autocomplete": "organization",
+                "list": "ror-organization-suggestions",
+            }
+        )
+
     class Meta:
         model = Person
         # Include fields you want the user to fill in.
@@ -100,7 +113,6 @@ class SignupFormOrcid(UserCreationForm):
                 "You must accept the terms of service to continue.",
             )
         return cleaned_data
-
 
 class SignupForm(SignupFormOrcid):
     class Meta(SignupFormOrcid.Meta):
@@ -570,10 +582,10 @@ class AssayAnswerForm(forms.Form):
                         answer.accepted if answer else False
                     )
 
-                    # Add a checkbox for earmarking the answer for GPT update.
+                    # Add a checkbox for earmarking the answer for LLM update.
                     earmarked_field_name = f"earmarked_{question.id}"
                     self.fields[earmarked_field_name] = forms.BooleanField(
-                        label="GPT Update",
+                        label="LLM Update",
                         required=False,
                     )
                     self.fields[earmarked_field_name].initial = False
@@ -706,12 +718,12 @@ class AssayAnswerForm(forms.Form):
 
             if data.get("earmarked", False):
                 earmarked_answers.append(answer)
-                logger.info(f"Question id {qid} marked for GPT update.")
+                logger.info(f"Question id {qid} marked for LLM update.")
 
         if uploaded_files and not earmarked_answers:
             self.add_error(
                 "file_upload",
-                "Select at least one question for GPT update when uploading files.",
+                "Select at least one question for LLM update when uploading files.",
             )
             return False
 

@@ -2,6 +2,112 @@
 
 <!-- version list -->
 
+## v3.17.5 (2026-05-08)
+
+### Bug Fixes
+
+- **ror**: Add v2 endpoint for ror lookup
+  ([`ee11947`](https://github.com/johannehouweling/ToxTempAssistant/commit/ee1194726ff4e96b0ac87d1d9767204a35d11a0f))
+
+
+## v3.17.4 (2026-05-08)
+
+### Bug Fixes
+
+- Harden deploy readiness helper
+  ([`2952587`](https://github.com/johannehouweling/ToxTempAssistant/commit/29525875d256155e094b985f02f9f3f19d7b4c75))
+
+- Read deploy probe timing from env file
+  ([`72153b4`](https://github.com/johannehouweling/ToxTempAssistant/commit/72153b461ed84e214e26cfc0b19c60f1820d669a))
+
+- Read deploy readiness settings from service env
+  ([`0aabd5d`](https://github.com/johannehouweling/ToxTempAssistant/commit/0aabd5d45f90276219163db225ee515fa84b3025))
+
+- Streamline deploy readiness helper
+  ([`5dc2388`](https://github.com/johannehouweling/ToxTempAssistant/commit/5dc2388977f43edec4dda6cd7da6df63acd7da9d))
+
+- Tighten deploy readiness probes
+  ([`f9623f7`](https://github.com/johannehouweling/ToxTempAssistant/commit/f9623f76f82c3ed952919d27856b5e55e6646f80))
+
+- Wait for deploy target to serve http
+  ([`f0acf61`](https://github.com/johannehouweling/ToxTempAssistant/commit/f0acf61805d1131d9ce1182fb3e8cdfb1b014ef1))
+
+### Chores
+
+- Improve deploy probe diagnostics
+  ([`03385ff`](https://github.com/johannehouweling/ToxTempAssistant/commit/03385ff42cc99e6c86732ee1e2c30db77ea556fa))
+
+- Narrow deploy env parsing
+  ([`8ea3f37`](https://github.com/johannehouweling/ToxTempAssistant/commit/8ea3f3733e4410f62567baec15332a71d57394ba))
+
+- Refine deploy readiness probes
+  ([`e39690f`](https://github.com/johannehouweling/ToxTempAssistant/commit/e39690f23590f3bb321e90700ef845e6521a17e0))
+
+- Sanitize deploy env parsing
+  ([`1c2c5a0`](https://github.com/johannehouweling/ToxTempAssistant/commit/1c2c5a01cb553862f99a11a4919f920c3738aeb0))
+
+- Simplify deploy probe piping
+  ([`b08d4d5`](https://github.com/johannehouweling/ToxTempAssistant/commit/b08d4d5ae06f9ba4645ede2f886fb283d7013878))
+
+- Tighten deploy status matching
+  ([`054ba2a`](https://github.com/johannehouweling/ToxTempAssistant/commit/054ba2a1e95309ea2df7756a447ea837dc07893b))
+
+
+## v3.17.3 (2026-05-08)
+
+### Bug Fixes
+
+- Support nested ROR organization lookup payloads
+  ([`91b7320`](https://github.com/johannehouweling/ToxTempAssistant/commit/91b73208684308bacc1aae65243e7ce04355ecf5))
+
+
+## v3.17.2 (2026-05-08)
+
+### Bug Fixes
+
+- **tables**: Remove leaking text in export menu
+  ([`61e952c`](https://github.com/johannehouweling/ToxTempAssistant/commit/61e952c8e76ff25ee62e701fdcd8f750e441c4aa))
+
+
+## v3.17.1 (2026-05-08)
+
+### Bug Fixes
+
+- **export**: Exports from overview page now go through feedback_export() the same wat the editing
+  pages does.
+  ([`365ee88`](https://github.com/johannehouweling/ToxTempAssistant/commit/365ee88e617f41f59e90f08afdb486d76aa05e00))
+
+- **export**: Remove dead md block
+  ([`11dd92f`](https://github.com/johannehouweling/ToxTempAssistant/commit/11dd92fcf5f324d22e7258611bc51735fd669c54))
+
+- **export**: Report actual LLMs used and resolve broken metadata fields
+  ([`56067f2`](https://github.com/johannehouweling/ToxTempAssistant/commit/56067f28be3ea831adef5ec0c42eb1b282b570b1))
+
+- **ui**: Rename GPT update wording to LLM update
+  ([`64c50e4`](https://github.com/johannehouweling/ToxTempAssistant/commit/64c50e44174250471ea4875fd7e25d52d23f9454))
+
+
+## v3.17.0 (2026-05-08)
+
+### Bug Fixes
+
+- Harden ror lookup and affiliation export formatting
+  ([`034719a`](https://github.com/johannehouweling/ToxTempAssistant/commit/034719aa949c6f6a9c962ecb51f2275162f62c35))
+
+- Move ror constants to config and use email author fallback
+  ([`ab4cef0`](https://github.com/johannehouweling/ToxTempAssistant/commit/ab4cef0b561c41c11766fe2acc9db3c1098b233d))
+
+### Documentation
+
+- **agents**: Update conventions for coding agents.
+  ([`4e6a991`](https://github.com/johannehouweling/ToxTempAssistant/commit/4e6a991ee2716394c4dda7e544d4dccb585e102d))
+
+### Features
+
+- Add organization lookup and affiliation export metadata
+  ([`174804f`](https://github.com/johannehouweling/ToxTempAssistant/commit/174804fd79263a0cb46c82b6f6daaec4ea177a8a))
+
+
 ## v3.16.7 (2026-05-07)
 
 ### Bug Fixes
@@ -238,7 +344,7 @@
 
 ### Features
 
-- Add Mark all open for GPT Update toggle to Options dropdown
+- Add Mark all open for LLM Update toggle to Options dropdown
   ([`8d57416`](https://github.com/johannehouweling/ToxTempAssistant/commit/8d57416146d8fd8496e5b33a7fcb670af2c9a7d5))
 
 

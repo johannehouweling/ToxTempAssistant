@@ -31,7 +31,7 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
 from django.views import View
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 from django_q.tasks import async_task
 from django_tables2 import SingleTableView
 from guardian.shortcuts import get_objects_for_user
@@ -225,6 +225,71 @@ def signup(request: HttpRequest) -> HttpResponse | JsonResponse:
         form = SignupForm()
 
     return render(request, "signup.html", {"form": form})
+
+
+@require_GET
+def ror_organization_lookup(request: HttpRequest) -> JsonResponse:
+    """Return organization suggestions from the public ROR API."""
+    query = " ".join((request.GET.get("q") or "").split())
+    if len(query) < 3:
+        return JsonResponse({"items": []})
+    if len(query) > config.ror_max_query_length:
+        return JsonResponse({"items": []})
+    if not re.fullmatch(r"[A-Za-z0-9 .,-]+", query):
+        return JsonResponse({"items": []})
+
+    try:
+        response = requests.get(
+            config.ror_organization_api_url,
+            params={"query": query},
+            timeout=config.ror_lookup_timeout_seconds,
+        )
+        response.raise_for_status()
+        payload = response.json()
+    except requests.RequestException:
+        logger.exception("ROR lookup failed for query '%s'", query)
+        return JsonResponse({"items": []})
+
+    suggestions = []
+    for item in payload.get("items", [])[:config.ror_max_suggestions]:
+        # ROR API now returns v2 schema: names live in a `names[]` array tagged
+        # with `types` (preferred display = "ror_display"), country lives under
+        # `locations[].geonames_details.country_name`. Fall back to the legacy
+        # v1 flat shape for resilience.
+        organization = item.get("organization", item)
+        organization_name = organization.get("name")
+        country_name = (organization.get("country") or {}).get("country_name")
+        if not organization_name:
+            names = organization.get("names") or []
+            display_entry = next(
+                (n for n in names if "ror_display" in (n.get("types") or [])),
+                None,
+            )
+            label_entry = next(
+                (n for n in names if "label" in (n.get("types") or [])),
+                None,
+            )
+            entry = display_entry or label_entry or (names[0] if names else None)
+            organization_name = (entry or {}).get("value")
+        if not country_name:
+            locations = organization.get("locations") or []
+            if locations:
+                country_name = (
+                    locations[0].get("geonames_details") or {}
+                ).get("country_name")
+        if not organization_name:
+            continue
+        display_label = (
+            f"{organization_name} ({country_name})" if country_name else organization_name
+        )
+        suggestions.append(
+            {
+                "name": organization_name,
+                "label": display_label,
+                "id": organization.get("id"),
+            }
+        )
+    return JsonResponse({"items": suggestions})
 
 
 def approve_beta(request: HttpRequest, token: str) -> HttpResponse:

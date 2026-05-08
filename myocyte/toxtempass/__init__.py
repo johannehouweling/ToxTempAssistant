@@ -229,6 +229,11 @@ class Config:
     # (in milliseconds)
     reload_busy_interval_seconds = 10000
     reload_busy_max_retries = 30  # e.g., 30 × 10s = 5 minutes
+    # ROR organization lookup settings
+    ror_organization_api_url = "https://api.ror.org/v2/organizations"
+    ror_lookup_timeout_seconds = 3
+    ror_max_query_length = 120
+    ror_max_suggestions = 10
     # ORCID settings
     _orcid_client_id = os.getenv("ORCID_CLIENT_ID")
     _orcid_client_secret = os.getenv("ORCID_CLIENT_SECRET")

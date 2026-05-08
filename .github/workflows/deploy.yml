@@ -73,6 +73,43 @@ jobs:
             # If remote access to minio console is needed, uncomment the following line
             # sudo docker network connect bridge minio
 
+            container_env=$(sudo docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' djangoapp)
+            timeout_seconds=$(printf '%s\n' "$container_env" | awk -F= '$1=="SERVICE_BOOT_TIMEOUT_SECONDS"{print $2; exit}')
+            poll_seconds=$(printf '%s\n' "$container_env" | awk -F= '$1=="SERVICE_BOOT_POLL_SECONDS"{print $2; exit}')
+            case "$timeout_seconds" in
+              ''|*[!0-9]*|0) timeout_seconds=300 ;;
+            esac
+            case "$poll_seconds" in
+              ''|*[!0-9]*|0) poll_seconds=10 ;;
+            esac
+            probe_host=$(printf '%s\n' "$container_env" | python3 .github/scripts/deploy_readiness_probe.py probe-host)
+            ready=0
+            deadline=$((SECONDS + timeout_seconds))
+            while [ "$SECONDS" -lt "$deadline" ]; do
+              # The helper lives only in the checked-out repo on the host, not inside
+              # the deploy image, so feed it to python3 over stdin when probing.
+              if probe_result=$(sudo docker exec -e PROBE_HOST="$probe_host" -e PROBE_MODE=http-status -e PROBE_URL=http://127.0.0.1:8000/ -i djangoapp python3 - < .github/scripts/deploy_readiness_probe.py 2>&1); then
+                case "$probe_result" in
+                  2[0-9][0-9]|3[0-9][0-9])
+                    ready=1
+                    echo "djangoapp is serving HTTP ${probe_result}."
+                    break
+                    ;;
+                esac
+                echo "Waiting for djangoapp to return a success status (last HTTP ${probe_result})..."
+              else
+                echo "Waiting for djangoapp to accept HTTP requests (${probe_result})..."
+              fi
+              sleep "$poll_seconds"
+            done
+
+            if [ "$ready" -ne 1 ]; then
+              echo "djangoapp did not start serving traffic within ${timeout_seconds} seconds."
+              sudo --preserve-env=GIT_HASH,GIT_TAG docker compose --profile prod ps
+              sudo --preserve-env=GIT_HASH,GIT_TAG docker compose --profile prod logs --tail=200 djangoapp
+              exit 1
+            fi
+
   deploy-swarm:
     name: Deploy to Swarm cluster
     runs-on: ubuntu-latest
@@ -164,3 +201,55 @@ jobs:
             rm -rf '$DEPLOY_DIR'
           "
 
+      - name: Verify Swarm djangoapp boot
+        env:
+          REMOTE: ${{ vars.TGX1_USERNAME }}@${{ vars.TGX1_IP_ADDRESS }}
+        run: |
+          set -euo pipefail
+          SSH_OPTS="-i $HOME/.ssh/id_ed25519 -o StrictHostKeyChecking=yes"
+          env_dump=$(ssh $SSH_OPTS "$REMOTE" "docker service inspect --format '{{range .Spec.TaskTemplate.ContainerSpec.Env}}{{println .}}{{end}}' toxtempass_djangoapp")
+          timeout_seconds=$(printf '%s\n' "$env_dump" | awk -F= '$1=="SERVICE_BOOT_TIMEOUT_SECONDS"{print $2; exit}')
+          poll_seconds=$(printf '%s\n' "$env_dump" | awk -F= '$1=="SERVICE_BOOT_POLL_SECONDS"{print $2; exit}')
+          case "$timeout_seconds" in
+            ''|*[!0-9]*|0) timeout_seconds=300 ;;
+          esac
+          case "$poll_seconds" in
+            ''|*[!0-9]*|0) poll_seconds=10 ;;
+          esac
+          probe_host=$(printf '%s\n' "$env_dump" | python3 .github/scripts/deploy_readiness_probe.py probe-host)
+          deadline=$((SECONDS + timeout_seconds))
+          ready=0
+
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            replicas=$(ssh $SSH_OPTS "$REMOTE" "docker service ls --filter name=toxtempass_djangoapp --format '{{.Replicas}}'" | head -n1)
+            if [ "$replicas" = "1/1" ]; then
+              container_id=$(ssh $SSH_OPTS "$REMOTE" "docker ps --filter label=com.docker.swarm.service.name=toxtempass_djangoapp --format '{{.ID}}' | head -n1")
+              if [ -n "$container_id" ]; then
+                # The helper exists on the Actions runner, so stream it into python3
+                # inside the remote container rather than requiring it in the image.
+                if probe_result=$(ssh $SSH_OPTS "$REMOTE" "docker exec -e PROBE_HOST=\"$probe_host\" -e PROBE_MODE=http-status -e PROBE_URL=http://127.0.0.1:8000/ -i $container_id python3 -" < .github/scripts/deploy_readiness_probe.py 2>&1); then
+                  case "$probe_result" in
+                    2[0-9][0-9]|3[0-9][0-9])
+                      ready=1
+                      echo "Swarm djangoapp is serving HTTP ${probe_result}."
+                      break
+                      ;;
+                  esac
+                  echo "Waiting for Swarm djangoapp to return a success status (last HTTP ${probe_result})..."
+                else
+                  echo "Waiting for Swarm djangoapp to accept HTTP requests (${probe_result})..."
+                fi
+              else
+                echo "Waiting for Swarm djangoapp container to appear..."
+              fi
+            else
+              echo "Waiting for Swarm djangoapp replicas to converge (current: ${replicas:-unknown})..."
+            fi
+            sleep "$poll_seconds"
+          done
+
+          if [ "$ready" -ne 1 ]; then
+            echo "Swarm djangoapp did not start serving traffic within ${timeout_seconds} seconds."
+            ssh $SSH_OPTS "$REMOTE" "docker service ls || true; docker service ps --no-trunc toxtempass_djangoapp || true; docker service logs --tail 200 toxtempass_djangoapp || true"
+            exit 1
+          fi

@@ -204,7 +204,7 @@ class ExportMetadataAuthorTests(TestCase):
                 "name": "Owner Person",
                 "organization": "Owner Institute",
                 "email": "owner@test.com",
-                "orcid_id": "0000-0000-0000-0001",
+                "orcid_id": "0000-0000-0000-0001",https://github.com/johannehouweling/ToxTempAssistant/pull/182/conflict?name=myocyte%252Ftoxtempass%252Ftests%252Ftest_export_metadata.py&base_oid=860dc1d6a046a6ddc0b554f5681c4d39c19b6255&head_oid=c0b893c3f0b6f2554361b6c6d033e58d715cf3cf
             },
         )
 
