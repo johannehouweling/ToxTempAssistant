@@ -118,6 +118,19 @@ services:
     user: root
     container_name: djangoapp
     restart: unless-stopped
+    # Container-side readiness check. Swarm holds a task in "starting" until
+    # the first successful healthcheck, so the deploy workflow can simply wait
+    # for `docker service ps` to show "Running" instead of doing a docker exec
+    # probe (which doesn't work cross-node on multi-host swarms — the task may
+    # be scheduled on a worker the manager can't `docker exec` into). `Host:
+    # localhost` is in ALLOWED_HOSTS (.env.dummy:25), `/` redirects to /login
+    # which is a 302 — both pass `curl -fsS`.
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null -H 'Host: localhost' http://127.0.0.1:8000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 180s
     entrypoint: ["/home/myocyte/django_startup.sh"]
     command: >
       poetry run gunicorn myocyte.wsgi:application

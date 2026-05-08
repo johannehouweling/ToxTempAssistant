@@ -450,7 +450,7 @@ Workflow files:
 - `.github/workflows/ci.yml` — tests; skips on bot-commits and on workflow-only/markdown-only pushes
 - `.github/workflows/release.yml` — `semantic-release version`; uses PAT so tag pushes trigger downstream workflows
 - `.github/workflows/publish-image.yml` — matrix builds + GH Release (gates deploy)
-- `.github/workflows/deploy.yml` — `deploy-legacy` (release events only) + `deploy-swarm` (release **and** workflow_dispatch). Both jobs now wait for Django to answer HTTP before being marked successful; the timeout/poll values come from `SERVICE_BOOT_TIMEOUT_SECONDS` and `SERVICE_BOOT_POLL_SECONDS` in the server `.env`, swarm runs remain non-blocking on release events during cutover, while `workflow_dispatch` runs fail loudly.
+- `.github/workflows/deploy.yml` — `deploy-legacy` (release events only) + `deploy-swarm` (release **and** workflow_dispatch). Both jobs wait for the djangoapp container to report `healthy` (via the in-container `HEALTHCHECK` defined in `docker-compose.yml`, which curls gunicorn end-to-end) before being marked successful. Swarm runs remain non-blocking on release events during cutover, while `workflow_dispatch` runs fail loudly.
 
 ### `workflow_dispatch` for ad-hoc swarm deploys
 
