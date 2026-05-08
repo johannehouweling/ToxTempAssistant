@@ -24,7 +24,6 @@ logger = logging.getLogger(__name__)
 EXPORT_MIME_SUFFIX = Config.EXPORT_MIME_SUFFIX
 EXPORT_MAPPING = Config.EXPORT_MAPPING
 PANDOC_EXPORT_TYPES = Config.PANDOC_EXPORT_TYPES
-UNKNOWN_AUTHOR_LABEL = "Unknown author"
 
 # simple regexes to catch display‐math delimiters
 
@@ -293,7 +292,7 @@ def get_create_meta_data_yaml(
     ]
     author_name = " ".join(part for part in author_name_parts if part)
     if not author_name:
-        author_name = UNKNOWN_AUTHOR_LABEL
+        author_name = str(request.user.email).strip()
     organization = str(request.user.organization or "").strip()
     safe_organization = _escape_pandoc_inline_footnote(organization)
     author_entry = author_name if not organization else f"{author_name}^[{safe_organization}]"

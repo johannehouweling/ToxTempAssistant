@@ -69,3 +69,25 @@ def test_metadata_author_escapes_affiliation_for_footnote_markup(tmp_path):
 
     metadata = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
     assert metadata["author"] == [r"Ada Lovelace^[Lab\]\^2]"]
+
+
+def test_metadata_author_falls_back_to_email_when_name_missing(tmp_path):
+    request = SimpleNamespace(
+        user=SimpleNamespace(
+            first_name="",
+            last_name="",
+            organization="",
+            email="fallback@example.com",
+        )
+    )
+    assay = SimpleNamespace(title="Demo assay")
+
+    yaml_path = get_create_meta_data_yaml(
+        request=request,
+        assay=assay,
+        file_path=tmp_path / "demo.pdf",
+        export_type="pdf",
+    )
+
+    metadata = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
+    assert metadata["author"] == ["fallback@example.com"]
