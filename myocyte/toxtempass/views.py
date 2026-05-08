@@ -252,13 +252,33 @@ def ror_organization_lookup(request: HttpRequest) -> JsonResponse:
 
     suggestions = []
     for item in payload.get("items", [])[:config.ror_max_suggestions]:
-        # ROR v2 returns nested search hits under item["organization"].
-        # Keep support for both nested (v2) and flat (legacy) response formats.
+        # ROR API now returns v2 schema: names live in a `names[]` array tagged
+        # with `types` (preferred display = "ror_display"), country lives under
+        # `locations[].geonames_details.country_name`. Fall back to the legacy
+        # v1 flat shape for resilience.
         organization = item.get("organization", item)
         organization_name = organization.get("name")
+        country_name = (organization.get("country") or {}).get("country_name")
+        if not organization_name:
+            names = organization.get("names") or []
+            display_entry = next(
+                (n for n in names if "ror_display" in (n.get("types") or [])),
+                None,
+            )
+            label_entry = next(
+                (n for n in names if "label" in (n.get("types") or [])),
+                None,
+            )
+            entry = display_entry or label_entry or (names[0] if names else None)
+            organization_name = (entry or {}).get("value")
+        if not country_name:
+            locations = organization.get("locations") or []
+            if locations:
+                country_name = (
+                    locations[0].get("geonames_details") or {}
+                ).get("country_name")
         if not organization_name:
             continue
-        country_name = organization.get("country", {}).get("country_name")
         display_label = (
             f"{organization_name} ({country_name})" if country_name else organization_name
         )
