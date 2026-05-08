@@ -73,22 +73,53 @@ jobs:
             # If remote access to minio console is needed, uncomment the following line
             # sudo docker network connect bridge minio
 
-            timeout_seconds=$(sudo docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' djangoapp | awk -F= '$1=="SERVICE_BOOT_TIMEOUT_SECONDS"{print $2; exit}')
-            poll_seconds=$(sudo docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' djangoapp | awk -F= '$1=="SERVICE_BOOT_POLL_SECONDS"{print $2; exit}')
+            container_env=$(sudo docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' djangoapp)
+            timeout_seconds=$(printf '%s\n' "$container_env" | awk -F= '$1=="SERVICE_BOOT_TIMEOUT_SECONDS"{print $2; exit}')
+            poll_seconds=$(printf '%s\n' "$container_env" | awk -F= '$1=="SERVICE_BOOT_POLL_SECONDS"{print $2; exit}')
             case "$timeout_seconds" in
               ''|*[!0-9]*|0) timeout_seconds=300 ;;
             esac
             case "$poll_seconds" in
               ''|*[!0-9]*|0) poll_seconds=10 ;;
             esac
+            probe_host=$(
+              CONTAINER_ENV="$container_env" python3 - <<'PY'
+              import os
+              from urllib.parse import urlparse
+
+              env = {}
+              for line in os.environ.get("CONTAINER_ENV", "").splitlines():
+                  if "=" in line:
+                      key, value = line.split("=", 1)
+                      env[key] = value
+
+              host = ""
+              site_url = env.get("SITE_URL", "").strip()
+              if site_url:
+                  try:
+                      host = urlparse(site_url).hostname or ""
+                  except ValueError:
+                      host = ""
+              if not host:
+                  for entry in env.get("ALLOWED_HOSTS", "").split(","):
+                      entry = entry.strip()
+                      if entry:
+                          host = entry.split(":", 1)[0]
+                          break
+              print(host or "localhost")
+              PY
+            )
             http_probe=$(cat <<'PY'
+            import os
             import sys
             from urllib.error import HTTPError, URLError
             from urllib.request import Request, urlopen
 
+            probe_host = os.environ["PROBE_HOST"]
+
             try:
                 response = urlopen(
-                    Request("http://127.0.0.1:8000/", headers={"Host": "localhost"}),
+                    Request("http://127.0.0.1:8000/", headers={"Host": probe_host}),
                     timeout=5,
                 )
             except HTTPError as exc:
@@ -103,7 +134,7 @@ jobs:
             ready=0
             deadline=$((SECONDS + timeout_seconds))
             while [ "$SECONDS" -lt "$deadline" ]; do
-              if probe_result=$(printf '%s' "$http_probe" | sudo docker exec -i djangoapp python - 2>&1); then
+              if probe_result=$(printf '%s' "$http_probe" | sudo docker exec -e PROBE_HOST="$probe_host" -i djangoapp python3 - 2>&1); then
                 case "$probe_result" in
                   2[0-9][0-9]|3[0-9][0-9])
                     ready=1
@@ -222,7 +253,7 @@ jobs:
         run: |
           set -euo pipefail
           SSH_OPTS="-i $HOME/.ssh/id_ed25519 -o StrictHostKeyChecking=yes"
-          read -r timeout_seconds poll_seconds <<< "$(
+          read -r timeout_seconds poll_seconds probe_host <<< "$(
             ssh $SSH_OPTS "$REMOTE" 'bash -s' <<'EOF'
             env_dump=$(docker service inspect --format '{{range .Spec.TaskTemplate.ContainerSpec.Env}}{{println .}}{{end}}' toxtempass_djangoapp)
             timeout_seconds=$(printf '%s\n' "$env_dump" | awk -F= '$1=="SERVICE_BOOT_TIMEOUT_SECONDS"{print $2; exit}')
@@ -233,20 +264,47 @@ jobs:
             case "$poll_seconds" in
               ''|*[!0-9]*|0) poll_seconds=10 ;;
             esac
-            printf '%s %s' "$timeout_seconds" "$poll_seconds"
+            probe_host=$(
+              ENV_DUMP="$env_dump" python3 - <<'PY'
+              import os
+              from urllib.parse import urlparse
+
+              env = {}
+              for line in os.environ.get("ENV_DUMP", "").splitlines():
+                  if "=" in line:
+                      key, value = line.split("=", 1)
+                      env[key] = value
+
+              host = ""
+              site_url = env.get("SITE_URL", "").strip()
+              if site_url:
+                  try:
+                      host = urlparse(site_url).hostname or ""
+                  except ValueError:
+                      host = ""
+              if not host:
+                  for entry in env.get("ALLOWED_HOSTS", "").split(","):
+                      entry = entry.strip()
+                      if entry:
+                          host = entry.split(":", 1)[0]
+                          break
+              print(host or "localhost")
+              PY
+            )
+            printf '%s %s %s' "$timeout_seconds" "$poll_seconds" "$probe_host"
           EOF
           )"
           http_probe=$(cat <<'PY'
+          import os
           import sys
           from urllib.error import HTTPError, URLError
           from urllib.request import Request, urlopen
 
+          probe_host = os.environ["PROBE_HOST"]
+
           try:
               response = urlopen(
-                  Request(
-                      "http://toxtempass_djangoapp:8000/",
-                      headers={"Host": "toxtempassistant.vhp4safety.nl"},
-                  ),
+                  Request("http://127.0.0.1:8000/", headers={"Host": probe_host}),
                   timeout=5,
               )
           except HTTPError as exc:
@@ -264,17 +322,22 @@ jobs:
           while [ "$SECONDS" -lt "$deadline" ]; do
             replicas=$(ssh $SSH_OPTS "$REMOTE" "docker service ls --filter name=toxtempass_djangoapp --format '{{.Replicas}}'" | head -n1)
             if [ "$replicas" = "1/1" ]; then
-              if probe_result=$(printf '%s' "$http_probe" | ssh $SSH_OPTS "$REMOTE" "docker run --rm -i --network toxtempass_db_network python:3.12-alpine python -" 2>&1); then
-                case "$probe_result" in
-                  2[0-9][0-9]|3[0-9][0-9])
-                    ready=1
-                    echo "Swarm djangoapp is serving HTTP ${probe_result}."
-                    break
-                    ;;
-                esac
-                echo "Waiting for Swarm djangoapp to return a success status (last HTTP ${probe_result})..."
+              container_id=$(ssh $SSH_OPTS "$REMOTE" "docker ps --filter label=com.docker.swarm.service.name=toxtempass_djangoapp --format '{{.ID}}' | head -n1")
+              if [ -n "$container_id" ]; then
+                if probe_result=$(printf '%s' "$http_probe" | ssh $SSH_OPTS "$REMOTE" "docker exec -e PROBE_HOST='$probe_host' -i $container_id python3 -" 2>&1); then
+                  case "$probe_result" in
+                    2[0-9][0-9]|3[0-9][0-9])
+                      ready=1
+                      echo "Swarm djangoapp is serving HTTP ${probe_result}."
+                      break
+                      ;;
+                  esac
+                  echo "Waiting for Swarm djangoapp to return a success status (last HTTP ${probe_result})..."
+                else
+                  echo "Waiting for Swarm djangoapp to accept HTTP requests (${probe_result})..."
+                fi
               else
-                echo "Waiting for Swarm djangoapp to accept HTTP requests (${probe_result})..."
+                echo "Waiting for Swarm djangoapp container to appear..."
               fi
             else
               echo "Waiting for Swarm djangoapp replicas to converge (current: ${replicas:-unknown})..."
