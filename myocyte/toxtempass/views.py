@@ -31,7 +31,7 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
 from django.views import View
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 from django_q.tasks import async_task
 from django_tables2 import SingleTableView
 from guardian.shortcuts import get_objects_for_user
@@ -225,6 +225,44 @@ def signup(request: HttpRequest) -> HttpResponse | JsonResponse:
         form = SignupForm()
 
     return render(request, "signup.html", {"form": form})
+
+
+@require_GET
+def ror_organization_lookup(request: HttpRequest) -> JsonResponse:
+    """Return organization suggestions from the public ROR API."""
+    query = (request.GET.get("q") or "").strip()
+    if len(query) < 3:
+        return JsonResponse({"items": []})
+
+    try:
+        response = requests.get(
+            "https://api.ror.org/organizations",
+            params={"query": query},
+            timeout=5,
+        )
+        response.raise_for_status()
+        payload = response.json()
+    except requests.RequestException:
+        logger.exception("ROR lookup failed for query '%s'", query)
+        return JsonResponse({"items": []})
+
+    suggestions = []
+    for item in payload.get("items", [])[:10]:
+        organization_name = item.get("name")
+        if not organization_name:
+            continue
+        country_name = (item.get("country") or {}).get("country_name")
+        display_label = (
+            f"{organization_name} ({country_name})" if country_name else organization_name
+        )
+        suggestions.append(
+            {
+                "name": organization_name,
+                "label": display_label,
+                "id": item.get("id"),
+            }
+        )
+    return JsonResponse({"items": suggestions})
 
 
 def approve_beta(request: HttpRequest, token: str) -> HttpResponse:

@@ -282,8 +282,18 @@ def get_create_meta_data_yaml(
             r"\usepackage[a4paper, margin=3cm]{geometry}",
         ]
 
+    author_name_parts = [
+        str(getattr(request.user, "first_name", "")).strip(),
+        str(getattr(request.user, "last_name", "")).strip(),
+    ]
+    author_name = " ".join(part for part in author_name_parts if part).strip()
+    if not author_name:
+        author_name = str(getattr(request.user, "email", "Unknown author"))
+    organization = str(getattr(request.user, "organization", "") or "").strip()
+    author_entry = author_name if not organization else f"{author_name}^[{organization}]"
+
     metadata_dict = {
-        "author": f"{request.user.first_name} {request.user.last_name}",  # Example author; replace as needed
+        "author": [author_entry],
         "date": str(current_date),  # Current date;
         "keywords": (
             "metadata template, "
