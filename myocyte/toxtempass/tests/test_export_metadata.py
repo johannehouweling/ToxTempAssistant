@@ -7,7 +7,11 @@ from types import SimpleNamespace
 import yaml
 from django.test import TestCase
 
-from toxtempass.export import get_create_meta_data_yaml
+from toxtempass.export import (
+    generate_json_from_assay,
+    generate_markdown_from_assay,
+    get_create_meta_data_yaml,
+)
 from toxtempass.tests.fixtures.factories import AnswerFactory, AssayFactory, PersonFactory
 
 
@@ -30,10 +34,28 @@ class ExportMetadataAuthorTests(TestCase):
         answer.save()
 
     def test_metadata_lists_creator_then_contributors_then_owner(self):
-        owner = PersonFactory(first_name="Owner", last_name="Person")
-        creator = PersonFactory(first_name="Creator", last_name="Author")
-        contributor_one = PersonFactory(first_name="Alice", last_name="Editor")
-        contributor_two = PersonFactory(first_name="Bob", last_name="Reviewer")
+        owner = PersonFactory(
+            first_name="Owner",
+            last_name="Person",
+            organization="Owner Institute",
+            email="owner@test.com",
+            orcid_id="0000-0000-0000-0001",
+        )
+        creator = PersonFactory(
+            first_name="Creator",
+            last_name="Author",
+            organization="Creator Lab",
+        )
+        contributor_one = PersonFactory(
+            first_name="Alice",
+            last_name="Editor",
+            organization="Alice Org",
+        )
+        contributor_two = PersonFactory(
+            first_name="Bob",
+            last_name="Reviewer",
+            organization="Bob Center",
+        )
         exporter = PersonFactory(first_name="Exporter", last_name="Only")
         assay = AssayFactory(study__investigation__owner=owner, created_by=creator)
 
@@ -78,6 +100,24 @@ class ExportMetadataAuthorTests(TestCase):
         )
         self.assertNotIn("main_author", metadata)
         self.assertNotIn("co_authors", metadata)
+        self.assertEqual(
+            metadata["authors"],
+            [
+                {"name": "Creator Author", "organization": "Creator Lab"},
+                {"name": "Alice Editor", "organization": "Alice Org"},
+                {"name": "Bob Reviewer", "organization": "Bob Center"},
+                {"name": "Owner Person", "organization": "Owner Institute"},
+            ],
+        )
+        self.assertEqual(
+            metadata["investigation_owner"],
+            {
+                "name": "Owner Person",
+                "organization": "Owner Institute",
+                "email": "owner@test.com",
+                "orcid_id": "0000-0000-0000-0001",
+            },
+        )
         self.assertNotIn("Exporter Only", metadata["author"])
 
     def test_owner_is_listed_once_and_first_when_creator_matches_owner(self):
@@ -108,3 +148,73 @@ class ExportMetadataAuthorTests(TestCase):
         self.assertEqual(metadata["author"], ["Owner Creator", "Middle Editor"])
         self.assertNotIn("main_author", metadata)
         self.assertNotIn("co_authors", metadata)
+        self.assertEqual(
+            metadata["authors"],
+            [
+                {"name": "Owner Creator", "organization": None},
+                {"name": "Middle Editor", "organization": None},
+            ],
+        )
+
+    def test_json_and_markdown_include_author_organizations_and_owner_contact(self):
+        owner = PersonFactory(
+            first_name="Owner",
+            last_name="Person",
+            organization="Owner Institute",
+            email="owner@test.com",
+            orcid_id="0000-0000-0000-0001",
+        )
+        creator = PersonFactory(
+            first_name="Creator",
+            last_name="Author",
+            organization="Creator Lab",
+        )
+        contributor = PersonFactory(
+            first_name="Alice",
+            last_name="Editor",
+            organization="Alice Org",
+        )
+        assay = AssayFactory(study__investigation__owner=owner, created_by=creator)
+
+        answer = AnswerFactory(
+            assay=assay,
+            answer_text="draft",
+            question__subsection__section__question_set__label="authjson1",
+        )
+        self._save_answer_with_user(answer, user=contributor, answer_text="edited once")
+
+        export_data = generate_json_from_assay(assay)
+
+        self.assertEqual(
+            export_data["metadata"]["authors"],
+            [
+                {"name": "Creator Author", "organization": "Creator Lab"},
+                {"name": "Alice Editor", "organization": "Alice Org"},
+                {"name": "Owner Person", "organization": "Owner Institute"},
+            ],
+        )
+        self.assertEqual(export_data["metadata"]["main_author"], "Creator Author")
+        self.assertEqual(
+            export_data["metadata"]["co_authors"],
+            ["Alice Editor", "Owner Person"],
+        )
+        self.assertEqual(
+            export_data["metadata"]["investigation_owner"],
+            {
+                "name": "Owner Person",
+                "organization": "Owner Institute",
+                "email": "owner@test.com",
+                "orcid_id": "0000-0000-0000-0001",
+            },
+        )
+
+        markdown = generate_markdown_from_assay(assay)
+        self.assertIn("- **Authors:**", markdown)
+        self.assertIn("  - Creator Author (Creator Lab)", markdown)
+        self.assertIn("  - Alice Editor (Alice Org)", markdown)
+        self.assertIn("  - Owner Person (Owner Institute)", markdown)
+        self.assertIn("- **Investigation Owner Email:** owner@test.com", markdown)
+        self.assertIn(
+            "- **Investigation Owner ORCID iD:** 0000-0000-0000-0001",
+            markdown,
+        )
