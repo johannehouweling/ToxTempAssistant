@@ -209,3 +209,5 @@ Required for any run (see `.env.dummy` for the full list): `SECRET_KEY`, `ALLOWE
 - **Conventional Commits** are enforced on `commit-msg` by commitizen — releases depend on this.
 - The `.secrets.baseline` is checked by `detect-secrets`; if you add an intentional fixture-like secret, regenerate the baseline rather than disabling the hook.
 - Don't run `git add .` blindly — `.env`, `db.sqlite3`, and `backups/` live in the tree and are gitignored, but new untracked artifacts can slip in.
+- the central location for app specific constants are registered in /myocyte/toxtempass/__init__.py Config function.
+- Avoid using custom CSS defintions. Use bootstrap5 boiler plate classes whenever possible. For example use `fs-1` to `fs-7` instead of changing font-size as CSS. 
