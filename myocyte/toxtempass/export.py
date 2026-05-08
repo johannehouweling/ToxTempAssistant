@@ -375,8 +375,6 @@ def get_create_meta_data_yaml(
     author_metadata = get_assay_export_author_metadata(assay)
     metadata_dict = {
         "author": author_metadata["author"],
-        "main_author": author_metadata["main_author"],
-        "co_authors": author_metadata["co_authors"],
         "date": str(current_date),  # Current date;
         "keywords": (
             "metadata template, "
