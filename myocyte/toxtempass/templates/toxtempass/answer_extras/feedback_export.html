@@ -131,6 +131,11 @@ function feedback_export(export_url,assay_id){
         })
         .then(data => {
             if (data.success) {
+                // Disable the beforeunload localStorage sync so it doesn't
+                // re-write the key we're about to clear.
+                if (typeof window.assayTimeDisableOnUnload === 'function') {
+                    window.assayTimeDisableOnUnload();
+                }
                 // Clear stored time for this assay (user-scoped key) after successful submission
                 const storageKey = 'assay_time_' + FEEDBACK_USER_ID + '_' + assay_id;
                 localStorage.removeItem(storageKey);

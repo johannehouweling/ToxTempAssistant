@@ -2141,9 +2141,12 @@ def export_assay(
 def assay_time_sync(request: HttpRequest, assay_id: int) -> JsonResponse:
     """Sync a user's accumulated active time for an assay to the server.
 
-    Upserts one ``AssayTimeLog`` row per (user, assay) pair.  Returns the
-    aggregate total across all collaborators so the feedback modal can display
-    the combined team effort.
+    Upserts one ``AssayTimeLog`` row per (user, assay) pair, keeping the
+    stored value monotonic — the server will never decrease the recorded
+    seconds even if the client sends a smaller number (e.g. after storage
+    was cleared).  Returns the aggregate total across all collaborators;
+    this is used by ``AssayAnswerForm`` to capture ``completion_time_seconds``
+    when all answers are accepted.
 
     POST body: ``seconds=<non-negative integer>``
     """
@@ -2159,11 +2162,15 @@ def assay_time_sync(request: HttpRequest, assay_id: int) -> JsonResponse:
     except (ValueError, TypeError):
         return JsonResponse({"success": False, "error": "Invalid seconds value"}, status=400)
 
-    AssayTimeLog.objects.update_or_create(
-        user=request.user,
-        assay=assay,
-        defaults={"seconds": seconds},
-    )
+    # Keep server-side value monotonic: never regress the recorded total.
+    existing = AssayTimeLog.objects.filter(user=request.user, assay=assay).first()
+    effective_seconds = max(seconds, existing.seconds if existing else 0)
+    if existing:
+        if existing.seconds != effective_seconds:
+            existing.seconds = effective_seconds
+            existing.save(update_fields=["seconds"])
+    else:
+        AssayTimeLog.objects.create(user=request.user, assay=assay, seconds=effective_seconds)
 
     total: int = (
         AssayTimeLog.objects.filter(assay=assay).aggregate(total=Sum("seconds"))["total"]
@@ -2180,36 +2187,40 @@ def assay_hasfeedback(request: HttpRequest, assay_id: int) -> JsonResponse:
 
 
 @login_required(login_url="/login/")
+@require_POST
 def assay_feedback(request: HttpRequest, assay_id: int) -> JsonResponse:
     """Handle feedback submission for an assay."""
+    from django.core.exceptions import PermissionDenied
+
     assay = get_object_or_404(Assay, id=assay_id)
-    if request.method == "POST":
-        feedback_text = request.POST.get("feedback")
-        usefulness_rating = request.POST.get("usefulness_rating")
-        if feedback_text and usefulness_rating:
-            feedback = Feedback.objects.create(
-                feedback_text=feedback_text,
-                usefulness_rating=usefulness_rating,
-                # Use the server-recorded completion time, not a client-submitted value.
-                time_spent_seconds=assay.completion_time_seconds,
-                assay=assay,
-                user=request.user,
-            )
-            assay.feedback = feedback
-            assay.save()
-            return JsonResponse(
-                {
-                    "success": True,
-                    "errors": {},
-                }
-            )
-        else:
-            errors = {}
-            if not feedback_text:
-                errors["feedbackText"] = ["Feedback cannot be empty."]
-            if not usefulness_rating:
-                errors["usefulnessRating"] = ["Usefulness rating cannot be empty."]
-            return JsonResponse({"success": False, "errors": errors})
+    if not assay.is_accessible_by(request.user, perm_prefix="view"):
+        raise PermissionDenied("You do not have permission to submit feedback for this assay.")
+    feedback_text = request.POST.get("feedback")
+    usefulness_rating = request.POST.get("usefulness_rating")
+    if feedback_text and usefulness_rating:
+        feedback = Feedback.objects.create(
+            feedback_text=feedback_text,
+            usefulness_rating=usefulness_rating,
+            # Use the server-recorded completion time, not a client-submitted value.
+            time_spent_seconds=assay.completion_time_seconds,
+            assay=assay,
+            user=request.user,
+        )
+        assay.feedback = feedback
+        assay.save()
+        return JsonResponse(
+            {
+                "success": True,
+                "errors": {},
+            }
+        )
+    else:
+        errors = {}
+        if not feedback_text:
+            errors["feedbackText"] = ["Feedback cannot be empty."]
+        if not usefulness_rating:
+            errors["usefulnessRating"] = ["Usefulness rating cannot be empty."]
+        return JsonResponse({"success": False, "errors": errors})
 
 
 # ---------------------------------------------------------------------------

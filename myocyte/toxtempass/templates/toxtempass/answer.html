@@ -261,9 +261,13 @@
     const SYNC_URL = '{% url "assay_time_sync" assay_id=assay.id %}';
     const CSRF_TOKEN = '{{ csrf_token }}';
 
-    let accumulatedSeconds = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
+    // Guard against corrupt/manually-edited localStorage values becoming NaN.
+    const storedRaw = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
+    let accumulatedSeconds = Number.isFinite(storedRaw) ? storedRaw : 0;
     let sessionStart = null;      // timestamp when the current active interval began
     let idleTimer = null;
+    // Set to true after feedback is submitted so beforeunload does not re-persist.
+    let skipPersistOnUnload = false;
 
     function currentTotal() {
         const elapsed = sessionStart !== null
@@ -295,7 +299,30 @@
                 'X-CSRFToken': CSRF_TOKEN,
             },
             body: 'seconds=' + total,
-        }).then(function (r) { return r.json(); });
+        }).then(function (r) {
+            if (!r.ok) {
+                throw new Error('assay_time_sync returned ' + r.status);
+            }
+            return r.json();
+        }).catch(function (err) {
+            // Swallow sync errors silently — time tracking is best-effort.
+            console.debug('assay_time_sync error (ignored):', err);
+        });
+    }
+
+    // Periodic server sync — swallow any rejection so the interval keeps running.
+    const syncIntervalId = setInterval(function () {
+        syncToServer().catch(function () {});
+    }, SERVER_SYNC_INTERVAL_MS);
+
+    // Throttled mousemove handler: at most one reset per 500 ms.
+    let lastMouseMove = 0;
+    function onMouseMove() {
+        const now = Date.now();
+        if (now - lastMouseMove >= 500) {
+            lastMouseMove = now;
+            resetIdleTimer();
+        }
     }
 
     function resetIdleTimer() {
@@ -306,9 +333,6 @@
         startInterval();
     }
 
-    // Periodic server sync (also updates localStorage)
-    const syncIntervalId = setInterval(syncToServer, SERVER_SYNC_INTERVAL_MS);
-
     // Page Visibility API
     document.addEventListener('visibilitychange', function () {
         if (document.hidden) {
@@ -318,14 +342,20 @@
         }
     });
 
-    // Interaction events that signal the user is active
-    ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll', 'click'].forEach(function (evt) {
+    // Interaction events — mousemove uses the throttled handler.
+    document.addEventListener('mousemove', onMouseMove, { passive: true });
+    ['keydown', 'mousedown', 'touchstart', 'scroll', 'click'].forEach(function (evt) {
         document.addEventListener(evt, resetIdleTimer, { passive: true });
     });
 
-    // On page unload: clear the interval and fire a best-effort beacon sync
+    // On page unload: clear the interval and fire a best-effort beacon sync.
+    // Skipped when feedback has already been submitted (skipPersistOnUnload=true)
+    // to avoid writing back a stale accumulator that was already cleared.
     window.addEventListener('beforeunload', function () {
         clearInterval(syncIntervalId);
+        if (skipPersistOnUnload) {
+            return;
+        }
         pauseInterval();
         const total = currentTotal();
         localStorage.setItem(STORAGE_KEY, String(total));
@@ -336,8 +366,9 @@
         navigator.sendBeacon(SYNC_URL, data);
     });
 
-    // Expose for the feedback modal to trigger a final sync before opening
+    // Expose helpers for the feedback modal.
     window.assayTimeSyncNow = syncToServer;
+    window.assayTimeDisableOnUnload = function () { skipPersistOnUnload = true; };
 
     // Start tracking immediately if the tab is already visible
     resetIdleTimer();

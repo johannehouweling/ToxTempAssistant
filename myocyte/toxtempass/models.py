@@ -733,7 +733,7 @@ class Feedback(AccessibleModel):
     user = models.ForeignKey(Person, on_delete=models.CASCADE, related_name="feedbacks")
     feedback_text = models.TextField()
     usefulness_rating = models.FloatField(null=True, blank=True)
-    time_spent_seconds = models.IntegerField(
+    time_spent_seconds = models.PositiveIntegerField(
         null=True,
         blank=True,
         help_text=(
