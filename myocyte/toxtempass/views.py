@@ -252,10 +252,13 @@ def ror_organization_lookup(request: HttpRequest) -> JsonResponse:
 
     suggestions = []
     for item in payload.get("items", [])[:config.ror_max_suggestions]:
-        organization_name = item.get("name")
+        # ROR v2 returns nested search hits under item["organization"].
+        # Keep support for both nested (v2) and flat (legacy) response formats.
+        organization = item.get("organization", item)
+        organization_name = organization.get("name")
         if not organization_name:
             continue
-        country_name = item.get("country", {}).get("country_name")
+        country_name = organization.get("country", {}).get("country_name")
         display_label = (
             f"{organization_name} ({country_name})" if country_name else organization_name
         )
@@ -263,7 +266,7 @@ def ror_organization_lookup(request: HttpRequest) -> JsonResponse:
             {
                 "name": organization_name,
                 "label": display_label,
-                "id": item.get("id"),
+                "id": organization.get("id"),
             }
         )
     return JsonResponse({"items": suggestions})

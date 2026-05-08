@@ -78,3 +78,32 @@ def test_ror_lookup_returns_suggestions():
             "id": "https://ror.org/027bh9e22",
         }
     ]
+
+
+def test_ror_lookup_returns_suggestions_for_nested_ror_payload():
+    request = RequestFactory().get("/login/signup/ror-organizations/", {"q": "Leiden"})
+    mocked_response = Mock()
+    mocked_response.raise_for_status.return_value = None
+    mocked_response.json.return_value = {
+        "items": [
+            {
+                "organization": {
+                    "name": "Leiden University",
+                    "country": {"country_name": "Netherlands"},
+                    "id": "https://ror.org/027bh9e22",
+                }
+            }
+        ]
+    }
+
+    with patch("toxtempass.views.requests.get", return_value=mocked_response):
+        response = ror_organization_lookup(request)
+
+    payload = json.loads(response.content.decode("utf-8"))
+    assert payload["items"] == [
+        {
+            "name": "Leiden University",
+            "label": "Leiden University (Netherlands)",
+            "id": "https://ror.org/027bh9e22",
+        }
+    ]
