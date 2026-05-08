@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.17.2 (2026-05-08)
+
+### Bug Fixes
+
+- **tables**: Remove leaking text in export menu
+  ([`61e952c`](https://github.com/johannehouweling/ToxTempAssistant/commit/61e952c8e76ff25ee62e701fdcd8f750e441c4aa))
+
+
 ## v3.17.1 (2026-05-08)
 
 ### Bug Fixes
