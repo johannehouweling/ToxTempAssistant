@@ -240,8 +240,9 @@ def ror_organization_lookup(request: HttpRequest) -> JsonResponse:
             return None
         if ".." in domain or len(domain) > 253:
             return None
-        # Domain labels must start/end with alphanumerics, allow internal hyphens,
-        # and contain at least one dot-separated suffix label.
+        # RFC 1035-style hostname check: labels start/end alphanumeric, may
+        # contain internal hyphens, max 63 chars per label, and include at
+        # least one dot-separated suffix label (e.g., example.org).
         if not re.fullmatch(
             r"(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))+",
             domain,
