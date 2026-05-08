@@ -2,6 +2,37 @@
 
 <!-- version list -->
 
+## v3.19.0 (2026-05-08)
+
+### Bug Fixes
+
+- Address all PR review comments on time tracking
+  ([`be56732`](https://github.com/johannehouweling/ToxTempAssistant/commit/be56732e5c4e065a5f6ec25234eef99240498bae))
+
+- Address code review feedback (XSS-safe id parsing, interval cleanup, naming)
+  ([`ba81b92`](https://github.com/johannehouweling/ToxTempAssistant/commit/ba81b927c1f5cb20f91a408e7020835b15a3ff2b))
+
+- Label time_spent_seconds as personal contribution in feedback modal
+  ([`9d8e615`](https://github.com/johannehouweling/ToxTempAssistant/commit/9d8e615d040fc20fe4f18e6ddd585ec9459f8b55))
+
+- Scope localStorage time-tracking key per user to support workspace collaboration
+  ([`9bd8913`](https://github.com/johannehouweling/ToxTempAssistant/commit/9bd891394bc93489dafca2f756928f26dc76df69))
+
+- **ci**: Healthcheck on deploy on swarm now in docker not in docker action
+  ([`b053dab`](https://github.com/johannehouweling/ToxTempAssistant/commit/b053dabf9606af24635c5afd55efec5aa513d89a))
+
+### Features
+
+- Add automated active-time tracking for assay completion
+  ([`cf89c96`](https://github.com/johannehouweling/ToxTempAssistant/commit/cf89c969430e588252e2b7876eb0fe7019d97400))
+
+- Auto-capture completion time when all answers accepted; decouple from feedback form
+  ([`aa61d96`](https://github.com/johannehouweling/ToxTempAssistant/commit/aa61d96e3e8ccccba25550e8558be68963d4f61c))
+
+- Hybrid server-side time aggregation for workspace collaboration
+  ([`d069422`](https://github.com/johannehouweling/ToxTempAssistant/commit/d069422bdd2c5e2ed3e4e944e0c08feb4cdbfb49))
+
+
 ## v3.18.0 (2026-05-08)
 
 ### Bug Fixes
