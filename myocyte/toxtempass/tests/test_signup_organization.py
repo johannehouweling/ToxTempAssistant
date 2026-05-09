@@ -158,7 +158,7 @@ def test_ror_lookup_uses_advanced_query_param():
 
     mocked_get.assert_called_once()
     assert mocked_get.call_args.kwargs["params"] == {
-        "query.advanced": 'names.value:"Leiden"'
+        "query.advanced": '(names.value:"Leiden" OR acronyms:"Leiden")'
     }
 
 
@@ -192,7 +192,10 @@ def test_ror_lookup_tries_domain_queries_first_when_email_given():
     assert payload["items"][0]["name"] == "RIVM"
     assert mocked_get.call_count == 2
     assert mocked_get.call_args_list[0].kwargs["params"] == {
-        "query.advanced": 'links.value:"rivm.nl" AND names.value:"Leiden"'
+        "query.advanced": (
+            'links.value:"rivm.nl" AND '
+            '(names.value:"Leiden" OR acronyms:"Leiden")'
+        )
     }
     assert mocked_get.call_args_list[1].kwargs["params"] == {
         "query.advanced": 'links.value:"rivm.nl"'
@@ -232,7 +235,7 @@ def test_ror_lookup_falls_back_to_wide_query_when_domain_queries_are_empty():
     assert payload["items"][0]["name"] == "Leiden University"
     assert mocked_get.call_count == 3
     assert mocked_get.call_args_list[2].kwargs["params"] == {
-        "query.advanced": 'names.value:"Leiden"'
+        "query.advanced": '(names.value:"Leiden" OR acronyms:"Leiden")'
     }
 
 
@@ -250,7 +253,7 @@ def test_ror_lookup_ignores_invalid_email_domain():
 
     mocked_get.assert_called_once()
     assert mocked_get.call_args.kwargs["params"] == {
-        "query.advanced": 'names.value:"Leiden"'
+        "query.advanced": '(names.value:"Leiden" OR acronyms:"Leiden")'
     }
 
 
@@ -276,10 +279,43 @@ def test_ror_lookup_keeps_email_domain_as_is():
         ror_organization_lookup(request)
 
     assert mocked_get.call_args_list[0].kwargs["params"] == {
-        "query.advanced": 'links.value:"www.rivm.nl" AND names.value:"Leiden"'
+        "query.advanced": (
+            'links.value:"www.rivm.nl" AND '
+            '(names.value:"Leiden" OR acronyms:"Leiden")'
+        )
     }
     assert mocked_get.call_args_list[1].kwargs["params"] == {
         "query.advanced": 'links.value:"www.rivm.nl"'
+    }
+
+
+def test_ror_lookup_uses_domain_lookup_after_single_keystroke_when_email_given():
+    request = RequestFactory().get(
+        "/login/signup/ror-organizations/",
+        {"q": "R", "email": "person@rivm.nl"},
+    )
+    mocked_response = Mock()
+    mocked_response.raise_for_status.return_value = None
+    mocked_response.json.return_value = {
+        "items": [
+            {
+                "name": "RIVM",
+                "country": {"country_name": "Netherlands"},
+                "id": "https://ror.org/012345678",
+            }
+        ]
+    }
+
+    with patch(
+        "toxtempass.views.requests.get", return_value=mocked_response
+    ) as mocked_get:
+        response = ror_organization_lookup(request)
+
+    payload = json.loads(response.content.decode("utf-8"))
+    assert payload["items"][0]["name"] == "RIVM"
+    mocked_get.assert_called_once()
+    assert mocked_get.call_args.kwargs["params"] == {
+        "query.advanced": 'links.value:"rivm.nl"'
     }
 
 

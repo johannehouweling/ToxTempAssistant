@@ -236,6 +236,8 @@ class Config:
     # ROR organization lookup settings
     ror_organization_api_url = "https://api.ror.org/v2/organizations"
     ror_lookup_timeout_seconds = 3
+    ror_domain_lookup_min_query_length = 1
+    ror_general_lookup_min_query_length = 3
     ror_max_query_length = 120
     ror_max_suggestions = 10
     # ORCID settings

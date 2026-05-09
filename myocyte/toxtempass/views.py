@@ -264,23 +264,32 @@ def ror_organization_lookup(request: HttpRequest) -> JsonResponse:
         return value.replace("\\", "\\\\").replace('"', '\\"')
 
     query = " ".join((request.GET.get("q") or "").split())
-    if len(query) < 3:
+    email_domain = _extract_email_domain(request.GET.get("email", ""))
+    can_run_domain_lookup = (
+        email_domain is not None
+        and len(query) >= config.ror_domain_lookup_min_query_length
+    )
+    can_run_general_lookup = len(query) >= config.ror_general_lookup_min_query_length
+    if not can_run_domain_lookup and not can_run_general_lookup:
         return JsonResponse({"items": []})
     if len(query) > config.ror_max_query_length:
         return JsonResponse({"items": []})
     if not re.fullmatch(r"[A-Za-z0-9 .,-]+", query):
         return JsonResponse({"items": []})
     quoted_query = _escape_ror_query_value(query)
-    email_domain = _extract_email_domain(request.GET.get("email", ""))
+    name_or_acronym_query = f'(names.value:"{quoted_query}" OR acronyms:"{quoted_query}")'
 
     domain_queries = []
     if email_domain:
         quoted_email_domain = _escape_ror_query_value(email_domain)
-        domain_queries.append(
-            f'links.value:"{quoted_email_domain}" AND names.value:"{quoted_query}"'
-        )
+        if can_run_general_lookup:
+            domain_queries.append(
+                f'links.value:"{quoted_email_domain}" AND {name_or_acronym_query}'
+            )
         domain_queries.append(f'links.value:"{quoted_email_domain}"')
-    query_batches = [domain_queries, [f'names.value:"{quoted_query}"']]
+    query_batches = [domain_queries]
+    if can_run_general_lookup:
+        query_batches.append([name_or_acronym_query])
 
     seen_organizations: set[str] = set()
     suggestions = []

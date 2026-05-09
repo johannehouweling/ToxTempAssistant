@@ -41,17 +41,17 @@ document.addEventListener("DOMContentLoaded", function() {
   const DEBOUNCE_DELAY_MS = 300;
 
   orgInput.addEventListener("input", function() {
-    const value = orgInput.value;
+    const query = orgInput.value.trim();
+    const email = (emailInput && emailInput.value || "").trim();
+    const minChars = email ? 1 : 3;
     if (timeoutId) clearTimeout(timeoutId);
-    if (value.length < 3) {
+    if (query.length < minChars) {
       suggestions.innerHTML = "";
       return;
     }
 
     timeoutId = setTimeout(() => {
-      const query = value.trim();
       const params = new URLSearchParams({ q: query });
-      const email = (emailInput && emailInput.value || "").trim();
       if (email) params.set("email", email);
       fetch("{% url 'ror_organization_lookup' %}?" + params.toString())
         .then((response) => response.json())
