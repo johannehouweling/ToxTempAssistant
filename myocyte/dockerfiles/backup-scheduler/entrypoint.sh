@@ -7,11 +7,6 @@ set -euo pipefail
 : "${BACKUP_CMD:=/usr/local/bin/backup.sh}"
 : "${CRON_LOG:=/var/log/cron.log}"
 
-if [[ ! -S /var/run/docker.sock ]]; then
-  echo "ERROR: /var/run/docker.sock not mounted. Can't run docker/compose." >&2
-  exit 1
-fi
-
 if [[ ! -x "$BACKUP_CMD" ]]; then
   echo "ERROR: backup script not executable at: $BACKUP_CMD" >&2
   exit 1

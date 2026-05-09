@@ -81,12 +81,14 @@ services:
       TZ: Europe/Amsterdam
       CRON_LOG: "/logs/backup-cron.log"
     volumes:
-      # docker.sock approach is single-node only; will be replaced when
-      # migrating to Docker Swarm (cross-node service discovery / direct TCP
-      # to the postgres+minio overlay network).
-      - /var/run/docker.sock:/var/run/docker.sock
       - ./backups:/work/backups
       - ./myocyte/logs:/logs
+    networks:
+      # Joins both overlay networks so backup.sh can reach postgres + minio
+      # by service name over TCP — works the same in Compose and Swarm,
+      # regardless of which node a dependency lands on.
+      - db_network
+      - data_network
     restart: unless-stopped
 
   # Django app

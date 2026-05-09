@@ -2,49 +2,27 @@
 set -euo pipefail
 
 ###############################################################################
-# Backup script (NO duplicate .env entries required)
+# Backup script — runs INSIDE the backup container.
 #
-# Uses existing keys from your .env:
-#   POSTGRES_USER
-#   POSTGRES_PASSWORD
-#   POSTGRES_DB
-#   POSTGRES_HOST        (docker-compose service name for postgres container)
-#   POSTGRES_PORT        (optional, default 5432; not strictly needed for exec)
+# Reaches postgres + minio over the compose/swarm overlay networks (the
+# backup service joins db_network + data_network in docker-compose.yml).
+# No /var/run/docker.sock, no `docker exec`, no helper containers — works
+# the same in Compose and Swarm regardless of which node the dependencies
+# land on.
 #
-#   AWS_S3_ENDPOINT_URL  (e.g. http://minio:9000)  <-- used for MinIO endpoint
-#   MINIO_ROOT_USER
-#   MINIO_ROOT_PASSWORD
+# Required env (injected via env_file: in compose):
+#   POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB / POSTGRES_HOST
+#   AWS_S3_ENDPOINT_URL                 (e.g. http://minio:9000)
+#   MINIO_ROOT_USER / MINIO_ROOT_PASSWORD
 #
-# Optional (safe defaults if missing):
-#   BACKUP_ROOT          default: ./backups (next to script)
-#   RETENTION_DAYS       default: 14
-#   MINIO_BUCKET         default: empty => all buckets
-#
-# What it does:
-# - Postgres: pg_dump (logical backup) from inside the postgres container
-# - MinIO: mc mirror (object-level backup) using minio/mc container
-#
-# IMPORTANT:
-# - When this script runs INSIDE a container (your cron backup service),
-#   it uses --volumes-from to write MinIO backups directly into $MINIO_DEST
-#   (e.g. /work/backups/<stamp>/minio), so data is persistent via your bind mount.
+# Optional:
+#   POSTGRES_PORT       default 5432
+#   BACKUP_ROOT         default /work/backups (matches the bind mount)
+#   RETENTION_DAYS      default 14 (BACKUP_RETENTION_DAYS also recognised)
+#   MINIO_BUCKET        default empty → mirror all buckets
 ###############################################################################
 
-# -------------------- Environment --------------------
-# Required env vars come from the container's environment (Compose injects
-# them via `env_file:` / `environment:`). When running ad-hoc on the host,
-# source a sibling .env if present so the script keeps working there too.
-_self_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ -f "$_self_dir/.env" ]]; then
-  set -a
-  # shellcheck disable=SC1090
-  source <(grep -v '^\s*#' "$_self_dir/.env" | sed '/^\s*$/d')
-  set +a
-fi
-
 # -------------------- Defaults --------------------
-# Inside the container `/work/backups` is the standard bind target. On host,
-# override via BACKUP_ROOT (must be absolute).
 BACKUP_ROOT="${BACKUP_ROOT:-/work/backups}"
 RETENTION_DAYS="${RETENTION_DAYS:-${BACKUP_RETENTION_DAYS:-14}}"
 MINIO_BUCKET="${MINIO_BUCKET:-}"
@@ -54,16 +32,16 @@ if [[ "$BACKUP_ROOT" != /* ]]; then
   exit 1
 fi
 
-# -------------------- Validate required existing .env keys --------------------
-: "${POSTGRES_USER:?Missing POSTGRES_USER in .env}"
-: "${POSTGRES_PASSWORD:?Missing POSTGRES_PASSWORD in .env}"
-: "${POSTGRES_DB:?Missing POSTGRES_DB in .env}"
-: "${POSTGRES_HOST:?Missing POSTGRES_HOST in .env (should be the docker-compose postgres service name)}"
-POSTGRES_PORT="${POSTGRES_PORT:-5432}" # kept for completeness; not used by docker exec
+# -------------------- Validate required env --------------------
+: "${POSTGRES_USER:?Missing POSTGRES_USER}"
+: "${POSTGRES_PASSWORD:?Missing POSTGRES_PASSWORD}"
+: "${POSTGRES_DB:?Missing POSTGRES_DB}"
+: "${POSTGRES_HOST:?Missing POSTGRES_HOST}"
+POSTGRES_PORT="${POSTGRES_PORT:-5432}"
 
-: "${AWS_S3_ENDPOINT_URL:?Missing AWS_S3_ENDPOINT_URL in .env (e.g. http://minio:9000)}"
-: "${MINIO_ROOT_USER:?Missing MINIO_ROOT_USER in .env}"
-: "${MINIO_ROOT_PASSWORD:?Missing MINIO_ROOT_PASSWORD in .env}"
+: "${AWS_S3_ENDPOINT_URL:?Missing AWS_S3_ENDPOINT_URL (e.g. http://minio:9000)}"
+: "${MINIO_ROOT_USER:?Missing MINIO_ROOT_USER}"
+: "${MINIO_ROOT_PASSWORD:?Missing MINIO_ROOT_PASSWORD}"
 
 # -------------------- Helpers --------------------
 ts() { date +"%Y-%m-%d_%H%M%S"; }
@@ -73,143 +51,54 @@ require_cmd() {
   command -v "$1" >/dev/null 2>&1 || { echo "Missing required command: $1" >&2; exit 1; }
 }
 
-mkdirp() { mkdir -p "$1"; }
-
-in_container() {
-  [[ -f /.dockerenv ]] && return 0
-  grep -qaE '(docker|containerd|kubepods|podman)' /proc/1/cgroup 2>/dev/null && return 0
-  return 1
-}
-
 # -------------------- Pre-flight --------------------
-require_cmd docker
-require_cmd tar
+require_cmd pg_dump
+require_cmd mc
 require_cmd gzip
 require_cmd find
-require_cmd sed
-require_cmd grep
 
-mkdirp "$BACKUP_ROOT"
+mkdir -p "$BACKUP_ROOT"
 STAMP="$(ts)"
 OUTDIR="$BACKUP_ROOT/$STAMP"
-mkdirp "$OUTDIR"
+mkdir -p "$OUTDIR"
 
 log "Backup root: $BACKUP_ROOT"
-log "This run:     $OUTDIR"
+log "This run:    $OUTDIR"
 
 # -------------------- 1) Postgres backup (logical) --------------------
-PG_SERVICE="$POSTGRES_HOST"
 PG_OUT="$OUTDIR/postgres_${POSTGRES_DB}.sql.gz"
 
-log "Backing up Postgres via pg_dump (service=$PG_SERVICE db=$POSTGRES_DB user=$POSTGRES_USER) ..."
-
-# `docker exec` against the named container (set via `container_name:` in
-# compose). Avoids `docker compose exec`, which would require the compose
-# file to live next to the script — which it doesn't, post-bake.
-docker exec -i \
-  -e PGPASSWORD="$POSTGRES_PASSWORD" \
-  "$PG_SERVICE" \
-  pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" \
+log "Backing up Postgres via pg_dump (host=$POSTGRES_HOST db=$POSTGRES_DB user=$POSTGRES_USER) ..."
+PGPASSWORD="$POSTGRES_PASSWORD" pg_dump \
+  -h "$POSTGRES_HOST" \
+  -p "$POSTGRES_PORT" \
+  -U "$POSTGRES_USER" \
+  "$POSTGRES_DB" \
   | gzip -9 > "$PG_OUT"
 
 log "Postgres dump written: $PG_OUT"
 
 # -------------------- 2) MinIO backup (mc mirror) --------------------
-MINIO_ENDPOINT="$AWS_S3_ENDPOINT_URL"
 MC_ALIAS="local"
-
-log "Backing up MinIO via mc mirror (endpoint=$MINIO_ENDPOINT) ..."
-
-# Derive service name from endpoint host if possible (http(s)://<host>[:port])
-MINIO_HOST="$(printf "%s" "$MINIO_ENDPOINT" | sed -E 's#^https?://([^/:]+).*#\1#')"
-MINIO_SERVICE="${MINIO_HOST:-minio}"
-
-# Match the container by exact name (`container_name:` in compose). Anchored
-# regex to avoid matching `${MINIO_SERVICE}_init` and similar.
-MINIO_CONTAINER_ID="$(docker ps -q --filter "name=^${MINIO_SERVICE}$" || true)"
-if [[ -z "$MINIO_CONTAINER_ID" ]]; then
-  echo "ERROR: Could not find a running container named '$MINIO_SERVICE'." >&2
-  echo "This was derived from AWS_S3_ENDPOINT_URL host='$MINIO_HOST'." >&2
-  echo "Fix by setting AWS_S3_ENDPOINT_URL to use the compose container_name as host (e.g. http://minio:9000)." >&2
-  exit 1
-fi
-
-MINIO_NET="$(docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{println $k}}{{end}}' "$MINIO_CONTAINER_ID" | head -n 1)"
-if [[ -z "$MINIO_NET" ]]; then
-  echo "ERROR: Could not determine MinIO container network." >&2
-  exit 1
-fi
-
-log "MinIO service:  $MINIO_SERVICE"
-log "MinIO network:  $MINIO_NET"
-
 MINIO_DEST="$OUTDIR/minio"
-mkdirp "$MINIO_DEST"
+mkdir -p "$MINIO_DEST"
 
-# Source path selection
+log "Backing up MinIO via mc mirror (endpoint=$AWS_S3_ENDPOINT_URL) ..."
+mc alias set "$MC_ALIAS" "$AWS_S3_ENDPOINT_URL" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null
+
 if [[ -z "$MINIO_BUCKET" ]]; then
-  SRC_PATH="${MC_ALIAS}/"                 # all buckets
+  SRC_PATH="${MC_ALIAS}/"
+  DEST_PATH="$MINIO_DEST"
   MIRROR_LABEL="ALL buckets"
 else
-  SRC_PATH="${MC_ALIAS}/${MINIO_BUCKET}"  # one bucket
+  SRC_PATH="${MC_ALIAS}/${MINIO_BUCKET}"
+  DEST_PATH="$MINIO_DEST/${MINIO_BUCKET}"
   MIRROR_LABEL="bucket '$MINIO_BUCKET'"
+  mkdir -p "$DEST_PATH"
 fi
 
 log "Mirroring: $MIRROR_LABEL"
-log "in_container: $(in_container && echo yes || echo no)"
-
-if in_container; then
-  # Running inside backup container: share its mounts so writes to $MINIO_DEST persist
-  THIS_CID="${HOSTNAME}"
-
-  # Write directly into /work/backups/<stamp>/minio (or /.../minio/<bucket>)
-  if [[ -z "$MINIO_BUCKET" ]]; then
-    DEST_PATH="$MINIO_DEST"
-  else
-    DEST_PATH="$MINIO_DEST/$MINIO_BUCKET"
-  fi
-
-  docker run --rm \
-    --entrypoint /bin/sh \
-    --network "$MINIO_NET" \
-    --volumes-from "$THIS_CID" \
-    -e MINIO_ENDPOINT="$MINIO_ENDPOINT" \
-    -e MINIO_USER="$MINIO_ROOT_USER" \
-    -e MINIO_PASS="$MINIO_ROOT_PASSWORD" \
-    -e SRC_PATH="$SRC_PATH" \
-    -e DEST_PATH="$DEST_PATH" \
-    minio/mc:latest \
-    -lc '
-      set -euo pipefail
-      mc alias set local "$MINIO_ENDPOINT" "$MINIO_USER" "$MINIO_PASS" >/dev/null
-      mkdir -p "$DEST_PATH"
-      mc mirror --overwrite --remove --preserve "$SRC_PATH" "$DEST_PATH"
-    '
-else
-  # Running on host: mount MINIO_DEST to /backup and mirror into /backup (or /backup/<bucket>)
-  if [[ -z "$MINIO_BUCKET" ]]; then
-    DEST_PATH="/backup"
-  else
-    DEST_PATH="/backup/${MINIO_BUCKET}"
-  fi
-
-  docker run --rm \
-    --entrypoint /bin/sh \
-    --network "$MINIO_NET" \
-    -v "$(cd "$MINIO_DEST" && pwd)":/backup \
-    -e MINIO_ENDPOINT="$MINIO_ENDPOINT" \
-    -e MINIO_USER="$MINIO_ROOT_USER" \
-    -e MINIO_PASS="$MINIO_ROOT_PASSWORD" \
-    -e SRC_PATH="$SRC_PATH" \
-    -e DEST_PATH="$DEST_PATH" \
-    minio/mc:latest \
-    -lc '
-      set -euo pipefail
-      mc alias set local "$MINIO_ENDPOINT" "$MINIO_USER" "$MINIO_PASS" >/dev/null
-      mkdir -p "$DEST_PATH"
-      mc mirror --overwrite --remove --preserve "$SRC_PATH" "$DEST_PATH"
-    '
-fi
+mc mirror --overwrite --preserve "$SRC_PATH" "$DEST_PATH"
 
 log "MinIO mirror written under: $MINIO_DEST"
 
@@ -221,14 +110,12 @@ log "Writing manifest ..."
     echo "timestamp=$STAMP"
     echo "backup_root=$BACKUP_ROOT"
     echo "retention_days=$RETENTION_DAYS"
-    echo "postgres_service=$PG_SERVICE"
+    echo "postgres_host=$POSTGRES_HOST"
     echo "postgres_db=$POSTGRES_DB"
     echo "postgres_user=$POSTGRES_USER"
-    echo "minio_endpoint=$MINIO_ENDPOINT"
-    echo "minio_service=$MINIO_SERVICE"
+    echo "minio_endpoint=$AWS_S3_ENDPOINT_URL"
     echo "minio_bucket=${MINIO_BUCKET:-ALL}"
   } > manifest.txt
-
   ls -lah > files.txt
 )
 
@@ -246,7 +133,6 @@ case "$BACKUP_ROOT" in
     ;;
 esac
 
-# Extra guard: BACKUP_ROOT must exist and be a directory
 if [[ ! -d "$BACKUP_ROOT" ]]; then
   echo "ERROR: BACKUP_ROOT is not a directory: '$BACKUP_ROOT'" >&2
   exit 1
@@ -267,11 +153,10 @@ log "Output directory: $OUTDIR"
 # Restore hints:
 #
 # Postgres:
-#   gunzip -c backups/<STAMP>/postgres_<DB>.sql.gz | docker compose exec -T <POSTGRES_HOST> psql -U <POSTGRES_USER> <POSTGRES_DB>
+#   gunzip -c backups/<STAMP>/postgres_<DB>.sql.gz \
+#     | docker exec -i <postgres-container> psql -U <user> <db>
 #
 # MinIO:
-#   If you backed up ALL buckets:
-#     mc mirror <backup>/minio/ local/
-#   If you backed up ONE bucket:
-#     mc mirror <backup>/minio/<bucket>/ local/<bucket>
+#   ALL buckets:        mc mirror <backup>/minio/ <alias>/
+#   single bucket:      mc mirror <backup>/minio/<bucket>/ <alias>/<bucket>
 ###############################################################################
