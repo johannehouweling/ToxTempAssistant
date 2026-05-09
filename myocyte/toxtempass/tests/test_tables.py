@@ -41,7 +41,16 @@ class TestAssayTableInvestigationColumn:
         rendered = str(table.render_investigation(assay))
 
         assert "bi-share" in rendered
+        assert rendered.startswith(
+            '<span class="d-inline-flex align-items-center flex-wrap gap-1">'
+        )
         assert "d-inline-flex align-items-center flex-wrap gap-1" in rendered
+        assert '<button type="button"' in rendered
+        assert 'data-bs-toggle="offcanvas"' in rendered
+        assert 'data-bs-target="#offcanvasUser"' in rendered
+        assert 'aria-label="View workspaces sharing this investigation"' in rendered
+        assert 'href="#offcanvasUser"' not in rendered
+        assert '<span type="button"' not in rendered
         assert "position-absolute" not in rendered
         assert "start-100" not in rendered
         assert "translate-middle-y" not in rendered
