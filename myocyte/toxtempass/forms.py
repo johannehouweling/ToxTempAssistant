@@ -73,10 +73,7 @@ class SignupFormOrcid(UserCreationForm):
         super().__init__(*args, **kwargs)
         organization = self.fields["organization"]
         organization.required = True
-        organization.help_text = (
-            "Type at least 1 character with your email filled in, otherwise 3 "
-            "characters, to search ROR organizations."
-        )
+        organization.help_text = config.ror_lookup_help_text
         organization.widget.attrs.update(
             {
                 "autocomplete": "organization",

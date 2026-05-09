@@ -238,6 +238,13 @@ class Config:
     ror_lookup_timeout_seconds = 3
     ror_domain_lookup_min_query_length = 1
     ror_general_lookup_min_query_length = 3
+    ror_lookup_help_text = (
+        f"Type at least {ror_domain_lookup_min_query_length} "
+        f"{'character' if ror_domain_lookup_min_query_length == 1 else 'characters'} "
+        "with your email filled in, otherwise "
+        f"{ror_general_lookup_min_query_length} characters, to search ROR "
+        "organizations."
+    )
     ror_max_query_length = 120
     ror_max_suggestions = 10
     # ORCID settings
