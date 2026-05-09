@@ -35,3 +35,14 @@ def intdivperc(a: float, b: float) -> int:
         return int(a / b * 100)
     else:
         return 0
+
+
+@register.filter()
+def get_item(dictionary: dict, key: object) -> object:
+    """Look up a dictionary value by a variable key.
+
+    Usage: {{ my_dict|get_item:variable_key }}
+    """
+    if not isinstance(dictionary, dict):
+        return None
+    return dictionary.get(key)
