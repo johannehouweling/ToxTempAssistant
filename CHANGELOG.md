@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.19.2 (2026-05-09)
+
+### Bug Fixes
+
+- **ci**: Backup now via TCP
+  ([`d12e3ad`](https://github.com/johannehouweling/ToxTempAssistant/commit/d12e3ade64702d99c6e9a5e4afb9af48428451c9))
+
+
 ## v3.19.1 (2026-05-09)
 
 ### Bug Fixes
