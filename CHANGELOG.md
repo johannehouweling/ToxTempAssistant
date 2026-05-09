@@ -2,6 +2,25 @@
 
 <!-- version list -->
 
+## v3.19.3 (2026-05-09)
+
+### Bug Fixes
+
+- Keep workspace icon inline in overview investigation column
+  ([`c033ee1`](https://github.com/johannehouweling/ToxTempAssistant/commit/c033ee125dd97ef943c75385b1dfc01afc12bdc9))
+
+- Make investigation share toggle semantic and whitespace-safe
+  ([`dc2b391`](https://github.com/johannehouweling/ToxTempAssistant/commit/dc2b3912806760581aec0c49d0b477a5ecdcb887))
+
+### Chores
+
+- **deps**: Bump django from 6.0.4 to 6.0.5
+  ([`404506c`](https://github.com/johannehouweling/ToxTempAssistant/commit/404506ce59a73d16fce111557fc9642920b2b471))
+
+- **deps-dev**: Bump gitpython from 3.1.49 to 3.1.50
+  ([`2ed6c78`](https://github.com/johannehouweling/ToxTempAssistant/commit/2ed6c7861918cfffcc39c94767b776eef565aba5))
+
+
 ## v3.19.2 (2026-05-09)
 
 ### Bug Fixes
