@@ -39,19 +39,21 @@ document.addEventListener("DOMContentLoaded", function() {
 
   let timeoutId = null;
   const DEBOUNCE_DELAY_MS = 300;
+  const DOMAIN_LOOKUP_MIN_CHARS = {{ ror_domain_lookup_min_query_length }};
+  const GENERAL_LOOKUP_MIN_CHARS = {{ ror_general_lookup_min_query_length }};
 
   orgInput.addEventListener("input", function() {
-    const value = orgInput.value;
+    const query = orgInput.value.trim();
+    const email = (emailInput && emailInput.value || "").trim();
+    const minChars = email ? DOMAIN_LOOKUP_MIN_CHARS : GENERAL_LOOKUP_MIN_CHARS;
     if (timeoutId) clearTimeout(timeoutId);
-    if (value.length < 3) {
+    if (query.length < minChars) {
       suggestions.innerHTML = "";
       return;
     }
 
     timeoutId = setTimeout(() => {
-      const query = value.trim();
       const params = new URLSearchParams({ q: query });
-      const email = (emailInput && emailInput.value || "").trim();
       if (email) params.set("email", email);
       fetch("{% url 'ror_organization_lookup' %}?" + params.toString())
         .then((response) => response.json())

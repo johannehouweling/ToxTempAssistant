@@ -225,7 +225,19 @@ def signup(request: HttpRequest) -> HttpResponse | JsonResponse:
         # Prefill the form with the ORCID id.
         form = SignupForm()
 
-    return render(request, "signup.html", {"form": form})
+    return render(
+        request,
+        "signup.html",
+        {
+            "form": form,
+            "ror_domain_lookup_min_query_length": (
+                config.ror_domain_lookup_min_query_length
+            ),
+            "ror_general_lookup_min_query_length": (
+                config.ror_general_lookup_min_query_length
+            ),
+        },
+    )
 
 
 @require_GET
@@ -264,23 +276,32 @@ def ror_organization_lookup(request: HttpRequest) -> JsonResponse:
         return value.replace("\\", "\\\\").replace('"', '\\"')
 
     query = " ".join((request.GET.get("q") or "").split())
-    if len(query) < 3:
+    if len(query) < config.ror_domain_lookup_min_query_length:
         return JsonResponse({"items": []})
     if len(query) > config.ror_max_query_length:
         return JsonResponse({"items": []})
     if not re.fullmatch(r"[A-Za-z0-9 .,-]+", query):
         return JsonResponse({"items": []})
-    quoted_query = _escape_ror_query_value(query)
+    can_run_general_lookup = len(query) >= config.ror_general_lookup_min_query_length
     email_domain = _extract_email_domain(request.GET.get("email", ""))
+    # Proceed when either the general text lookup is allowed or a valid email
+    # domain enables the domain-first lookup path.
+    if not can_run_general_lookup and email_domain is None:
+        return JsonResponse({"items": []})
+    quoted_query = _escape_ror_query_value(query)
+    name_or_acronym_query = f'(names.value:"{quoted_query}" OR acronyms:"{quoted_query}")'
 
     domain_queries = []
     if email_domain:
         quoted_email_domain = _escape_ror_query_value(email_domain)
-        domain_queries.append(
-            f'links.value:"{quoted_email_domain}" AND names.value:"{quoted_query}"'
-        )
+        if can_run_general_lookup:
+            domain_queries.append(
+                f'links.value:"{quoted_email_domain}" AND {name_or_acronym_query}'
+            )
         domain_queries.append(f'links.value:"{quoted_email_domain}"')
-    query_batches = [domain_queries, [f'names.value:"{quoted_query}"']]
+    query_batches = [domain_queries]
+    if can_run_general_lookup:
+        query_batches.append([name_or_acronym_query])
 
     seen_organizations: set[str] = set()
     suggestions = []
@@ -709,7 +730,19 @@ def orcid_signup(request: HttpRequest) -> HttpResponse | JsonResponse:
             }
         )
 
-    return render(request, "signup.html", {"form": form})
+    return render(
+        request,
+        "signup.html",
+        {
+            "form": form,
+            "ror_domain_lookup_min_query_length": (
+                config.ror_domain_lookup_min_query_length
+            ),
+            "ror_general_lookup_min_query_length": (
+                config.ror_general_lookup_min_query_length
+            ),
+        },
+    )
 
 
 def create_questionset_from_json(label: str, created_by: Person) -> QuestionSet:
