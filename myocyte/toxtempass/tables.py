@@ -161,13 +161,13 @@ class AssayTable(tables.Table):
         if record.study.investigation.shared_in_workspaces.exists():
             return format_html(
                 """
-            <div class="position-relative d-inline-flex"> {}
-                <span type="button" data-bs-toggle="offcanvas" href="#offcanvasUser"> 
-                    <span class="position-absolute top-50 start-100 translate-middle-y p-2 " data-bs-toggle="tooltip" data-bs-placement="top" title="Shared in workspace: {}">
+            <span class="d-inline-flex align-items-center flex-wrap gap-1">{}
+                <span type="button" data-bs-toggle="offcanvas" href="#offcanvasUser">
+                    <span class="d-inline-flex align-items-center p-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Shared in workspace: {}">
                         <span class="bi pill px-1 rounded bg-secondary-subtle bi-share"></span>
                     </span>
                 </span>
-            </div>""",
+            </span>""",
                 record.study.investigation.title,
                 ", ".join(
                     record.study.investigation.shared_in_workspaces
