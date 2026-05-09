@@ -160,14 +160,13 @@ class AssayTable(tables.Table):
         """If shared investigation, add share icon with tooltip."""
         if record.study.investigation.shared_in_workspaces.exists():
             return format_html(
-                """
-            <div class="position-relative d-inline-flex"> {}
-                <span type="button" data-bs-toggle="offcanvas" href="#offcanvasUser"> 
-                    <span class="position-absolute top-50 start-100 translate-middle-y p-2 " data-bs-toggle="tooltip" data-bs-placement="top" title="Shared in workspace: {}">
-                        <span class="bi pill px-1 rounded bg-secondary-subtle bi-share"></span>
-                    </span>
-                </span>
-            </div>""",
+                '<span class="d-inline-flex align-items-center flex-wrap gap-1">{}'
+                '<button type="button" class="btn btn-link p-0 border-0 d-inline-flex align-items-center text-body" data-bs-toggle="offcanvas" data-bs-target="#offcanvasUser" aria-label="View workspaces sharing this investigation">'
+                '<span class="d-inline-flex align-items-center p-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Shared in workspace: {}">'
+                '<span class="bi pill px-1 rounded bg-secondary-subtle bi-share"></span>'
+                "</span>"
+                "</button>"
+                "</span>",
                 record.study.investigation.title,
                 ", ".join(
                     record.study.investigation.shared_in_workspaces
