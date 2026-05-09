@@ -2,6 +2,27 @@
 
 <!-- version list -->
 
+## v3.19.1 (2026-05-09)
+
+### Bug Fixes
+
+- Improve signup ROR lookup matching
+  ([`690afbe`](https://github.com/johannehouweling/ToxTempAssistant/commit/690afbe8403a250217ecddbe0bcb6a1bbdbfde6e))
+
+- **ci**: Healthcheck is host toxtempasassistant
+  ([`e40cba0`](https://github.com/johannehouweling/ToxTempAssistant/commit/e40cba008cc93a1c6a49bbe19ed7c51be1486bdb))
+
+### Refactoring
+
+- Sync signup ROR lookup thresholds
+  ([`b5ad45d`](https://github.com/johannehouweling/ToxTempAssistant/commit/b5ad45d93fc17f5da073770eff6b1cfcc52fa2f2))
+
+### Testing
+
+- Use realistic ROR signup payload mocks
+  ([`ad01ff7`](https://github.com/johannehouweling/ToxTempAssistant/commit/ad01ff78798796c1bc171e80095d57ce56d50208))
+
+
 ## v3.19.0 (2026-05-08)
 
 ### Bug Fixes
