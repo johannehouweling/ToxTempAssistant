@@ -122,11 +122,12 @@ services:
     # the first successful healthcheck, so the deploy workflow can simply wait
     # for `docker service ps` to show "Running" instead of doing a docker exec
     # probe (which doesn't work cross-node on multi-host swarms — the task may
-    # be scheduled on a worker the manager can't `docker exec` into). `Host:
-    # localhost` is in ALLOWED_HOSTS (.env.dummy:25), `/` redirects to /login
-    # which is a 302 — both pass `curl -fsS`.
+    # be scheduled on a worker the manager can't `docker exec` into). The Host
+    # header has to match an entry in ALLOWED_HOSTS, otherwise CommonMiddleware
+    # raises DisallowedHost; `toxtempassistant.vhp4safety.nl` is the canonical
+    # prod hostname. `/` redirects to /login (302) — passes `curl -fsS`.
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -o /dev/null -H 'Host: localhost' http://127.0.0.1:8000/"]
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null -H 'Host: toxtempassistant.vhp4safety.nl' http://127.0.0.1:8000/"]
       interval: 10s
       timeout: 5s
       retries: 3
