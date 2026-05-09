@@ -10,8 +10,8 @@ from toxtempass.tests.fixtures.factories import (
 )
 
 
-def _make_assay_with_structure(user, n_questions=2):
-    """Helper: assay with one section, one subsection, and *n_questions* questions."""
+def _make_assay_with_structure(user, num_questions=2):
+    """Helper: assay with one section, one subsection, and *num_questions* questions."""
     from toxtempass.models import Answer, Question, QuestionSet, Section, Subsection
 
     investigation = InvestigationFactory.create(owner=user)
@@ -22,7 +22,7 @@ def _make_assay_with_structure(user, n_questions=2):
     subsection = Subsection.objects.create(section=section, title="Test Subsection")
     questions = [
         Question.objects.create(subsection=subsection, question_text=f"Q{i}?")
-        for i in range(n_questions)
+        for i in range(num_questions)
     ]
     answers = [Answer.objects.create(assay=assay, question=q) for q in questions]
     assay.question_set = qs
@@ -57,7 +57,7 @@ class TestComputeSidebarStatuses:
 
         user = PersonFactory.create()
         assay, section, subsection, questions, answers = _make_assay_with_structure(
-            user, n_questions=1
+            user, num_questions=1
         )
 
         # Empty answer (default state after creation)
@@ -78,7 +78,7 @@ class TestComputeSidebarStatuses:
 
         user = PersonFactory.create()
         assay, section, subsection, questions, answers = _make_assay_with_structure(
-            user, n_questions=1
+            user, num_questions=1
         )
 
         answers[0].answer_text = config.not_found_string
@@ -96,7 +96,7 @@ class TestComputeSidebarStatuses:
 
         user = PersonFactory.create()
         assay, section, subsection, questions, answers = _make_assay_with_structure(
-            user, n_questions=1
+            user, num_questions=1
         )
 
         answers[0].answer_text = "The assay uses HepG2 cells."
@@ -114,7 +114,7 @@ class TestComputeSidebarStatuses:
 
         user = PersonFactory.create()
         assay, section, subsection, questions, answers = _make_assay_with_structure(
-            user, n_questions=2
+            user, num_questions=2
         )
 
         for answer in answers:
@@ -133,7 +133,7 @@ class TestComputeSidebarStatuses:
 
         user = PersonFactory.create()
         assay, section, subsection, questions, answers = _make_assay_with_structure(
-            user, n_questions=2
+            user, num_questions=2
         )
 
         # First answer accepted
@@ -158,7 +158,7 @@ class TestComputeSidebarStatuses:
 
         user = PersonFactory.create()
         assay, section, subsection, questions, answers = _make_assay_with_structure(
-            user, n_questions=1
+            user, num_questions=1
         )
 
         # assay has an empty answer row → no_answer

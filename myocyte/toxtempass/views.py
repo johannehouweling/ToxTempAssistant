@@ -2065,8 +2065,6 @@ def _compute_sidebar_statuses(assay: "Assay") -> tuple[dict[int, str], dict[int,
       - "has_draft":    at least one non-trivial answer exists but not all are accepted
       - "no_answer":    no meaningful answer yet (empty or "not found")
     """
-    from toxtempass import config
-
     not_found_string = config.not_found_string
 
     # Single query: fetch all answer rows for this assay
