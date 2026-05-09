@@ -2067,7 +2067,7 @@ def _compute_sidebar_statuses(assay: "Assay") -> tuple[dict[int, str], dict[int,
     """
     from toxtempass import config
 
-    not_found = config.not_found_string
+    not_found_string = config.not_found_string
 
     # Single query: fetch all answer rows for this assay
     rows = assay.answers.values(
@@ -2093,7 +2093,7 @@ def _compute_sidebar_statuses(assay: "Assay") -> tuple[dict[int, str], dict[int,
         if row["accepted"]:
             sub_agg[sub_id]["accepted"] += 1
         text = row["answer_text"] or ""
-        if text.strip() and not_found not in text:
+        if text.strip() and not_found_string not in text:
             sub_agg[sub_id]["has_meaningful"] = True
 
     subsection_statuses: dict[int, str] = {}

@@ -48,6 +48,11 @@
       scroll-margin-top: 130px; /* Adjust this value to match your sticky header height */
     	}
 
+    .sidebar-status-icon {
+        font-size: 0.55em;
+        vertical-align: middle;
+    }
+
     @media (min-width: 992px) {
       .bd-sidebar {
           position:-webkit-sticky;
@@ -79,14 +84,14 @@
                         {% for section in sections %}
                             {% with sec_status=section_statuses|get_item:section.id %}
                             <a class="nav-link p-1 px-3 m-0 mt-3 fs-5{% if section.all_answers_accepted %} text-secondary {% endif %}" href="#section-{{ section.id }}">
-                                {% if sec_status == 'has_draft' %}<i class="bi bi-circle-fill me-1 opacity-50 text-secondary" style="font-size:0.55em; vertical-align:middle;"></i>{% elif sec_status == 'no_answer' %}<i class="bi bi-circle me-1 opacity-50 text-secondary" style="font-size:0.55em; vertical-align:middle;"></i>{% endif %}{{ section.title }}
+                                {% if sec_status == 'has_draft' %}<i class="bi bi-circle-fill me-1 opacity-50 text-secondary sidebar-status-icon"></i>{% elif sec_status == 'no_answer' %}<i class="bi bi-circle me-1 opacity-50 text-secondary sidebar-status-icon"></i>{% endif %}{{ section.title }}
                             </a>
                             {% endwith %}
                             <nav class="nav nav-pills text-secondary flex-column">
                                 {% for subsection in section.subsections.all %}
                                     {% with sub_status=subsection_statuses|get_item:subsection.id %}
                                     <a class="nav-link ms-4 p-1 px-3{% if subsection.all_answers_accepted %} text-secondary {% endif %}" href="#subsection-{{ subsection.id }}">
-                                        {% if sub_status == 'has_draft' %}<i class="bi bi-circle-fill me-1 opacity-50 text-secondary" style="font-size:0.55em; vertical-align:middle;"></i>{% elif sub_status == 'no_answer' %}<i class="bi bi-circle me-1 opacity-50 text-secondary" style="font-size:0.55em; vertical-align:middle;"></i>{% endif %}{{ subsection.title }}
+                                        {% if sub_status == 'has_draft' %}<i class="bi bi-circle-fill me-1 opacity-50 text-secondary sidebar-status-icon"></i>{% elif sub_status == 'no_answer' %}<i class="bi bi-circle me-1 opacity-50 text-secondary sidebar-status-icon"></i>{% endif %}{{ subsection.title }}
                                     </a>
                                     {% endwith %}
                                 {% endfor %}
