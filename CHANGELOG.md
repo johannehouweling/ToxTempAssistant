@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v3.19.4 (2026-05-10)
+
+### Bug Fixes
+
+- Extend Bootstrap allowList so cost breakdown popover renders table HTML
+  ([`e411715`](https://github.com/johannehouweling/ToxTempAssistant/commit/e411715b7166641b602d72765c7f5914651f5112))
+
+- **ci**: Add cronlogs timestamp
+  ([`700a134`](https://github.com/johannehouweling/ToxTempAssistant/commit/700a1341317236799babc1d9f0a1a18f3d00292e))
+
+### Chores
+
+- **deps**: Bump langchain-core from 1.3.2 to 1.3.3
+  ([`f07dbba`](https://github.com/johannehouweling/ToxTempAssistant/commit/f07dbba9fc4ef72a4e1bacd7a1a7600b818ad564))
+
+
 ## v3.19.3 (2026-05-09)
 
 ### Bug Fixes
