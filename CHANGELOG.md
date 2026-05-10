@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v3.19.5 (2026-05-10)
+
+### Bug Fixes
+
+- Keep cost breakdown table within popover bounds
+  ([`aeb98fa`](https://github.com/johannehouweling/ToxTempAssistant/commit/aeb98faa660792ed6e14ff92e9968341ac3bbbdd))
+
+- Use bootstrap-only popover overflow handling and multi-row test
+  ([`1a0ccc3`](https://github.com/johannehouweling/ToxTempAssistant/commit/1a0ccc33c14a113d2c2353815f6b0b338f080fbd))
+
+
 ## v3.19.4 (2026-05-10)
 
 ### Bug Fixes
