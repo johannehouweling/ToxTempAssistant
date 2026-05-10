@@ -300,7 +300,6 @@ class AssayTable(tables.Table):
             ' data-bs-trigger="focus"'
             ' data-bs-placement="left"'
             ' data-bs-html="true"'
-            ' data-bs-custom-class="cost-breakdown-popover"'
             ' data-bs-title="Cost breakdown"'
             ' data-bs-content="{content}"'
             ' class="badge bg-secondary text-decoration-underline cursor-pointer"'

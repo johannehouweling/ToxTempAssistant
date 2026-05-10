@@ -72,7 +72,7 @@ class TestAssayTableInvestigationColumn:
 
 @pytest.mark.django_db
 class TestAssayTableCostColumn:
-    def test_cost_breakdown_popover_is_wrapped_and_uses_custom_popover_class(self):
+    def test_cost_breakdown_popover_renders_multiple_rows_and_total(self):
         assay = AssayFactory.create()
         AssayCost.objects.create(
             assay=assay,
@@ -86,11 +86,27 @@ class TestAssayTableCostColumn:
             cost_output="0.005485",
             cost_unit="Eur",
         )
+        AssayCost.objects.create(
+            assay=assay,
+            model_key="4:GPT4O",
+            model_id="gpt-4o",
+            input_tokens=3_100,
+            output_tokens=600,
+            cost_input_per_1m="2.500000",
+            cost_output_per_1m="10.000000",
+            cost_input="0.007750",
+            cost_output="0.006000",
+            cost_unit="Eur",
+        )
         table = AssayTable([assay])
 
         rendered = str(table.render_cost(None, assay))
 
-        assert 'data-bs-custom-class="cost-breakdown-popover"' in rendered
         assert "table-responsive" in rendered
         assert "text-break" in rendered
         assert "text-nowrap" in rendered
+        assert "4:GPT4OMINI" in rendered
+        assert "4:GPT4O" in rendered
+        assert "gpt-4o-mini" in rendered
+        assert "gpt-4o" in rendered
+        assert "€0.1413" in rendered
