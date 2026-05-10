@@ -19,9 +19,21 @@
         const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
         const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
 
-        // Initialise popovers (used for the cost breakdown column)
+        // Initialise popovers (used for the cost breakdown column).
+        // Extend Bootstrap's default allowList so that table-related tags
+        // (stripped by the built-in sanitiser) are rendered correctly.
+        const costPopoverAllowList = Object.assign({}, bootstrap.Popover.Default.allowList, {
+          table: ['class'],
+          thead: [],
+          tbody: [],
+          tr: [],
+          td: ['class'],
+          th: [],
+        });
         const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]')
-        const popoverList = [...popoverTriggerList].map(el => new bootstrap.Popover(el))
+        const popoverList = [...popoverTriggerList].map(el => new bootstrap.Popover(el, {
+          allowList: costPopoverAllowList,
+        }))
       })
     </script>
 
