@@ -267,20 +267,21 @@ class AssayTable(tables.Table):
             in_str = f"{r.input_tokens:,}" if r.input_tokens else "0"
             out_str = f"{r.output_tokens:,}" if r.output_tokens else "0"
             breakdown_rows.append(
-                f"<tr><td class='pe-2'><code>{escape(r.model_key)}</code></td>"
-                f"<td class='pe-2'>{escape(r.model_id)}</td>"
-                f"<td class='pe-2'>{in_str}&nbsp;in</td>"
-                f"<td class='pe-2'>{out_str}&nbsp;out</td>"
-                f"<td><b>{cost_str}</b></td></tr>"
+                f"<tr><td class='pe-2 text-break'><code>{escape(r.model_key)}</code></td>"
+                f"<td class='pe-2 text-break'>{escape(r.model_id)}</td>"
+                f"<td class='pe-2 text-nowrap'>{in_str}&nbsp;in</td>"
+                f"<td class='pe-2 text-nowrap'>{out_str}&nbsp;out</td>"
+                f"<td class='text-nowrap'><b>{cost_str}</b></td></tr>"
             )
         popover_content = (
+            '<div class="table-responsive">'
             '<table class="table table-sm mb-0">'
             "<thead><tr>"
             "<th>Key</th><th>Model</th><th>Input tokens</th>"
             "<th>Output tokens</th><th>Est. cost</th>"
             "</tr></thead><tbody>"
             + "".join(breakdown_rows)
-            + "</tbody></table>"
+            + "</tbody></table></div>"
         )
 
         has_any_cost = any(r.total_cost is not None for r in cost_rows)
@@ -299,6 +300,7 @@ class AssayTable(tables.Table):
             ' data-bs-trigger="focus"'
             ' data-bs-placement="left"'
             ' data-bs-html="true"'
+            ' data-bs-custom-class="cost-breakdown-popover"'
             ' data-bs-title="Cost breakdown"'
             ' data-bs-content="{content}"'
             ' class="badge bg-secondary text-decoration-underline cursor-pointer"'

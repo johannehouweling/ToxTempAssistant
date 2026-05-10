@@ -23,6 +23,7 @@
         // Extend Bootstrap's default allowList so that table-related tags
         // (stripped by the built-in sanitiser) are rendered correctly.
         const costPopoverAllowList = Object.assign({}, bootstrap.Popover.Default.allowList, {
+          div: ['class'],
           table: ['class'],
           thead: [],
           tbody: [],
@@ -96,9 +97,14 @@
           );
           background-size: 1rem 1rem;
         }
+        .cost-breakdown-popover{
+          --bs-popover-max-width: min(92vw, 44rem);
+        }
+        .cost-breakdown-popover .popover-body{
+          overflow-x: auto;
+        }
 
         </style>
   {% endblock %}
 
 {% endblock %}
-

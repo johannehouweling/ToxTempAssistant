@@ -1,6 +1,7 @@
 import pytest
 from django.test import RequestFactory
 
+from toxtempass.models import AssayCost
 from toxtempass.tables import AssayTable
 from toxtempass.tests.fixtures.factories import (
     AssayFactory,
@@ -67,3 +68,29 @@ class TestAssayTableInvestigationColumn:
         rendered = str(table.render_investigation(assay))
 
         assert rendered == "Simple Investigation"
+
+
+@pytest.mark.django_db
+class TestAssayTableCostColumn:
+    def test_cost_breakdown_popover_is_wrapped_and_uses_custom_popover_class(self):
+        assay = AssayFactory.create()
+        AssayCost.objects.create(
+            assay=assay,
+            model_key="4:GPT4OMINI",
+            model_id="gpt-4o-mini",
+            input_tokens=813_838,
+            output_tokens=9_142,
+            cost_input_per_1m="0.150000",
+            cost_output_per_1m="0.600000",
+            cost_input="0.122076",
+            cost_output="0.005485",
+            cost_unit="Eur",
+        )
+        table = AssayTable([assay])
+
+        rendered = str(table.render_cost(None, assay))
+
+        assert 'data-bs-custom-class="cost-breakdown-popover"' in rendered
+        assert "table-responsive" in rendered
+        assert "text-break" in rendered
+        assert "text-nowrap" in rendered
