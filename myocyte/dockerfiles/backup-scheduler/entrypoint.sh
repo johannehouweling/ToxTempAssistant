@@ -20,7 +20,10 @@ echo "Backup cmd:      ${BACKUP_CMD}"
 echo "Cron log:        ${CRON_LOG}"
 
 CRONTAB_FILE=/etc/crontab
-printf "%s\n" "${BACKUP_SCHEDULE} ${BACKUP_CMD} >> ${CRON_LOG} 2>&1" > "$CRONTAB_FILE"
+# Pipe through `ts` (moreutils) so every line in CRON_LOG carries a timestamp,
+# including bash-generated errors from `${VAR:?msg}` and any external command's
+# stderr the script doesn't wrap itself.
+printf "%s\n" "${BACKUP_SCHEDULE} ${BACKUP_CMD} 2>&1 | ts '[%FT%T%z]' >> ${CRON_LOG}" > "$CRONTAB_FILE"
 
 echo "Installed cron job:"
 cat "$CRONTAB_FILE"

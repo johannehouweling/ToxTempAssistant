@@ -45,7 +45,9 @@ POSTGRES_PORT="${POSTGRES_PORT:-5432}"
 
 # -------------------- Helpers --------------------
 ts() { date +"%Y-%m-%d_%H%M%S"; }
-log() { printf "[%s] %s\n" "$(date -Is)" "$*"; }
+# Per-line timestamping is handled by the cron wrapper (entrypoint.sh pipes
+# all output through `ts`), so the script just emits the message.
+log() { printf "%s\n" "$*"; }
 
 require_cmd() {
   command -v "$1" >/dev/null 2>&1 || { echo "Missing required command: $1" >&2; exit 1; }
