@@ -105,6 +105,7 @@ class TestAssayTableCostColumn:
         assert "table-responsive" in rendered
         assert "text-break" in rendered
         assert "text-nowrap" in rendered
+        assert 'data-bs-custom-class="mw-100"' in rendered
         assert "4:GPT4OMINI" in rendered
         assert "4:GPT4O" in rendered
         assert "gpt-4o-mini" in rendered
