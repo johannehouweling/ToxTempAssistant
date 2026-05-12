@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.19.6 (2026-05-12)
+
+### Bug Fixes
+
+- Add mw-100 class to cost popover
+  ([`191b182`](https://github.com/johannehouweling/ToxTempAssistant/commit/191b1824258fe8e2d5c385d19eb90e0c9dae05cf))
+
+
 ## v3.19.5 (2026-05-10)
 
 ### Bug Fixes
