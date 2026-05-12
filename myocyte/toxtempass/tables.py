@@ -299,6 +299,7 @@ class AssayTable(tables.Table):
             ' data-bs-toggle="popover"'
             ' data-bs-trigger="focus"'
             ' data-bs-placement="left"'
+            ' data-bs-custom-class="mw-100"'
             ' data-bs-html="true"'
             ' data-bs-title="Cost breakdown"'
             ' data-bs-content="{content}"'
