@@ -77,10 +77,18 @@
                 <nav id="navbar-questions" class="flex-column offcanvas-lg offcanvas-start align-items-stretch border-end overflow-y-auto">
                     <nav class="nav nav-pills flex-column offcanvas-body">
                         {% for section in sections %}
-                            <a class="nav-link p-1 px-3 m-0 mt-3 fs-5{% if section.all_answers_accepted %} text-secondary {% endif %}" href="#section-{{ section.id }}">{{ section.title }}</a>
+                            {% with sec_status=section_statuses|get_item:section.id %}
+                            <a class="nav-link p-1 px-3 m-0 mt-3 fs-5{% if sec_status == 'all_accepted' %} text-secondary{% else %} fst-italic{% endif %}" href="#section-{{ section.id }}">
+                                {{ section.title }}
+                            </a>
+                            {% endwith %}
                             <nav class="nav nav-pills text-secondary flex-column">
                                 {% for subsection in section.subsections.all %}
-                                    <a class="nav-link ms-4 p-1 px-3{% if subsection.all_answers_accepted %} text-secondary {% endif %}" href="#subsection-{{ subsection.id }}">{{ subsection.title }}</a>
+                                    {% with sub_status=subsection_statuses|get_item:subsection.id %}
+                                    <a class="nav-link ms-4 p-1 px-3{% if sub_status == 'all_accepted' %} text-secondary{% else %} fst-italic{% endif %}" href="#subsection-{{ subsection.id }}">
+                                        {{ subsection.title }}
+                                    </a>
+                                    {% endwith %}
                                 {% endfor %}
                             </nav>
                         {% endfor %}

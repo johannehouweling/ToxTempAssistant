@@ -2056,6 +2056,77 @@ def delete_assay(
     return redirect("add_new")
 
 
+def _compute_sidebar_statuses(assay: "Assay") -> tuple[dict[int, str], dict[int, str]]:
+    """Compute answer-status strings for each subsection and section for the sidebar.
+
+    Returns a pair of dicts mapping (subsection_id → status, section_id → status).
+    Possible status values:
+      - "all_accepted": all questions have an accepted answer
+      - "has_draft":    at least one non-trivial answer exists but not all are accepted
+      - "no_answer":    no meaningful answer yet (empty or "not found")
+    """
+    not_found_string = config.not_found_string
+
+    # Single query: fetch all answer rows for this assay
+    rows = assay.answers.values(
+        "question__subsection_id",
+        "question__subsection__section_id",
+        "answer_text",
+        "accepted",
+    )
+
+    # Aggregate per subsection
+    sub_agg: dict[int, dict] = {}
+    for row in rows:
+        sub_id = row["question__subsection_id"]
+        sec_id = row["question__subsection__section_id"]
+        if sub_id not in sub_agg:
+            sub_agg[sub_id] = {
+                "sec_id": sec_id,
+                "total": 0,
+                "accepted": 0,
+                "has_meaningful": False,
+            }
+        sub_agg[sub_id]["total"] += 1
+        if row["accepted"]:
+            sub_agg[sub_id]["accepted"] += 1
+        text = row["answer_text"] or ""
+        if text.strip() and not_found_string not in text:
+            sub_agg[sub_id]["has_meaningful"] = True
+
+    subsection_statuses: dict[int, str] = {}
+    # Track per-section aggregate for deriving section status
+    sec_agg: dict[int, dict] = {}
+
+    for sub_id, data in sub_agg.items():
+        if data["total"] > 0 and data["total"] == data["accepted"]:
+            sub_status = "all_accepted"
+        elif data["has_meaningful"]:
+            sub_status = "has_draft"
+        else:
+            sub_status = "no_answer"
+        subsection_statuses[sub_id] = sub_status
+
+        sec_id = data["sec_id"]
+        if sec_id not in sec_agg:
+            sec_agg[sec_id] = {"all_accepted": True, "has_draft": False}
+        if sub_status != "all_accepted":
+            sec_agg[sec_id]["all_accepted"] = False
+        if sub_status == "has_draft":
+            sec_agg[sec_id]["has_draft"] = True
+
+    section_statuses: dict[int, str] = {}
+    for sec_id, data in sec_agg.items():
+        if data["all_accepted"]:
+            section_statuses[sec_id] = "all_accepted"
+        elif data["has_draft"]:
+            section_statuses[sec_id] = "has_draft"
+        else:
+            section_statuses[sec_id] = "no_answer"
+
+    return section_statuses, subsection_statuses
+
+
 @login_required(login_url="/login/")
 def answer_assay_questions(
     request: HttpRequest, assay_id: int
@@ -2114,6 +2185,7 @@ def answer_assay_questions(
             return JsonResponse({"success": False, "errors": form.errors})
     else:
         form = AssayAnswerForm(assay=assay, user=request.user)
+    section_statuses, subsection_statuses = _compute_sidebar_statuses(assay)
     return render(
         request,
         "answer.html",
@@ -2121,6 +2193,8 @@ def answer_assay_questions(
             "form": form,
             "assay": assay,
             "sections": sections,
+            "section_statuses": section_statuses,
+            "subsection_statuses": subsection_statuses,
             "show_tour": not user_has_seen_tour_page(
                 "answer_assay_questions", request.user
             ),
