@@ -58,3 +58,9 @@ output/
 #backups
 backups/
 .claude/
+
+# Real-world evaluation input documents (unpublished data).
+# Ignore every document but keep the folder structure tracked via .gitkeep files.
+myocyte/toxtempass/evaluation/real_world/input_files/**
+!myocyte/toxtempass/evaluation/real_world/input_files/**/
+!myocyte/toxtempass/evaluation/real_world/input_files/**/.gitkeep
