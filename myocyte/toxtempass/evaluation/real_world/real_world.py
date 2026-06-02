@@ -107,6 +107,26 @@ def _completeness(rows: list[dict]) -> tuple[int, int, float]:
     return answered, total, (round(100 * answered / total, 2) if total else 0.0)
 
 
+def _assay_record(
+    assay_dir: Path,
+    files: list[Path],
+    description: str,
+    answered: int,
+    total: int,
+    rate: float,
+) -> dict:
+    """Per-assay summary record incl. provenance of what was fed to the model."""
+    return {
+        "assay": assay_dir.name,
+        "completeness_rate": rate,
+        "answered": answered,
+        "total": total,
+        "n_input_files": len(files),
+        "has_description": bool(description),
+        "input_files": [str(f.relative_to(assay_dir)) for f in files],
+    }
+
+
 def run(
     question_set_label: str | None = None,
     repeat: bool = False,
@@ -160,6 +180,14 @@ def run(
         )
     )
 
+    run_ts = datetime.now().strftime("%Y%m%d_%H%M")
+    experiment_summary_path = output_base_dir / exp_name / f"tier3_summary_{run_ts}.json"
+    exp_description = (
+        eval_config.experiments.get(experiment, {}).get("description", "")
+        if experiment else ""
+    )
+    per_model_results: list[dict] = []
+
     for model_config in models:
         model_name = model_config["name"]
         temp = model_config["temperature"]
@@ -188,12 +216,12 @@ def run(
                 ]
                 answered, total, rate = _completeness(rows)
                 records.append(
-                    {
-                        "assay": assay_name,
-                        "completeness_rate": rate,
-                        "answered": answered,
-                        "total": total,
-                    }
+                    _assay_record(
+                        assay_dir,
+                        gather_input_files(assay_dir, extract_images),
+                        read_description(assay_dir),
+                        answered, total, rate,
+                    )
                 )
                 stdout.write(style.NOTICE(f"  {assay_name}: cached (REPEAT off)."))
                 continue
@@ -242,53 +270,74 @@ def run(
 
             answers = (
                 Answer.objects.filter(assay=assay)
-                .select_related("question")
+                .select_related("question__subsection__section")
                 .order_by("question__answering_round", "question__id")
             )
             rows = []
             for a in answers:
                 text = a.answer_text or ""
+                q = a.question
                 rows.append(
                     {
-                        "question": a.question.question_text,
+                        "question_id": q.id,
+                        "section": q.subsection.section.title,
+                        "subsection": q.subsection.title,
+                        "question": q.question_text,
                         "answer": text,
                         "not_found": parse_answer(text)["not_found"],
                     }
                 )
-            pd.DataFrame(rows, columns=["question", "answer", "not_found"]).to_csv(
-                csv_path, index=False
-            )
+            pd.DataFrame(
+                rows,
+                columns=[
+                    "question_id", "section", "subsection",
+                    "question", "answer", "not_found",
+                ],
+            ).to_csv(csv_path, index=False)
             answered, total, rate = _completeness(rows)
             records.append(
-                {
-                    "assay": assay_name,
-                    "completeness_rate": rate,
-                    "answered": answered,
-                    "total": total,
-                }
+                _assay_record(assay_dir, files, description, answered, total, rate)
             )
             stdout.write(style.SUCCESS(f"  {assay_name}: {rate}% ({answered}/{total})"))
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-        summary = {
-            "timestamp": timestamp,
+        # Accumulate this model's results into the experiment-level summary and
+        # (re)write it after every model, so the experiment summary is current even
+        # if the run is interrupted partway through the model list.
+        mean_completeness = (
+            round(sum(r["completeness_rate"] for r in records) / len(records), 2)
+            if records else 0.0
+        )
+        per_model_results.append(
+            {
+                "model": model_name,
+                "temperature": temp,
+                "output_dir": _output_dir_name(model_name, temp),
+                "mean_completeness_rate": mean_completeness,
+                "records": records,
+            }
+        )
+        experiment_summary = {
+            "timestamp": run_ts,
             "tier": 3,
             "experiment": experiment,
-            "model": model_name,
-            "temperature": temp,
+            "description": exp_description,
             "extract_images": extract_images,
             "prompt_hash": prompt_hash,
             "prompts": {
                 "base_prompt": base_prompt,
                 "image_prompt": prompts["image_prompt"],
             },
-            "records": records,
+            "models": [r["output_dir"] for r in per_model_results],
+            "results": per_model_results,
         }
-        (out_dir / f"tier3_summary_{timestamp}.json").write_text(
-            json.dumps(summary, indent=2), encoding="utf-8"
+        experiment_summary_path.write_text(
+            json.dumps(experiment_summary, indent=2), encoding="utf-8"
         )
         stdout.write(
-            style.SUCCESS(f"Tier 3 [{exp_name}] {model_name}: summary → {out_dir}")
+            style.SUCCESS(
+                f"Tier 3 [{exp_name}] {model_name}: {mean_completeness}% mean "
+                f"completeness; summary → {experiment_summary_path.name}"
+            )
         )
 
     stdout.write(style.SUCCESS(f"Tier 3 [{exp_name}] complete."))

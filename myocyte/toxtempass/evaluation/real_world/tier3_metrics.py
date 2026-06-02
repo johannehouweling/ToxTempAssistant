@@ -131,8 +131,21 @@ def load_answers() -> dict:
                 df = pd.read_csv(csv_path).fillna("")
                 for _, row in df.iterrows():
                     parsed = parse_answer(str(row.get("answer", "")))
-                    key = (exp_dir.name, assay, str(row.get("question", "")))
-                    index.setdefault(key, {})[model] = parsed
+                    # Key by question_id (stable join across models); fall back to
+                    # question text for older CSVs that predate the id column.
+                    qid = str(row.get("question_id", "")) or str(row.get("question", ""))
+                    key = (exp_dir.name, assay, qid)
+                    entry = index.setdefault(
+                        key,
+                        {
+                            "question_id": row.get("question_id", ""),
+                            "question": str(row.get("question", "")),
+                            "section": str(row.get("section", "")),
+                            "subsection": str(row.get("subsection", "")),
+                            "models": {},
+                        },
+                    )
+                    entry["models"][model] = parsed
     print(
         style.HTTP_INFO(
             f"Loaded {len(experiment_dirs)} experiment(s), {n_models} model dir(s), "
@@ -179,9 +192,15 @@ def main() -> None:
     metric_rows: list[dict] = []
     agreement_rows: list[dict] = []
 
-    for (experiment, assay, question), models in tqdm(
+    for (experiment, assay, _qid), entry in tqdm(
         sorted(index.items()), desc="Scoring", position=0, leave=True
     ):
+        question = entry["question"]
+        question_id = entry["question_id"]
+        section = entry["section"]
+        subsection = entry["subsection"]
+        models = entry["models"]
+
         per_model_agreement: dict = {}
         if breakdown is not None:
             answered = {
@@ -192,6 +211,9 @@ def main() -> None:
                 {
                     "experiment": experiment,
                     "assay": assay,
+                    "question_id": question_id,
+                    "section": section,
+                    "subsection": subsection,
                     "question": question,
                     "n_models_answered": len(answered),
                     "mean_pairwise_cosine": overall,
@@ -226,6 +248,9 @@ def main() -> None:
                 {
                     "experiment": experiment,
                     "assay": assay,
+                    "question_id": question_id,
+                    "section": section,
+                    "subsection": subsection,
                     "question": question,
                     "model": model,
                     "answerable": parsed["answerable"],
