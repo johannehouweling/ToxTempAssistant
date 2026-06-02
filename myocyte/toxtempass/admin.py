@@ -314,6 +314,24 @@ def _render_deployments_table(
                     "⚠️ no pricing</span>"
                 )
 
+            # Temperature display — from the optional `temperature` tag.
+            policy = m.temperature_policy
+            if policy == "omit":
+                temp_html = mark_safe(
+                    '<span style="color:#888;font-family:monospace" '
+                    'title="temperature:none — parameter omitted from API calls">'
+                    "none</span>"
+                )
+            elif isinstance(policy, (int, float)):
+                temp_html = format_html(
+                    '<span style="font-family:monospace">{}</span>', f"{policy:g}"
+                )
+            else:
+                temp_html = mark_safe(
+                    '<span style="color:#bbb" title="No temperature tag set; the '
+                    'caller default applies (reasoning models use 1)">—</span>'
+                )
+
             rows.append(format_html(
                 '<tr style="{0}">'
                 '<td style="padding:9px 12px;text-align:center">'
@@ -326,6 +344,7 @@ def _render_deployments_table(
                 '<td style="padding:9px 12px;color:#666">{9}{10}{11}{15}</td>'
                 '<td style="padding:9px 12px">{12}</td>'
                 '<td style="padding:9px 12px;font-family:monospace;color:#666">{13}</td>'
+                '<td style="padding:9px 12px">{17}</td>'
                 '<td style="padding:9px 12px">{14}</td>'
                 '<td style="padding:9px 12px">{16}</td>'
                 "</tr>",
@@ -342,6 +361,7 @@ def _render_deployments_table(
                 status_html,
                 env_default_html,
                 cost_html,
+                temp_html,
             ))
 
     table = format_html(
@@ -355,6 +375,7 @@ def _render_deployments_table(
         '<th style="padding:10px 12px">Details</th>'
         '<th style="padding:10px 12px">Data handling</th>'
         '<th style="padding:10px 12px">API</th>'
+        '<th style="padding:10px 12px">Temp</th>'
         '<th style="padding:10px 12px">Status</th>'
         '<th style="padding:10px 12px">Pricing (EUR)</th>'
         "</tr></thead><tbody>{}</tbody></table>",

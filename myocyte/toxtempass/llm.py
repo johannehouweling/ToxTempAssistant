@@ -323,9 +323,23 @@ def get_llm_for_endpoint(endpoint_index: int, model_tag: str, temperature: float
         )
     ep, m = result
 
-    # Reasoning models (o1/o3/o4/gpt-5) only accept the default temperature (1).
-    if _is_reasoning_model(m.model_id):
-        temperature = 1
+    # Resolve the temperature to send (if any). Precedence:
+    #   1. An explicit per-model `temperature` tag wins — a number pins the value,
+    #      and `temperature:none` means the model rejects the param (e.g. Claude
+    #      Opus 4.x, which 400s on `temperature`) so we omit it entirely. This is
+    #      per-model, not per-api: other Anthropic models (Haiku 4.5) keep it.
+    #   2. Otherwise reasoning models (o1/o3/o4/gpt-5) are forced to the only
+    #      value they accept (1).
+    #   3. Otherwise the caller-supplied `temperature` argument is used.
+    policy = m.temperature_policy
+    if policy == "omit":
+        temp_kwargs = {}
+    elif isinstance(policy, (int, float)):
+        temp_kwargs = {"temperature": policy}
+    else:
+        if _is_reasoning_model(m.model_id):
+            temperature = 1
+        temp_kwargs = {"temperature": temperature}
 
     logger.info(
         "LLM configured: model=%s, deployment=%s, endpoint=%s, api=%s, tags=%s",
@@ -346,8 +360,8 @@ def get_llm_for_endpoint(endpoint_index: int, model_tag: str, temperature: float
             api_key=ep.api_key,
             base_url=base,
             model=m.deployment_name,
-            temperature=temperature,
             timeout=30,
+            **temp_kwargs,
         )
 
     if m.api == "azure-openai":
@@ -364,8 +378,8 @@ def get_llm_for_endpoint(endpoint_index: int, model_tag: str, temperature: float
             azure_endpoint=azure_endpoint,
             api_version=ep.api_version,
             azure_deployment=m.deployment_name,
-            temperature=temperature,
             timeout=30,
+            **temp_kwargs,
         )
 
     if m.api == "foundry":
@@ -383,7 +397,7 @@ def get_llm_for_endpoint(endpoint_index: int, model_tag: str, temperature: float
             credential=ep.api_key,
             model=m.deployment_name,
             api_version=ep.api_version or None,
-            temperature=temperature,
+            **temp_kwargs,
         )
 
     # Default: plain OpenAI-compat passthrough (api:openai).
@@ -391,8 +405,8 @@ def get_llm_for_endpoint(endpoint_index: int, model_tag: str, temperature: float
         api_key=ep.api_key,
         base_url=ep.endpoint,
         model=m.deployment_name,
-        temperature=temperature,
         timeout=30,
+        **temp_kwargs,
     )
 
 

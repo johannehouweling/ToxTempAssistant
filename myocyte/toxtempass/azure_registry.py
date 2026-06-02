@@ -73,6 +73,7 @@ KNOWN_TAG_KEYS = {
     "tier", "residency", "provider", "direct-from-azure",
     "version", "label", "api", "retirement-date", "default",
     "context-window", "cost-input-1mtoken", "cost-output-1mtoken", "cost-unit",
+    "temperature",
 }
 
 # Maps uppercase ISO 4217 currency codes to display symbols.
@@ -153,6 +154,15 @@ def _validate_tags(idx: int, tag: str, tags: dict[str, str]) -> None:
             "AZURE_E%d_TAGS_%s: api=%r not in %s",
             idx, tag, api, sorted(KNOWN_APIS),
         )
+    temp = tags.get("temperature")
+    if temp is not None and temp.strip().lower() not in ("none", "null", ""):
+        try:
+            float(temp)
+        except ValueError:
+            logger.warning(
+                "AZURE_E%d_TAGS_%s: temperature=%r is not a number or 'none'",
+                idx, tag, temp,
+            )
 
 
 @dataclass
@@ -174,6 +184,31 @@ class ModelEntry:
     def api(self) -> str:
         """Return the wire protocol this deployment speaks (``openai`` or ``anthropic``)."""
         return self.tags.get("api", "openai").lower()
+
+    @property
+    def temperature_policy(self) -> float | str | None:
+        """Per-model temperature taken from the optional ``temperature`` tag.
+
+        - ``float``  → call the model with exactly this temperature
+          (e.g. ``temperature:0``, ``temperature:0.7``).
+        - ``"omit"`` → the model rejects the parameter (``temperature:none``);
+          the client builder omits it so the provider applies its own default.
+          Needed by models like Claude Opus 4.x that 400 on a ``temperature``.
+        - ``None``   → tag absent; the caller-supplied temperature applies.
+        """
+        raw = self.tags.get("temperature")
+        if raw is None:
+            return None
+        raw = raw.strip().lower()
+        if raw in ("none", "null", ""):
+            return "omit"
+        try:
+            return float(raw)
+        except ValueError:
+            logger.warning(
+                "Invalid temperature tag %r on %s; ignoring it", raw, self.tag
+            )
+            return None
 
     @property
     def is_env_default(self) -> bool:
