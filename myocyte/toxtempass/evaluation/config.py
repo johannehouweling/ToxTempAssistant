@@ -187,7 +187,6 @@ class EvaluationConfig:
                 "Cross-provider comparison: 9 models across OpenAI/Azure, Anthropic, "
                 "Mistral, Moonshot (Kimi), DeepSeek and Meta (Llama) at temp 0, "
                 "default prompt."),
-            "extract_images": True,
         },
         "structured_grounded": {
             "models": [{"name": "gpt-4o-mini", "temperature": 0}],

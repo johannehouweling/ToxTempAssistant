@@ -1,13 +1,11 @@
 import json
-import warnings
 from pathlib import Path
 import pandas as pd
 from django.db.models.query import QuerySet
 from langchain_openai import ChatOpenAI
 from tqdm.auto import tqdm
 from toxtempass import config
-from toxtempass.evaluation.config import config as eval_config
-from toxtempass.evaluation.post_processing.cosine_similarities import bert_score, cosine_similarity
+from toxtempass.evaluation.post_processing.cosine_similarities import cosine_similarity
 
 
 def has_answer_not_found(answer_text: str) -> bool:
@@ -86,28 +84,6 @@ def generate_comparison_csv(
         lambda row: cosine_similarity(row["gtruth_answer"], row["llm_answer"]),
         axis=1,
     )
-
-    # Compute BERT scores only if requested
-    metrics = getattr(eval_config, "validation_metrics", []) or []
-    bert_requested = any(
-        m in {"bert_precision", "bert_recall", "bert_f1"} for m in metrics
-    )
-    if bert_requested:
-        warnings.filterwarnings(
-            "ignore", message="Empty candidate sentence detected"
-        )  # Ignore warnings from bert_score
-        tqdm.pandas(desc="Calculating BERT scores", position=1, leave=True)
-        scores = df.progress_apply(
-            lambda row: bert_score(row["gtruth_answer"], row["llm_answer"]),
-            axis=1,
-        ).tolist()
-        warnings.resetwarnings()
-        scores_df = pd.DataFrame(
-            scores,
-            columns=["bert_precision", "bert_recall", "bert_f1"],
-            index=df.index,
-        )
-        df = pd.concat([df, scores_df], axis=1)
 
     # Save DataFrame to CSV
 
