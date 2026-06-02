@@ -7,6 +7,9 @@ from toxtempass.evaluation.negative_control.ncontrol import (
 from toxtempass.evaluation.positive_control.pcontrol import (
     run as run_pcontrol,
 )
+from toxtempass.evaluation.real_world.real_world import (
+    run as run_real_world,
+)
 
 
 class Command(BaseCommand):
@@ -45,6 +48,11 @@ class Command(BaseCommand):
             action="store_true",
             help="Skip negative control run.",
         )
+        parser.add_argument(
+            "--skip-rwcontrol",
+            action="store_true",
+            help="Skip Tier 3 real-world run.",
+        )
 
     def handle(self, *args, **options):
         # List experiments and exit if requested
@@ -64,6 +72,7 @@ class Command(BaseCommand):
         repeat = options.get("repeat", False)
         skip_pcontrol = options.get("skip_pcontrol", False)
         skip_ncontrol = options.get("skip_ncontrol", False)
+        skip_rwcontrol = options.get("skip_rwcontrol", False)
 
         # Validate experiment if provided
         if experiment and experiment not in eval_config.experiments:
@@ -93,6 +102,15 @@ class Command(BaseCommand):
         if not skip_ncontrol:
             self.stdout.write(self.style.SUCCESS("Starting negative control..."))
             run_ncontrol(
+                question_set_label=question_set_label,
+                repeat=repeat,
+                experiment=experiment,
+                stdout=self.stdout,
+            )
+
+        if not skip_rwcontrol:
+            self.stdout.write(self.style.SUCCESS("Starting real-world (Tier 3)..."))
+            run_real_world(
                 question_set_label=question_set_label,
                 repeat=repeat,
                 experiment=experiment,
