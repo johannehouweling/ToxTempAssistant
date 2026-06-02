@@ -4,16 +4,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import TextIO
 
-from langchain_openai import ChatOpenAI
 from django.core.management.color import make_style
 from tqdm.auto import tqdm
 
-from toxtempass import LLM_API_KEY, LLM_ENDPOINT, config
-from toxtempass.azure_registry import find_by_model_id, get_registry
 from toxtempass.evaluation.config import config as eval_config
-from toxtempass.llm import get_llm_for_endpoint
 from toxtempass.evaluation.post_processing.utils import has_answer_not_found
-from toxtempass.evaluation.utils import select_question_set
+from toxtempass.evaluation.utils import resolve_eval_llm, select_question_set
 from toxtempass.models import Answer, Question
 from toxtempass.tests.fixtures.factories import AssayFactory, DocumentDictFactory
 from toxtempass.views import process_llm_async
@@ -45,6 +41,7 @@ def run(
         input_dir: Tier2 input PDF directory
         output_base_dir: Tier2 output base directory
         experiment: Name of experiment configuration to use (from eval_config.experiments)
+
     """
     stdout.write(eval_config.summarize_experiment_config(experiment=experiment))
     llm = None
@@ -63,32 +60,12 @@ def run(
         model_name = model_config["name"]
         temp = model_config["temperature"]
 
-        # Prefer the Azure registry when configured; fall back to legacy creds.
-        resolved = find_by_model_id(model_name) if get_registry() else None
-        if resolved is not None:
-            ep, model_entry = resolved
-            llm = get_llm_for_endpoint(
-                ep.index, model_entry.tag, temperature=temp if temp is not None else 0,
-            )
-            stdout.write(style.SUCCESS(
-                f"Using ({model_name}) via E{ep.index}:{model_entry.tag} "
-                f"[{model_entry.api}] with temperature={temp}."
-            ))
-        elif LLM_API_KEY and LLM_ENDPOINT:
-            llm = ChatOpenAI(
-                api_key=LLM_API_KEY,
-                base_url=config.url,
-                temperature=temp,
-                model=model_name,
-                default_headers=config.extra_headers,
-            )
-            stdout.write(
-                style.SUCCESS(
-                    f"Using ({model_name}) at {LLM_ENDPOINT} with temperature={temp}."
-                )
-            )
-        else:
-            stdout.write(style.ERROR("Required environment variables are missing"))
+        # Shared resolver (Azure registry → legacy creds).
+        llm, info = resolve_eval_llm(model_name, temp)
+        if llm is None:
+            stdout.write(style.ERROR(f"{info} — skipping."))
+            continue
+        stdout.write(style.SUCCESS(f"Using ({model_name}) via {info}."))
 
         files_tier2 = list(input_dir.glob("*.pdf"))
 
@@ -131,6 +108,7 @@ def run(
                 },
                 extract_images=eval_config.get_extract_images(experiment),
                 chatopenai=llm,
+                base_prompt=prompts["base_prompt"],
             )
             answers = Answer.objects.filter(assay=assay)
             total = answers.count()
@@ -178,4 +156,4 @@ def run(
 
         with open(output_file, "w", encoding="utf-8") as out_f:
             json.dump(summary, out_f, indent=2)
-        stdout.wrtie(style.SUCCESS(f"Negative control results saved to {output_file}."))
+        stdout.write(style.SUCCESS(f"Negative control results saved to {output_file}."))

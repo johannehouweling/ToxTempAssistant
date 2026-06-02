@@ -907,6 +907,7 @@ def generate_answer(
     full_pdf_context: str,
     assay: Assay,
     chatopenai: ChatOpenAI,
+    base_prompt: str | None = None,
 ) -> tuple[int, str, int, int]:
     """Generate an answer for a single Answer instance.
 
@@ -935,9 +936,11 @@ def generate_answer(
     if q.only_additional_llm_instruction and q.additional_llm_instruction:
         sys_msgs = [SystemMessage(content=q.additional_llm_instruction)]
     else:
-        # base + question‐specific appended
+        # base + question‐specific appended.
+        # base_prompt override (e.g. an evaluation experiment's prompt strategy)
+        # takes precedence over the production Config.base_prompt when supplied.
         sys_msgs = [
-            SystemMessage(content=config.base_prompt),
+            SystemMessage(content=base_prompt or config.base_prompt),
             SystemMessage(content=f"ASSAY NAME: {assay.title}"),
             SystemMessage(content=f"ASSAY DESCRIPTION: {assay.description}"),
         ]
@@ -1119,6 +1122,7 @@ def process_llm_async(
     verbose: bool = False,
     user_id: int | None = None,
     llm_model: str | None = None,
+    base_prompt: str | None = None,
 ) -> None:
     """Process llm answer async.
 
@@ -1339,7 +1343,8 @@ def process_llm_async(
             with ThreadPoolExecutor(max_workers=config.max_workers_threading) as pool:
                 futures = {
                     pool.submit(
-                        generate_answer, a, full_pdf_context, assay, chatopenai
+                        generate_answer, a, full_pdf_context, assay, chatopenai,
+                        base_prompt,
                     ): a
                     for a in round_answers
                 }

@@ -3,6 +3,52 @@ from django.core.exceptions import ObjectDoesNotExist
 from toxtempass.models import QuestionSet
 
 
+def resolve_eval_llm(
+    model_name: str, temperature: float | int | None
+) -> tuple[object | None, str]:
+    """Resolve a chat client for an evaluation model id.
+
+    Single source of truth for model resolution across all eval tiers (was
+    copy-pasted in pcontrol/ncontrol). Tries the Azure registry first (by model
+    id), then falls back to legacy ``OPENAI_*`` credentials.
+
+    Returns ``(llm, info)`` where ``info`` is a short human-readable description
+    for logging, or ``(None, reason)`` when the model cannot be resolved.
+    """
+    # Imported lazily to avoid import-time races (this module is imported early).
+    from langchain_openai import ChatOpenAI
+
+    from toxtempass import LLM_API_KEY, LLM_ENDPOINT, config
+    from toxtempass.azure_registry import find_by_model_id, get_registry
+    from toxtempass.llm import get_llm_for_endpoint
+
+    resolved = find_by_model_id(model_name) if get_registry() else None
+    if resolved is not None:
+        ep, model_entry = resolved
+        llm = get_llm_for_endpoint(
+            ep.index,
+            model_entry.tag,
+            temperature=temperature if temperature is not None else 0,
+        )
+        return llm, (
+            f"E{ep.index}:{model_entry.tag} [{model_entry.api}] "
+            f"temperature={temperature}"
+        )
+    if LLM_API_KEY and LLM_ENDPOINT:
+        llm = ChatOpenAI(
+            api_key=LLM_API_KEY,
+            base_url=config.url,
+            temperature=temperature,
+            model=model_name,
+            default_headers=config.extra_headers,
+        )
+        return llm, f"{LLM_ENDPOINT} (legacy) temperature={temperature}"
+    return None, (
+        f"{model_name!r} not found in Azure registry and no legacy "
+        "OPENAI_API_KEY configured"
+    )
+
+
 def select_question_set(label: str | None = None) -> QuestionSet:
     """Pick the question set by label or fallback to latest visible."""
     if label:
