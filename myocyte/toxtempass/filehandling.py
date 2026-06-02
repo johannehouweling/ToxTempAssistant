@@ -481,6 +481,33 @@ def _read_xls_file(path: Path, max_rows: int = MAX_TABLE_ROWS) -> str:
         return "Unable to read legacy Excel file."
 
 
+def _pptx_shape_texts(shapes: object) -> list[str]:
+    """Recursively collect text from pptx shapes, incl. groups and tables.
+
+    Plain text frames, table cells, and shapes nested inside group shapes are all
+    extracted (the naive ``slide.shapes`` loop misses grouped/tabular content).
+    """
+    from pptx.enum.shapes import MSO_SHAPE_TYPE
+
+    out: list[str] = []
+    for shape in shapes:
+        if shape.shape_type == MSO_SHAPE_TYPE.GROUP:
+            out.extend(_pptx_shape_texts(shape.shapes))
+            continue
+        if getattr(shape, "has_table", False):
+            for row in shape.table.rows:
+                cells = [cell.text.strip() for cell in row.cells]
+                line = " | ".join(c for c in cells if c)
+                if line:
+                    out.append(line)
+            continue
+        if shape.has_text_frame:
+            text = shape.text_frame.text.strip()
+            if text:
+                out.append(text)
+    return out
+
+
 def _read_pptx_file(path: Path) -> str:
     """Read a ``.pptx`` deck and return the text of each slide."""
     if Presentation is None:
@@ -495,12 +522,7 @@ def _read_pptx_file(path: Path) -> str:
 
     slide_texts: list[str] = []
     for n, slide in enumerate(prs.slides, start=1):
-        fragments: list[str] = []
-        for shape in slide.shapes:
-            if shape.has_text_frame:
-                text = shape.text_frame.text.strip()
-                if text:
-                    fragments.append(text)
+        fragments = _pptx_shape_texts(slide.shapes)
         body = "\n".join(fragments) if fragments else "(no text)"
         slide_texts.append(f"Slide {n}:\n{body}")
 
@@ -644,7 +666,8 @@ def get_text_or_bytes_perfile_dict(
 
             elif suffix == ".html":
                 loader = BSHTMLLoader(context_filename, open_encoding="utf-8")
-                text = loader.load().page_content.replace("\n", "")
+                docs = loader.load()  # returns a list of Documents
+                text = docs[0].page_content.replace("\n", "") if docs else ""
 
             elif suffix == ".docx":
                 loader = UnstructuredWordDocumentLoader(str(context_filename))
