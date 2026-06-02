@@ -97,6 +97,8 @@ dependencies = [
     "langchain-azure-ai (>=1.2.1,<2.0.0)",
     "azure-ai-inference (>=1.0.0b9,<2.0.0)",
     "whitenoise (>=6.12.0,<7.0.0)",
+    "xlrd (>=2.0,<3.0)",
+    "python-pptx (>=1.0,<2.0)",
 ]
 
 [tool.poetry.group.dev]
@@ -190,6 +192,9 @@ target-version = "py310"
 [tool.ruff.lint.per-file-ignores]
 "*/tests/*" = ["S","D","ANN"]
 "*/fixtures/*" = ["S","D","ANN"]
+# Standalone evaluation scripts: print() is intentional CLI output (T201), and
+# imports must follow django.setup() so cannot sit at the top of file (E402).
+"*/evaluation/real_world/*" = ["T201","E402"]
 
 
 [tool.ruff.lint]
