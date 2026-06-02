@@ -62,7 +62,7 @@ def run(
         temp = model_config["temperature"]
 
         # Shared resolver (Azure registry → legacy creds).
-        llm, info = resolve_eval_llm(model_name, temp)
+        llm, info, _ = resolve_eval_llm(model_name, temp)
         if llm is None:
             stdout.write(style.ERROR(f"{info} — skipping."))
             continue
