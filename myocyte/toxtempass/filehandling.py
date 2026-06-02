@@ -40,6 +40,16 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     openpyxl = None
 
+try:
+    import xlrd  # legacy .xls (openpyxl cannot read these)
+except ImportError:  # pragma: no cover - optional dependency
+    xlrd = None
+
+try:
+    from pptx import Presentation  # .pptx slide text
+except ImportError:  # pragma: no cover - optional dependency
+    Presentation = None
+
 # Suppress PyPDF warnings about image and mask size mismatches
 # These are benign warnings that don't affect functionality
 warnings.filterwarnings(
@@ -401,6 +411,102 @@ def _read_xlsx_file(path: Path, max_rows: int = MAX_TABLE_ROWS) -> str:
     return "\n\n".join(sheet_texts) if sheet_texts else "(no sheets found)"
 
 
+def _read_delimited_text(path: Path, max_rows: int = MAX_TABLE_ROWS) -> str:
+    """Read a delimited TEXT file (detecting BOM/encoding), preserving rows.
+
+    Many instruments export tab-delimited text with a misleading ``.xls``
+    extension (often UTF-16). This keeps the rows as-is and truncates.
+    """
+    raw = path.read_bytes()
+    if raw[:2] in (b"\xff\xfe", b"\xfe\xff"):
+        encoding = "utf-16"
+    elif raw[:3] == b"\xef\xbb\xbf":
+        encoding = "utf-8-sig"
+    else:
+        encoding = "utf-8"
+    try:
+        text = raw.decode(encoding, errors="replace")
+    except (LookupError, UnicodeError):  # pragma: no cover - defensive
+        text = raw.decode("latin-1", errors="replace")
+
+    lines = text.splitlines()
+    truncated = len(lines) > max_rows
+    body = "\n".join(lines[:max_rows]) if lines else "(empty file)"
+    if truncated:
+        body += f"\n... (truncated after {max_rows} rows)"
+    return body
+
+
+def _read_xls_file(path: Path, max_rows: int = MAX_TABLE_ROWS) -> str:
+    """Read a legacy ``.xls`` workbook and return a textual summary per sheet.
+
+    Uses ``xlrd`` for genuine binary ``.xls`` (``openpyxl`` only handles OOXML
+    ``.xlsx``). Falls back to delimited-text reading when the file is actually
+    text mislabeled ``.xls`` (e.g. UTF-16 TSV instrument exports), which ``xlrd``
+    rejects with a "BOF record" error.
+    """
+    if xlrd is not None:
+        try:
+            workbook = xlrd.open_workbook(str(path))
+        except Exception as exc:
+            logger.info(
+                "xlrd could not parse %s as binary .xls (%s); trying text fallback",
+                path, exc,
+            )
+        else:
+            sheet_texts: list[str] = []
+            for sheet in workbook.sheets():
+                lines: list[str] = []
+                truncated = False
+                for idx in range(sheet.nrows):
+                    if idx >= max_rows:
+                        truncated = True
+                        break
+                    row = sheet.row_values(idx)
+                    lines.append(
+                        ", ".join("" if cell is None else str(cell) for cell in row)
+                    )
+                if not lines:
+                    lines.append("(empty sheet)")
+                if truncated:
+                    lines.append(f"... (truncated after {max_rows} rows)")
+                sheet_texts.append(f"Sheet: {sheet.name}\n" + "\n".join(lines))
+            return "\n\n".join(sheet_texts) if sheet_texts else "(no sheets found)"
+
+    # Either xlrd is unavailable or the file is text mislabeled as .xls.
+    try:
+        return _read_delimited_text(path, max_rows)
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning("Failed to read %s as .xls or text: %s", path, exc)
+        return "Unable to read legacy Excel file."
+
+
+def _read_pptx_file(path: Path) -> str:
+    """Read a ``.pptx`` deck and return the text of each slide."""
+    if Presentation is None:
+        logger.warning("python-pptx not installed; cannot process %s", path)
+        return "PowerPoint parsing unavailable (python-pptx not installed)."
+
+    try:
+        prs = Presentation(str(path))
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning("Failed to open PPTX %s: %s", path, exc)
+        return "Unable to read PowerPoint file."
+
+    slide_texts: list[str] = []
+    for n, slide in enumerate(prs.slides, start=1):
+        fragments: list[str] = []
+        for shape in slide.shapes:
+            if shape.has_text_frame:
+                text = shape.text_frame.text.strip()
+                if text:
+                    fragments.append(text)
+        body = "\n".join(fragments) if fragments else "(no text)"
+        slide_texts.append(f"Slide {n}:\n{body}")
+
+    return "\n\n".join(slide_texts) if slide_texts else "(no slides found)"
+
+
 def stringyfy_text_dict(text_dict: dict[str, dict[str, str]]) -> str:
     """Convert text dictionary to a single string."""
     return "\n\n".join(
@@ -559,6 +665,12 @@ def get_text_or_bytes_perfile_dict(
 
             elif suffix == ".xlsx":
                 text = _read_xlsx_file(context_filename)
+
+            elif suffix == ".xls":
+                text = _read_xls_file(context_filename)
+
+            elif suffix == ".pptx":
+                text = _read_pptx_file(context_filename)
 
             elif suffix in config.IMAGE_ACCEPT_FILES:
                 # Convert all uploaded images to WebP for optimal token efficiency

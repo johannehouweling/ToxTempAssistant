@@ -140,6 +140,7 @@ class Config:
     )
     TEXT_ACCEPT_FILES: Final[tuple[str, ...]] = (
         ".pdf", ".docx", ".txt", ".md", ".html", ".json", ".csv", ".xlsx",
+        ".xls", ".pptx",
     )
     ALLOWED_MIME_TYPES: Final[frozenset[str]] = frozenset({
         "application/pdf",
@@ -156,6 +157,8 @@ class Config:
         "application/json",
         "text/csv",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-excel",  # legacy .xls
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",  # .pptx
     })
 
     # ── Export control surface ────────────────────────────────────────────────
