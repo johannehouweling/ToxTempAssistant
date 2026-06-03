@@ -1,6 +1,7 @@
 import difflib
 import json
 import logging
+import random
 import re
 import time
 import uuid
@@ -97,6 +98,65 @@ from toxtempass.utilities import (
 )
 
 logger = logging.getLogger("views")
+
+# Rate-limit handling must cover every provider, not just OpenAI. The OpenAI SDK
+# (used by ChatOpenAI / AzureChatOpenAI — so gpt-4o-mini, gpt-5.4*, Llama, and the
+# OpenAI-compatible Mistral/Kimi/DeepSeek) raises openai.RateLimitError on a 429.
+# Anthropic raises its OWN RateLimitError (not a subclass), so it must be added
+# explicitly or Claude 429s slip through to a generic handler and return empty.
+_RATE_LIMIT_ERRORS: tuple[type[Exception], ...] = (RateLimitError,)
+try:
+    from anthropic import RateLimitError as _AnthropicRateLimitError
+
+    _RATE_LIMIT_ERRORS = (RateLimitError, _AnthropicRateLimitError)
+except ImportError:  # pragma: no cover - anthropic is an optional provider
+    pass
+
+# TRANSIENT errors (timeouts, dropped connections, 5xx) are worth retrying with a
+# short exponential backoff rather than being swallowed as empty answers — under
+# load Claude/OpenAI requests can read-timeout even when they'd succeed on retry.
+_TRANSIENT_ERRORS: tuple[type[Exception], ...] = ()
+try:
+    import httpx
+
+    _TRANSIENT_ERRORS += (httpx.TimeoutException, httpx.TransportError)
+except ImportError:  # pragma: no cover
+    pass
+try:
+    from openai import APIConnectionError, APITimeoutError, InternalServerError
+
+    _TRANSIENT_ERRORS += (APITimeoutError, APIConnectionError, InternalServerError)
+except ImportError:  # pragma: no cover
+    pass
+try:
+    from anthropic import (
+        APIConnectionError as _AnthConnErr,
+    )
+    from anthropic import (
+        APITimeoutError as _AnthTimeoutErr,
+    )
+    from anthropic import (
+        InternalServerError as _AnthISErr,
+    )
+
+    _TRANSIENT_ERRORS += (_AnthTimeoutErr, _AnthConnErr, _AnthISErr)
+except ImportError:  # pragma: no cover
+    pass
+
+# BadRequest (HTTP 400) is NOT retryable — context-length overflow, malformed
+# payload, or a billing/credit-balance error. Like the 429 case, Anthropic raises
+# its OWN BadRequestError (not a subclass of openai's), so it must be added
+# explicitly or Claude 400s slip past the dedicated handler into the generic
+# `except Exception` and get logged as an opaque flood instead of a clear message.
+_BAD_REQUEST_ERRORS: tuple[type[Exception], ...] = (BadRequestError,)
+try:
+    from anthropic import BadRequestError as _AnthropicBadRequestError
+
+    _BAD_REQUEST_ERRORS = (BadRequestError, _AnthropicBadRequestError)
+except ImportError:  # pragma: no cover - anthropic is an optional provider
+    pass
+
+MAX_TRANSIENT_RETRIES = 4  # cap so a permanently-failing request can't loop forever
 
 
 # Login stuff
@@ -902,6 +962,22 @@ def user_has_seen_tour_page(page: str, user: Person) -> bool:
 llm = get_llm()
 
 
+def _supports_prompt_caching(llm: object) -> bool:
+    """Return True if ``llm`` is an Anthropic chat model accepting ``cache_control``.
+
+    The document bundle is byte-identical across every question of an assay, so
+    marking it as an Anthropic ephemeral cache breakpoint lets the other ~76
+    questions reuse it at ~90% discount (5-min TTL). OpenAI/Azure do automatic
+    server-side prefix caching and would reject the Anthropic-specific
+    ``cache_control`` field, so we only emit it for Anthropic.
+    """
+    try:
+        from langchain_anthropic import ChatAnthropic
+    except ImportError:  # pragma: no cover - anthropic is an optional provider
+        return False
+    return isinstance(llm, ChatAnthropic)
+
+
 def generate_answer(
     ans: Answer,
     full_pdf_context: str,
@@ -947,7 +1023,9 @@ def generate_answer(
         if q.additional_llm_instruction:
             sys_msgs.append(SystemMessage(content=q.additional_llm_instruction))
 
-    # build context string
+    # Build context, separating the large *stable* document bundle (identical
+    # across every question of an assay → the cache target) from any per-question
+    # subsection answers (variable → must follow the cache breakpoint).
     if q.only_subsections_for_context and q.subsections_for_context.exists():
         # gather answers to *all* questions in those subsections
         ctx_answers = Answer.objects.filter(
@@ -955,36 +1033,67 @@ def generate_answer(
             question__subsection__in=q.subsections_for_context.all(),
             answer_text__isnull=False,
         )
-        context_blocks = [
+        stable_bundle = ""
+        variable_ctx = "\n\n".join(
             f"--- Q: {ca.question.question_text}\nA: {ca.answer_text}"
             for ca in ctx_answers
-        ]
-        context_str = "\n\n".join(context_blocks)
+        )
     else:
         # use full PDF + *optional* subsection‑scoped answers
-        context_str = full_pdf_context
+        stable_bundle = full_pdf_context
+        variable_ctx = ""
         if q.subsections_for_context.exists():
             ctx_answers = Answer.objects.filter(
                 assay=assay,
                 question__subsection__in=q.subsections_for_context.all(),
                 answer_text__isnull=False,
             )
-            extra = "\n\n".join(
+            variable_ctx = "\n\n".join(
                 f"--- Q: {ca.question.question_text}\nA: {ca.answer_text}"
                 for ca in ctx_answers
             )
-            context_str += "\n\n" + extra
 
     # build messages
     messages = []
     messages.extend(sys_msgs)
-    if context_str:
+    if _supports_prompt_caching(chatopenai) and stable_bundle:
+        # Anthropic prompt caching: mark the stable document bundle as an
+        # ephemeral cache breakpoint so the other ~76 questions of this assay
+        # reuse the prefix at ~90% discount. Variable subsection context follows
+        # the breakpoint so the cached prefix stays byte-identical per question.
         messages.append(
-            SystemMessage(content="Context for this question:\n" + context_str)
+            SystemMessage(
+                content=[
+                    {
+                        "type": "text",
+                        "text": "Context for this question:\n" + stable_bundle,
+                        "cache_control": {"type": "ephemeral"},
+                    }
+                ]
+            )
         )
+        if variable_ctx:
+            messages.append(
+                SystemMessage(content="Additional context:\n" + variable_ctx)
+            )
+    else:
+        # Non-Anthropic (OpenAI/Azure/Mistral/etc.): automatic server-side prefix
+        # caching — keep the original single combined context message unchanged so
+        # the prompt is byte-identical to prior runs (preserves cross-model parity).
+        context_str = stable_bundle
+        if variable_ctx:
+            context_str = (
+                stable_bundle + "\n\n" + variable_ctx if stable_bundle else variable_ctx
+            )
+        if context_str:
+            messages.append(
+                SystemMessage(content="Context for this question:\n" + context_str)
+            )
     messages.append(HumanMessage(content=q.question_text))
 
     # retry loop with dynamic waits and soft deadline
+    transient_attempts = 0
+    rate_limit_attempts = 0
     while True:
         if deadline is not None and time.time() > deadline:
             logger.error(
@@ -1003,27 +1112,66 @@ def generate_answer(
             output_tokens = usage.get("output_tokens", 0) or 0
             return ans.id, (resp.content or ""), input_tokens, output_tokens
 
-        except RateLimitError as e:
-            # parse “try again in Xs” if present
+        except _RATE_LIMIT_ERRORS as e:
+            # Determine how long to back off. Prefer the standard Retry-After
+            # header; otherwise parse the message — OpenAI says "try again in Xs",
+            # Anthropic/Azure say "wait N seconds". Default + cap as a safety net.
+            rate_limit_attempts += 1
             wait = 5.0
             try:
-                msg = e.response.json().get("error", {}).get("message", "")
-                m = re.search(r"try again in ([\d\.]+)s", msg)
-                if m:
-                    wait = float(m.group(1)) + 0.5
-            except Exception:
+                retry_after = e.response.headers.get("retry-after")
+                if retry_after:
+                    wait = float(retry_after) + 0.5
+                else:
+                    # OpenAI: "try again in Xs"; Anthropic/Azure: "wait N seconds".
+                    msg = str(getattr(e, "message", "") or e)
+                    m = re.search(r"try again in ([\d\.]+)\s*s", msg) or re.search(
+                        r"wait ([\d\.]+)\s*seconds?", msg
+                    )
+                    if m:
+                        wait = float(m.group(1)) + 0.5
+            except Exception:  # noqa: S110 - best-effort parse; the default applies
                 pass
+            # Escalate on CONSECUTIVE 429s and add jitter. A low-TPM endpoint
+            # (e.g. Mistral) returns a short "retry in 1.5s" hint; with several
+            # worker threads honouring it verbatim they retry in lockstep — a
+            # thundering herd that re-saturates the limit every cycle and never
+            # clears it (observed: 4 workers stuck on the first 4 questions for
+            # 11 min). Growing an exponential floor and desynchronising the
+            # workers with random jitter lets the rate-limit window actually drain.
+            backoff_floor = min(2.0 * (2 ** (rate_limit_attempts - 1)), 60.0)
+            wait = min(max(wait, backoff_floor), 90.0)
+            wait += random.uniform(0, min(wait * 0.5, 15.0))  # desync workers
 
             logger.warning(
                 f"RateLimit hit for answer {ans.id} [{max_ans_id - ans.id} "
-                f"of {delta_ans}], retrying in {wait:.1f}s"
+                f"of {delta_ans}] (attempt {rate_limit_attempts}), "
+                f"retrying in {wait:.1f}s"
             )
             time.sleep(wait)
 
-        except BadRequestError as exc:
-            # Surface context-length (and other 400-level) errors explicitly
-            # so they are never silently swallowed as empty answers.
-            # logger.exception includes the full traceback for diagnostics.
+        except _TRANSIENT_ERRORS as exc:
+            # Timeout / dropped connection / 5xx — retry with exponential backoff
+            # up to a cap, then give up rather than loop forever.
+            transient_attempts += 1
+            if transient_attempts > MAX_TRANSIENT_RETRIES:
+                logger.warning(
+                    "Giving up on answer %s after %d transient errors: %s",
+                    ans.id, transient_attempts, exc,
+                )
+                return ans.id, "", 0, 0
+            backoff = min(2 ** transient_attempts, 30)
+            logger.warning(
+                "Transient error for answer %s (attempt %d/%d), retrying in %ds: %s",
+                ans.id, transient_attempts, MAX_TRANSIENT_RETRIES, backoff, exc,
+            )
+            time.sleep(backoff)
+
+        except _BAD_REQUEST_ERRORS as exc:
+            # Surface context-length, billing/credit-balance, and other 400-level
+            # errors explicitly so they are never silently swallowed as empty
+            # answers. Covers BOTH openai.BadRequestError and anthropic's own
+            # variant. logger.exception includes the full traceback for diagnostics.
             logger.exception(
                 "BadRequest from LLM for answer %s [%s of %s]: %s",
                 ans.id,
@@ -1035,8 +1183,11 @@ def generate_answer(
 
         except Exception as exc:
             logger.exception(
-                f"LLM error for answer {ans.id} [{max_ans_id - ans.id} "
-                "of {delta_ans}]: {exc}"
+                "LLM error for answer %s [%s of %s]: %s",
+                ans.id,
+                max_ans_id - ans.id,
+                delta_ans,
+                exc,
             )
             return ans.id, "", 0, 0
 
@@ -1123,6 +1274,7 @@ def process_llm_async(
     user_id: int | None = None,
     llm_model: str | None = None,
     base_prompt: str | None = None,
+    max_workers: int | None = None,
 ) -> None:
     """Process llm answer async.
 
@@ -1130,7 +1282,13 @@ def process_llm_async(
     2) save them, then round 2, etc.
     Each question can override or replace instructions,
     and can scope context to specific subsections or use the PDFs.
+
+    ``max_workers`` overrides the answering thread-pool size for this run (falls
+    back to ``config.max_workers_threading``). Used to serialise requests against
+    low-throughput endpoints — a shared low-TPM deployment livelocks on 429s when
+    several large-context requests fire at once.
     """
+    pool_workers = max_workers or config.max_workers_threading
     try:
         try:
             assay = Assay.objects.get(pk=assay_id)
@@ -1340,7 +1498,7 @@ def process_llm_async(
             )
 
             # fire off the round in parallel
-            with ThreadPoolExecutor(max_workers=config.max_workers_threading) as pool:
+            with ThreadPoolExecutor(max_workers=pool_workers) as pool:
                 futures = {
                     pool.submit(
                         generate_answer, a, full_pdf_context, assay, chatopenai,
