@@ -330,6 +330,7 @@ def run(
             for a in answers:
                 text = a.answer_text or ""
                 q = a.question
+                parsed = parse_answer(text)
                 rows.append(
                     {
                         "question_id": q.id,
@@ -337,14 +338,15 @@ def run(
                         "subsection": q.subsection.title,
                         "question": q.question_text,
                         "answer": text,
-                        "not_found": parse_answer(text)["not_found"],
+                        "answer_scenario": parsed["answer_scenario"],
+                        "not_found": parsed["not_found"],
                     }
                 )
             pd.DataFrame(
                 rows,
                 columns=[
                     "question_id", "section", "subsection",
-                    "question", "answer", "not_found",
+                    "question", "answer", "answer_scenario", "not_found",
                 ],
             ).to_csv(csv_path, index=False)
             answered, total, rate = _completeness(rows)
