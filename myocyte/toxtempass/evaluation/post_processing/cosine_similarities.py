@@ -1,24 +1,27 @@
-import os
+"""Tier-1 adapter: cosine similarity of an answer against a reference answer.
 
-import numpy as np
-from langchain_openai import OpenAIEmbeddings
+Thin shim over the modular layers:
+  * ``embeddings.py``  -- provider + caching (where vectors come from)
+  * ``similarity.py``  -- pure cosine math
 
-from toxtempass import LLM_API_KEY, config
+The public surface is unchanged for back-compat:
+  * ``cosine_similarity(text1, text2)`` -- used by ``post_processing/utils.py``.
+  * ``embeddings``                      -- the shared client (lazily built).
+"""
 
-# Embeddings (used for cosine similarity in tier1 + tier3 cross-model agreement) go
-# to OpenAI's own endpoint via OPENAI_API_KEY — the Azure Foundry endpoint in
-# `config.url` does not serve `text-embedding-3-large`. Falls back to the legacy
-# key if OPENAI_API_KEY is unset.
-embeddings = OpenAIEmbeddings(
-    model=config._validation_embedding_model,
-    openai_api_key=os.getenv("OPENAI_API_KEY") or LLM_API_KEY,
-    chunk_size=1024,
-)
+from __future__ import annotations
+
+from toxtempass.evaluation.post_processing import embeddings as _emb
+from toxtempass.evaluation.post_processing import similarity as _sim
+
+
+def __getattr__(name):  # back-compat: ``from cosine_similarities import embeddings``
+    if name == "embeddings":
+        return _emb.get_client()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def cosine_similarity(text1: str, text2: str) -> float:
-    """Compute the cosine similarity between two texts using their embeddings."""
-    # embed both texts in one call for efficiency
-    vec1, vec2 = embeddings.embed_documents([text1, text2])
-    # compute cosine similarity
-    return float(np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2)))
+    """Cosine similarity between two texts (embedded via the shared cached client)."""
+    vecs = _emb.embed_texts([text1, text2])
+    return _sim.cosine(vecs[0], vecs[1])
