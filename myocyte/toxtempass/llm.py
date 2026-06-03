@@ -131,7 +131,7 @@ def get_llm():
         model=model,
         temperature=temperature,
         default_headers=extra_headers,
-        timeout=30,
+        timeout=120,
     )
 
 
@@ -360,7 +360,7 @@ def get_llm_for_endpoint(endpoint_index: int, model_tag: str, temperature: float
             api_key=ep.api_key,
             base_url=base,
             model=m.deployment_name,
-            timeout=30,
+            timeout=120,
             **temp_kwargs,
         )
 
@@ -373,12 +373,18 @@ def get_llm_for_endpoint(endpoint_index: int, model_tag: str, temperature: float
             )
         # AzureChatOpenAI wants the resource root (no /openai/... path).
         azure_endpoint = ep.endpoint.split("/openai/")[0].rstrip("/")
+        # Pass `model` explicitly so the request BODY carries a model string.
+        # Real Azure OpenAI ignores it (the deployment in the URL is
+        # authoritative), but SGLang-backed Azure deployments (e.g. some
+        # serverless models) validate body.model and reject `null`. Harmless for
+        # genuine Azure deployments, required for the OpenAI-compatible backends.
         return AzureChatOpenAI(
             api_key=ep.api_key,
             azure_endpoint=azure_endpoint,
             api_version=ep.api_version,
             azure_deployment=m.deployment_name,
-            timeout=30,
+            model=m.model_id,
+            timeout=120,
             **temp_kwargs,
         )
 
@@ -405,7 +411,7 @@ def get_llm_for_endpoint(endpoint_index: int, model_tag: str, temperature: float
         api_key=ep.api_key,
         base_url=ep.endpoint,
         model=m.deployment_name,
-        timeout=30,
+        timeout=120,
         **temp_kwargs,
     )
 
