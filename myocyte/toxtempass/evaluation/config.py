@@ -241,20 +241,15 @@ class EvaluationConfig:
                 {"name": "gpt-4o-mini", "temperature": 0},
                 {"name": "gpt-5.4-mini", "temperature": None},
                 {"name": "gpt-5.4-nano", "temperature": None},
+                # Frontier OpenAI point (direct api.openai.com via the existing
+                # OPENAI key) — anchors the OpenAI ceiling vs the mini/nano tiers.
+                # temperature=None: reasoning model (_is_reasoning_model omits temp).
+                {"name": "gpt-5.5", "temperature": None},
                 {"name": "claude-haiku-4-5", "temperature": 0},
                 {"name": "claude-opus-4-8", "temperature": None},
-                # Llama is on the healthy E4 endpoint. Kimi/Mistral were moved off
-                # the throttled E1 (per-request ~15-20k tok cap, too small for the
-                # 14-80k ToxTemp contexts) onto E6 (azure-openai), which has TPM
-                # headroom for 80k contexts (smoke-tested OK). DeepSeek-V4-Flash is
-                # sequenced LAST while its E6 config is fixed (still resolves to the
-                # openai path and 404s). (Order does not affect results — each model
-                # is evaluated independently.)
+
                 {"name": "Llama-4-Scout-17B-16E-Instruct", "temperature": 0},
                 {"name": "Kimi-K2.6", "temperature": 0},
-                # DeepSeek before Mistral: DeepSeek is fast (~10s/call) so it banks
-                # quickly; Mistral-Large-3 is ~70s/call (deployment throughput-bound,
-                # not concurrency-fixable) so it runs LAST as the long tail.
                 {"name": "DeepSeek-V4-Flash", "temperature": 0},
                 {"name": "Mistral-Large-3", "temperature": 0},
             ],
