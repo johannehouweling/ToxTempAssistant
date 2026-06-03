@@ -64,19 +64,23 @@ def read_description(assay_dir: Path) -> str:
     return ""
 
 
-def gather_input_files(assay_dir: Path, extract_images: bool) -> list[Path]:
+def gather_input_files(
+    assay_dir: Path, extract_images: bool, skip_folders: set[str] = frozenset()
+) -> list[Path]:
     """All ingestible files in the bundle except the ``description/`` folder.
 
     The description is delivered via ``Assay.description`` instead, so excluding it
     here avoids feeding it twice. ``toxtemp/`` is intentionally NOT excluded — a
     user uploading an existing/related ToxTemp is a realistic scenario.
+    ``skip_folders`` excludes additional subfolders (e.g. bulky ``raw_data``).
     """
     allowed = _TEXT_SUFFIXES | (_IMAGE_SUFFIXES if extract_images else set())
+    excluded = {"description"} | set(skip_folders)
     files: list[Path] = []
     for p in sorted(assay_dir.rglob("*")):
         if not p.is_file() or p.name == ".gitkeep":
             continue
-        if "description" in set(p.relative_to(assay_dir).parts):
+        if excluded & set(p.relative_to(assay_dir).parts):
             continue
         if p.suffix.lower() in allowed:
             files.append(p)
@@ -107,6 +111,17 @@ def _completeness(rows: list[dict]) -> tuple[int, int, float]:
     return answered, total, (round(100 * answered / total, 2) if total else 0.0)
 
 
+def _count_empty(df: pd.DataFrame) -> int:
+    """Count TRULY empty answers (blank text) in a saved CSV.
+
+    A blank ``answer`` cell is the rate-limit / timeout / crash signature — the
+    model produced nothing — and is distinct from a legitimate "not found" (which
+    has prose or structured ``answerable:no`` content). ``retry_empty`` mode keys
+    off this to re-run only the damaged (assay, model) combos.
+    """
+    return sum(1 for a in df.get("answer", pd.Series(dtype=str)) if not str(a).strip())
+
+
 def _assay_record(
     assay_dir: Path,
     files: list[Path],
@@ -130,6 +145,7 @@ def _assay_record(
 def run(
     question_set_label: str | None = None,
     repeat: bool = False,
+    retry_empty: bool = False,
     input_dir: Path | None = None,
     output_base_dir: Path | None = None,
     experiment: str | None = None,
@@ -139,7 +155,10 @@ def run(
 
     Args:
         question_set_label: Optional QuestionSet label; defaults to latest visible.
-        repeat: Re-generate even if an assay's CSV already exists.
+        repeat: Re-generate every assay even if its CSV already exists.
+        retry_empty: Re-generate only the (assay, model) combos whose existing CSV
+            has blank answers (rate-limit/timeout damage); combos that are fully
+            answered are cached. Ignored when ``repeat`` is set (which redoes all).
         input_dir: Tier 3 input root (per-assay bundles); defaults to config.
         output_base_dir: Tier 3 output base; defaults to config.
         experiment: Experiment name (from eval_config.experiments); selects models
@@ -162,14 +181,18 @@ def run(
     base_prompt = prompts["base_prompt"]
     prompt_hash = eval_config.get_prompt_hash(experiment)
     extract_images = eval_config.get_extract_images(experiment)
+    skip_folders = eval_config.get_skip_folders(experiment)
+    only_assays = set(eval_config.get_assays(experiment))
     exp_name = experiment or "default"
-    # Context is experiment-scoped: extract_images (and thus the assembled context)
-    # can differ per experiment, so the faithfulness judge must read this
-    # experiment's context, not whichever experiment happened to run first.
+    # Context is experiment-scoped: extract_images / skip_folders (and thus the
+    # assembled context) can differ per experiment, so the faithfulness judge must
+    # read this experiment's context, not whichever experiment ran first.
     context_dir = output_base_dir / exp_name / "_context"
     context_dir.mkdir(parents=True, exist_ok=True)
 
     assay_dirs = sorted([d for d in input_dir.iterdir() if d.is_dir()])
+    if only_assays:
+        assay_dirs = [d for d in assay_dirs if d.name in only_assays]
     if not assay_dirs:
         stdout.write(style.ERROR(f"No assay folders under {input_dir}."))
         return
@@ -196,7 +219,22 @@ def run(
         if llm is None:
             stdout.write(style.ERROR(f"{info} — skipping."))
             continue
-        stdout.write(style.SUCCESS(f"Using ({model_name}) via {info}."))
+        # Per-endpoint concurrency: serialise models on a shared low-TPM endpoint
+        # (llm_key is "<endpoint_index>:<tag>") so large-context requests don't
+        # saturate its tokens-per-minute quota and livelock on 429s.
+        ep_idx = (
+            int(llm_key.split(":")[0]) if llm_key and ":" in llm_key else None
+        )
+        model_max_workers = (
+            eval_config.endpoint_concurrency.get(ep_idx)
+            if ep_idx is not None else None
+        )
+        workers_note = (
+            f" [serialised: {model_max_workers} worker]" if model_max_workers else ""
+        )
+        stdout.write(
+            style.SUCCESS(f"Using ({model_name}) via {info}.{workers_note}")
+        )
 
         out_dir = output_base_dir / exp_name / _output_dir_name(model_name, temp)
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -210,24 +248,38 @@ def run(
 
             if csv_path.exists() and not repeat:
                 df = pd.read_csv(csv_path).fillna("")
-                rows = [
-                    {"not_found": parse_answer(a)["not_found"]}
-                    for a in df.get("answer", pd.Series(dtype=str))
-                ]
-                answered, total, rate = _completeness(rows)
-                records.append(
-                    _assay_record(
-                        assay_dir,
-                        gather_input_files(assay_dir, extract_images),
-                        read_description(assay_dir),
-                        answered, total, rate,
+                n_empty = _count_empty(df)
+                # retry_empty: regenerate ONLY combos that have blank answers (the
+                # rate-limit/timeout damage); a clean CSV is still cached. Without
+                # retry_empty, any existing CSV is cached (current behaviour).
+                if retry_empty and n_empty:
+                    stdout.write(
+                        style.WARNING(
+                            f"  {assay_name}: {n_empty} empty answer(s) — regenerating."
+                        )
                     )
-                )
-                stdout.write(style.NOTICE(f"  {assay_name}: cached (REPEAT off)."))
-                continue
+                else:
+                    rows = [
+                        {"not_found": parse_answer(a)["not_found"]}
+                        for a in df.get("answer", pd.Series(dtype=str))
+                    ]
+                    answered, total, rate = _completeness(rows)
+                    records.append(
+                        _assay_record(
+                            assay_dir,
+                            gather_input_files(assay_dir, extract_images, skip_folders),
+                            read_description(assay_dir),
+                            answered, total, rate,
+                        )
+                    )
+                    cached_note = (
+                        "cached (0 empty)" if retry_empty else "cached (REPEAT off)"
+                    )
+                    stdout.write(style.NOTICE(f"  {assay_name}: {cached_note}."))
+                    continue
 
             description = read_description(assay_dir)
-            files = gather_input_files(assay_dir, extract_images)
+            files = gather_input_files(assay_dir, extract_images, skip_folders)
             if not files and not description:
                 stdout.write(
                     style.WARNING(f"  {assay_name}: no ingestible inputs — skipping.")
@@ -266,6 +318,7 @@ def run(
                 verbose=True,
                 base_prompt=base_prompt,
                 llm_model=llm_key,  # use the model's own context window for truncation
+                max_workers=model_max_workers,  # serialise low-TPM endpoints
             )
 
             answers = (

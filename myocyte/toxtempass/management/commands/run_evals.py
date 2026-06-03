@@ -39,6 +39,16 @@ class Command(BaseCommand):
             help="Re-run even if output already exists for a model.",
         )
         parser.add_argument(
+            "--retry-empty",
+            dest="retry_empty",
+            action="store_true",
+            help=(
+                "Tier 3 only: re-run just the (assay, model) combos whose existing "
+                "CSV has blank answers (rate-limit/timeout damage); fully-answered "
+                "combos are cached. Ignored when --repeat is set."
+            ),
+        )
+        parser.add_argument(
             "--skip-pcontrol",
             action="store_true",
             help="Skip positive control run.",
@@ -70,6 +80,7 @@ class Command(BaseCommand):
         question_set_label = options.get("question_set_label")
         experiment = options.get("experiment")
         repeat = options.get("repeat", False)
+        retry_empty = options.get("retry_empty", False)
         skip_pcontrol = options.get("skip_pcontrol", False)
         skip_ncontrol = options.get("skip_ncontrol", False)
         skip_rwcontrol = options.get("skip_rwcontrol", False)
@@ -113,6 +124,7 @@ class Command(BaseCommand):
             run_real_world(
                 question_set_label=question_set_label,
                 repeat=repeat,
+                retry_empty=retry_empty,
                 experiment=experiment,
                 stdout=self.stdout,
             )
