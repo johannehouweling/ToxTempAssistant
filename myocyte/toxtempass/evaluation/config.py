@@ -230,7 +230,7 @@ class EvaluationConfig:
             "models": [
                 {"name": "gpt-4o-mini", "temperature": 0},
                 {"name": "gpt-4.1-nano", "temperature": 0},
-                {"name": "o4-mini", "temperature": None},
+                {"name": "o3-mini", "temperature": None},
             ],
             "description": "Baseline with image extraction enabled (3 models, temp=0)",
             "extract_images": True,
@@ -241,13 +241,9 @@ class EvaluationConfig:
                 {"name": "gpt-4o-mini", "temperature": 0},
                 {"name": "gpt-5.4-mini", "temperature": None},
                 {"name": "gpt-5.4-nano", "temperature": None},
-                # Frontier OpenAI point (direct api.openai.com via the existing
-                # OPENAI key) — anchors the OpenAI ceiling vs the mini/nano tiers.
-                # temperature=None: reasoning model (_is_reasoning_model omits temp).
                 {"name": "gpt-5.5", "temperature": None},
                 {"name": "claude-haiku-4-5", "temperature": 0},
                 {"name": "claude-opus-4-8", "temperature": None},
-
                 {"name": "Llama-4-Scout-17B-16E-Instruct", "temperature": 0},
                 {"name": "Kimi-K2.6", "temperature": 0},
                 {"name": "DeepSeek-V4-Flash", "temperature": 0},
@@ -260,16 +256,6 @@ class EvaluationConfig:
                 "(they aren't ToxTemp prose and their ~200k-token contexts trip "
                 "provider rate limits); meta_data kept."),
             "skip_folders": ["raw_data", "processed_data"],
-        },
-        "cross_provider_test": {
-            # Single-model smoke test of the rate-limit backoff fix + data exclusion,
-            # on the model that previously produced empties (claude-haiku). Throwaway.
-            "models": [{"name": "claude-haiku-4-5", "temperature": 0}],
-            "skip_folders": ["raw_data", "processed_data"],
-            "description": (
-                "Verification: claude-haiku with raw_data/processed_data excluded, to "
-                "confirm the Anthropic rate-limit backoff fix eliminates empty answers."
-            ),
         },
         "structured_grounded": {
             "models": [{"name": "gpt-4o-mini", "temperature": 0}],
