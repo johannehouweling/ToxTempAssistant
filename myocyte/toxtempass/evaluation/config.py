@@ -291,39 +291,27 @@ class EvaluationConfig:
             ),
             "base_prompt": FEW_SHOT_BASE_PROMPT,
         },
-        "self_consistency": {
-            "models": [{"name": "gpt-4o-mini", "temperature": 0.7}],
+        "self_consistency_4o_mini": {
+            "models": [{"name": "gpt-4o-mini", "temperature": 0}],
+            "repeats": 3,
+            "skip_folders": ["raw_data", "processed_data"],
             "description": (
-                "Run gpt-4o-mini at temp 0.7 five times to measure run-to-run "
-                "variability (self-consistency); gives error bars on the metrics. "
-                "Each repeat lands in <model>_run<k>/; agreement across runs = "
-                "self-consistency."
+                "Self-consistency: gpt-4o-mini @ temp0 re-run 3× on all 9 assays "
+                "(cross_provider settings) to measure the run-to-run noise floor. "
+                "Each repeat lands in gpt-4o-mini_temp0_run<k>/; cross-run cosine = "
+                "within-model agreement. temp0 ⇒ near-deterministic, so this is the "
+                "high anchor (~1.0)."
             ),
-            "repeats": 5,
         },
-        "oatp1c1_nodata": {
-            # Same 9 models/temps as cross_provider so the output dir names match and
-            # the OATP1C1 CSV + context can be copied back into cross_provider in place.
-            "models": [
-                {"name": "gpt-4o-mini", "temperature": 0},
-                {"name": "gpt-5.4-mini", "temperature": None},
-                {"name": "gpt-5.4-nano", "temperature": None},
-                {"name": "claude-haiku-4-5", "temperature": 0},
-                {"name": "claude-opus-4-8", "temperature": None},
-                {"name": "Mistral-Large-3", "temperature": 0},
-                {"name": "Kimi-K2.6", "temperature": 0},
-                {"name": "DeepSeek-V4-Flash", "temperature": 0},
-                {"name": "Llama-4-Scout-17B-16E-Instruct", "temperature": 0},
-            ],
-            "assays": ["OATP1C1"],
-            "skip_folders": ["raw_data", "processed_data", "meta_data"],
+        "self_consistency_gpt54_mini": {
+            "models": [{"name": "gpt-5.4-mini", "temperature": None}],
+            "repeats": 3,
+            "skip_folders": ["raw_data", "processed_data"],
             "description": (
-                "Re-run all 9 cross_provider models on OATP1C1 with bulky data folders "
-                "(raw_data/processed_data/meta_data) excluded, then patch the result "
-                "into cross_provider. OATP1C1's ~203k-token context triggered "
-                "450k-tokens/min provider rate limits (429s/timeouts → ~1% "
-                "completeness for big-window models), not a capability limit; dropping "
-                "the spreadsheets shrinks the context below the rate limit."
+                "Self-consistency: gpt-5.4-mini @ default temp (reasoning ⇒ temp1) "
+                "re-run 3× on all 9 assays (cross_provider settings). Each repeat "
+                "lands in gpt-5.4-mini_run<k>/; cross-run cosine = within-model "
+                "agreement. Unlike 4o-mini@0, temp1 means genuine sampling spread."
             ),
         },
     }
