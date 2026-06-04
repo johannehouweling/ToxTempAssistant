@@ -39,17 +39,21 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "myocyte.settings")
 django.setup()
 
 # ── Django configured; safe to import the rest ──
+import asyncio  # noqa: E402
+import json  # noqa: E402
 import logging  # noqa: E402
+import random  # noqa: E402
 import re  # noqa: E402
 from datetime import datetime  # noqa: E402
 
+import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 from django.core.management.color import make_style  # noqa: E402
 from tqdm.auto import tqdm  # noqa: E402
 
 from toxtempass.evaluation.config import config as eval_config  # noqa: E402
 from toxtempass.evaluation.post_processing.faithfulness_ragas import (  # noqa: E402
-    faithfulness_score,
+    faithfulness_aexplain,
     make_faithfulness_metric,
 )
 from toxtempass.evaluation.pre_evaluation.answer_quality_scorer import (  # noqa: E402
@@ -68,6 +72,19 @@ DO_FAITHFULNESS: bool = True    # RAGAS faithfulness (needs the judge model)
 
 # Max characters of context handed to the faithfulness judge (~4 chars/token).
 FAITHFULNESS_CONTEXT_CHARS: int = 400_000
+
+# Faithfulness cost controls ----------------------------------------------------
+# Score only K questions per (experiment, assay); None = score every answered one.
+# The SAME sampled question_ids are used across all models in an assay so per-model
+# means stay comparable; seeded → reproducible across re-runs and models.
+FAITHFULNESS_SAMPLE_PER_ASSAY: int | None = None
+FAITHFULNESS_SAMPLE_SEED: int = 0
+# Concurrent judge calls for the faithfulness pass. The Gemini (E9 OpenAI-compat)
+# endpoint isn't in eval_config.endpoint_concurrency; tune here. Lower if 429s.
+FAITHFULNESS_MAX_WORKERS: int = 8
+# Restrict faithfulness scoring to these experiments (skips self_consistency
+# reruns); empty set = all experiments. Quality/agreement are unaffected.
+FAITHFULNESS_EXPERIMENTS: set[str] = {"cross_provider"}
 # ════════════════════════════════════════════════════════════════════════════
 
 OUTPUT_ROOT = eval_config.real_world_output
@@ -171,6 +188,103 @@ def load_context(experiment: str, assay: str, cache: dict) -> str:
     return cache[cache_key]
 
 
+N_BOOTSTRAP = 2000  # resamples for the cluster-bootstrap CI (fixed seed → reproducible)
+
+
+def _cluster_bootstrap_ci(
+    values_by_assay: list[np.ndarray], n_boot: int = N_BOOTSTRAP, seed: int = 0
+) -> tuple[float | None, float | None]:
+    """95% CI for a per-model mean via resampling whole ASSAYS with replacement.
+
+    The assay is the independent unit (questions within an assay are correlated), so we
+    resample assays (not questions) to avoid a fakely narrow interval.
+    ``values_by_assay`` is one array of per-question metric values per assay. Returns
+    ``(lo, hi)`` (the 2.5/97.5 percentiles of the resampled means), or ``(None, None)``
+    if fewer than 2 assays have values. Seeded so re-runs are reproducible.
+    """
+    clusters = [np.asarray(v, dtype=float) for v in values_by_assay if len(v)]
+    if len(clusters) < 2:
+        return None, None
+    rng = np.random.default_rng(seed)
+    k = len(clusters)
+    means = np.empty(n_boot)
+    for b in range(n_boot):
+        pooled = np.concatenate([clusters[i] for i in rng.integers(0, k, size=k)])
+        means[b] = pooled.mean()
+    lo, hi = np.percentile(means, [2.5, 97.5])
+    return round(float(lo), 4), round(float(hi), 4)
+
+
+def _dispersion(
+    grp: pd.DataFrame, col: str
+) -> tuple[int, float | None, float | None, float | None]:
+    """Return ``(n, sd, ci_lo, ci_hi)`` for a numeric metric column of ``grp``.
+
+    Reusable across agreement / faithfulness / quality: ``n`` = non-null values, ``sd`` =
+    sample std, ``(ci_lo, ci_hi)`` = cluster-bootstrap-by-assay 95% CI of the mean.
+    """
+    s = pd.to_numeric(grp[col], errors="coerce")
+    vals = s.dropna()
+    n = int(len(vals))
+    sd = round(float(vals.std(ddof=1)), 4) if n > 1 else None
+    by_assay = [
+        pd.to_numeric(sub[col], errors="coerce").dropna().to_numpy()
+        for _, sub in grp.groupby("assay")
+    ]
+    ci_lo, ci_hi = _cluster_bootstrap_ci(by_assay)
+    return n, sd, ci_lo, ci_hi
+
+
+def _load_checkpoint(path: Path, judge: str) -> dict:
+    """Load prior faithfulness results for ``judge`` from the JSONL checkpoint.
+
+    Returns ``{(experiment, assay, question_id, model): record}`` so a re-run skips
+    already-scored answers (resume). Records for a different judge are ignored; later
+    writes win. A missing file or a corrupt line is skipped, never fatal.
+    """
+    done: dict = {}
+    if not path.exists():
+        return done
+    with path.open(encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                r = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if r.get("judge") != judge:
+                continue
+            done[(r["experiment"], r["assay"], str(r["question_id"]), r["model"])] = r
+    return done
+
+
+def _load_checkpoint(path: Path, judge: str) -> dict:
+    """Load prior faithfulness results for ``judge`` from the JSONL checkpoint.
+
+    Returns ``{(experiment, assay, question_id, model): record}`` so a re-run skips
+    already-scored answers (resume). Records for a different judge are ignored; later
+    writes win. A missing file or a corrupt line is skipped, never fatal.
+    """
+    done: dict = {}
+    if not path.exists():
+        return done
+    with path.open(encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                r = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if r.get("judge") != judge:
+                continue
+            done[(r["experiment"], r["assay"], str(r["question_id"]), r["model"])] = r
+    return done
+
+
 def main() -> None:
     """Compute the four reference-free metrics and write the analysis CSVs."""
     ANALYSIS_DIR.mkdir(parents=True, exist_ok=True)
@@ -178,19 +292,59 @@ def main() -> None:
 
     judge = resolve_judge() if (DO_QUALITY or DO_FAITHFULNESS) else None
     faith_metric = make_faithfulness_metric(judge) if DO_FAITHFULNESS else None
-    breakdown = None
+
+    # Agreement reads precomputed vectors from the embedding cache (built by
+    # build_embeddings.py) and scores both the raw and the normalized embedding of
+    # each answer — no inline embedding here.
+    cache = None
+    vec_index: dict = {}
+    pairwise_cosine_from_vectors = None
     if DO_AGREEMENT:
-        # Lazy import: the embeddings client needs credentials, so only pull it in
-        # when agreement is requested.
+        from toxtempass.evaluation.post_processing.embeddings import EmbeddingCache
         from toxtempass.evaluation.post_processing.pairwise_cosine_similarities import (
-            pairwise_cosine_breakdown,
+            pairwise_cosine_from_vectors,
         )
 
-        breakdown = pairwise_cosine_breakdown
+        emb_dir = OUTPUT_ROOT / "_embeddings"
+        idx_path = emb_dir / "answer_index.csv"
+        cache = EmbeddingCache(emb_dir)
+        if len(cache) == 0 or not idx_path.exists():
+            raise SystemExit(
+                f"No embedding cache at {emb_dir}. Run build_embeddings.py first."
+            )
+        for r in pd.read_csv(idx_path).fillna("").itertuples():
+            vec_index[(r.experiment, r.model, r.assay, str(r.question_id))] = (
+                str(r.raw_sha1),
+                str(r.norm_sha1),
+            )
 
     context_cache: dict = {}
     metric_rows: list[dict] = []
     agreement_rows: list[dict] = []
+
+    # Faithfulness is scored in a separate concurrent pass (after this loop): collect
+    # tasks here, merge score + claim counts back by row index, and accumulate the
+    # per-claim breakdown into faith_detail for the detail CSV.
+    faith_tasks: list[tuple] = []
+    faith_detail: list[dict] = []
+    qids_by_assay: dict[tuple[str, str], list[str]] = {}
+    for _exp_k, _assay_k, _qid_k in index:
+        qids_by_assay.setdefault((_exp_k, _assay_k), []).append(_qid_k)
+    for _k in qids_by_assay:
+        qids_by_assay[_k].sort()
+    _sampled_cache: dict[tuple[str, str], set[str] | None] = {}
+
+    def _sampled_qids(exp: str, assay: str) -> set[str] | None:
+        """Seeded set of sampled question_ids for an assay (None = score all)."""
+        if FAITHFULNESS_SAMPLE_PER_ASSAY is None:
+            return None
+        key = (exp, assay)
+        if key not in _sampled_cache:
+            qids = qids_by_assay.get(key, [])
+            k = min(FAITHFULNESS_SAMPLE_PER_ASSAY, len(qids))
+            rng = random.Random(f"{FAITHFULNESS_SAMPLE_SEED}|{exp}|{assay}")  # noqa: S311
+            _sampled_cache[key] = set(rng.sample(qids, k))
+        return _sampled_cache[key]
 
     for (experiment, assay, _qid), entry in tqdm(
         sorted(index.items()), desc="Scoring", position=0, leave=True
@@ -201,12 +355,24 @@ def main() -> None:
         subsection = entry["subsection"]
         models = entry["models"]
 
-        per_model_agreement: dict = {}
-        if breakdown is not None:
-            answered = {
-                m: p["answer"] for m, p in models.items() if not p["not_found"]
-            }
-            overall, per_model_agreement = breakdown(answered)
+        per_raw: dict = {}
+        per_norm: dict = {}
+        if DO_AGREEMENT:
+            # Pull each participating (non-trivial) model's raw + normalized vectors
+            # from the cache; models with a trivial answer aren't in the index.
+            raw_vecs: dict = {}
+            norm_vecs: dict = {}
+            for model in models:
+                shas = vec_index.get((experiment, model, assay, str(question_id)))
+                if not shas:
+                    continue
+                raw_sha, norm_sha = shas
+                if raw_sha in cache:
+                    raw_vecs[model] = cache[raw_sha]
+                if norm_sha in cache:
+                    norm_vecs[model] = cache[norm_sha]
+            overall_raw, per_raw = pairwise_cosine_from_vectors(raw_vecs)
+            overall_norm, per_norm = pairwise_cosine_from_vectors(norm_vecs)
             agreement_rows.append(
                 {
                     "experiment": experiment,
@@ -215,14 +381,14 @@ def main() -> None:
                     "section": section,
                     "subsection": subsection,
                     "question": question,
-                    "n_models_answered": len(answered),
-                    "mean_pairwise_cosine": overall,
+                    "n_models": len(raw_vecs),
+                    "mean_cosine_raw": overall_raw,
+                    "mean_cosine_normalized": overall_norm,
                 }
             )
 
         for model, parsed in models.items():
             quality_score = ""
-            faith_score: float | str = ""
             quotes_verbatim = ""
             if not parsed["not_found"]:
                 answer_text = parsed["answer"]
@@ -230,14 +396,6 @@ def main() -> None:
                     quality_score = score_answer_with_llm(
                         question, answer_text, judge_llm=judge
                     )[0]
-                if DO_FAITHFULNESS:
-                    val = faithfulness_score(
-                        question,
-                        answer_text,
-                        load_context(experiment, assay, context_cache),
-                        faith_metric,
-                    )
-                    faith_score = "" if val is None else val
                 if parsed["is_structured"]:
                     frac = quotes_verbatim_fraction(
                         parsed["supporting_quotes"],
@@ -259,11 +417,123 @@ def main() -> None:
                     "source": parsed["source"],
                     "not_found": parsed["not_found"],
                     "quality_score": quality_score,
-                    "faithfulness_score": faith_score,
+                    "faithfulness_score": "",  # filled by the concurrent pass below
+                    "faithfulness_n_claims": "",
+                    "faithfulness_n_supported": "",
+                    "faithfulness_n_unsupported": "",
                     "quotes_verbatim": quotes_verbatim,
-                    "model_agreement": per_model_agreement.get(model, ""),
+                    "model_agreement_raw": per_raw.get(model, ""),
+                    "model_agreement_normalized": per_norm.get(model, ""),
                 }
             )
+            # Queue NON-TRIVIAL answers (answered + hedged) for the concurrent
+            # faithfulness pass, scoring the citation/abstention-stripped substantive
+            # text so a hedge sentence doesn't count as an unsupported claim. The row
+            # index merges the score back without re-sorting.
+            if (
+                DO_FAITHFULNESS
+                and not parsed["is_trivial"]
+                and (
+                    not FAITHFULNESS_EXPERIMENTS
+                    or experiment in FAITHFULNESS_EXPERIMENTS
+                )
+            ):
+                sampled = _sampled_qids(experiment, assay)
+                if sampled is None or str(question_id) in sampled:
+                    faith_tasks.append(
+                        (
+                            len(metric_rows) - 1,
+                            experiment,
+                            assay,
+                            str(question_id),
+                            model,
+                            question,
+                            parsed["substantive_text"],
+                            load_context(experiment, assay, context_cache),
+                        )
+                    )
+
+    # Concurrent faithfulness pass with a DURABLE checkpoint. Each score is appended to a
+    # JSONL the instant it's computed (so out-of-credits/crash mid-run loses at most the
+    # in-flight handful), and a re-run RESUMES — answers already scored for this judge are
+    # loaded from the checkpoint, not re-scored. Scoring runs in one event loop (asyncio +
+    # semaphore) so the LLM I/O truly overlaps; the per-claim breakdown is kept (free).
+    if DO_FAITHFULNESS and faith_tasks:
+        judge_id = eval_config.judge_model
+        ckpt_path = ANALYSIS_DIR / "faithfulness_checkpoint.jsonl"
+        done = _load_checkpoint(ckpt_path, judge_id)
+
+        def _merge(idx: int, exp: str, asy: str, qid: str, mdl: str, res: dict) -> None:
+            row = metric_rows[idx]
+            row["faithfulness_score"] = res["score"]
+            row["faithfulness_n_claims"] = res["n_claims"]
+            row["faithfulness_n_supported"] = res["n_supported"]
+            row["faithfulness_n_unsupported"] = res["n_unsupported"]
+            for c in res.get("claims", []):
+                faith_detail.append(
+                    {
+                        "experiment": exp, "assay": asy, "question_id": qid,
+                        "model": mdl, "verdict": c["verdict"],
+                        "statement": c["statement"], "reason": c["reason"],
+                    }
+                )
+
+        # Resume: merge already-scored answers from the checkpoint; queue only the rest.
+        todo = []
+        for t in faith_tasks:
+            key = (t[1], t[2], t[3], t[4])  # (experiment, assay, question_id, model)
+            if key in done:
+                _merge(t[0], t[1], t[2], t[3], t[4], done[key])
+            else:
+                todo.append(t)
+        print(style.HTTP_INFO(
+            f"Faithfulness [{judge_id}]: {len(done)} cached, scoring {len(todo)} new "
+            f"at concurrency {FAITHFULNESS_MAX_WORKERS}…"
+        ))
+
+        n_failed = 0
+        if todo:
+            ckpt = ckpt_path.open("a", encoding="utf-8")
+
+            async def _run_faith() -> int:
+                sem = asyncio.Semaphore(FAITHFULNESS_MAX_WORKERS)
+
+                async def _one(task: tuple) -> tuple:
+                    idx, exp, asy, qid, mdl, q, a, ctx = task
+                    async with sem:
+                        res = await faithfulness_aexplain(q, a, ctx, faith_metric)
+                    return idx, exp, asy, qid, mdl, res
+
+                failed = 0
+                coros = [_one(t) for t in todo]
+                for fut in tqdm(
+                    asyncio.as_completed(coros), total=len(coros),
+                    desc="Faithfulness", position=0, leave=True,
+                ):
+                    idx, exp, asy, qid, mdl, res = await fut
+                    if res is None or res["score"] is None:
+                        failed += 1
+                        continue
+                    ckpt.write(json.dumps({
+                        "judge": judge_id, "experiment": exp, "assay": asy,
+                        "question_id": qid, "model": mdl, "score": res["score"],
+                        "n_claims": res["n_claims"], "n_supported": res["n_supported"],
+                        "n_unsupported": res["n_unsupported"], "claims": res["claims"],
+                    }) + "\n")
+                    ckpt.flush()
+                    _merge(idx, exp, asy, qid, mdl, res)
+                return failed
+
+            try:
+                n_failed = asyncio.run(_run_faith())
+            finally:
+                ckpt.close()
+
+        scored = len(todo) - n_failed
+        msg = f"Faithfulness: {len(done)} cached + {scored}/{len(todo)} newly scored"
+        if n_failed:
+            msg += f" — {n_failed} returned None (judge error / no claims; excluded)"
+        print((style.WARNING if n_failed else style.SUCCESS)(msg))
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
     metrics_df = pd.DataFrame(metric_rows)
@@ -275,6 +545,15 @@ def main() -> None:
         agreement_path = ANALYSIS_DIR / f"tier3_agreement_{timestamp}.csv"
         pd.DataFrame(agreement_rows).to_csv(agreement_path, index=False)
         print(style.SUCCESS(f"Cross-model agreement → {agreement_path}"))
+
+    if faith_detail:
+        detail_path = ANALYSIS_DIR / f"tier3_faithfulness_detail_{timestamp}.csv"
+        pd.DataFrame(
+            faith_detail,
+            columns=["experiment", "assay", "question_id", "model",
+                     "verdict", "statement", "reason"],
+        ).to_csv(detail_path, index=False)
+        print(style.SUCCESS(f"Faithfulness per-claim detail → {detail_path}"))
 
     # ── Per-(experiment, model) aggregates ──────────────────────────────────
     # Denominator = the full set of (assay, question) seen across all models in an
@@ -288,12 +567,29 @@ def main() -> None:
     for (experiment, model), grp in metrics_df.groupby(["experiment", "model"]):
         answered = grp[~grp["not_found"].astype(bool)]
         quality_num = answered["quality_score"].map(QUALITY_NUMERIC).dropna()
-        # RAGAS faithfulness is already a 0-1 float.
+        # RAGAS faithfulness is scored over NON-trivial answers (answered + hedged),
+        # a superset of ``answered``; aggregate it over ``grp``, not ``answered``.
         faith_num = pd.to_numeric(
-            answered["faithfulness_score"], errors="coerce"
+            grp["faithfulness_score"], errors="coerce"
         ).dropna()
-        agreement_vals = pd.to_numeric(grp["model_agreement"], errors="coerce").dropna()
+        agree_raw = pd.to_numeric(grp["model_agreement_raw"], errors="coerce").dropna()
+        agree_norm = pd.to_numeric(
+            grp["model_agreement_normalized"], errors="coerce"
+        ).dropna()
         verbatim_vals = pd.to_numeric(grp["quotes_verbatim"], errors="coerce").dropna()
+        # Spread + cluster-bootstrap-by-assay 95% CI for the agreement means. ``n`` is
+        # shared across raw/normalized (same participating questions).
+        agree_n, agree_raw_sd, agree_raw_lo, agree_raw_hi = _dispersion(
+            grp, "model_agreement_raw"
+        )
+        _, agree_norm_sd, agree_norm_lo, agree_norm_hi = _dispersion(
+            grp, "model_agreement_normalized"
+        )
+        # Faithfulness is a scored subset (non-trivial answers): n/sd/CI over the
+        # scored rows, cluster-bootstrap by assay (same machinery as agreement).
+        faith_n, faith_sd, faith_lo, faith_hi = _dispersion(
+            grp, "faithfulness_score"
+        )
         expected = expected_per_exp.get(experiment) or len(grp)
         summary_rows.append(
             {
@@ -308,8 +604,21 @@ def main() -> None:
                 if len(quality_num) else None,
                 "mean_faithfulness": round(float(faith_num.mean()), 4)
                 if len(faith_num) else None,
-                "mean_agreement": round(float(agreement_vals.mean()), 4)
-                if len(agreement_vals) else None,
+                "faithfulness_n": faith_n,
+                "faithfulness_sd": faith_sd,
+                "faithfulness_ci_lo": faith_lo,
+                "faithfulness_ci_hi": faith_hi,
+                "agreement_n": agree_n,
+                "mean_agreement_raw": round(float(agree_raw.mean()), 4)
+                if len(agree_raw) else None,
+                "agreement_raw_sd": agree_raw_sd,
+                "agreement_raw_ci_lo": agree_raw_lo,
+                "agreement_raw_ci_hi": agree_raw_hi,
+                "mean_agreement_normalized": round(float(agree_norm.mean()), 4)
+                if len(agree_norm) else None,
+                "agreement_norm_sd": agree_norm_sd,
+                "agreement_norm_ci_lo": agree_norm_lo,
+                "agreement_norm_ci_hi": agree_norm_hi,
                 "mean_quotes_verbatim": round(float(verbatim_vals.mean()), 4)
                 if len(verbatim_vals) else None,
             }

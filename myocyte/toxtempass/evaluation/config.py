@@ -181,11 +181,12 @@ class EvaluationConfig:
 
     # Judge model for reference-free LLM-as-judge metrics (quality, faithfulness)
     # used by the Tier 3 real-world evaluation. Resolved via the Azure registry by
-    # model id. Claude 4.6  t is a DEDICATED judge: it is intentionally NOT one
-    # of the cross_provider candidates, so its verdicts carry no self-preference
-    # bias. Deploy it (e.g. AZURE_E<n>_MODEL_<TAG>=claude-sonnet-4-6) and keep this
-    # value matching that model id.
-    judge_model: str = "claude-sonnet-4-6"
+    # model id. Gemini Flash 3.5 is a DEDICATED, NEUTRAL judge: it is intentionally
+    # NOT one of the cross_provider candidates, so its verdicts carry no
+    # self-preference bias — and it is cheap with a large context window. Deploy via
+    # Google's OpenAI-compat endpoint (AZURE_E<n>_TAGS_<TAG>=api:openai) and keep
+    # this value BYTE-IDENTICAL to that deployment's AZURE_E<n>_MODEL_<TAG> id.
+    judge_model: str = "gemini-3.5-flash"
 
     # Per-endpoint answering concurrency override (endpoint index → max worker
     # threads); endpoints not listed use the default Config.max_workers_threading.

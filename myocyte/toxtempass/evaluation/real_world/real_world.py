@@ -183,6 +183,7 @@ def run(
     extract_images = eval_config.get_extract_images(experiment)
     skip_folders = eval_config.get_skip_folders(experiment)
     only_assays = set(eval_config.get_assays(experiment))
+    repeats = eval_config.get_repeats(experiment)
     exp_name = experiment or "default"
     # Context is experiment-scoped: extract_images / skip_folders (and thus the
     # assembled context) can differ per experiment, so the faithfulness judge must
@@ -199,7 +200,7 @@ def run(
     stdout.write(
         style.HTTP_INFO(
             f"Tier 3 [{exp_name}] — {len(assay_dirs)} assays × {len(models)} models "
-            f"(extract_images={extract_images})."
+            f"× {repeats} run(s) (extract_images={extract_images})."
         )
     )
 
@@ -211,9 +212,19 @@ def run(
     )
     per_model_results: list[dict] = []
 
-    for model_config in models:
+    # Expand each model into `repeats` runs. With repeats > 1 every run lands in its
+    # own <model>[_tempT]_run<k>/ dir, so the agreement metric treats the runs as
+    # separate "models" and the cross-run cosine is the within-model self-consistency
+    # (the noise floor). repeats == 1 keeps the bare dir (existing behaviour).
+    jobs = [
+        (mc, k if repeats > 1 else None)
+        for mc in models
+        for k in range(1, repeats + 1)
+    ]
+    for model_config, run_idx in jobs:
         model_name = model_config["name"]
         temp = model_config["temperature"]
+        run_note = f" [run {run_idx}/{repeats}]" if run_idx else ""
 
         llm, info, llm_key = resolve_eval_llm(model_name, temp)
         if llm is None:
@@ -233,15 +244,18 @@ def run(
             f" [serialised: {model_max_workers} worker]" if model_max_workers else ""
         )
         stdout.write(
-            style.SUCCESS(f"Using ({model_name}) via {info}.{workers_note}")
+            style.SUCCESS(f"Using ({model_name}){run_note} via {info}.{workers_note}")
         )
 
-        out_dir = output_base_dir / exp_name / _output_dir_name(model_name, temp)
+        dir_name = _output_dir_name(model_name, temp)
+        if run_idx:
+            dir_name = f"{dir_name}_run{run_idx}"
+        out_dir = output_base_dir / exp_name / dir_name
         out_dir.mkdir(parents=True, exist_ok=True)
 
         records: list[dict] = []
         for assay_dir in tqdm(
-            assay_dirs, desc=f"{exp_name}:{model_name}", position=0, leave=True
+            assay_dirs, desc=f"{exp_name}:{model_name}{run_note}", position=0, leave=True
         ):
             assay_name = assay_dir.name
             csv_path = out_dir / f"tier3_answers_{assay_name}.csv"
@@ -365,8 +379,9 @@ def run(
         per_model_results.append(
             {
                 "model": model_name,
+                "run": run_idx,
                 "temperature": temp,
-                "output_dir": _output_dir_name(model_name, temp),
+                "output_dir": dir_name,
                 "mean_completeness_rate": mean_completeness,
                 "records": records,
             }
@@ -390,7 +405,7 @@ def run(
         )
         stdout.write(
             style.SUCCESS(
-                f"Tier 3 [{exp_name}] {model_name}: {mean_completeness}% mean "
+                f"Tier 3 [{exp_name}] {model_name}{run_note}: {mean_completeness}% mean "
                 f"completeness; summary → {experiment_summary_path.name}"
             )
         )
