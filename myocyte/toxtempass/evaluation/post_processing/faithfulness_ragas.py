@@ -24,6 +24,9 @@ _TRANSIENT_MARKERS = (
     "timed out", "temporarily", "unavailable", "503", "502", "500",
     "connection", "reset",
 )
+# Permanent failures (billing/credits) override the transient check so a partial run
+# stops fast when credits run out instead of retrying every remaining task.
+_PERMANENT_MARKERS = ("credit", "depleted", "billing", "prepayment", "insufficient")
 
 
 def make_faithfulness_metric(judge_llm: object) -> object:
@@ -71,7 +74,9 @@ def faithfulness_score(
             return float(metric.single_turn_score(sample))
         except Exception as exc:  # network/LLM/parse — decide retry below
             last_exc = exc
-            transient = any(m in str(exc).lower() for m in _TRANSIENT_MARKERS)
+            msg = str(exc).lower()
+            permanent = any(m in msg for m in _PERMANENT_MARKERS)
+            transient = (not permanent) and any(m in msg for m in _TRANSIENT_MARKERS)
             if not transient or attempt == max_retries:
                 break
             delay = base_delay * 2 ** attempt + random.uniform(0, base_delay)  # noqa: S311
@@ -144,7 +149,9 @@ async def faithfulness_aexplain(
             return await _aexplain(metric, row)
         except Exception as exc:  # network/LLM/parse — decide retry below
             last_exc = exc
-            transient = any(m in str(exc).lower() for m in _TRANSIENT_MARKERS)
+            msg = str(exc).lower()
+            permanent = any(m in msg for m in _PERMANENT_MARKERS)
+            transient = (not permanent) and any(m in msg for m in _TRANSIENT_MARKERS)
             if not transient or attempt == max_retries:
                 break
             delay = base_delay * 2 ** attempt + random.uniform(0, base_delay)  # noqa: S311
