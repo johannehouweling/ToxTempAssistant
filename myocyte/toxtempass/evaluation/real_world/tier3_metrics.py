@@ -328,22 +328,53 @@ def main() -> None:
     faith_tasks: list[tuple] = []
     faith_detail: list[dict] = []
     qids_by_assay: dict[tuple[str, str], list[str]] = {}
-    for _exp_k, _assay_k, _qid_k in index:
-        qids_by_assay.setdefault((_exp_k, _assay_k), []).append(_qid_k)
+    sec_qids_by_assay: dict[tuple[str, str], dict[str, list[str]]] = {}
+    for (_ek, _ak, _qk), _entry in index.items():
+        qids_by_assay.setdefault((_ek, _ak), []).append(_qk)
+        sec_qids_by_assay.setdefault((_ek, _ak), {}).setdefault(
+            str(_entry["section"]), []
+        ).append(_qk)
     for _k in qids_by_assay:
         qids_by_assay[_k].sort()
+
+    # Resume + nesting source: questions already scored for THIS judge, so a larger-K
+    # re-sample keeps them (and the checkpoint reuses them instead of re-scoring).
+    faith_ckpt_path = ANALYSIS_DIR / "faithfulness_checkpoint.jsonl"
+    faith_done = (
+        _load_checkpoint(faith_ckpt_path, eval_config.judge_model)
+        if DO_FAITHFULNESS else {}
+    )
+    prior_qids_by_assay: dict[tuple[str, str], set[str]] = {}
+    for (_pe, _pa, _pq, _pm) in faith_done:
+        prior_qids_by_assay.setdefault((_pe, _pa), set()).add(_pq)
+
     _sampled_cache: dict[tuple[str, str], set[str] | None] = {}
 
     def _sampled_qids(exp: str, assay: str) -> set[str] | None:
-        """Seeded set of sampled question_ids for an assay (None = score all)."""
+        """Section-stratified (proportional, >=1/section), seeded, nested over prior.
+
+        Keeps every question already scored for this judge (so re-sampling at a larger K
+        reuses them, no re-scoring) and fills each section to its proportional quota.
+        ``None`` = score every answer.
+        """
         if FAITHFULNESS_SAMPLE_PER_ASSAY is None:
             return None
         key = (exp, assay)
         if key not in _sampled_cache:
-            qids = qids_by_assay.get(key, [])
-            k = min(FAITHFULNESS_SAMPLE_PER_ASSAY, len(qids))
+            sections = sec_qids_by_assay.get(key, {})
+            total = sum(len(v) for v in sections.values()) or 1
+            k = FAITHFULNESS_SAMPLE_PER_ASSAY
             rng = random.Random(f"{FAITHFULNESS_SAMPLE_SEED}|{exp}|{assay}")  # noqa: S311
-            _sampled_cache[key] = set(rng.sample(qids, k))
+            selected = set(prior_qids_by_assay.get(key, set()))  # nest: keep prior
+            for sec in sorted(sections):
+                sec_qs = sorted(sections[sec])
+                quota = max(1, round(k * len(sec_qs) / total))
+                need = quota - len(selected.intersection(sec_qs))
+                if need > 0:
+                    pool = [q for q in sec_qs if q not in selected]
+                    rng.shuffle(pool)
+                    selected.update(pool[:need])
+            _sampled_cache[key] = selected
         return _sampled_cache[key]
 
     for (experiment, assay, _qid), entry in tqdm(
@@ -460,8 +491,8 @@ def main() -> None:
     # semaphore) so the LLM I/O truly overlaps; the per-claim breakdown is kept (free).
     if DO_FAITHFULNESS and faith_tasks:
         judge_id = eval_config.judge_model
-        ckpt_path = ANALYSIS_DIR / "faithfulness_checkpoint.jsonl"
-        done = _load_checkpoint(ckpt_path, judge_id)
+        ckpt_path = faith_ckpt_path
+        done = faith_done
 
         def _merge(idx: int, exp: str, asy: str, qid: str, mdl: str, res: dict) -> None:
             row = metric_rows[idx]
