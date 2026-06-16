@@ -40,12 +40,52 @@ Strictly read-only: DB reads run in a `SET TRANSACTION READ ONLY` transaction wi
 `pre_save`/`pre_delete`/`m2m_changed` write-tripwires; embeddings run *after* the transaction
 closes (no DB snapshot held during API calls); no MinIO/object access.
 
-## Run
+## Run — local / dev
 ```bash
-# read-only; --limit for a quick first pass, --out to write the dataset CSV
-python manage.py extract_gold_answers --exclude-emails test@x.org --out output/gold.csv
+# read-only; --limit for a quick pass; default output is output/gold_answers_<ts>.csv
+python manage.py extract_gold_answers --exclude-emails test@x.org --limit 3
 ```
-`output/` is gitignored — the gold CSV (answer text + reviewer emails) never reaches git.
+`--out` accepts a file (used verbatim) or a directory (gets a timestamped name); with no
+`--out` it writes `output/gold_answers_<YYYYMMDD_HHMM>.csv`. `output/` is gitignored — the
+CSV (answer text + reviewer emails) never reaches git.
+
+## Run — production (runbook)
+
+The real data is on the production Postgres. Code reaches prod by **merging to `main`**,
+which auto-cuts a release and redeploys the legacy host (`deploy.yml`); watch the GitHub
+**Actions** tab for `Release` → `Publish image` → `Deploy` to go green (~5–15 min).
+
+Then, on the prod host (the user is not in the `docker` group, so `sudo`; use `docker exec`
+with the explicit container name `djangoapp`, not `docker compose`, to avoid `GIT_TAG`
+warnings and container ambiguity). Replace the excluded emails as needed.
+
+```bash
+# 1) extract (read-only; first run embeds pre-2025-09-13 drafts via OpenAI, then SHA-cached)
+sudo docker exec djangoapp python manage.py extract_gold_answers \
+  --exclude-emails christophe.vissers@rivm.nl --out /tmp/gold.csv
+
+# 2) copy it out of the container and make it readable
+sudo docker cp djangoapp:/tmp/gold.csv /home/$USER/gold.csv && sudo chmod 644 /home/$USER/gold.csv
+```
+```bash
+# 3) on your LOCAL machine, pull it down, then file it (gitignored) with a dated name
+scp <user>@<prod-host>:/home/<user>/gold.csv ~/Downloads/gold.csv
+mv ~/Downloads/gold.csv <repo>/myocyte/toxtempass/evaluation/gold_standard/output/gold_answers_<date>.csv
+```
+```bash
+# 4) wipe the prod copies — the CSV holds gold answers + reviewer emails (PII)
+sudo docker exec djangoapp rm -f /tmp/gold.csv && sudo rm -f /home/$USER/gold.csv
+```
+
+**Fallback** if step 1 prints `Unknown command: extract_gold_answers`, the running container
+is still the old image — from the repo dir on prod: `sudo docker compose --profile prod pull
+djangoapp && sudo docker compose --profile prod up -d djangoapp`, then retry.
+
+**Tip (paste mangling):** keep each command on ONE physical line; for the `mv`, `cd` into
+`output/` first, then `mv ~/Downloads/gold.csv gold_answers_<date>.csv`.
+
+The companion **sufficiency** check (how much gold exists, by whom, with what docs) is
+`python manage.py assess_ground_truth` — same read-only / prod-ops pattern.
 
 ## Layout
 ```
