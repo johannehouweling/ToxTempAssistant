@@ -115,6 +115,7 @@ gold_standard/
   enrich.py          # local pass: fill cosine + edit type for a --no-cosine CSV
   status_table.py    # per-assay coverage table (md/html/png) from the latest typed gold
   bakeoff.py         # score cross-provider models vs gold (cosine + abstention agreement)
+  edit_report.py     # edit analysis: # + type of scientist edits (md + bar chart)
   README.md
   output/            # gitignored except .gitkeep (gold answers + reviewer emails = PII)
     _analysis/       #   data CSVs: gold_answers_typed_*, ground_truth_assessment_*, bakeoff_*
