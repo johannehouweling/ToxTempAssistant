@@ -76,49 +76,47 @@ def _row(text, htype, uid, d):
     }
 
 
-def test_history_pre_cutoff_draft_recoverable():
-    # Pre-2025-09-13: gpt-4o-mini wrote via answer.save() -> draft is the first non-blank
-    # snapshot; the human edit is a later snapshot.
-    pre = date(2025, 1, 1)
+def test_baseline_model_draft_is_exact():
+    # A non-blank '~' snapshot with history_user_id=None is the gpt-4o-mini draft → the
+    # baseline is that draft and the delta is EXACT (true draft→accepted).
+    d = date(2025, 1, 1)
     rows = [
-        _row("", "+", 1, pre),
-        _row("the gpt-4o-mini draft", "~", None, pre),
-        _row("scientist edited final", "~", 7, pre),
+        _row("", "+", 1, d),
+        _row("the gpt-4o-mini draft", "~", None, d),   # model draft (no request user)
+        _row("scientist edited final", "~", 7, d),
     ]
     a = analyze_answer_history(rows, "scientist edited final", NF, lambda x, y: 0.4)
-    assert a["draft_in_history"] is True
-    assert a["draft_text"] == "the gpt-4o-mini draft"
-    assert a["draft_source"] == "history"
-    assert a["n_human_edits"] == 1
-    assert a["reviewer_ids"] == [7]
-    assert a["edit_type"] == "rewrite"        # injected cosine 0.4 < REWRITE_MAX_COSINE
-    assert a["cosine"] == 0.4
+    assert a["baseline_kind"] == "model_draft"
+    assert a["delta_exact"] is True
+    assert a["baseline_answer"] == "the gpt-4o-mini draft"
+    assert a["n_human_edits"] == 1 and a["reviewer_ids"] == [7]
+    assert a["change_type"] == "rewrite"        # injected cosine 0.4 < REWRITE_MAX_COSINE
+    assert a["cosine_baseline_final"] == 0.4
 
 
-def test_history_post_cutoff_draft_invisible():
-    # On/after 2025-09-13: draft written via .update() -> not in history; first non-blank
-    # snapshot is the human edit, so no draft and no edit-typing (cosine_fn never called).
-    post = date(2026, 1, 1)
+def test_baseline_first_human_save_is_lower_bound():
+    # No user=None snapshot (draft written via .update(), unrecorded) → baseline is the
+    # first human save and the delta is a LOWER BOUND (delta_exact False).
+    d = date(2026, 1, 1)
     rows = [
-        _row("", "+", 9, post),
-        _row("human final answer", "~", 9, post),
+        _row("", "+", 9, d),
+        _row("human first save", "~", 9, d),
+        _row("human final answer after more edits", "~", 9, d),
     ]
-    b = analyze_answer_history(rows, "human final answer", NF, lambda x, y: 1.0)
-    assert b["draft_in_history"] is False
-    assert b["edit_type"] == "n/a"
-    assert b["n_human_edits"] == 1
+    b = analyze_answer_history(rows, "human final answer after more edits", NF,
+                               lambda x, y: 0.9)
+    assert b["baseline_kind"] == "first_human_save"
+    assert b["delta_exact"] is False
+    assert b["baseline_answer"] == "human first save"
+    assert b["change_type"] != "n/a"            # a delta IS computed (lower bound)
 
 
-def test_history_sync_era_draft_user_not_counted_as_edit():
-    # Early sync era: the draft-save row carries history_user=owner. It must be treated as
-    # the draft, NOT a human edit; identical accept-save ⇒ accepted verbatim ('none').
-    pre = date(2025, 2, 1)
-    rows = [
-        _row("", "+", 3, pre),
-        _row("draft from model", "~", 3, pre),   # draft-save, owner-attributed
-        _row("draft from model", "~", 3, pre),   # accept-save, unchanged text
-    ]
-    a = analyze_answer_history(rows, "draft from model", NF, lambda x, y: 1.0)
-    assert a["draft_in_history"] is True
-    assert a["draft_text"] == "draft from model"
-    assert a["edit_type"] == "none"           # accepted verbatim
+def test_saved_once_lower_bound_zero_delta():
+    # Saved once (first non-blank == final): lower-bound delta is 0 (no post-save edits),
+    # but it's still flagged lower-bound — not provably the verbatim draft.
+    d = date(2026, 1, 1)
+    rows = [_row("", "+", 9, d), _row("only version", "~", 9, d)]
+    a = analyze_answer_history(rows, "only version", NF, lambda x, y: 1.0)
+    assert a["baseline_kind"] == "first_human_save"
+    assert a["delta_exact"] is False
+    assert a["change_type"] == "none"
