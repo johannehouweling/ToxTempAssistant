@@ -2,6 +2,51 @@
 
 <!-- version list -->
 
+## v3.23.0 (2026-06-16)
+
+### Chores
+
+- **deps**: Bump aiohttp from 3.14.0 to 3.14.1
+  ([`45e42f0`](https://github.com/johannehouweling/ToxTempAssistant/commit/45e42f056a7b2192f91989d8eb43731c5fff9207))
+
+- **deps**: Bump cryptography from 47.0.0 to 48.0.1
+  ([`875c59c`](https://github.com/johannehouweling/ToxTempAssistant/commit/875c59c570be7e8ec46a4660ba2f5c762a9e4de5))
+
+- **deps**: Bump pypdf from 6.10.2 to 6.12.0
+  ([`3181422`](https://github.com/johannehouweling/ToxTempAssistant/commit/3181422b486d874b042e0ba9044738b977be8845))
+
+- **deps-dev**: Bump tornado from 6.5.5 to 6.5.7
+  ([`fedb40f`](https://github.com/johannehouweling/ToxTempAssistant/commit/fedb40f94131c63eb58280df6ea7a45daf461f33))
+
+- **diag**: Add --classify mode to dump post-cutoff user=None draft snapshots
+  ([`d512d0d`](https://github.com/johannehouweling/ToxTempAssistant/commit/d512d0dc0e3efed62df6e52ae2ea50609c6d26f4))
+
+- **diag**: Add --scan mode to dump_answer_history (count user=None draft snapshots by era)
+  ([`55b062a`](https://github.com/johannehouweling/ToxTempAssistant/commit/55b062a71a3397734a8d16e10cd1cd23334ca93c))
+
+- **diag**: Add read-only dump_answer_history diagnostic command
+  ([`f715f6c`](https://github.com/johannehouweling/ToxTempAssistant/commit/f715f6cb9c3cd630602e6751ea0e1d8079a41520))
+
+### Code Style
+
+- **diag**: Fix line lengths in dump_answer_history --scan
+  ([`d66e5ce`](https://github.com/johannehouweling/ToxTempAssistant/commit/d66e5ce79dab7df067de9a112cfa7ee1a8f77c7d))
+
+- **diag**: Trim line length
+  ([`d018479`](https://github.com/johannehouweling/ToxTempAssistant/commit/d0184790a5bba925f8a33953302b8d0080c58a9a))
+
+### Documentation
+
+- **gold_standard**: Enhance README with detailed run instructions for local and production
+  environments
+  ([`c9a9c79`](https://github.com/johannehouweling/ToxTempAssistant/commit/c9a9c79aabef3d93de48ef08c89dd53464576055))
+
+### Features
+
+- **gold_standard**: Baseline→accepted edit delta for ALL accepted answers
+  ([`c72fbc1`](https://github.com/johannehouweling/ToxTempAssistant/commit/c72fbc18cd230e37619e78375a698638395e34ce))
+
+
 ## v3.22.0 (2026-06-16)
 
 ### Features
