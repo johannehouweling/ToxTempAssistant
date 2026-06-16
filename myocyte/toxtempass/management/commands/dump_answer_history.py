@@ -110,12 +110,12 @@ class Command(BaseCommand):
 
         w("\n=== SCAN: is the LLM draft in version history? ===")
         w(f"reviewed accepted answers: {len(answers)}  (pre-cutoff {pre}, post {post})")
-        w(f"PRE-cutoff with non-blank user=None snapshot (LLM draft): {pre_nulldraft}/{pre}")
-        w(f"POST-cutoff with non-blank user=None snapshot (LLM draft): {post_nulldraft}/{post}")
-        w(f"POST-cutoff 'edited' (first non-blank text != final): {post_edited}/{post}")
+        w(f"PRE-cutoff with user=None draft snapshot:  {pre_nulldraft}/{pre}")
+        w(f"POST-cutoff with user=None draft snapshot: {post_nulldraft}/{post}")
+        w(f"POST-cutoff edited (first non-blank != final): {post_edited}/{post}")
         w("\n--- example post-cutoff chains (edited and/or null-user) ---")
         for a, rows in examples:
-            w(f"\nAnswer {a.id} · assay {a.assay_id} ({a.assay.submission_date:%Y-%m-%d})")
+            w(f"\nAnswer {a.id} · assay {a.assay_id} · {a.assay.submission_date:%Y-%m-%d}")
             w(f"  LIVE (len {len(a.answer_text or '')}): \"{_prev(a.answer_text)}\"")
             for i, h in enumerate(rows):
                 txt = h["answer_text"] or ""
