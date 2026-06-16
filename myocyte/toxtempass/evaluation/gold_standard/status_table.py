@@ -1,8 +1,8 @@
 """Presentable status table of the scientist-reviewed gold ToxTemp answers.
 
-Reads a gold CSV produced by ``extract_gold_answers`` (or assess) and prints a per-assay
-Markdown table + a one-line summary, and writes them to ``output/gold_status_table.md``
-for slides. Pure pandas — no Django, no DB.
+Reads the latest typed gold CSV in ``output/_analysis/`` (or a path given as argv[1]) and
+prints a per-assay Markdown table + a one-line summary, writing them to
+``output/_plotting/gold_status_table.{md,html,png}`` for slides. Pure pandas — no Django.
 
     poetry run python toxtempass/evaluation/gold_standard/status_table.py [gold.csv]
 """
@@ -16,8 +16,19 @@ import pandas as pd
 import plotly.graph_objects as go
 
 HERE = Path(__file__).resolve().parent
-DEFAULT_CSV = HERE / "output" / "gold_answers_20260616.csv"
+ANALYSIS_DIR = HERE / "output" / "_analysis"      # gold CSVs live here
+PLOTTING_DIR = HERE / "output" / "_plotting"      # figures written here
 QUESTIONNAIRE = 77  # ToxTemp question count (completeness denominator)
+
+
+def _latest_gold() -> Path:
+    """Newest typed gold CSV in output/_analysis (the extract→enrich product)."""
+    hits = sorted(ANALYSIS_DIR.glob("gold_answers_typed_*.csv"))
+    if not hits:
+        raise SystemExit(
+            "no gold_answers_typed_*.csv in output/_analysis (run extract + enrich first)"
+        )
+    return hits[-1]
 
 # Email domain → readable institute label (for a multi-institute workshop).
 INSTITUTE = {
@@ -124,12 +135,13 @@ def make_table_figure(tbl: pd.DataFrame, summary: str) -> go.Figure:
 
 def main() -> None:
     """Print the markdown table + write the .md and a styled PNG/HTML figure."""
-    csv_path = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_CSV
+    csv_path = Path(sys.argv[1]) if len(sys.argv) > 1 else _latest_gold()
     md, summary, tbl = build(csv_path)
     title = "# Gold-standard ToxTemp answers — workshop result"
     out = f"{title}\n\n{summary}\n\n{md}\n"
     sys.stdout.write(out + "\n")
-    out_dir = HERE / "output"
+    out_dir = PLOTTING_DIR
+    out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "gold_status_table.md").write_text(out, encoding="utf-8")
     sys.stdout.write(f"Wrote {out_dir / 'gold_status_table.md'}\n")
 
