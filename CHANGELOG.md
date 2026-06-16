@@ -2,6 +2,28 @@
 
 <!-- version list -->
 
+## v3.20.0 (2026-06-02)
+
+### Chores
+
+- **deps**: Bump idna from 3.13 to 3.15
+  ([`7e6ae7b`](https://github.com/johannehouweling/ToxTempAssistant/commit/7e6ae7b39f03c13a4e5f9d8ab6e9b51f52d38350))
+
+- **deps**: Bump langchain-classic from 1.0.4 to 1.0.7
+  ([`0a92357`](https://github.com/johannehouweling/ToxTempAssistant/commit/0a923579e726d67407a5c06589501d93f7de3718))
+
+- **deps**: Bump langsmith from 0.7.36 to 0.8.0
+  ([`f25f0ab`](https://github.com/johannehouweling/ToxTempAssistant/commit/f25f0ab2dc59142f9c2f5f440cd5b08e90239dce))
+
+- **deps**: Bump urllib3 from 2.6.3 to 2.7.0
+  ([`28c2adb`](https://github.com/johannehouweling/ToxTempAssistant/commit/28c2adbe8217d86e58d42fc71710e608e05c9eba))
+
+### Features
+
+- **azure**: Add temperature handling in model configuration and display
+  ([`218883c`](https://github.com/johannehouweling/ToxTempAssistant/commit/218883c0436a3cfd0326af144031ac4cf271e6ee))
+
+
 ## v3.19.6 (2026-05-12)
 
 ### Bug Fixes
