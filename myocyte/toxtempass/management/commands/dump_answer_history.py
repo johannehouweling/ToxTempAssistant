@@ -115,7 +115,7 @@ class Command(BaseCommand):
         w(f"POST-cutoff edited (first non-blank != final): {post_edited}/{post}")
         w("\n--- example post-cutoff chains (edited and/or null-user) ---")
         for a, rows in examples:
-            w(f"\nAnswer {a.id} · assay {a.assay_id} · {a.assay.submission_date:%Y-%m-%d}")
+            w(f"\nAnswer {a.id} (assay {a.assay_id}, {a.assay.submission_date:%Y-%m-%d})")
             w(f"  LIVE (len {len(a.answer_text or '')}): \"{_prev(a.answer_text)}\"")
             for i, h in enumerate(rows):
                 txt = h["answer_text"] or ""
