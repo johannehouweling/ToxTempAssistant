@@ -87,9 +87,10 @@ sudo docker exec djangoapp rm -f /tmp/gold.csv && sudo rm -f /home/$USER/gold.cs
 No `--exclude-emails` by default: demo assays are already filtered in code, and `owner_email`
 is a column, so drop any genuine test accounts during analysis rather than risk losing real
 reviewers. Add `--exclude-emails a@x,b@y` only for known dummy accounts. Known non-gold
-scratch/test **assays** are dropped centrally via `audit.EXCLUDED_ASSAY_IDS` (currently #75
-`hNTP_Test_C`); add ids there as more are identified — it filters per-assay, not per-person,
-so real reviews by the same owner are kept.
+scratch/test/partial **assays** are dropped centrally via `audit.EXCLUDED_ASSAY_IDS`
+(currently #75 `hNTP_Test_C` + #115 partial hNTP); add ids there as more are identified — it
+filters per-assay, not per-person, so real reviews by the same owner are kept (e.g. that
+owner's full hNTP review #103 stays).
 
 **Inline (with-cosine) alternative:** if a valid OpenAI key is available to the container
 (`-e OPENAI_API_KEY=sk-…`), drop `--no-cosine` and skip steps 3–4 — the extract types inline.
