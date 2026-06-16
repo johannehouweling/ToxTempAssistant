@@ -68,7 +68,7 @@ def _guard(connect: bool) -> None:
 
 
 def _make_cosine_fn() -> tuple[CosineFn, emb.EmbeddingCache]:
-    """Build a SHA-cached semantic cosine; returns (fn, cache) so the caller can persist it."""
+    """Build a SHA-cached semantic cosine; return (fn, cache) for the caller to save."""
     EMB_DIR.mkdir(parents=True, exist_ok=True)
     cache = emb.EmbeddingCache(EMB_DIR)
     emb.set_persistent_cache(cache)
@@ -127,6 +127,7 @@ def _collect(opts: dict) -> list[dict]:
     for h in Answer.history.model.objects.filter(
         id__in=[a.id for a in answers]
     ).values("id", "answer_text", "history_type", "history_user_id", "history_date"):
+        # ``id`` on HistoricalAnswer is the preserved original Answer pk (indexed).
         hist.setdefault(h["id"], []).append(
             {
                 "answer_text": h["answer_text"],
@@ -140,6 +141,8 @@ def _collect(opts: dict) -> list[dict]:
     for a in answers:
         assay = assay_by_id[a.assay_id]
         sub = a.question.subsection
+        # answer_documents is a free JSONField; guard against legacy non-list shapes.
+        docs = a.answer_documents if isinstance(a.answer_documents, list) else []
         records.append(
             {
                 "assay_id": assay.id,
@@ -155,7 +158,7 @@ def _collect(opts: dict) -> list[dict]:
                 "subsection": getattr(sub, "title", "") if sub else "",
                 "question_text": a.question.question_text or "",
                 "gold_answer": a.answer_text or "",
-                "answer_documents": "; ".join(str(d) for d in (a.answer_documents or [])),
+                "answer_documents": "; ".join(str(d) for d in docs),
                 "history_rows": hist.get(a.id, []),
             }
         )
@@ -167,40 +170,48 @@ def run(opts: dict | None = None) -> dict:
     opts = opts or {}
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Phase 1 — short READ-ONLY transaction: pull everything into memory.
+    # Phase 1 — short READ-ONLY transaction: pull everything into memory. Only issue
+    # SET TRANSACTION READ ONLY only when our atomic() is the OUTERMOST block (a nested
+    # caller — e.g. a TestCase — makes it a savepoint, where the SET raises); the signal
+    # tripwire still guards writes either way, and SQLite has no SET so relies on it too.
     _guard(True)
+    outermost = not connection.in_atomic_block
     try:
         with transaction.atomic():
-            if connection.vendor == "postgresql":
+            if outermost and connection.vendor == "postgresql":
                 with connection.cursor() as cur:
                     cur.execute("SET TRANSACTION READ ONLY")
             records = _collect(opts)
     finally:
         _guard(False)
 
-    # Phase 2 — embeddings (outside the DB txn; SHA-cached, deterministic).
-    cosine_fn = _make_cosine_fn()
-    for r in records:
-        gold = r["gold_answer"]
-        a = analyze_answer_history(r.pop("history_rows"), gold, NOT_FOUND, cosine_fn)
-        draft_date = a["draft_date"]
-        r.update(
-            {
-                "is_not_found": NOT_FOUND.strip().lower() in gold.lower(),
-                "draft_in_history": a["draft_in_history"],
-                "draft_source": a["draft_source"],
-                "draft_date": draft_date.isoformat() if draft_date else "",
-                "draft_answer": a["draft_text"],
-                "edit_type": a["edit_type"],
-                "draft_final_cosine": a["cosine"],
-                "draft_final_lexical_ratio": a["lexical_ratio"],
-                "chars_added": a["chars_added"],
-                "chars_removed": a["chars_removed"],
-                "n_history": a["n_history"],
-                "n_human_edits": a["n_human_edits"],
-                "n_reviewers": len(a["reviewer_ids"]),
-            }
-        )
+    # Phase 2 — embeddings (outside the DB txn; SHA-cached, deterministic). The cache is
+    # saved in `finally` so a partial run still persists computed vectors (free re-runs).
+    cosine_fn, cache = _make_cosine_fn()
+    try:
+        for r in records:
+            gold = r["gold_answer"]
+            a = analyze_answer_history(r.pop("history_rows"), gold, NOT_FOUND, cosine_fn)
+            draft_date = a["draft_date"]
+            r.update(
+                {
+                    "is_not_found": NOT_FOUND.strip().lower() in gold.lower(),
+                    "draft_in_history": a["draft_in_history"],
+                    "draft_source": a["draft_source"],
+                    "draft_date": draft_date.isoformat() if draft_date else "",
+                    "draft_answer": a["draft_text"],
+                    "edit_type": a["edit_type"],
+                    "draft_final_cosine": a["cosine"],
+                    "draft_final_lexical_ratio": a["lexical_ratio"],
+                    "chars_added": a["chars_added"],
+                    "chars_removed": a["chars_removed"],
+                    "n_history": a["n_history"],
+                    "n_human_edits": a["n_human_edits"],
+                    "n_reviewers": len(a["reviewer_ids"]),
+                }
+            )
+    finally:
+        cache.save()
 
     # Phase 3 — write + summarise.
     if opts.get("out"):
