@@ -189,7 +189,9 @@ def run(opts: dict | None = None) -> dict:
 
     # Phase 2 — embeddings (outside the DB txn; SHA-cached, deterministic). The cache is
     # saved in `finally` so a partial run still persists computed vectors (free re-runs).
-    cosine_fn, cache = _make_cosine_fn()
+    # --no-cosine skips embeddings entirely (pure DB read, no OpenAI key): the baseline is
+    # still recovered, and cosine + edit type are filled later by ``enrich_gold_cosines``.
+    cosine_fn, cache = (None, None) if opts.get("no_cosine") else _make_cosine_fn()
     try:
         for r in records:
             gold = r["gold_answer"]
@@ -212,7 +214,8 @@ def run(opts: dict | None = None) -> dict:
                 }
             )
     finally:
-        cache.save()
+        if cache is not None:
+            cache.save()
 
     # Phase 3 — write + summarise.
     if opts.get("out"):

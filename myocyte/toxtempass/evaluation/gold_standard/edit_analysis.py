@@ -94,14 +94,16 @@ def analyze_answer_history(
     rows: list[dict],
     final_text: str,
     not_found_str: str,
-    cosine_fn: CosineFn,
+    cosine_fn: CosineFn | None,
 ) -> dict[str, Any]:
     """Compute the baseline→accepted edit delta for one answer, for ANY history shape.
 
     ``rows`` are the answer's ``HistoricalAnswer`` dicts with keys ``answer_text``,
     ``history_type`` ('+'/'~'/'-'), ``history_user_id``, ``history_date``. ``final_text``
     is the live accepted answer. ``cosine_fn(a, b)`` returns the semantic cosine (inject
-    the project's cached embedding similarity).
+    the project's cached embedding similarity). Pass ``cosine_fn=None`` to skip the
+    embedding call (the ``--no-cosine`` prod path): the baseline is still recovered, but
+    ``change_type`` / ``cosine_baseline_final`` are left blank for a later local pass.
 
     Baseline (see module docstring): the gpt-4o-mini draft if a non-blank ``~`` snapshot
     with ``history_user_id is None`` exists (``baseline_kind='model_draft'``,
@@ -155,16 +157,20 @@ def analyze_answer_history(
 
     if baseline_row is not None:
         baseline = baseline_row.get("answer_text") or ""
-        cos = cosine_fn(baseline, final_text)
-        c = classify_edit(baseline, final_text, cos, not_found_str)
-        out.update(
-            baseline_kind=kind,
-            delta_exact=exact,
-            baseline_answer=baseline,
-            change_type=c["edit_type"],
-            cosine_baseline_final=c["cosine"],
-            lexical_ratio_baseline_final=c["lexical_ratio"],
-            chars_added=c["chars_added"],
-            chars_removed=c["chars_removed"],
-        )
+        out.update(baseline_kind=kind, delta_exact=exact, baseline_answer=baseline)
+        if cosine_fn is None:
+            # --no-cosine: recover the baseline only; cosine + edit type are filled later
+            # by the local pass. Blank (not "n/a", which signals "no baseline at all").
+            out["change_type"] = ""
+        else:
+            c = classify_edit(
+                baseline, final_text, cosine_fn(baseline, final_text), not_found_str
+            )
+            out.update(
+                change_type=c["edit_type"],
+                cosine_baseline_final=c["cosine"],
+                lexical_ratio_baseline_final=c["lexical_ratio"],
+                chars_added=c["chars_added"],
+                chars_removed=c["chars_removed"],
+            )
     return out

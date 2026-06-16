@@ -111,6 +111,23 @@ def test_baseline_first_human_save_is_lower_bound():
     assert b["change_type"] != "n/a"            # a delta IS computed (lower bound)
 
 
+def test_no_cosine_defers_typing():
+    # --no-cosine (cosine_fn=None): the baseline is still recovered, but cosine + change
+    # type are left blank for the local enrich pass (blank, NOT "n/a" = no baseline).
+    d = date(2025, 1, 1)
+    rows = [
+        _row("", "+", 1, d),
+        _row("the gpt-4o-mini draft", "~", None, d),
+        _row("scientist edited final", "~", 7, d),
+    ]
+    a = analyze_answer_history(rows, "scientist edited final", NF, None)
+    assert a["baseline_kind"] == "model_draft"
+    assert a["delta_exact"] is True
+    assert a["baseline_answer"] == "the gpt-4o-mini draft"
+    assert a["change_type"] == ""
+    assert a["cosine_baseline_final"] == ""
+
+
 def test_saved_once_lower_bound_zero_delta():
     # Saved once (first non-blank == final): lower-bound delta is 0 (no post-save edits),
     # but it's still flagged lower-bound — not provably the verbatim draft.
