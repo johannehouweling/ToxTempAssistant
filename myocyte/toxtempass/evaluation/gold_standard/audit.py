@@ -40,6 +40,11 @@ PLOTTING_DIR = OUTPUT_DIR / "_plotting"       # figures (bake-off, status table)
 NOT_FOUND = config.not_found_string
 _RO_UID = "gold_standard_read_only"
 
+# Curation: assays that are NOT real scientist gold and must never enter the set.
+# 75 = "hNTP_Test_C" — a scratch/test assay (christophe.vissers@rivm.nl); his real hNTP
+# reviews (#103, #115) are kept. Edit this set as more non-gold assays are identified.
+EXCLUDED_ASSAY_IDS = frozenset({75})
+
 # One place defining the output schema. Every name maps to a populated record key below.
 CSV_COLUMNS = [
     # identity
@@ -105,6 +110,7 @@ def _collect(opts: dict) -> list[dict]:
         Assay.objects.filter(
             demo_lock=False, demo_template=False, demo_source__isnull=True
         )
+        .exclude(id__in=EXCLUDED_ASSAY_IDS)   # known non-gold (scratch/test) assays
         .select_related("study__investigation__owner", "question_set")
         .annotate(n_acc=Count("answers", filter=Q(answers__accepted=True)))
         .filter(n_acc__gte=min_accepted)
