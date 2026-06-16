@@ -40,10 +40,11 @@ PLOTTING_DIR = OUTPUT_DIR / "_plotting"       # figures (bake-off, status table)
 NOT_FOUND = config.not_found_string
 _RO_UID = "gold_standard_read_only"
 
-# Curation: assays that are NOT real scientist gold and must never enter the set.
-# 75 = "hNTP_Test_C" — a scratch/test assay (christophe.vissers@rivm.nl); his real hNTP
-# reviews (#103, #115) are kept. Edit this set as more non-gold assays are identified.
-EXCLUDED_ASSAY_IDS = frozenset({75})
+# Curation: assays that are NOT real scientist gold and must never enter the set
+# (all christophe.vissers@rivm.nl). 75 = "hNTP_Test_C" scratch/test assay; 115 = a partial
+# 9-answer "hNTP" duplicate. His real full hNTP review (#103, 77 answers) is kept. Edit
+# this set as more non-gold assays are identified.
+EXCLUDED_ASSAY_IDS = frozenset({75, 115})
 
 # One place defining the output schema. Every name maps to a populated record key below.
 CSV_COLUMNS = [

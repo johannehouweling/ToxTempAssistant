@@ -53,13 +53,16 @@ def build(csv_path: Path) -> tuple[str, str]:
     df["is_nf"] = df["is_not_found"].astype(str).str.lower().isin(["true", "1", "1.0"])
 
     rows = []
-    for (title, inst), g in df.groupby(["assay_title", "institute"]):
+    # Group by assay_id (NOT title): two same-titled assays at one institute are distinct
+    # reviews, so merging them double-counts and pushes "Reviewed %" over 100.
+    for _aid, g in df.groupby("assay_id"):
         accepted = len(g)
         nf = int(g["is_nf"].sum())
+        first = g.iloc[0]
         rows.append(
             {
-                "Assay": title[:42],
-                "Institute": inst,
+                "Assay": str(first["assay_title"])[:42],
+                "Institute": first["institute"],
                 # Expert answers = substantive accepted; "Not found" = reviewed but no
                 # answer in the docs; Reviewed % = share of the 77-question questionnaire.
                 "Expert answers": accepted - nf,
