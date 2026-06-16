@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.21.0 (2026-06-16)
+
+### Chores
+
+- **deps**: Bump aiohttp from 3.13.5 to 3.14.0
+  ([`037b0be`](https://github.com/johannehouweling/ToxTempAssistant/commit/037b0be481974707e927f278c1810a8d6b08e0c1))
+
+
 ## v3.20.0 (2026-06-02)
 
 ### Chores
