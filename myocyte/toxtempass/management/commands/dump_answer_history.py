@@ -38,14 +38,94 @@ class Command(BaseCommand):
         parser.add_argument(
             "--oldest", action="store_true", help="Use the earliest assay (pre-cutoff)."
         )
+        parser.add_argument(
+            "--scan", action="store_true",
+            help="Aggregate: how many answers carry a non-blank user=None (LLM draft) "
+                 "snapshot, split by era; dump example chains.",
+        )
+        parser.add_argument("--exclude-emails", default="")
 
     def handle(self, *args: object, **options: object) -> None:
-        """Run the dump inside a read-only transaction."""
+        """Run the dump/scan inside a read-only transaction."""
         with transaction.atomic():
             if connection.vendor == "postgresql":
                 with connection.cursor() as cur:
                     cur.execute("SET TRANSACTION READ ONLY")
-            self._run(options)
+            if options["scan"]:
+                self._scan(options)
+            else:
+                self._run(options)
+
+    def _scan(self, options: dict) -> None:
+        """Across reviewed answers, count non-blank user=None snapshots (LLM drafts)."""
+        from datetime import date
+
+        w = self.stdout.write
+        cutoff = date(2025, 9, 13)
+        exclude = {
+            e.strip().lower()
+            for e in str(options["exclude_emails"]).split(",")
+            if e.strip()
+        }
+        answers = list(
+            Answer.objects.filter(
+                accepted=True, assay__demo_lock=False, assay__demo_template=False,
+                assay__demo_source__isnull=True,
+            ).select_related("assay__study__investigation__owner")
+        )
+        answers = [
+            a for a in answers
+            if (getattr(a.assay.study.investigation.owner, "email", "") or "").lower()
+            not in exclude
+        ]
+        ids = [a.id for a in answers]
+        hist: dict[int, list] = {}
+        for h in Answer.history.model.objects.filter(id__in=ids).values(
+            "id", "answer_text", "history_type", "history_user_id", "history_date"
+        ):
+            hist.setdefault(h["id"], []).append(h)
+
+        post = post_nulldraft = post_edited = pre = pre_nulldraft = 0
+        examples = []
+        for a in answers:
+            rows = sorted(hist.get(a.id, []), key=lambda r: r["history_date"])
+            nonblank = [r for r in rows if (r["answer_text"] or "").strip()]
+            null_draft = [
+                r for r in nonblank
+                if r["history_type"] == "~" and r["history_user_id"] is None
+            ]
+            is_pre = a.assay.submission_date.date() < cutoff
+            if is_pre:
+                pre += 1
+                pre_nulldraft += bool(null_draft)
+            else:
+                post += 1
+                post_nulldraft += bool(null_draft)
+                first = (nonblank[0]["answer_text"] or "").strip() if nonblank else ""
+                if first and first != (a.answer_text or "").strip():
+                    post_edited += 1
+                if (null_draft or (first and first != (a.answer_text or "").strip())) \
+                        and len(examples) < 4:
+                    examples.append((a, rows))
+
+        w("\n=== SCAN: is the LLM draft in version history? ===")
+        w(f"reviewed accepted answers: {len(answers)}  (pre-cutoff {pre}, post {post})")
+        w(f"PRE-cutoff with non-blank user=None snapshot (LLM draft): {pre_nulldraft}/{pre}")
+        w(f"POST-cutoff with non-blank user=None snapshot (LLM draft): {post_nulldraft}/{post}")
+        w(f"POST-cutoff 'edited' (first non-blank text != final): {post_edited}/{post}")
+        w("\n--- example post-cutoff chains (edited and/or null-user) ---")
+        for a, rows in examples:
+            w(f"\nAnswer {a.id} · assay {a.assay_id} ({a.assay.submission_date:%Y-%m-%d})")
+            w(f"  LIVE (len {len(a.answer_text or '')}): \"{_prev(a.answer_text)}\"")
+            for i, h in enumerate(rows):
+                txt = h["answer_text"] or ""
+                user = h["history_user_id"] if h["history_user_id"] is not None else "—"
+                w(
+                    f"    [{i}] {h['history_type']} user={user!s:>5} "
+                    f"{h['history_date']:%Y-%m-%d %H:%M:%S} len={len(txt):>4}  "
+                    f"\"{_prev(txt)}\""
+                )
+        w("")
 
     def _run(self, options: dict) -> None:
         """Resolve the target assay + answers and print each history chain."""
