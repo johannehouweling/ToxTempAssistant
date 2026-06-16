@@ -42,14 +42,28 @@ Return a JSON object with two fields:
 Return only the JSON object.
 """
 
-def score_answer_with_llm(question, answer):
+def score_answer_with_llm(question, answer, judge_llm=None):
+    """Score how well ``answer`` addresses ``question`` (High/Medium/Low).
+
+    Args:
+        question: The question text.
+        answer: The candidate answer text.
+        judge_llm: LLM client to judge with. Defaults to the module-level ``llm``
+            built from legacy creds; callers (e.g. the Tier 3 metrics) should
+            inject a configured judge model instead.
+
+    """
+    judge = judge_llm if judge_llm is not None else llm
+    if judge is None:
+        raise ValueError(
+            "No judge LLM available; pass judge_llm or configure legacy creds."
+        )
     if not answer or not answer.strip():
         return "Low", "No answer provided; treated as missing."
 
     prompt = f"{SCORING_INSTRUCTIONS}\n\nQuestion: {question}\nAnswer: {answer}\nResult:"
 
-    llm=llm
-    response = llm.invoke(prompt)
+    response = judge.invoke(prompt)
     content = response.content.strip()
     # Strip markdown code fences if present
     clean_content = re.sub(r"^```(?:json)?\s*|\s*```$", "", content).strip()

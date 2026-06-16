@@ -7,6 +7,9 @@ from toxtempass.evaluation.negative_control.ncontrol import (
 from toxtempass.evaluation.positive_control.pcontrol import (
     run as run_pcontrol,
 )
+from toxtempass.evaluation.real_world.real_world import (
+    run as run_real_world,
+)
 
 
 class Command(BaseCommand):
@@ -36,6 +39,16 @@ class Command(BaseCommand):
             help="Re-run even if output already exists for a model.",
         )
         parser.add_argument(
+            "--retry-empty",
+            dest="retry_empty",
+            action="store_true",
+            help=(
+                "Tier 3 only: re-run just the (assay, model) combos whose existing "
+                "CSV has blank answers (rate-limit/timeout damage); fully-answered "
+                "combos are cached. Ignored when --repeat is set."
+            ),
+        )
+        parser.add_argument(
             "--skip-pcontrol",
             action="store_true",
             help="Skip positive control run.",
@@ -44,6 +57,11 @@ class Command(BaseCommand):
             "--skip-ncontrol",
             action="store_true",
             help="Skip negative control run.",
+        )
+        parser.add_argument(
+            "--skip-rwcontrol",
+            action="store_true",
+            help="Skip Tier 3 real-world run.",
         )
 
     def handle(self, *args, **options):
@@ -62,8 +80,10 @@ class Command(BaseCommand):
         question_set_label = options.get("question_set_label")
         experiment = options.get("experiment")
         repeat = options.get("repeat", False)
+        retry_empty = options.get("retry_empty", False)
         skip_pcontrol = options.get("skip_pcontrol", False)
         skip_ncontrol = options.get("skip_ncontrol", False)
+        skip_rwcontrol = options.get("skip_rwcontrol", False)
 
         # Validate experiment if provided
         if experiment and experiment not in eval_config.experiments:
@@ -95,6 +115,16 @@ class Command(BaseCommand):
             run_ncontrol(
                 question_set_label=question_set_label,
                 repeat=repeat,
+                experiment=experiment,
+                stdout=self.stdout,
+            )
+
+        if not skip_rwcontrol:
+            self.stdout.write(self.style.SUCCESS("Starting real-world (Tier 3)..."))
+            run_real_world(
+                question_set_label=question_set_label,
+                repeat=repeat,
+                retry_empty=retry_empty,
                 experiment=experiment,
                 stdout=self.stdout,
             )
