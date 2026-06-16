@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.24.0 (2026-06-16)
+
+### Features
+
+- **gold_standard**: Add --no-cosine prod read + local enrich_gold_cosines
+  ([`3c9c7dd`](https://github.com/johannehouweling/ToxTempAssistant/commit/3c9c7dda899b7bed7abf8376f06cc15543af175b))
+
+
 ## v3.23.0 (2026-06-16)
 
 ### Chores
