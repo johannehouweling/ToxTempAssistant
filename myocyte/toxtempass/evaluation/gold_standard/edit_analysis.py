@@ -1,46 +1,41 @@
-"""Pure (Django-free) logic for gold-standard draft detection and edit-typing.
+"""Pure (Django-free) logic for the gold-standard baseline→accepted edit delta.
 
 Scientist-reviewed answers were drafted by gpt-4o-mini, then accepted/edited by a human.
-Whether the gpt-4o-mini DRAFT survives in django-simple-history is **era-dependent**
-(git-verified):
+For every accepted answer we measure the change from a **baseline** (the "before" text) to
+the **accepted** (final) text. The baseline depends on what the version history actually
+recorded — and we label its confidence honestly:
 
-* Drafts written **before 2025-09-13** used ``answer.save()`` → simple-history snapshotted
-  the draft as the earliest non-blank ``~`` row. Detectable + diffable here.
-* Drafts written **on/after 2025-09-13** (commit ``5f12fd7``) use queryset ``.update()``,
-  which bypasses simple-history → the draft is NOT in history and must be reconstructed by
-  re-running gpt-4o-mini (a separate follow-up).
+* ``model_draft`` (EXACT delta): a non-blank ``~`` history snapshot written WITHOUT a
+  request user (``history_user_id IS NULL``) — the gpt-4o-mini draft saved by an async
+  worker / script. The delta is then the true draft→accepted change.
+* ``first_human_save`` (LOWER-BOUND delta): no such draft snapshot exists (the draft was
+  written via queryset ``.update()``, which bypasses django-simple-history), so the first
+  recorded non-blank text is the human's first save. The delta then captures only edits
+  made AFTER that first save — a lower bound on the true draft→accepted change (it misses
+  any editing the human did before saving). The true delta there needs the draft to be
+  reconstructed by re-running gpt-4o-mini.
 
-Answer rows are created blank (``forms.py`` get_or_create with answer_text=""), so every
-history starts at ``""`` and the draft, when present, is the **first non-blank snapshot**.
-In the early *sync* era that draft-save row even carries ``history_user=owner``, so the
-first non-blank snapshot is treated as the draft and human-edit counting starts from the
-*second* non-blank snapshot.
+So a delta is reported for ALL accepted answers; ``delta_exact`` distinguishes the two.
 
-Edit-typing uses **semantic cosine similarity** (embeddings) as the primary signal for
-*meaning* change, with a lexical (difflib) ratio + length only to separate cosmetic tweaks
+The change is typed with **semantic cosine similarity** (embeddings) as the primary signal
+for *meaning* change, plus a lexical (difflib) ratio + length to separate cosmetic tweaks
 from expansions/trims. The cosine is **injected** (``cosine_fn``) so this module stays
 Django-/API-free and deterministic; the caller wires in the project's SHA-cached embedding
-similarity, keeping the analysis reproducible. Tests:
+similarity, keeping it reproducible. Tests:
 ``toxtempass/tests/test_gold_standard_edit_analysis.py``.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import date
 from difflib import SequenceMatcher
 from typing import Any
-
-# ── tuning constants (defined once, here — the single place to adjust behaviour) ──
-# Commit 5f12fd7 (2025-09-13) switched the generation write from answer.save() to
-# queryset .update(); drafts written on/after this date are NOT in simple-history.
-DRAFT_CUTOFF = date(2025, 9, 13)
 
 # Edit-type thresholds. Cosine is the embedding cosine in [-1, 1] (text-embedding-3-large)
 # and lexical_ratio is a difflib ratio in [0, 1]. Tune here, nowhere else.
 REWRITE_MAX_COSINE = 0.75   # semantic cosine below this ⇒ meaning changed ⇒ rewrite
 COSMETIC_MIN_LEXICAL = 0.9  # surface (char) ratio at/above this ⇒ cosmetic tweak
-GROWTH_FACTOR = 1.2         # length multiple for expand (final) / trim (draft)
+GROWTH_FACTOR = 1.2         # length multiple for expand (final) / trim (baseline)
 
 CosineFn = Callable[[str, str], float]
 
@@ -100,59 +95,76 @@ def analyze_answer_history(
     final_text: str,
     not_found_str: str,
     cosine_fn: CosineFn,
-    cutoff: date = DRAFT_CUTOFF,
 ) -> dict[str, Any]:
-    """Reconstruct the draft + human-review signal from one answer's history rows.
+    """Compute the baseline→accepted edit delta for one answer, for ANY history shape.
 
-    ``rows`` are the answer's ``HistoricalAnswer`` records as dicts with keys
-    ``answer_text``, ``history_type`` ('+'/'~'/'-'), ``history_user_id``, ``history_date``
-    (a ``date``). ``final_text`` is the live accepted answer (gold). ``cosine_fn(a, b)``
-    returns the semantic cosine of two texts (inject the project's cached embedding sim).
-    Returns draft detection, edit-typing (when the draft is recoverable), and human-edit
-    evidence.
+    ``rows`` are the answer's ``HistoricalAnswer`` dicts with keys ``answer_text``,
+    ``history_type`` ('+'/'~'/'-'), ``history_user_id``, ``history_date``. ``final_text``
+    is the live accepted answer. ``cosine_fn(a, b)`` returns the semantic cosine (inject
+    the project's cached embedding similarity).
+
+    Baseline (see module docstring): the gpt-4o-mini draft if a non-blank ``~`` snapshot
+    with ``history_user_id is None`` exists (``baseline_kind='model_draft'``,
+    ``delta_exact=True`` — true draft→accepted); else the first recorded non-blank text
+    (``baseline_kind='first_human_save'``, ``delta_exact=False`` — a lower bound missing
+    pre-first-save editing). A delta is returned for every answer that has any text.
     """
-    ordered = sorted(rows, key=lambda r: r["history_date"])
+    ordered = sorted(rows, key=lambda r: r.get("history_date"))
     nonblank = [r for r in ordered if (r.get("answer_text") or "").strip()]
 
     out: dict[str, Any] = {
         "n_history": len(ordered),
         "n_nonblank_snapshots": len(nonblank),
-        "draft_in_history": False,
-        "draft_source": "none",
-        "draft_text": "",
-        "draft_date": None,
         "n_human_edits": 0,
         "reviewer_ids": [],
-        "edit_type": "n/a",
-        "cosine": "",
-        "lexical_ratio": "",
+        "baseline_kind": "none",
+        "delta_exact": False,
+        "baseline_answer": "",
+        "change_type": "n/a",
+        "cosine_baseline_final": "",
+        "lexical_ratio_baseline_final": "",
         "chars_added": "",
         "chars_removed": "",
     }
 
-    draft_row = None
-    if nonblank and nonblank[0]["history_date"] < cutoff:
-        draft_row = nonblank[0]
-        out.update(
-            draft_in_history=True,
-            draft_source="history",
-            draft_text=draft_row.get("answer_text") or "",
-            draft_date=draft_row["history_date"],
-        )
+    # Baseline = the model draft (non-blank ~ saved with NO request user) when present,
+    # else the first recorded non-blank text (the human's first save).
+    draft_row = next(
+        (
+            r for r in nonblank
+            if r.get("history_type") == "~" and r.get("history_user_id") is None
+        ),
+        None,
+    )
+    if draft_row is not None:
+        baseline_row, kind, exact = draft_row, "model_draft", True
+    elif nonblank:
+        baseline_row, kind, exact = nonblank[0], "first_human_save", False
+    else:
+        baseline_row, kind, exact = None, "none", False
 
-    # Human-edit evidence: '~' rows authored by a logged-in user, excluding the draft row.
+    # Human-edit evidence: '~' rows by a logged-in user (the model draft has user=None, so
+    # it is naturally excluded from this count).
     human_rows = [
         r
         for r in ordered
-        if r.get("history_type") == "~"
-        and r.get("history_user_id") is not None
-        and r is not draft_row
+        if r.get("history_type") == "~" and r.get("history_user_id") is not None
     ]
     out["n_human_edits"] = len(human_rows)
     out["reviewer_ids"] = sorted({r["history_user_id"] for r in human_rows})
 
-    if out["draft_in_history"]:
-        cos = cosine_fn(out["draft_text"], final_text)
-        out.update(classify_edit(out["draft_text"], final_text, cos, not_found_str))
-
+    if baseline_row is not None:
+        baseline = baseline_row.get("answer_text") or ""
+        cos = cosine_fn(baseline, final_text)
+        c = classify_edit(baseline, final_text, cos, not_found_str)
+        out.update(
+            baseline_kind=kind,
+            delta_exact=exact,
+            baseline_answer=baseline,
+            change_type=c["edit_type"],
+            cosine_baseline_final=c["cosine"],
+            lexical_ratio_baseline_final=c["lexical_ratio"],
+            chars_added=c["chars_added"],
+            chars_removed=c["chars_removed"],
+        )
     return out

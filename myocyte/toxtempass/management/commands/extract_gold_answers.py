@@ -68,14 +68,14 @@ class Command(BaseCommand):
         w = self.stdout.write
         w("")
         w("GOLD-STANDARD EXTRACTION  (read-only)")
-        w(f"  gold answers          : {summary['n_gold_answers']}")
-        w(f"  assays                : {summary['n_assays']}")
-        w(f"  draft in history      : {summary['n_draft_in_history']} (edit-typable)")
-        w(f"  draft missing (≥09-13): {summary['n_draft_missing']} (needs re-run)")
-        w("  edit types (where draft recoverable):")
-        for etype, n in sorted(
-            summary["edit_type_counts"].items(), key=lambda kv: -kv[1]
+        w(f"  gold answers                      : {summary['n_gold_answers']}")
+        w(f"  assays                            : {summary['n_assays']}")
+        w(f"  delta EXACT (model draft recovered): {summary['n_delta_exact']}")
+        w(f"  delta LOWER-BOUND (1st human save) : {summary['n_delta_lower_bound']}")
+        w("  change types (exact-delta subset):")
+        for t, n in sorted(
+            summary["change_type_counts_exact"].items(), key=lambda kv: -kv[1]
         ):
-            w(f"    {etype:18} {n}")
+            w(f"    {t:18} {n}")
         w(f"  wrote CSV → {out_path}")
         w("")

@@ -43,13 +43,15 @@ CSV_COLUMNS = [
     # identity
     "assay_id", "assay_title", "assay_description", "owner_email", "submission_date",
     "question_set_label", "question_id", "section", "subsection", "question_text",
-    # gold reference
+    # accepted (gold) answer
     "gold_answer", "is_not_found", "answer_documents",
-    # gpt-4o-mini draft + edit typing (draft→final)
-    "draft_in_history", "draft_source", "draft_date", "draft_answer", "edit_type",
-    "draft_final_cosine", "draft_final_lexical_ratio", "chars_added", "chars_removed",
-    # review provenance
-    "n_history", "n_human_edits", "n_reviewers",
+    # baseline → accepted edit delta (computed for ALL answers; delta_exact = confidence).
+    # baseline_kind: model_draft (true delta) | first_human_save (lower-bound delta).
+    "baseline_kind", "delta_exact", "baseline_answer", "change_type",
+    "cosine_baseline_final", "lexical_ratio_baseline_final",
+    "chars_added", "chars_removed",
+    # history provenance
+    "n_history", "n_nonblank_snapshots", "n_human_edits", "n_reviewers",
 ]
 
 
@@ -192,20 +194,19 @@ def run(opts: dict | None = None) -> dict:
         for r in records:
             gold = r["gold_answer"]
             a = analyze_answer_history(r.pop("history_rows"), gold, NOT_FOUND, cosine_fn)
-            draft_date = a["draft_date"]
             r.update(
                 {
                     "is_not_found": NOT_FOUND.strip().lower() in gold.lower(),
-                    "draft_in_history": a["draft_in_history"],
-                    "draft_source": a["draft_source"],
-                    "draft_date": draft_date.isoformat() if draft_date else "",
-                    "draft_answer": a["draft_text"],
-                    "edit_type": a["edit_type"],
-                    "draft_final_cosine": a["cosine"],
-                    "draft_final_lexical_ratio": a["lexical_ratio"],
+                    "baseline_kind": a["baseline_kind"],
+                    "delta_exact": a["delta_exact"],
+                    "baseline_answer": a["baseline_answer"],
+                    "change_type": a["change_type"],
+                    "cosine_baseline_final": a["cosine_baseline_final"],
+                    "lexical_ratio_baseline_final": a["lexical_ratio_baseline_final"],
                     "chars_added": a["chars_added"],
                     "chars_removed": a["chars_removed"],
                     "n_history": a["n_history"],
+                    "n_nonblank_snapshots": a["n_nonblank_snapshots"],
                     "n_human_edits": a["n_human_edits"],
                     "n_reviewers": len(a["reviewer_ids"]),
                 }
@@ -229,13 +230,14 @@ def _write_csv(records: list[dict], path: str) -> None:
 
 
 def _summary(records: list[dict]) -> dict:
-    """Aggregate the headline stats (draft recoverability + edit-type distribution)."""
+    """Aggregate headline stats: delta confidence split + change-type distributions."""
     total = len(records)
-    with_draft = [r for r in records if r.get("draft_in_history")]
+    exact = [r for r in records if r.get("delta_exact")]
     return {
         "n_gold_answers": total,
         "n_assays": len({r["assay_id"] for r in records}),
-        "n_draft_in_history": len(with_draft),
-        "n_draft_missing": total - len(with_draft),
-        "edit_type_counts": dict(Counter(r["edit_type"] for r in with_draft)),
+        "n_delta_exact": len(exact),           # baseline = recovered model draft
+        "n_delta_lower_bound": total - len(exact),  # baseline = first human save
+        "change_type_counts_exact": dict(Counter(r["change_type"] for r in exact)),
+        "change_type_counts_all": dict(Counter(r["change_type"] for r in records)),
     }
