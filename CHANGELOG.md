@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v3.22.0 (2026-06-16)
+
+### Features
+
+- **gold_standard**: Implement gold-standard extraction and edit-typing analysis
+  ([`4acd16e`](https://github.com/johannehouweling/ToxTempAssistant/commit/4acd16e3664dd65a4f7f20d148e9e704767141f8))
+
+### Refactoring
+
+- **audit**: Improve comments and enhance cache persistence in embedding phase
+  ([`b06aa42`](https://github.com/johannehouweling/ToxTempAssistant/commit/b06aa42d7dc38c9750aaf5e66473044f8ede44c6))
+
+
 ## v3.21.0 (2026-06-16)
 
 ### Chores
