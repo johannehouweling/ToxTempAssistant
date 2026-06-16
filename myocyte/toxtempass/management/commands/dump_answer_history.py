@@ -43,15 +43,22 @@ class Command(BaseCommand):
             help="Aggregate: how many answers carry a non-blank user=None (LLM draft) "
                  "snapshot, split by era; dump example chains.",
         )
+        parser.add_argument(
+            "--classify", action="store_true",
+            help="Dump every post-cutoff user=None draft snapshot (full-ish text + "
+                 "question) to judge prose-draft vs placeholder.",
+        )
         parser.add_argument("--exclude-emails", default="")
 
     def handle(self, *args: object, **options: object) -> None:
-        """Run the dump/scan inside a read-only transaction."""
+        """Run the dump/scan/classify inside a read-only transaction."""
         with transaction.atomic():
             if connection.vendor == "postgresql":
                 with connection.cursor() as cur:
                     cur.execute("SET TRANSACTION READ ONLY")
-            if options["scan"]:
+            if options["classify"]:
+                self._classify(options)
+            elif options["scan"]:
                 self._scan(options)
             else:
                 self._run(options)
@@ -125,6 +132,62 @@ class Command(BaseCommand):
                     f"{h['history_date']:%Y-%m-%d %H:%M:%S} len={len(txt):>4}  "
                     f"\"{_prev(txt)}\""
                 )
+        w("")
+
+    def _classify(self, options: dict) -> None:
+        """Dump every post-cutoff user=None draft snapshot (draft vs placeholder)."""
+        from datetime import date
+
+        w = self.stdout.write
+        cutoff = date(2025, 9, 13)
+        exclude = {
+            e.strip().lower()
+            for e in str(options["exclude_emails"]).split(",")
+            if e.strip()
+        }
+        answers = list(
+            Answer.objects.filter(
+                accepted=True, assay__demo_lock=False, assay__demo_template=False,
+                assay__demo_source__isnull=True,
+            ).select_related("assay__study__investigation__owner", "question")
+        )
+        answers = [
+            a for a in answers
+            if a.assay.submission_date.date() >= cutoff
+            and (getattr(a.assay.study.investigation.owner, "email", "") or "").lower()
+            not in exclude
+        ]
+        hist: dict[int, list] = {}
+        for h in Answer.history.model.objects.filter(
+            id__in=[a.id for a in answers]
+        ).values("id", "answer_text", "history_type", "history_user_id", "history_date"):
+            hist.setdefault(h["id"], []).append(h)
+
+        found = []
+        for a in answers:
+            rows = sorted(hist.get(a.id, []), key=lambda r: r["history_date"])
+            null_nb = [
+                r for r in rows
+                if (r["answer_text"] or "").strip()
+                and r["history_type"] == "~" and r["history_user_id"] is None
+            ]
+            if null_nb:
+                found.append((a, null_nb[0]["answer_text"]))
+
+        long_ = sum(1 for _, d in found if len(d) > 150)
+        short = sum(1 for _, d in found if len(d) < 50)
+        per_assay: dict[int, int] = {}
+        for a, _ in found:
+            per_assay[a.assay_id] = per_assay.get(a.assay_id, 0) + 1
+        w(f"\n=== CLASSIFY: {len(found)} post-cutoff user=None draft snapshots ===")
+        w(f"  length: >150 (prose) {long_} | <50 (placeholder) {short} | "
+          f"mid {len(found) - long_ - short}")
+        w(f"  per assay: {per_assay}")
+        w("\n--- each snapshot (Q → draft text) ---")
+        for a, draft in found:
+            same = "==final" if draft.strip() == (a.answer_text or "").strip() else "DIFF"
+            w(f"\n[assay {a.assay_id}] Q: {_prev(a.question.question_text)}")
+            w(f"   draft (len {len(draft)}, {same}): {draft[:160]!r}")
         w("")
 
     def _run(self, options: dict) -> None:
