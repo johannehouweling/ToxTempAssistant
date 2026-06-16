@@ -35,6 +35,8 @@ from toxtempass.models import Answer, Assay
 HERE = Path(__file__).resolve().parent
 OUTPUT_DIR = HERE / "output"
 EMB_DIR = OUTPUT_DIR / "_embeddings"          # SHA-cached vectors → reproducible re-runs
+ANALYSIS_DIR = OUTPUT_DIR / "_analysis"       # data CSVs (gold, assessment, scores)
+PLOTTING_DIR = OUTPUT_DIR / "_plotting"       # figures (bake-off, status table)
 NOT_FOUND = config.not_found_string
 _RO_UID = "gold_standard_read_only"
 
@@ -170,7 +172,7 @@ def _collect(opts: dict) -> list[dict]:
 def run(opts: dict | None = None) -> dict:
     """Extract gold set + edit analysis; return summary, write CSV when --out is set."""
     opts = opts or {}
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    ANALYSIS_DIR.mkdir(parents=True, exist_ok=True)  # parents=True also makes OUTPUT_DIR
 
     # Phase 1 — short READ-ONLY transaction: pull everything into memory. Only issue
     # SET TRANSACTION READ ONLY only when our atomic() is the OUTERMOST block (a nested

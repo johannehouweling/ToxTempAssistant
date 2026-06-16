@@ -26,15 +26,28 @@ from __future__ import annotations
 
 import csv
 from collections import defaultdict
+from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandParser
 from django.db import connection, transaction
 from django.db.models import Count, Q
+from django.utils import timezone
 
 from toxtempass import config
+from toxtempass.evaluation.gold_standard import audit
 from toxtempass.models import Answer, Assay
 
 NF = config.not_found_string
+
+
+def _resolve_out(out: str) -> str:
+    """No --out → output/_analysis/ground_truth_assessment_<ts>.csv; dir → dated."""
+    ts = timezone.now().strftime("%Y%m%d_%H%M")
+    name = f"ground_truth_assessment_{ts}.csv"
+    if not out:
+        return str(audit.ANALYSIS_DIR / name)
+    p = Path(out)
+    return str(p / name) if p.is_dir() else out
 
 
 class Command(BaseCommand):
@@ -63,7 +76,8 @@ class Command(BaseCommand):
         parser.add_argument(
             "--out",
             default="",
-            help="Optional path to write a CSV (full name + description + counts).",
+            help="CSV path (default: output/_analysis/ground_truth_assessment_<ts>.csv; "
+            "a directory gets a timestamped name).",
         )
 
     def handle(self, *args: object, **options: object) -> None:
@@ -154,11 +168,10 @@ class Command(BaseCommand):
         return rows
 
     def _run(self, options: dict) -> None:
-        """Collect, print the report, and optionally write a CSV."""
+        """Collect, print the report, and write the CSV (default: output/_analysis/)."""
         rows = self._collect(options)
         self._print(rows, options)
-        if options["out"]:
-            self._write_csv(rows, str(options["out"]))
+        self._write_csv(rows, _resolve_out(str(options["out"])))
 
     def _print(self, rows: list[dict], options: dict) -> None:
         """Render per-assay blocks (id + name + docs + counts), totals, readout."""
@@ -224,6 +237,7 @@ class Command(BaseCommand):
             "n_files", "n_answers", "n_accepted", "n_gold", "n_notfound", "pct",
             "date", "status",
         ]
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
         with open(path, "w", newline="", encoding="utf-8") as fh:
             writer = csv.DictWriter(fh, fieldnames=cols)
             writer.writeheader()
