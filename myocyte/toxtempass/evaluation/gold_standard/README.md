@@ -38,51 +38,64 @@ measures gpt-4o-mini's draft quality against human ground truth.
 ## Safety
 Strictly read-only: DB reads run in a `SET TRANSACTION READ ONLY` transaction with
 `pre_save`/`pre_delete`/`m2m_changed` write-tripwires; embeddings run *after* the transaction
-closes (no DB snapshot held during API calls); no MinIO/object access.
+closes (no DB snapshot held during API calls); no MinIO/object access. With `--no-cosine`
+(the production default below) **no embeddings run at all** — prod does a pure DB read and
+the cosine typing is computed locally.
 
 ## Run — local / dev
 ```bash
 # read-only; --limit for a quick pass; default output is output/gold_answers_<ts>.csv
-python manage.py extract_gold_answers --exclude-emails test@x.org --limit 3
+python manage.py extract_gold_answers --limit 3
 ```
 `--out` accepts a file (used verbatim) or a directory (gets a timestamped name); with no
 `--out` it writes `output/gold_answers_<YYYYMMDD_HHMM>.csv`. `output/` is gitignored — the
-CSV (answer text + reviewer emails) never reaches git.
+CSV (answer text + reviewer emails) never reaches git. Add `--no-cosine` to skip the
+embedding pass (then type it with `enrich_gold_cosines`, as in production below).
 
-## Run — production (runbook)
+## Run — production (the split: read on prod, type locally)
 
-The real data is on the production Postgres. Code reaches prod by **merging to `main`**,
-which auto-cuts a release and redeploys the legacy host (`deploy.yml`); watch the GitHub
-**Actions** tab for `Release` → `Publish image` → `Deploy` to go green (~5–15 min).
+Prod has **no OpenAI embeddings credential** — the chat models are Azure Foundry, whose key
+401s against `api.openai.com`, and Azure doesn't serve `text-embedding-3-large`. So the prod
+step runs **`--no-cosine`**: a pure read-only DB dump, **no key needed**. The cosine
+edit-typing is then computed on your machine, where the OpenAI key + the SHA embedding cache
+live. The typed result is identical to an inline run — it's just split in two.
 
-Then, on the prod host (the user is not in the `docker` group, so `sudo`; use `docker exec`
-with the explicit container name `djangoapp`, not `docker compose`, to avoid `GIT_TAG`
-warnings and container ambiguity). Replace the excluded emails as needed.
+Code reaches prod by **merging to `main`** (auto-release → `Publish image` → `Deploy`,
+~5–15 min on the Actions tab). Then, on the prod host (not in the `docker` group, so `sudo`;
+explicit container name `djangoapp`, not `docker compose`):
 
 ```bash
-# 1) extract (read-only; first run embeds pre-2025-09-13 drafts via OpenAI, then SHA-cached)
-sudo docker exec djangoapp python manage.py extract_gold_answers \
-  --exclude-emails christophe.vissers@rivm.nl --out /tmp/gold.csv
+# 1) extract — READ-ONLY, no OpenAI key, no API calls (one physical line)
+sudo docker exec djangoapp python manage.py extract_gold_answers --no-cosine --out /tmp/gold.csv
 
 # 2) copy it out of the container and make it readable
 sudo docker cp djangoapp:/tmp/gold.csv /home/$USER/gold.csv && sudo chmod 644 /home/$USER/gold.csv
 ```
 ```bash
-# 3) on your LOCAL machine, pull it down, then file it (gitignored) with a dated name
-scp <user>@<prod-host>:/home/<user>/gold.csv ~/Downloads/gold.csv
-mv ~/Downloads/gold.csv <repo>/myocyte/toxtempass/evaluation/gold_standard/output/gold_answers_<date>.csv
+# 3) on your LOCAL machine, pull it down (gitignored landing spot)
+scp <user>@<prod-host>:/home/<user>/gold.csv ~/Downloads/gold_no_cosine.csv
+
+# 4) fill the cosine edit-typing locally (uses your OpenAI key + SHA cache), writing to output/
+cd myocyte && poetry run python manage.py enrich_gold_cosines --in ~/Downloads/gold_no_cosine.csv --out toxtempass/evaluation/gold_standard/output/gold_answers_<date>.csv
 ```
 ```bash
-# 4) wipe the prod copies — the CSV holds gold answers + reviewer emails (PII)
+# 5) wipe the prod copies — the CSV holds gold answers + reviewer emails (PII)
 sudo docker exec djangoapp rm -f /tmp/gold.csv && sudo rm -f /home/$USER/gold.csv
 ```
 
-**Fallback** if step 1 prints `Unknown command: extract_gold_answers`, the running container
-is still the old image — from the repo dir on prod: `sudo docker compose --profile prod pull
-djangoapp && sudo docker compose --profile prod up -d djangoapp`, then retry.
+No `--exclude-emails` by default: demo assays are already filtered in code, and `owner_email`
+is a column, so drop any genuine test accounts during analysis rather than risk losing real
+reviewers. Add `--exclude-emails a@x,b@y` only for known dummy accounts.
 
-**Tip (paste mangling):** keep each command on ONE physical line; for the `mv`, `cd` into
-`output/` first, then `mv ~/Downloads/gold.csv gold_answers_<date>.csv`.
+**Inline (with-cosine) alternative:** if a valid OpenAI key is available to the container
+(`-e OPENAI_API_KEY=sk-…`), drop `--no-cosine` and skip steps 3–4 — the extract types inline.
+The split is preferred so no key ever touches prod.
+
+**Fallback** if step 1 prints `Unknown command` / `unrecognized arguments: --no-cosine`, the
+container is still the old image — from the repo dir on prod: `sudo docker compose --profile
+prod pull djangoapp && sudo docker compose --profile prod up -d djangoapp`, then retry.
+
+**Tip (paste mangling):** keep each command on ONE physical line.
 
 The companion **sufficiency** check (how much gold exists, by whom, with what docs) is
 `python manage.py assess_ground_truth` — same read-only / prod-ops pattern.
@@ -91,9 +104,10 @@ The companion **sufficiency** check (how much gold exists, by whom, with what do
 ```
 gold_standard/
   edit_analysis.py   # pure logic (draft detection + cosine edit-typing); unit-tested
-  audit.py           # read-only orchestrator; exposes run()
+  audit.py           # read-only orchestrator; exposes run() (--no-cosine skips embeddings)
+  enrich.py          # local pass: fill cosine + edit type for a --no-cosine CSV
   output/            # gitignored CSV + _embeddings/ cache
   README.md
+# commands: extract_gold_answers (prod, read-only) · enrich_gold_cosines (local, typing)
 # tests: toxtempass/tests/test_gold_standard_edit_analysis.py
-# command: toxtempass/management/commands/extract_gold_answers.py
 ```

@@ -53,16 +53,24 @@ class Command(BaseCommand):
         parser.add_argument(
             "--out", default="", help="Path to write the gold + edit-analysis CSV."
         )
+        parser.add_argument(
+            "--no-cosine",
+            action="store_true",
+            help="Pure DB read — skip embeddings/cosine (no OpenAI key needed). Fill the "
+            "edit-typing afterwards, locally, with enrich_gold_cosines.",
+        )
 
     def handle(self, *args: object, **options: object) -> None:
         """Run the audit and print the headline summary."""
         out_path = _resolve_out(str(options["out"]))
+        no_cosine = bool(options["no_cosine"])
         summary = audit.run(
             {
                 "exclude_emails": options["exclude_emails"],
                 "min_accepted": options["min_accepted"],
                 "limit": options["limit"],
                 "out": out_path,
+                "no_cosine": no_cosine,
             }
         )
         w = self.stdout.write
@@ -72,10 +80,15 @@ class Command(BaseCommand):
         w(f"  assays                            : {summary['n_assays']}")
         w(f"  delta EXACT (model draft recovered): {summary['n_delta_exact']}")
         w(f"  delta LOWER-BOUND (1st human save) : {summary['n_delta_lower_bound']}")
-        w("  change types (exact-delta subset):")
-        for t, n in sorted(
-            summary["change_type_counts_exact"].items(), key=lambda kv: -kv[1]
-        ):
-            w(f"    {t:18} {n}")
+        if no_cosine:
+            w("  edit-typing                       : DEFERRED (--no-cosine, no API)")
+            w("    next, locally (where the OpenAI key lives), run:")
+            w("      manage.py enrich_gold_cosines --in <this>.csv --out <typed>.csv")
+        else:
+            w("  change types (exact-delta subset):")
+            for t, n in sorted(
+                summary["change_type_counts_exact"].items(), key=lambda kv: -kv[1]
+            ):
+                w(f"    {t:18} {n}")
         w(f"  wrote CSV → {out_path}")
         w("")
