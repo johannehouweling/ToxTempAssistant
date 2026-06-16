@@ -64,3 +64,9 @@ backups/
 myocyte/toxtempass/evaluation/real_world/input_files/**
 !myocyte/toxtempass/evaluation/real_world/input_files/**/
 !myocyte/toxtempass/evaluation/real_world/input_files/**/.gitkeep
+
+# gold_standard outputs (gold answers + reviewer emails = PII): ignore the data,
+# keep the folder tracked via .gitkeep.
+!myocyte/toxtempass/evaluation/gold_standard/output/
+myocyte/toxtempass/evaluation/gold_standard/output/**
+!myocyte/toxtempass/evaluation/gold_standard/output/.gitkeep
