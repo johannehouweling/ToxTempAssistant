@@ -102,7 +102,7 @@ def _describe_image(
     mime = mime_type or DEFAULT_IMAGE_MIME
     try:
         llm = get_llm()
-        system_message = SystemMessage(content=config.image_description_prompt)
+        system_message = SystemMessage(content=config.image_prompt)
         human_content: list[dict[str, object]] = []
         context = _truncate_context(page_context)
         if context:
@@ -196,7 +196,7 @@ def _convert_image_to_webp(
         Exception: If conversion fails
     """
     img = Image.open(BytesIO(image_bytes))
-    
+
     # Filter out small images (icons, bullets, decorative elements)
     if img.width < config.min_image_width or img.height < config.min_image_height:
         logger.debug(
@@ -205,10 +205,10 @@ def _convert_image_to_webp(
             img.height,
             config.min_image_width,
             config.min_image_height,
-            source_format or "unknown"
+            source_format or "unknown",
         )
         return None, None
-    
+
     output = BytesIO()
     # Convert to RGB if necessary (WebP supports RGBA but not all modes)
     if img.mode == "RGBA":
@@ -221,7 +221,7 @@ def _convert_image_to_webp(
         source_format or "unknown",
         img.width,
         img.height,
-        TARGET_IMAGE_FORMAT
+        TARGET_IMAGE_FORMAT,
     )
     return output.getvalue(), TARGET_IMAGE_MIME
 
@@ -451,7 +451,8 @@ def _read_xls_file(path: Path, max_rows: int = MAX_TABLE_ROWS) -> str:
         except Exception as exc:
             logger.info(
                 "xlrd could not parse %s as binary .xls (%s); trying text fallback",
-                path, exc,
+                path,
+                exc,
             )
         else:
             sheet_texts: list[str] = []
@@ -703,7 +704,9 @@ def get_text_or_bytes_perfile_dict(
                     image_bytes, mime_type = _convert_image_to_webp(image_bytes, suffix)
                     # Skip if image was too small (filtered out)
                     if image_bytes is None or mime_type is None:
-                        logger.info("Skipping uploaded image %s (too small)", context_filename)
+                        logger.info(
+                            "Skipping uploaded image %s (too small)", context_filename
+                        )
                         continue
                 except Exception as exc:
                     logger.warning(
@@ -979,6 +982,7 @@ def store_files_to_storage(
     )
     return created_assets
 
+
 def download_assay_files_as_zip(
     assay: Assay,
     user: Person,
@@ -998,9 +1002,11 @@ def download_assay_files_as_zip(
         Exception: If file retrieval or ZIP creation fails
     """
     # Get all files associated with all answers in this assay
-    answer_files = AnswerFile.objects.filter(
-        answer__assay=assay
-    ).select_related("file").distinct("file")
+    answer_files = (
+        AnswerFile.objects.filter(answer__assay=assay)
+        .select_related("file")
+        .distinct("file")
+    )
 
     if not answer_files.exists():
         logger.warning("No files found for assay %s", assay.id)
