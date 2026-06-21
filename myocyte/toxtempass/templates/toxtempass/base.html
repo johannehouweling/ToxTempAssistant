@@ -64,24 +64,63 @@
       --bs-tooltip-color: var(--bs-primary);
     }
 
-    /* Indigo accent for citation footnotes and inline links inside a rendered
-       answer. Bootstrap ships --bs-indigo (hex) but NOT --bs-indigo-rgb, so
-       define the rgb triplet once and build an opacity-aware link colour on it. */
+    /* Indigo "suggestion tier". Bootstrap ships --bs-indigo (hex) but NOT
+       --bs-indigo-rgb (only the 8 theme colors get an -rgb var), so opacity
+       helpers can't tint it. Define the rgb triplet once, then build
+       opacity-aware indigo utilities on top of it. */
     :root { --bs-indigo-rgb: 102, 16, 242; }
+    .text-indigo { color: rgba(var(--bs-indigo-rgb), 1) !important; }
     .link-indigo {
       color: rgba(var(--bs-indigo-rgb), 1);
       text-decoration-color: rgba(var(--bs-indigo-rgb), 0.5);
     }
     .link-indigo:hover { color: rgba(var(--bs-indigo-rgb), 0.8); }
-    .md-preview a {
+
+    /* Inline markdown preview of answers — optimised for reading: roomy line
+       height, normal prose, and only a faint "this is editable" affordance on
+       hover so it doesn't read like a cramped form field. */
+    .md-preview {
+      padding: 0.375rem 0.5rem;
+      min-height: 2.5rem;
+      line-height: 1.6;
+      border: 1px solid transparent;
+      border-radius: 0.375rem;
+      cursor: text;
+      overflow-wrap: anywhere;
+    }
+    .md-preview:hover {
+      background-color: var(--bs-light);
+      border-color: var(--bs-border-color);
+    }
+    .md-preview p { margin-bottom: 0.5rem; }
+    .md-preview > :last-child { margin-bottom: 0; }
+    /* Every clickable link inside a rendered answer / suggestion is indigo
+       (footnotes already carry .link-indigo; this also covers inline md links). */
+    .md-preview a, .suggestion-text a {
       color: rgba(var(--bs-indigo-rgb), 1);
       text-decoration-color: rgba(var(--bs-indigo-rgb), 0.5);
     }
-    .md-preview a:hover { color: rgba(var(--bs-indigo-rgb), 0.8); }
-    /* marked wraps the answer in <p>, whose Bootstrap bottom margin would
-       otherwise show as a blank line under every preview — drop it on the last
-       child so the box hugs the text. */
-    .md-preview > :last-child { margin-bottom: 0; }
+    .md-preview a:hover, .suggestion-text a:hover { color: rgba(var(--bs-indigo-rgb), 0.8); }
+    .text-bg-indigo {
+      color: #fff !important;
+      background-color: rgba(var(--bs-indigo-rgb), var(--bs-bg-opacity, 1)) !important;
+    }
+    .bg-indigo {
+      background-color: rgba(var(--bs-indigo-rgb), var(--bs-bg-opacity, 1)) !important;
+    }
+    .border-indigo {
+      border-color: rgba(var(--bs-indigo-rgb), var(--bs-border-opacity, 1)) !important;
+    }
+    .btn-indigo {
+      color: #fff;
+      background-color: rgba(var(--bs-indigo-rgb), 1);
+      border-color: rgba(var(--bs-indigo-rgb), 1);
+    }
+    .btn-indigo:hover, .btn-indigo:focus {
+      color: #fff;
+      background-color: rgba(var(--bs-indigo-rgb), 0.85);
+      border-color: rgba(var(--bs-indigo-rgb), 0.85);
+    }
   </style>
 <body data-url-name="{{ current_url_name }}">
         <header class="sticky-md-top">

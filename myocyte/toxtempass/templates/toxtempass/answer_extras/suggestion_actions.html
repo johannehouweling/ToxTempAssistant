@@ -1,0 +1,54 @@
+<script>
+(function () {
+    // Round-2 "suggestion tier" card actions. Both buttons STAGE changes into the
+    // main answer form (hidden promote_<id> / dismiss_<id> fields); nothing is
+    // persisted until the user clicks Save — matching the page's explicit-save model.
+    function setHidden(qid, name, on) {
+        const el = document.querySelector('input[name="' + name + '_' + qid + '"]');
+        if (el) el.value = on ? 'true' : 'false';
+    }
+
+    document.querySelectorAll('.suggestion-promote-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const qid = btn.dataset.qid;
+            const card = document.querySelector('[data-suggestion-card="' + qid + '"]');
+            const textEl = card ? card.querySelector('.suggestion-text') : null;
+            // Prefer the stashed raw markdown (set when the card was md-rendered);
+            // fall back to innerText when rendering didn't run (e.g. marked absent).
+            const suggestion = textEl
+                ? (textEl.dataset.suggestionRaw != null ? textEl.dataset.suggestionRaw : textEl.innerText)
+                : '';
+            const textarea = document.querySelector('textarea[name="question_' + qid + '"]');
+
+            // Drop the suggestion into the answer field as an editable DRAFT. It is
+            // deliberately NOT accepted here — the scientist still reviews/edits it
+            // and ticks "accepted" themselves. The server reads answer_text from this
+            // textarea on Save, so any edits to the draft are preserved.
+            if (textarea) {
+                textarea.value = suggestion;
+                textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                // The click-to-edit preview only re-renders on blur; nudge it so the
+                // staged draft is visible immediately in the (still-collapsed) field.
+                textarea.dispatchEvent(new CustomEvent('md:refresh'));
+            }
+            setHidden(qid, 'promote', true);
+            setHidden(qid, 'dismiss', false);
+
+            // The suggestion now lives in the answer field above, so the card is
+            // redundant — remove it from view (it stays gone after Save: answer_text
+            // is no longer the not-found sentinel, so has_pending_suggestion is False).
+            if (card) card.style.display = 'none';
+        });
+    });
+
+    document.querySelectorAll('.suggestion-dismiss-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const qid = btn.dataset.qid;
+            const card = document.querySelector('[data-suggestion-card="' + qid + '"]');
+            setHidden(qid, 'dismiss', true);
+            setHidden(qid, 'promote', false);
+            if (card) card.style.display = 'none';
+        });
+    });
+})();
+</script>
