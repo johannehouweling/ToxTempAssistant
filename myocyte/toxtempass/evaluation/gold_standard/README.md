@@ -116,10 +116,13 @@ gold_standard/
   status_table.py    # per-assay coverage table (md/html/png) from the latest typed gold
   bakeoff.py         # score cross-provider models vs gold (cosine + abstention agreement)
   edit_report.py     # edit analysis: # + type of scientist edits (md + bar chart)
+  freeze_benchmark.py # freeze the file-backed iterable core + manifest + DATASHEET
+  DATASHEET.md       # PII-free dataset card for the iterable core (tracked)
   README.md
   output/            # gitignored except .gitkeep (gold answers + reviewer emails = PII)
-    _analysis/       #   data CSVs: gold_answers_typed_*, ground_truth_assessment_*, bakeoff_*
-    _plotting/       #   figures: gold_status_table.{md,html,png}, bakeoff.{html,png}
+    _analysis/       #   data CSVs: gold_answers_typed_*, ground_truth_assessment_*,
+                     #   benchmark_core, benchmark_manifest, bakeoff_*
+    _plotting/       #   figures: gold_status_table.{md,html,png}, bakeoff.{html,png}, edit_types
     _embeddings/     #   SHA-cached vectors (reproducible, cheap re-runs)
 # commands: extract_gold_answers (prod, read-only) · enrich_gold_cosines (local, typing)
 #           · assess_ground_truth (sufficiency). status_table/bakeoff run as scripts.
