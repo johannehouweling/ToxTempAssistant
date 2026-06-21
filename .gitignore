@@ -70,3 +70,4 @@ myocyte/toxtempass/evaluation/real_world/input_files/**
 !myocyte/toxtempass/evaluation/gold_standard/output/
 myocyte/toxtempass/evaluation/gold_standard/output/**
 !myocyte/toxtempass/evaluation/gold_standard/output/.gitkeep
+skills-lock.json
