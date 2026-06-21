@@ -255,7 +255,8 @@ class EvaluationConfig:
                 "Mistral, Moonshot (Kimi), DeepSeek and Meta (Llama) at temp 0, "
                 "default prompt. Bulky raw_data/processed_data spreadsheets excluded "
                 "(they aren't ToxTemp prose and their ~200k-token contexts trip "
-                "provider rate limits); meta_data kept."),
+                "provider rate limits); meta_data kept."
+            ),
             "skip_folders": ["raw_data", "processed_data"],
         },
         "structured_grounded": {
@@ -327,7 +328,7 @@ class EvaluationConfig:
     # between production app and evaluation pipeline
     not_found_string: str = AppConfig.not_found_string
     default_base_prompt: str = AppConfig.base_prompt
-    default_image_prompt: str = AppConfig.image_description_prompt
+    default_image_prompt: str = AppConfig.image_prompt
 
     @classmethod
     def get_models(
