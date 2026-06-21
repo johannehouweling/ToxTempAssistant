@@ -1,3 +1,5 @@
+import json
+
 from django import template
 
 register = template.Library()
@@ -35,3 +37,61 @@ def intdivperc(a: float, b: float) -> int:
         return int(a / b * 100)
     else:
         return 0
+
+
+@register.filter()
+def mul(a: float, b: float) -> float:
+    """Multiply two values (Django templates can't do arithmetic natively).
+
+    Usage: {{ value|mul:100 }}
+    """
+    try:
+        return float(a) * float(b)
+    except (TypeError, ValueError):
+        return 0
+
+
+@register.filter()
+def certainty_opacity(value: float | None) -> int:
+    """Map a 0–1 certainty to a Bootstrap opacity step (50 / 75 / 100).
+
+    Used to shade the indigo suggestion badge by confidence. Unknown/None
+    certainty falls back to the faintest step.
+    """
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return 50
+    if v >= 0.67:
+        return 100
+    if v >= 0.34:
+        return 75
+    return 50
+
+
+@register.filter()
+def get_item(mapping: object, key: object) -> object:
+    """Look up ``key`` in a dict from a template (handles int/str key mismatch).
+
+    Usage: {{ pending_suggestions|get_item:question.id }}
+    """
+    if not isinstance(mapping, dict):
+        return None
+    if key in mapping:
+        return mapping[key]
+    return mapping.get(str(key), mapping.get(key))
+
+
+@register.filter()
+def to_json(value: object) -> str:
+    """Serialize a value to a JSON string for embedding in an HTML attribute.
+
+    Returns a plain (un-marked-safe) string so Django auto-escapes it for the
+    attribute; the browser decodes it back on getAttribute() before JSON.parse().
+
+    Usage: <div data-citations="{{ obj.citations|to_json }}">
+    """
+    try:
+        return json.dumps(value)
+    except (TypeError, ValueError):
+        return "[]"
