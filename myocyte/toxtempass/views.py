@@ -1,4 +1,5 @@
 import difflib
+import ipaddress
 import json
 import logging
 import random
@@ -9,6 +10,7 @@ from collections import defaultdict
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from itertools import product
+from urllib.parse import urlparse
 
 import requests
 from django.contrib.admin.views.decorators import staff_member_required
@@ -86,6 +88,7 @@ from toxtempass.models import (
     Section,
     Study,
     Subsection,
+    SuggestionSource,
 )
 from toxtempass.tables import AssayTable
 from toxtempass.utilities import (
@@ -984,12 +987,18 @@ def generate_answer(
     assay: Assay,
     chatopenai: ChatOpenAI,
     base_prompt: str | None = None,
+    extra_context: str = "",
 ) -> tuple[int, str, int, int]:
     """Generate an answer for a single Answer instance.
 
     Returns a 4-tuple of ``(answer_id, answer_text, input_tokens, output_tokens)``.
     ``input_tokens`` and ``output_tokens`` are 0 when the LLM response does not
     include usage metadata.
+
+    ``extra_context`` is appended as *variable* context AFTER the cached document
+    bundle (used by the round-2 suggestion phase to pass already-found answers).
+    It must stay after the cache breakpoint so the Anthropic cached prefix remains
+    byte-identical across questions.
     """
     ## some variables for logging and deadline handling
     # compute a soft deadline based on Django‑Q timeout (90% of it)
@@ -1052,6 +1061,14 @@ def generate_answer(
                 f"--- Q: {ca.question.question_text}\nA: {ca.answer_text}"
                 for ca in ctx_answers
             )
+
+    # Caller-supplied variable context (e.g. round-2 already-found answers). Kept
+    # in variable_ctx so it always follows the cache breakpoint below — never
+    # folded into the cached stable_bundle.
+    if extra_context:
+        variable_ctx = (
+            f"{variable_ctx}\n\n{extra_context}" if variable_ctx else extra_context
+        )
 
     # build messages
     messages = []
@@ -1264,6 +1281,177 @@ def _save_assay_cost(
     )
 
 
+def _safe_http_url(value: str) -> str:
+    """Return ``value`` if it is a plain http(s) URL, else "" (an XSS-safe gate).
+
+    Only ``http://``/``https://`` links with no whitespace are allowed, so a
+    hallucinated ``javascript:`` / ``data:`` scheme can never reach an ``href``.
+    """
+    v = (value or "").strip()
+    if v.lower().startswith(("http://", "https://")) and " " not in v:
+        return v
+    return ""
+
+
+def _is_public_http_host(url: str) -> bool:
+    """Reject loopback / private / link-local hosts before we fetch a URL.
+
+    A minimal SSRF guard: the URL comes from the LLM, so a hallucinated
+    ``http://169.254.169.254/...`` (cloud metadata) or ``http://localhost`` must
+    never be probed by the server. IP literals in private ranges are blocked;
+    bare hostnames are allowed (DNS-rebinding is out of scope for a HEAD probe
+    whose body is never surfaced).
+    """
+    try:
+        host = (urlparse(url).hostname or "").lower()
+    except ValueError:
+        return False
+    if not host or host == "localhost" or host.endswith((".local", ".internal")):
+        return False
+    try:
+        return ipaddress.ip_address(host).is_global
+    except ValueError:
+        return True  # a hostname, not an IP literal — allow
+
+
+def _url_resolves(url: str, timeout: float = 4.0) -> bool:
+    """Best-effort check that an http(s) URL actually resolves (status < 400).
+
+    Drops hallucinated citation links (e.g. a plausible-looking OECD URL that
+    404s). HEAD first (cheap); fall back to a streamed GET when the server
+    rejects HEAD (403/405/501). Any network error / timeout / 4xx-5xx, or a
+    non-public host, is treated as "does not resolve".
+    """
+    if not url or not _is_public_http_host(url):
+        return False
+    headers = {"User-Agent": "ToxTempAssistant-linkcheck/1.0"}
+    try:
+        resp = requests.head(
+            url, allow_redirects=True, timeout=timeout, headers=headers
+        )
+        if resp.status_code in (403, 405, 501):
+            resp = requests.get(
+                url, allow_redirects=True, timeout=timeout, headers=headers,
+                stream=True,
+            )
+        return resp.status_code < 400
+    except requests.RequestException:
+        return False
+
+
+def _verify_citation_urls(citations: list[dict[str, str]]) -> list[dict[str, str]]:
+    """Blank any citation URL that does not resolve, keeping its text label.
+
+    A non-resolving link is dropped (set to "") rather than removing the whole
+    citation, so the source reference still shows — just not as a clickable link.
+    """
+    for c in citations:
+        if c.get("url") and not _url_resolves(c["url"]):
+            c["url"] = ""
+    return citations
+
+
+def parse_suggestion(
+    text: str,
+) -> tuple[str, float | None, list[dict[str, str]]]:
+    """Parse a round-2 suggestion block into ``(answer, certainty, citations)``.
+
+    Expected (case-insensitive, line-anchored) format::
+
+        Answer: <text>
+        Certainty: <0..1>
+        Sources: <kind|label|url, kind|label|url, ...>   (url optional)
+
+    Tolerant by design — NEVER raises:
+
+    * missing ``Certainty:``            -> certainty ``None``
+    * unparseable / out-of-range value  -> clamped to ``[0, 1]`` or ``None``
+    * missing / blank ``Sources:``      -> ``[]``
+    * no ``Answer:`` label              -> the whole response becomes the answer
+    * legacy ``kind:label`` entries     -> still parsed (url defaults to "")
+
+    ``citations`` is a list of ``{"kind", "label", "url"}`` dicts; an unrecognised
+    kind falls back to ``knowledge`` and a non-http(s) url is dropped. The caller
+    derives the multi-choice ``Answer.suggestion_sources`` tier set from these.
+    """
+    raw = (text or "").strip()
+    if not raw:
+        return "", None, []
+
+    # Answer = everything after "Answer:" up to the next label (or end of text).
+    ans_m = re.search(
+        r"^\s*Answer\s*:\s*(.*?)(?=^\s*(?:Certainty|Sources)\s*:|\Z)",
+        raw,
+        re.IGNORECASE | re.DOTALL | re.MULTILINE,
+    )
+    answer = ans_m.group(1).strip() if ans_m else raw
+
+    certainty: float | None = None
+    cert_m = re.search(
+        r"^\s*Certainty\s*:\s*([0-9]*\.?[0-9]+)", raw, re.IGNORECASE | re.MULTILINE
+    )
+    if cert_m:
+        try:
+            certainty = max(0.0, min(1.0, float(cert_m.group(1))))
+        except ValueError:
+            certainty = None
+
+    citations: list[dict[str, str]] = []
+    src_m = re.search(r"^\s*Sources\s*:\s*(.+)$", raw, re.IGNORECASE | re.MULTILINE)
+    if src_m:
+        valid_kinds = set(SuggestionSource.values)
+        for chunk in src_m.group(1).split(","):
+            entry = chunk.strip()
+            if not entry:
+                continue
+            kind = SuggestionSource.KNOWLEDGE.value
+            label = entry
+            url = ""
+            if "|" in entry:
+                # Preferred format: "kind|label|url" (url optional).
+                parts = [p.strip() for p in entry.split("|")]
+                if parts[0]:
+                    kind = parts[0].lower()
+                label = parts[1] if len(parts) > 1 else ""
+                if len(parts) > 2:
+                    url = _safe_http_url(parts[2])
+            elif ":" in entry and not _safe_http_url(entry):
+                # Legacy "kind:label" (skip when the whole entry is a bare URL).
+                kind, label = entry.split(":", 1)
+                kind, label = kind.strip().lower(), label.strip()
+            # A bare URL supplied as the label becomes the link as well.
+            if not url:
+                bare = _safe_http_url(label)
+                if bare:
+                    url = bare
+            if kind not in valid_kinds:
+                kind = SuggestionSource.KNOWLEDGE.value
+            if label or url:
+                citations.append({"kind": kind, "label": label or url, "url": url})
+
+    return answer, certainty, citations
+
+
+def _build_supplied_answer_context(assay: Assay) -> str:
+    """Concatenate the assay's already-found answers as extra round-2 context.
+
+    Lets out-of-context suggestions build on what the documents *did* yield.
+    Excludes the not-found sentinel and empty drafts. Returns "" when empty.
+
+    NOTE: this is *variable* context — it must be appended AFTER the cached
+    document bundle (see ``generate_answer``'s ``extra_context`` handling) so the
+    Anthropic cache prefix stays byte-identical across questions.
+    """
+    found = (
+        assay.answers.exclude(answer_text__icontains=config.not_found_string)
+        .exclude(answer_text="")
+        .select_related("question")
+    )
+    return "\n\n".join(
+        f"--- Q: {a.question.question_text}\nA: {a.answer_text}" for a in found
+    )
+
+
 def process_llm_async(
     assay_id: int,
     doc_dict: dict[str, dict[str, str]] | None = None,
@@ -1275,6 +1463,7 @@ def process_llm_async(
     llm_model: str | None = None,
     base_prompt: str | None = None,
     max_workers: int | None = None,
+    do_suggestions: bool = False,
 ) -> None:
     """Process llm answer async.
 
@@ -1287,6 +1476,11 @@ def process_llm_async(
     back to ``config.max_workers_threading``). Used to serialise requests against
     low-throughput endpoints — a shared low-TPM deployment livelocks on 429s when
     several large-context requests fire at once.
+
+    ``do_suggestions`` opt-in: after the strict rounds, run a second, less-strict
+    pass over the questions that came back "not found in documents", writing an
+    out-of-context suggestion (+ certainty + sources) to the ``Answer.suggestion_*``
+    fields. ``answer_text`` is never touched by this phase.
     """
     pool_workers = max_workers or config.max_workers_threading
     try:
@@ -1560,6 +1754,108 @@ def process_llm_async(
             if assay_gone:
                 return
 
+        # ── Round 2: out-of-context suggestions for not-found answers ──────────
+        # Opt-in (do_suggestions). Runs in the SAME task so the document context
+        # and the warm Anthropic prompt-cache primed by the strict rounds above
+        # are reused (documents billed at cache-read, not re-tokenized). Targets
+        # ONLY rows whose strict answer is still the not-found sentinel and that
+        # have no suggestion yet → never re-bills answered or already-suggested
+        # questions (idempotent). Re-queried fresh from the DB so it reflects what
+        # the strict rounds just wrote (the in-memory `all_answers` list is stale).
+        if do_suggestions and _assay_still_exists():
+            nf_qs = assay.answers.filter(
+                answer_text__icontains=config.not_found_string,
+                suggestion_text="",
+            )
+            if requested_ids:
+                nf_qs = nf_qs.filter(id__in=requested_ids)
+            nf_answers = list(
+                nf_qs.select_related("question__subsection__section__question_set")
+            )
+            if nf_answers:
+                # Already-found answers become *variable* context (after the cache
+                # breakpoint) so suggestions can build on what the docs did yield.
+                supplied_ctx = _build_supplied_answer_context(assay)
+                logger.info(
+                    "Starting suggestion round: %d not-found question(s), assay %s",
+                    len(nf_answers),
+                    assay_id,
+                )
+                with ThreadPoolExecutor(max_workers=pool_workers) as pool:
+                    futures = {
+                        pool.submit(
+                            generate_answer, a, full_pdf_context, assay, chatopenai,
+                            config.suggestion_prompt, supplied_ctx,
+                        ): a
+                        for a in nf_answers
+                    }
+                    assay_gone = False
+
+                    with tqdm(
+                        total=len(futures), disable=not verbose, desc="Suggestions"
+                    ) as pbar:
+                        for future in as_completed(futures):
+                            try:
+                                aid, text, in_tok, out_tok = future.result()
+                                total_input_tokens += in_tok
+                                total_output_tokens += out_tok
+                            except TimeoutError as te:
+                                logger.error(str(te))
+                                continue
+                            except Exception as exc:
+                                logger.exception(
+                                    "Fatal error for suggestion %s: %s",
+                                    futures[future].id,
+                                    exc,
+                                )
+                                continue
+                            finally:
+                                pbar.update(1)
+
+                            # Same deletion-race guard as the strict rounds.
+                            if not _assay_still_exists():
+                                if not assay_gone:
+                                    logger.info(
+                                        "Assay %s deleted during suggestion round; "
+                                        "cancelling %d pending future(s).",
+                                        assay_id,
+                                        sum(1 for f in futures if not f.done()),
+                                    )
+                                    for f in futures:
+                                        if not f.done():
+                                            f.cancel()
+                                    assay_gone = True
+                                continue
+
+                            # Empty text = transient failure that exhausted retries;
+                            # leave the row's sentinel answer untouched (idempotent).
+                            if not text:
+                                continue
+
+                            sug, cert, citations = parse_suggestion(text)
+                            # Drop hallucinated links that don't resolve, so only
+                            # working URLs ever become clickable.
+                            citations = _verify_citation_urls(citations)
+                            # Multi-choice tier set from the cited kinds; KNOWLEDGE
+                            # always applies to a round-2 suggestion.
+                            tiers = sorted(
+                                {c["kind"] for c in citations if c.get("kind")}
+                                | {SuggestionSource.KNOWLEDGE.value}
+                            )
+                            try:
+                                Answer.objects.filter(pk=aid).update(
+                                    suggestion_text=sug,
+                                    suggestion_certainty=cert,
+                                    suggestion_citations=citations,
+                                    suggestion_sources=tiers,
+                                )
+                            except Exception as e:
+                                log_processing_event(assay, str(e))
+                                continue
+
+                if assay_gone:
+                    return
+
         assay.status = LLMStatus.DONE
         assay.save()
 
@@ -1722,6 +2018,13 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
             assay = form.cleaned_data["assay"]
             extract_images = form.cleaned_data.get("extract_images", False)
             overwrite = form.cleaned_data.get("overwrite", False)
+            do_suggestions = form.cleaned_data.get("round2_suggestions", False)
+            # Persist the opt-in so it sticks for future runs (atomic so it never
+            # clobbers other preference keys).
+            update_prefs_atomic(
+                request.user,
+                lambda p: p.__setitem__("round2_suggestions", do_suggestions) or True,
+            )
             qs = form.cleaned_data["question_set"]
             assay.question_set = qs
             assay.save()
@@ -1828,6 +2131,7 @@ def new_form_view(request: HttpRequest) -> HttpResponse | JsonResponse:
                         # Snapshot the user's current model choice so a later
                         # preference change doesn't affect this already-queued job.
                         llm_model=current_llm_key(request.user),
+                        do_suggestions=do_suggestions,
                     )
 
                 except Exception as e:
@@ -2281,6 +2585,14 @@ def answer_assay_questions(
             return JsonResponse({"success": False, "errors": form.errors})
     else:
         form = AssayAnswerForm(assay=assay, user=request.user)
+    # Map question_id -> Answer for answers carrying an unreviewed round-2
+    # suggestion (drives the indigo suggestion cards in the template).
+    pending_suggestions = {
+        a.question_id: a
+        for a in assay.answers.filter(
+            answer_text__icontains=config.not_found_string,
+        ).exclude(suggestion_text="")
+    }
     return render(
         request,
         "answer.html",
@@ -2288,6 +2600,7 @@ def answer_assay_questions(
             "form": form,
             "assay": assay,
             "sections": sections,
+            "pending_suggestions": pending_suggestions,
             "show_tour": not user_has_seen_tour_page(
                 "answer_assay_questions", request.user
             ),
