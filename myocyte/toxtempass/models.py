@@ -4,7 +4,11 @@ import uuid
 
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
+from django.core.validators import (
+    MaxValueValidator,
+    MinValueValidator,
+    validate_email,
+)
 from django.db import models
 from django.db.models import Count, Q
 from django.utils import timezone
@@ -20,6 +24,21 @@ class LLMStatus(models.TextChoices):
     BUSY = "busy", "Busy"
     DONE = "done", "Done"
     ERROR = "error", "Error"
+
+
+class SuggestionSource(models.TextChoices):
+    """Provenance tiers a round-2 (out-of-context) suggestion can draw on.
+
+    Stored as a *multi-choice* set on ``Answer.suggestion_sources`` — a single
+    suggestion may combine several tiers (e.g. general knowledge that also cites
+    an uploaded document). Future tiers (RAG, web search) are added here and
+    reuse the same columns, so no schema migration is needed to extend them.
+    """
+
+    KNOWLEDGE = "knowledge", "General knowledge"  # round-2 default tier
+    DOCUMENT = "document", "Context document"  # cited an uploaded doc
+    GUIDANCE = "guidance", "Regulatory guidance"  # OECD GD211 / ALTEX, etc.
+    # future tiers reuse the SAME column (no migration): RAG = "rag", WEB = "web"
 
 
 # we are desinging user access that inherits from the parent object.
@@ -437,6 +456,23 @@ class Assay(AccessibleModel):
         ).count()
 
     @property
+    def number_pending_suggestions(self) -> int:
+        """Count not-found answers that have an unreviewed round-2 suggestion.
+
+        Drives the indigo "suggested (review)" segment of the progress bar. A
+        suggestion stops counting once it is promoted (answer_text no longer the
+        sentinel) or dismissed (suggestion_text cleared).
+        """
+        return (
+            Answer.objects.filter(
+                assay=self,
+                answer_text__icontains=config.not_found_string,
+            )
+            .exclude(suggestion_text="")
+            .count()
+        )
+
+    @property
     def number_processed_answers(self) -> int:
         """Check if there are any answers processed for this assay."""
         not_found_string = config.not_found_string
@@ -701,15 +737,72 @@ class Answer(AccessibleModel):
     accepted = models.BooleanField(
         null=True, blank=True, help_text="Marked as final answer."
     )
+    # ── Round-2 "suggestion tier" (out-of-context) ────────────────────────────
+    # Populated by the optional less-strict second pass for questions the strict
+    # pass could not answer. Kept STRICTLY separate from ``answer_text`` so the
+    # "Answer not found in documents." provenance is never overwritten; the user
+    # explicitly promotes a suggestion into ``answer_text`` when they accept it.
+    suggestion_text = models.TextField(
+        blank=True,
+        default="",
+        help_text="Out-of-context suggestion from the optional second LLM round.",
+    )
+    suggestion_certainty = models.FloatField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)],
+        help_text="Model self-reported confidence 0–1 for the suggestion (uncalibrated).",
+    )
+    suggestion_citations = models.JSONField(
+        null=True,
+        blank=True,
+        help_text='Cited references: list of {"kind", "label", "url"} (url optional).',
+    )
+    suggestion_sources = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=(
+            "Multi-choice provenance tiers (SuggestionSource values) this "
+            "suggestion drew on; empty = no suggestion."
+        ),
+    )
     history = HistoricalRecords()
 
     def __str__(self):
         """Return a string representation of the answer."""
         return f"Answer to: {self.question} for assay {self.assay}"
 
+    def clean(self) -> None:
+        """Validate the multi-choice ``suggestion_sources`` against the enum."""
+        super().clean()
+        if self.suggestion_sources:
+            if not isinstance(self.suggestion_sources, list):
+                raise ValidationError(
+                    {"suggestion_sources": "Must be a list of SuggestionSource values."}
+                )
+            invalid = [
+                s for s in self.suggestion_sources if s not in SuggestionSource.values
+            ]
+            if invalid:
+                raise ValidationError(
+                    {"suggestion_sources": f"Invalid provenance tier(s): {invalid}."}
+                )
+
     def get_parent(self) -> Assay:
         """Return the parent Assay object."""
         return self.assay
+
+    @property
+    def has_pending_suggestion(self) -> bool:
+        """True while a suggestion exists and the strict answer is still the sentinel.
+
+        Becomes False automatically once the suggestion is promoted (``answer_text``
+        no longer holds the not-found sentinel) or dismissed (``suggestion_text``
+        cleared) — no separate flag to maintain.
+        """
+        return bool(self.suggestion_text) and (
+            config.not_found_string.lower() in (self.answer_text or "").lower()
+        )
 
     @property
     def preview_text(self, max_length: int = 75) -> str:
