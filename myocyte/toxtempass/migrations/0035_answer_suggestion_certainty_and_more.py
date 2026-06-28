@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('toxtempass', '0033_feedback_time_spent_seconds_positive'),
+        ('toxtempass', '0034_demoassay'),
     ]
 
     operations = [
