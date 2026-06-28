@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v3.29.1 (2026-06-28)
+
+### Bug Fixes
+
+- Only un-accept an answer on a genuine edit, not on click-to-edit open
+  ([`f3836d8`](https://github.com/johannehouweling/toxtempassistant/commit/f3836d8799a91663b4255da7c5c0d56cb02e3751))
+
+- Spotlight the visible answer preview in onboarding tour
+  ([`b49cc3a`](https://github.com/johannehouweling/toxtempassistant/commit/b49cc3af9ebffa371120859ddac0a86578a9bdcd))
+
+
 ## v3.29.0 (2026-06-28)
 
 ### Bug Fixes
