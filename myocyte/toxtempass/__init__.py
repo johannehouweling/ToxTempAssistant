@@ -351,7 +351,7 @@ class Config:
             ],
             [
                 "#question-content textarea:first-of-type",
-                "This field shows the LLM-generated answer. If no relevant information was found, it will say 'Answer not found in documents.'. You can edit this answer as needed.",
+                f'This field shows the LLM-generated answer. If no relevant information was found, it will say "{not_found_string}". You can edit this answer as needed.',
             ],
             [
                 "button[data-bs-target='#versionHistoryModal']",
