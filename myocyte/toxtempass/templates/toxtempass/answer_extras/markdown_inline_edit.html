@@ -2,10 +2,11 @@
      markers become hoverable footnotes [n] (deduped per text); a source whose
      LABEL carries a URL/DOI renders as a footnote link. Answer fields are
      click-to-edit (the textarea remains the source of truth). -->
+<script src="https://cdn.jsdelivr.net/npm/marked/lib/marked.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 <script>
 (function () {
-    if (typeof marked === 'undefined') return;  // marked is loaded by marked_modal.html
+    if (typeof marked === 'undefined') return;  // loaded by the script tag above
     var toHtml = (typeof marked.parse === 'function') ? marked.parse
                : (typeof marked.marked === 'function') ? marked.marked : marked;
 

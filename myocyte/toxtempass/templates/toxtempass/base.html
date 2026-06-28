@@ -78,6 +78,10 @@
       text-decoration-color: rgba(var(--bs-indigo-rgb), 0.5);
     }
     .md-preview a:hover { color: rgba(var(--bs-indigo-rgb), 0.8); }
+    /* marked wraps the answer in <p>, whose Bootstrap bottom margin would
+       otherwise show as a blank line under every preview — drop it on the last
+       child so the box hugs the text. */
+    .md-preview > :last-child { margin-bottom: 0; }
   </style>
 <body data-url-name="{{ current_url_name }}">
         <header class="sticky-md-top">
