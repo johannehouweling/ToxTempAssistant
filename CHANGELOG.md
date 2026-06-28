@@ -2,6 +2,25 @@
 
 <!-- version list -->
 
+## v3.24.1 (2026-06-28)
+
+### Bug Fixes
+
+- **demo**: Seed newest flagged template when multiple are marked
+  ([`a5f68b6`](https://github.com/johannehouweling/toxtempassistant/commit/a5f68b6913884898f2de81fca2515aea81d6997b))
+
+### Chores
+
+- **deps**: Bump pyjwt from 2.12.1 to 2.13.0
+  ([`86dcbbb`](https://github.com/johannehouweling/toxtempassistant/commit/86dcbbbfe91e6a041d52bbbeb96fdb151732b6e3))
+
+- **deps**: Bump pypdf from 6.12.0 to 6.13.3
+  ([`720475c`](https://github.com/johannehouweling/toxtempassistant/commit/720475c6690814ac784b0176369d991a24cff95c))
+
+- **deps-dev**: Bump jupyter-server from 2.18.0 to 2.20.0
+  ([`aeedd50`](https://github.com/johannehouweling/toxtempassistant/commit/aeedd50074c67bdbf4b675319c8fc771ec56fa58))
+
+
 ## v3.24.0 (2026-06-16)
 
 ### Features
