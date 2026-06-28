@@ -28,7 +28,11 @@ TOXTEMP_PAPER_TEXT = "(OECD GD211, ALTEX 36.4)"
 # the strict and the suggestion prompt at once, keeping them in lockstep with the
 # front-end footnote renderer.
 CITATION_FORMAT = (
-    "Write the answer in plain Markdown (no bold, no headings) and cite every source inline:\n"
+    "Write the answer in plain Markdown (no bold, no headings) and cite every source inline.\n"
+    "- CRITICAL: every citation MUST use the exact wrapper _(Source: X)_ — the literal word "
+    "\"Source:\" inside parentheses, wrapped in underscores. A bare parenthetical such as "
+    "\"(de Leeuw et al. 2022)\" is NOT a citation and will NOT render as a footnote; you must "
+    "write _(Source: de Leeuw et al. 2022)_ instead. Never cite with bare parentheses.\n"
     "- Single source: append _(Source: X)_ at the end of the statement it supports.\n"
     "- Multiple sources: append _(Sources: X, Y, Z)_.\n"
     "- Make X a concise, recognisable label suited to the source type:\n"
