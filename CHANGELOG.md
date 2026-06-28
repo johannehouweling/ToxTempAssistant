@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v3.28.0 (2026-06-28)
+
+### Features
+
+- Render answers as click-to-edit markdown with citation footnotes
+  ([`a15d995`](https://github.com/johannehouweling/toxtempassistant/commit/a15d995d1f42c791ee2dd38f09a127f311e0703d))
+
+### Refactoring
+
+- Drop redundant markdown modal button; fix preview trailing margin
+  ([`dbd0ed0`](https://github.com/johannehouweling/toxtempassistant/commit/dbd0ed013284e891e72b31e84fc8395abda64f1f))
+
+
 ## v3.27.0 (2026-06-28)
 
 ### Features
