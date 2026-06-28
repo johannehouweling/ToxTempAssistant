@@ -304,7 +304,7 @@ class ExportMetadataPromptsTests(TestCase):
 
     def test_json_metadata_includes_prompts_sourced_from_config(self):
         """generate_json_from_assay records every Config prompt verbatim."""
-        assay = self._make_assay_with_answer("promptsmeta_json")
+        assay = self._make_assay_with_answer("pmetajson")
 
         prompts = generate_json_from_assay(assay)["metadata"]["prompts"]
 
@@ -319,7 +319,7 @@ class ExportMetadataPromptsTests(TestCase):
         They are large; the human-facing Markdown/PDF/DOCX must not carry them
         (only the small scalar "config" block is rendered).
         """
-        assay = self._make_assay_with_answer("promptsmeta_md")
+        assay = self._make_assay_with_answer("pmetamd")
 
         markdown = generate_markdown_from_assay(assay)
 
