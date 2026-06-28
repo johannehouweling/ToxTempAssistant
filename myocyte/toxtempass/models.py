@@ -988,6 +988,15 @@ class LLMConfig(models.Model):
             "Empty list = all discovered models are allowed."
         ),
     )
+    suggestion_model = models.CharField(
+        max_length=128,
+        default="",
+        blank=True,
+        help_text=(
+            'Round-2 suggestion deployment as "endpoint_index:tag" (e.g. "6:KIMI"). '
+            "Blank = reuse the round-1 model for suggestions."
+        ),
+    )
     last_health_check = models.JSONField(
         default=dict,
         blank=True,
@@ -1035,6 +1044,21 @@ class LLMConfig(models.Model):
         if ":" in self.default_model:
             return self.default_model.split(":", 1)[1]
         return ""
+
+    def suggestion_endpoint_tag(self) -> tuple[int, str] | None:
+        """Parse ``suggestion_model`` into ``(endpoint_index, tag)``.
+
+        Returns None when unset or malformed — callers then reuse the round-1
+        model for round-2 suggestions.
+        """
+        key = (self.suggestion_model or "").strip()
+        if ":" not in key:
+            return None
+        idx_s, tag = key.split(":", 1)
+        try:
+            return int(idx_s), tag
+        except ValueError:
+            return None
 
     def __str__(self):
         return f"LLM Config (default={self.default_model or 'auto'})"

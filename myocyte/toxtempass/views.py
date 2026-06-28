@@ -1791,6 +1791,32 @@ def process_llm_async(
                 if is_only_not_found(a.answer_text)
             ]
             if nf_answers:
+                # Round 2 may use a different model than round 1 (admin-configurable
+                # LLMConfig.suggestion_model, e.g. "6:KIMI"). Blank/unresolvable →
+                # reuse the round-1 client. A distinct model forgoes the round-1
+                # prompt-cache (documents are re-tokenised on the suggestion model),
+                # a deliberate quality/cost trade-off that only affects the
+                # not-found subset.
+                from toxtempass.models import LLMConfig
+
+                suggestion_llm = chatopenai
+                _sug_key = LLMConfig.load().suggestion_endpoint_tag()
+                if _sug_key is not None:
+                    try:
+                        suggestion_llm = get_llm_for_endpoint(
+                            _sug_key[0], _sug_key[1], temperature=0
+                        )
+                        logger.info(
+                            "Round 2 using suggestion model %d:%s, assay %s",
+                            _sug_key[0], _sug_key[1], assay_id,
+                        )
+                    except Exception:
+                        logger.exception(
+                            "Round-2 suggestion model %s unresolvable; "
+                            "reusing round-1 client",
+                            LLMConfig.load().suggestion_model,
+                        )
+                        suggestion_llm = chatopenai
                 # Already-found answers become *variable* context (after the cache
                 # breakpoint) so suggestions can build on what the docs did yield.
                 supplied_ctx = _build_supplied_answer_context(assay)
@@ -1802,7 +1828,7 @@ def process_llm_async(
                 with ThreadPoolExecutor(max_workers=pool_workers) as pool:
                     futures = {
                         pool.submit(
-                            generate_answer, a, full_pdf_context, assay, chatopenai,
+                            generate_answer, a, full_pdf_context, assay, suggestion_llm,
                             config.suggestion_prompt, supplied_ctx,
                         ): a
                         for a in nf_answers
