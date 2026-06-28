@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v3.30.0 (2026-06-28)
+
+### Features
+
+- Add riskhunt3r_db_label to various sections for enhanced categorization
+  ([`48bad7c`](https://github.com/johannehouweling/toxtempassistant/commit/48bad7ceaef5bb23c38a5b736390451d84fbe4a8))
+
+- Per-level NAM-readiness progress breakdown on the answer page
+  ([`ff3ae0f`](https://github.com/johannehouweling/toxtempassistant/commit/ff3ae0fc37d88df8ffc8464d0c5487902653b189))
+
+
 ## v3.29.1 (2026-06-28)
 
 ### Bug Fixes
