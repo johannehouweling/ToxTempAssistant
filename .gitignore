@@ -19,6 +19,9 @@ env/
 venv/
 .venv/
 
+# Node / SCSS build deps (only the compiled theme.css is committed; see myocyte/scss/theme.scss)
+node_modules/
+
 # misc
 .DS_Store
 .env
