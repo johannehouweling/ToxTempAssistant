@@ -20,6 +20,7 @@ from toxtempass import config
 from toxtempass.forms import AssayAnswerForm
 from toxtempass.models import (
     Answer,
+    LLMConfig,
     Question,
     QuestionSet,
     Section,
@@ -150,6 +151,58 @@ def test_suggestions_target_only_not_found():
     assert a1.suggestion_text == ""  # documented row got no suggestion
     assert a2.suggestion_text and a3.suggestion_text
     assert a2.suggestion_certainty == 0.8
+
+
+@pytest.mark.django_db(transaction=True)
+def test_round2_uses_configured_suggestion_model(monkeypatch):
+    """When LLMConfig.suggestion_model is set, round 2 runs on that model: the
+    round-1 client gets only strict calls, the suggestion client only the
+    suggestion call."""
+    cfg = LLMConfig.load()
+    cfg.suggestion_model = "6:KIMI"
+    cfg.save()
+
+    round1 = FakeChat()
+    suggestion = FakeChat()
+    monkeypatch.setattr(
+        "toxtempass.views.get_llm_for_endpoint",
+        lambda idx, tag, temperature=0: suggestion,
+    )
+
+    assay, _owner, questions, _ = _build_assay(["Q MISS?"])
+    process_llm_async(
+        assay.id, doc_dict={}, extract_images=False, chatopenai=round1,
+        do_suggestions=True,
+    )
+    a = Answer.objects.get(assay=assay, question=questions[0])
+    assert round1.suggestion_calls == 0  # round-1 client never makes a suggestion
+    assert suggestion.suggestion_calls == 1  # the suggestion ran on the configured model
+    assert suggestion.strict_calls == 0  # ...and only the suggestion
+    assert a.suggestion_text
+
+
+@pytest.mark.django_db(transaction=True)
+def test_round2_reuses_round1_model_when_unset(monkeypatch):
+    """Blank suggestion_model → round 2 reuses the round-1 client (no separate
+    deployment is resolved)."""
+    cfg = LLMConfig.load()
+    cfg.suggestion_model = ""
+    cfg.save()
+
+    def _boom(*a, **k):
+        raise AssertionError("get_llm_for_endpoint must not be called when unset")
+
+    monkeypatch.setattr("toxtempass.views.get_llm_for_endpoint", _boom)
+
+    fake = FakeChat()
+    assay, _owner, questions, _ = _build_assay(["Q MISS?"])
+    process_llm_async(
+        assay.id, doc_dict={}, extract_images=False, chatopenai=fake,
+        do_suggestions=True,
+    )
+    a = Answer.objects.get(assay=assay, question=questions[0])
+    assert fake.suggestion_calls == 1  # suggestion ran on the round-1 client
+    assert a.suggestion_text
 
 
 @pytest.mark.django_db(transaction=True)
