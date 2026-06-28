@@ -13,7 +13,14 @@
           const acceptedSwitch = document.getElementById(`id_accepted_${index}`);
     
           // Add an input event listener to the textarea
-          textarea.addEventListener('input', function() {
+          textarea.addEventListener('input', function(event) {
+              // Only react to a GENUINE user edit. Opening the click-to-edit
+              // markdown preview dispatches a synthetic 'input' (to resize the
+              // textarea); that must NOT un-accept the answer — only typing does.
+              // Script-dispatched events have isTrusted === false.
+              if (!event.isTrusted) {
+                  return;
+              }
               // Uncheck the "Accepted" switch when the textarea content changes
               if (acceptedSwitch) {
                   acceptedSwitch.checked = false;
