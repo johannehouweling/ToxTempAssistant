@@ -2,6 +2,41 @@
 
 <!-- version list -->
 
+## v3.29.0 (2026-06-28)
+
+### Bug Fixes
+
+- **gold_standard**: Update README and audit.py to clarify excluded assay IDs; modify
+  status_table.py to group by assay_id
+  ([`0c1ef1a`](https://github.com/johannehouweling/toxtempassistant/commit/0c1ef1add223702393d1065e2d07993b8945c4a1))
+
+### Features
+
+- **calibrate_relevancy**: Add script to calibrate response-relevancy judge against reference judge
+  ([`03b8b1a`](https://github.com/johannehouweling/toxtempassistant/commit/03b8b1add8ce0e9d98e6be130a586b6dc3e9d851))
+
+- **docs**: Update README to clarify handling of known non-gold assays in analysis
+  ([`46a7846`](https://github.com/johannehouweling/toxtempassistant/commit/46a7846a16c6f59ce03842693f7906dc81d453f4))
+
+- **docs**: Update README to include new benchmark files and clarify data organization
+  ([`a97cef8`](https://github.com/johannehouweling/toxtempassistant/commit/a97cef8587a811b618e880acaf9e067933ab964c))
+
+- **edit_report**: Add edit analysis script to summarize scientist edits on accepted answers
+  ([`e4b75a8`](https://github.com/johannehouweling/toxtempassistant/commit/e4b75a872c53871e8e7dea6a9d49a24ca338c3a8))
+
+- **gold_standard**: Exclude known non-gold assays from collection process
+  ([`4de6a29`](https://github.com/johannehouweling/toxtempassistant/commit/4de6a29b3462deaedf1d645ebb475138f856cfdf))
+
+- **relevancy**: Implement RAGAS-based response relevancy metric and integrate into tier 3
+  evaluation
+  ([`95a3ab6`](https://github.com/johannehouweling/toxtempassistant/commit/95a3ab65e4fd3d6c92677b85d2f3ccbecca24792))
+
+### Refactoring
+
+- **gold_standard**: Reorganize output directories and update file paths for analysis and plotting
+  ([`f0b49ce`](https://github.com/johannehouweling/toxtempassistant/commit/f0b49ce0dba9aa1cd1c9277d7dd2b924498bb537))
+
+
 ## v3.28.1 (2026-06-28)
 
 ### Bug Fixes
