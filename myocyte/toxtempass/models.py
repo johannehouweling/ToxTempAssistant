@@ -479,7 +479,7 @@ class Assay(AccessibleModel):
         bar shows accepted answers (solid) and drafted-but-not-accepted answers
         (striped), so a method whose answers are prefilled reads as in-progress
         per level rather than empty. Levels as adapted from the RISK-HUNT3R
-        test-method DB (https://www.risk-hunt3r.eu/).
+        test-method DB (https://risk-hunt3r.net/test-methods/).
 
         Returns one entry per level in ``Config.RISKHUNT3R_LABEL_ORDER`` (so the
         row always has the same number of bars), each carrying the Bootstrap
