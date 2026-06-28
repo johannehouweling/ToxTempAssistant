@@ -134,14 +134,6 @@
                                           </div>
                                           <div class="btn-group" role="group">
 
-                                            <button type="button" class="btn px-1 py-0 btn-sm btn-outline-primary mb-2" id="openViewmdModalButton"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#markdownModal"
-                                            data-assay-id="{{ assay.id }}"
-                                            data-question-id="{{question.id}}">
-                                            <i class="bi fs-5 bi-markdown"></i>
-                                            </button>
-
                                             <button type="button" class="btn px-1 py-0 btn-sm btn-outline-primary mb-2" id="openHistoryModalButton"
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#versionHistoryModal"
@@ -233,7 +225,6 @@
 
 
 {% include "answer_extras/version_history_modal.html"%}
-{% include "answer_extras/marked_modal.html" %}
 {% include "answer_extras/markdown_inline_edit.html" %}
 {% include "answer_extras/scroll_spy.html"%}
 {% include "answer_extras/get_next_unaccepted.html" %}
