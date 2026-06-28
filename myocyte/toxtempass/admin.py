@@ -62,15 +62,19 @@ class AssayAdmin(admin.ModelAdmin):
         "id",
         "title",
         "study",
-        "demo_template",
-        "demo_lock",
         "submission_date",
         "feedback__feedback_text",
         "number_answers_not_found",
     )
-    list_filter = ("demo_template", "demo_lock")
     search_fields = ("title", "study__name")
     actions = ["download_assay_files"]
+
+    def get_queryset(self, request):
+        """Exclude demo assays — they live in their own 'Demo assays' section."""
+        qs = super().get_queryset(request)
+        return qs.filter(
+            demo_template=False, demo_lock=False, demo_source__isnull=True
+        )
 
     def download_assay_files(self, request, queryset):
         """Custom admin action to download files associated with selected assays."""
