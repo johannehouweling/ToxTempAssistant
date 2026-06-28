@@ -102,7 +102,7 @@ class Config:
     # ── RISK-HUNT3R readiness categories (per-question colour) ────────────────
     # The RISK-HUNT3R test-method DB tags every ToxTemp field with a NAM-readiness
     # level colour (Basic → Level 3+; as adapted from the RISK-HUNT3R test-method
-    # DB, https://www.risk-hunt3r.eu/). We surface it as an optional, click-to-reveal
+    # DB, https://risk-hunt3r.net/test-methods/). We surface it as an optional, click-to-reveal
     # breakdown so a method still in development sees progress on the lower levels
     # it CAN fill (Basic/Level 1) and isn't dragged down by the more mature levels
     # it cannot yet complete. ORDER is the readiness gradient; css_class maps to
