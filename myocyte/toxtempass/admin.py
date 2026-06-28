@@ -3,6 +3,7 @@ from io import BytesIO
 
 from django import forms
 from django.contrib import admin, messages
+from django.db.models import Q
 from django.http import FileResponse, HttpResponseRedirect
 from django.urls import path, reverse
 from django.utils.html import format_html
@@ -21,6 +22,7 @@ from toxtempass.models import (
     Answer,
     Assay,
     AssayCost,
+    DemoAssay,
     Feedback,
     Investigation,
     LLMConfig,
@@ -60,10 +62,13 @@ class AssayAdmin(admin.ModelAdmin):
         "id",
         "title",
         "study",
+        "demo_template",
+        "demo_lock",
         "submission_date",
         "feedback__feedback_text",
         "number_answers_not_found",
     )
+    list_filter = ("demo_template", "demo_lock")
     search_fields = ("title", "study__name")
     actions = ["download_assay_files"]
 
@@ -106,6 +111,32 @@ class AssayAdmin(admin.ModelAdmin):
             )
 
     download_assay_files.short_description = "Download assay files as ZIP"
+
+
+@admin.register(DemoAssay)
+class DemoAssayAdmin(admin.ModelAdmin):
+    """Dedicated sidebar section for demo-related assays (template + per-user copies)."""
+
+    list_display = (
+        "id",
+        "title",
+        "study",
+        "demo_template",
+        "demo_lock",
+        "demo_source",
+        "submission_date",
+    )
+    list_editable = ("demo_template",)
+    list_filter = ("demo_template", "demo_lock")
+    search_fields = ("title", "study__name")
+    list_select_related = ("study", "demo_source")
+
+    def get_queryset(self, request):
+        """Limit this section to demo templates and demo copies only."""
+        qs = super().get_queryset(request)
+        return qs.filter(
+            Q(demo_template=True) | Q(demo_lock=True) | Q(demo_source__isnull=False)
+        )
 
 
 @admin.register(Section)

@@ -463,6 +463,19 @@ class Assay(AccessibleModel):
         return self.study.investigation.owner
 
 
+class DemoAssay(Assay):
+    """Admin-only proxy of Assay, surfacing demo-related assays in their own section.
+
+    Adds no database table or columns — it exists purely to give demo template /
+    demo copy assays a dedicated entry in the admin sidebar.
+    """
+
+    class Meta:
+        proxy = True
+        verbose_name = "Demo assay"
+        verbose_name_plural = "Demo assays"
+
+
 # New model to track individual user's assay views
 class AssayView(models.Model):
     user = models.ForeignKey(Person, on_delete=models.CASCADE, related_name="assay_views")
