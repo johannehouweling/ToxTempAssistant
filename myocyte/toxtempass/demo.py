@@ -20,6 +20,7 @@ def seed_demo_assay_for_user(user:Person) -> Assay|None:
         Assay.objects.filter(demo_template=True)
         .select_related("study__investigation", "question_set")
         .prefetch_related("answers__question")
+        .order_by("-pk")  # if several assays are flagged, the newest one wins
         .first()
     )
     if not template:

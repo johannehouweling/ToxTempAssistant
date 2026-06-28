@@ -57,3 +57,37 @@ def test_seed_demo_assay_for_user_creates_copy_once():
         ).count()
         == 1
     )
+
+
+@pytest.mark.django_db
+def test_seed_uses_newest_flagged_template():
+    """If several assays are flagged demo_template, the newest (highest pk) wins."""
+    owner = PersonFactory()
+    question_set = QuestionSet.objects.create(
+        display_name="Demo QS", hide_from_display=False
+    )
+    inv = Investigation.objects.create(owner=owner, title="Template Investigation")
+    study = Study.objects.create(investigation=inv, title="Template Study")
+
+    older_template = Assay.objects.create(
+        study=study,
+        title="Old Template",
+        description="",
+        question_set=question_set,
+        demo_lock=True,
+        demo_template=True,
+    )
+    newer_template = Assay.objects.create(
+        study=study,
+        title="New Template",
+        description="",
+        question_set=question_set,
+        demo_lock=True,
+        demo_template=True,
+    )
+    assert newer_template.pk > older_template.pk
+
+    user = PersonFactory()  # signal seeds from the newest flagged template
+
+    demo_assay = Assay.objects.get(demo_lock=True, study__investigation__owner=user)
+    assert demo_assay.demo_source == newer_template
