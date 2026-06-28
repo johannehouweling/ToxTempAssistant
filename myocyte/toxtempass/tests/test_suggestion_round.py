@@ -27,7 +27,11 @@ from toxtempass.models import (
     SuggestionSource,
 )
 from toxtempass.tests.fixtures.factories import AssayFactory
-from toxtempass.views import parse_suggestion, process_llm_async
+from toxtempass.views import (
+    _canonicalize_not_found,
+    parse_suggestion,
+    process_llm_async,
+)
 
 # A well-formed round-2 response: an answer, a numeric certainty, and two tagged
 # sources (one general-knowledge, one document). "MISS" in a question text makes
@@ -70,13 +74,19 @@ class FakeChat:
     """Fake chat model that answers strict vs suggestion passes differently.
 
     The two passes are told apart by the ``Certainty:`` instruction that only the
-    suggestion prompt carries. STRICT pass returns the not-found sentinel for any
-    question whose text contains ``MISS`` (else a documented answer); SUGGESTION
-    pass returns ``suggestion_response``.
+    suggestion prompt carries. STRICT pass returns ``strict_miss_response`` (the
+    exact not-found sentinel by default) for any question whose text contains
+    ``MISS`` (else a documented answer); SUGGESTION pass returns
+    ``suggestion_response``.
     """
 
-    def __init__(self, suggestion_response: str = DEFAULT_SUGGESTION):
+    def __init__(
+        self,
+        suggestion_response: str = DEFAULT_SUGGESTION,
+        strict_miss_response: str | None = None,
+    ):
         self.suggestion_response = suggestion_response
+        self.strict_miss_response = strict_miss_response
         self.strict_calls = 0
         self.suggestion_calls = 0
         self._lock = threading.Lock()
@@ -93,7 +103,9 @@ class FakeChat:
                 return SimpleNamespace(content=self.suggestion_response)
             self.strict_calls += 1
             if "MISS" in text:
-                return SimpleNamespace(content=config.not_found_string)
+                return SimpleNamespace(
+                    content=self.strict_miss_response or config.not_found_string
+                )
             return SimpleNamespace(content="Documented answer.")
 
 
@@ -131,6 +143,32 @@ def _suggestion_test_env(monkeypatch):
     monkeypatch.setattr("toxtempass.views.ThreadPoolExecutor", _SyncExecutor)
 
 
+# ── _canonicalize_not_found (unit) ──────────────────────────────────────────────
+
+
+def test_canonicalize_collapses_buried_sentinel():
+    text = f"The docs do not cover this. {config.not_found_string}. See guidance."
+    assert _canonicalize_not_found(text) == config.not_found_string
+
+
+def test_canonicalize_exact_sentinel_is_idempotent():
+    assert _canonicalize_not_found(config.not_found_string) == config.not_found_string
+
+
+def test_canonicalize_leaves_real_answer_untouched():
+    text = "Incubate at 37 C with 5% CO2 _(Source: OECD GD211)_."
+    assert _canonicalize_not_found(text) == text
+
+
+def test_canonicalize_is_case_insensitive():
+    text = "answer NOT found IN documents"
+    assert _canonicalize_not_found(text) == config.not_found_string
+
+
+def test_canonicalize_handles_empty():
+    assert _canonicalize_not_found("") == ""
+
+
 # ── pipeline phase ────────────────────────────────────────────────────────────
 
 
@@ -166,6 +204,42 @@ def test_suggestions_do_not_clobber_strict_answer():
     assert a.accepted is None  # acceptance untouched
     assert a.suggestion_text  # stored separately
     assert a.has_pending_suggestion is True
+
+
+@pytest.mark.django_db(transaction=True)
+def test_buried_sentinel_collapsed_when_suggestions_on():
+    """A non-committal strict answer that buries the sentinel collapses to the
+    canonical marker (so it isn't stacked above the suggestion), and round 2
+    still fires for it."""
+    buried = (
+        "The uploaded documents do not specify this in detail. "
+        f"{config.not_found_string}. You may wish to consult guidance."
+    )
+    assay, _owner, questions, _ = _build_assay(["Q MISS?"])
+    fake = FakeChat(strict_miss_response=buried)
+    process_llm_async(
+        assay.id, doc_dict={}, extract_images=False, chatopenai=fake,
+        do_suggestions=True,
+    )
+    a = Answer.objects.get(assay=assay, question=questions[0])
+    assert a.answer_text == config.not_found_string  # collapsed, not the hedge
+    assert fake.suggestion_calls == 1  # round 2 still triggered
+    assert a.suggestion_text
+
+
+@pytest.mark.django_db(transaction=True)
+def test_buried_sentinel_preserved_when_suggestions_off():
+    """Without the suggestion opt-in, the strict answer is left byte-identical —
+    the collapse is gated on do_suggestions."""
+    buried = (
+        "The uploaded documents do not specify this in detail. "
+        f"{config.not_found_string}. You may wish to consult guidance."
+    )
+    assay, _owner, questions, _ = _build_assay(["Q MISS?"])
+    fake = FakeChat(strict_miss_response=buried)
+    process_llm_async(assay.id, doc_dict={}, extract_images=False, chatopenai=fake)
+    a = Answer.objects.get(assay=assay, question=questions[0])
+    assert a.answer_text == buried  # untouched
 
 
 @pytest.mark.django_db(transaction=True)

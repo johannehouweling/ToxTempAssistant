@@ -981,6 +981,20 @@ def _supports_prompt_caching(llm: object) -> bool:
     return isinstance(llm, ChatAnthropic)
 
 
+def _canonicalize_not_found(text: str) -> str:
+    """Collapse a strict answer that merely buries the not-found sentinel.
+
+    When a strict-pass answer hides ``config.not_found_string`` inside a
+    non-committal hedge, return just the canonical sentinel so the first-round
+    box shows a clean marker instead of a wall of text stacked above the round-2
+    suggestion. Substring match (case-insensitive) matches the app-wide
+    ``__icontains`` convention; non-matching text is returned unchanged.
+    """
+    if text and config.not_found_string.lower() in text.lower():
+        return config.not_found_string
+    return text
+
+
 def generate_answer(
     ans: Answer,
     full_pdf_context: str,
@@ -1749,8 +1763,17 @@ def process_llm_async(
                             continue  # discard this completed future's result
 
                         try:
+                            # When round-2 suggestions are on, collapse a strict
+                            # answer that merely buries the not-found sentinel to
+                            # the clean marker, so the suggestion isn't stacked
+                            # under a non-committal hedge. Non-suggestion runs are
+                            # left byte-identical to before.
                             Answer.objects.filter(pk=aid).update(
-                                answer_text=text,
+                                answer_text=(
+                                    _canonicalize_not_found(text)
+                                    if do_suggestions
+                                    else text
+                                ),
                                 answer_documents=source_documents,
                             )
                         except Exception as e:
