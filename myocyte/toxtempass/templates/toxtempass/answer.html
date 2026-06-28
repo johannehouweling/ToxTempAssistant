@@ -138,7 +138,7 @@
                                               {% with promote_num='promote_'|add_asstring:question.id %}{{ form|form_field:promote_num }}{% endwith %}
                                               {% with dismiss_num='dismiss_'|add_asstring:question.id %}{{ form|form_field:dismiss_num }}{% endwith %}
                                               <button type="button" class="btn btn-sm btn-outline-secondary py-0 suggestion-promote-btn" data-qid="{{ question.id }}">Use this</button>
-                                              <button type="button" class="btn btn-sm btn-link link-secondary text-decoration-none p-0 suggestion-dismiss-btn" data-qid="{{ question.id }}">Dismiss</button>
+                                              <button type="button" class="btn btn-sm btn-link link-secondary text-decoration-none p-0 suggestion-dismiss-btn" data-qid="{{ question.id }}" aria-label="Dismiss suggestion" title="Dismiss" data-bs-toggle="tooltip"><i class="bi bi-x-lg"></i></button>
                                             </div>
                                           </div>
                                           {% endif %}
