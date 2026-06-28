@@ -1641,12 +1641,13 @@ class AssayListView(SingleTableView):
         # Combine assays the user has object-level view permission on (e.g., shared via workspace)
         combined_qs = (via_investigation_qs | accessible_assays).distinct()
 
-        # Apply public filters (question_set exists) and prefer non-demo assays when available
-        filtered_qs = combined_qs.filter(question_set__isnull=False)
-        real_qs = filtered_qs.filter(demo_lock=False)
-        if real_qs.exists():
-            return real_qs.order_by("-submission_date")
-        return filtered_qs.order_by("-submission_date")
+        # Show every accessible assay that has a questionnaire. The demo copy is
+        # NOT auto-hidden when real work exists — it stays in the list (sorting to
+        # the bottom as the oldest entry) and disappears only if the user deletes
+        # it themselves.
+        return combined_qs.filter(question_set__isnull=False).order_by(
+            "-submission_date"
+        )
 
     def get_context_data(self, **kwargs) -> dict:
         """Inject context."""
@@ -2205,11 +2206,14 @@ def delete_assay(
         from django.core.exceptions import PermissionDenied
 
         raise PermissionDenied("You do not have permission to delete this assay.")
-    if assay.demo_lock:
+    # The demo *template* (master) must never be deleted through the UI. Demo
+    # *copies* belong to the user, so they may delete their own — the access
+    # check above already restricts deletion to the owner.
+    if assay.demo_template:
         return JsonResponse(
             {
                 "status": "error",
-                "message": "Demo assays cannot be deleted.",
+                "message": "The demo template cannot be deleted here.",
             },
             status=400,
         )

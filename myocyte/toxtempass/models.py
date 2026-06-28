@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import models
 from django.db.models import Count, Q
@@ -326,6 +327,26 @@ class Assay(AccessibleModel):
         if Assay.objects.filter(title=self.title).count() == 1:
             return self.title
         return f"{self.title} ({self.submission_date.strftime('%d %b, %Y - %H:%M')})"
+
+    def clean(self) -> None:
+        """Keep the demo template in a sane, seedable state.
+
+        A demo *template* is the master that new users get cloned from, so it must
+        be a clean source: it cannot itself be a demo copy, and it must carry a
+        question_set (otherwise the seeded copy is hidden from the overview).
+        """
+        super().clean()
+        if self.demo_template:
+            if self.demo_source_id is not None:
+                raise ValidationError(
+                    "A demo template cannot itself be a demo copy — clear "
+                    "'demo source' before marking this assay as the template."
+                )
+            if self.question_set_id is None:
+                raise ValidationError(
+                    "A demo template must have a question set, otherwise the "
+                    "seeded demo copy would be hidden from users' overview."
+                )
 
     @property
     def get_n_questions(self) -> float:
