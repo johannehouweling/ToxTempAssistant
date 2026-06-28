@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.28.1 (2026-06-28)
+
+### Bug Fixes
+
+- **answers**: Keep parenthesised filenames intact in citation footnotes
+  ([`91b0dd1`](https://github.com/johannehouweling/toxtempassistant/commit/91b0dd188dbe4462d0e84266173bb1c2454ace39))
+
+
 ## v3.28.0 (2026-06-28)
 
 ### Features
