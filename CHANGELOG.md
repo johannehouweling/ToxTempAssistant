@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.27.0 (2026-06-28)
+
+### Features
+
+- **demo**: Harden seeding and keep the demo visible until the user deletes it
+  ([`ffd80ab`](https://github.com/johannehouweling/toxtempassistant/commit/ffd80ab8e3d7b168bff4d68aaae3e56b944b5cc3))
+
+
 ## v3.26.0 (2026-06-28)
 
 ### Features
