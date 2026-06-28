@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.25.0 (2026-06-28)
+
+### Features
+
+- **admin**: Surface demo assays in their own admin section
+  ([`4c9c038`](https://github.com/johannehouweling/toxtempassistant/commit/4c9c038695831a282d0c75d413e35a2f5b01baea))
+
+
 ## v3.24.1 (2026-06-28)
 
 ### Bug Fixes
