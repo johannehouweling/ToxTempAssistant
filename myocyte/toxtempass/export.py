@@ -279,6 +279,19 @@ def generate_json_from_assay(assay: Assay) -> dict | None:
                     "git_hash": getattr(Config, "git_hash", None),
                     "license_url": getattr(Config, "license_url", None),
                 },
+                # Exact LLM prompts that produced these answers, recorded for
+                # auditability / reproducibility. Sourced from Config (single
+                # source of truth: toxtempass/tools/prompts.py). Kept as a
+                # sibling of "config" — not inside it — so they land in the JSON
+                # export's metadata without being rendered into the human-facing
+                # Markdown/PDF/DOCX body (generate_markdown_from_assay only emits
+                # the small scalar "config" block).
+                "prompts": {
+                    "base_prompt": getattr(Config, "base_prompt", None),
+                    "suggestion_prompt": getattr(Config, "suggestion_prompt", None),
+                    "image_prompt": getattr(Config, "image_prompt", None),
+                    "not_found_string": getattr(Config, "not_found_string", None),
+                },
                 **author_metadata,
             },
             "investigation": json.loads(serialize("json", [assay.study.investigation]))[
