@@ -1384,7 +1384,16 @@ def parse_suggestion(
         raw,
         re.IGNORECASE | re.DOTALL | re.MULTILINE,
     )
-    answer = ans_m.group(1).strip() if ans_m else raw
+    if ans_m:
+        answer = ans_m.group(1).strip()
+    else:
+        # No literal "Answer:" label — take everything UP TO the first
+        # Certainty:/Sources: line so the envelope never leaks into the answer
+        # (e.g. a model that writes the prose then "Certainty: ...\nSources: ...").
+        cut = re.search(
+            r"^\s*(?:Certainty|Sources)\s*:", raw, re.IGNORECASE | re.MULTILINE
+        )
+        answer = (raw[: cut.start()] if cut else raw).strip()
 
     certainty: float | None = None
     cert_m = re.search(

@@ -290,6 +290,22 @@ def test_parse_suggestion_missing_sources():
     assert citations == []
 
 
+def test_parse_suggestion_strips_envelope_without_answer_label():
+    """No 'Answer:' prefix: Certainty/Sources must not leak into the answer text."""
+    text = (
+        "For hNTP WST-1 testing, the negative control is Penicillin G "
+        "_(Source: de Leeuw et al. 2022)_.\n"
+        "Certainty: 0.78\n"
+        "Sources: guidance|de Leeuw et al. 2022|https://doi.org/10.1016/j.chemosphere.2022.135298"
+    )
+    answer, certainty, citations = parse_suggestion(text)
+    assert "Certainty:" not in answer
+    assert "Sources:" not in answer
+    assert answer.startswith("For hNTP WST-1 testing")
+    assert certainty == 0.78
+    assert citations[0]["url"].startswith("https://doi.org/")
+
+
 def test_parse_suggestion_chatty_without_labels():
     """A model that ignores the format yields the whole text as the answer."""
     answer, certainty, citations = parse_suggestion(
