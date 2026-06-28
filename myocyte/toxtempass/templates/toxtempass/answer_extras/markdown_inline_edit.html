@@ -208,9 +208,9 @@
         showPreview();
     });
 
-    // 2) Suggestions — same footnotes, with URLs from the citation map. If the
-    //    model didn't inline-cite, fall back to a small source-link line so the
-    //    sources never silently vanish.
+    // 2) Suggestions — render exactly like an answer: citations live INLINE in
+    //    the prose (footnotes from "_(Source: X)_" markers, with URLs from the
+    //    citation map). No separate source-link line — sources stay in the text.
     document.querySelectorAll('[data-suggestion-md]').forEach(function (el) {
         var raw = el.textContent || '';
         // Preserve the raw markdown source: rendering replaces innerHTML below, so
@@ -221,17 +221,7 @@
         var urlMap = {};
         cites.forEach(function (c) { if (c && c.label && c.url) urlMap[c.label] = c.url; });
 
-        var html = renderCitations(raw, urlMap);
-        if (!/\(Sources?:/i.test(raw) && cites.length) {
-            var links = cites.map(function (c) {
-                var label = esc(c.label);
-                return c.url
-                    ? '<a href="' + esc(c.url) + '" target="_blank" rel="noopener noreferrer" class="link-indigo text-decoration-none">' + label + '</a>'
-                    : '<span>' + label + '</span>';
-            }).join(' · ');
-            html += '<div class="mt-1">' + links + '</div>';
-        }
-        el.innerHTML = html;
+        el.innerHTML = renderCitations(raw, urlMap);
         initTooltips(el);
     });
 })();
