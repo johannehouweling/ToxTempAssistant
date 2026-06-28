@@ -25,6 +25,7 @@ from toxtempass.models import (
     Section,
     Subsection,
     SuggestionSource,
+    is_only_not_found,
 )
 from toxtempass.tests.fixtures.factories import AssayFactory
 from toxtempass.views import parse_suggestion, process_llm_async
@@ -70,13 +71,19 @@ class FakeChat:
     """Fake chat model that answers strict vs suggestion passes differently.
 
     The two passes are told apart by the ``Certainty:`` instruction that only the
-    suggestion prompt carries. STRICT pass returns the not-found sentinel for any
-    question whose text contains ``MISS`` (else a documented answer); SUGGESTION
-    pass returns ``suggestion_response``.
+    suggestion prompt carries. STRICT pass returns ``strict_miss_response`` (the
+    exact not-found sentinel by default) for any question whose text contains
+    ``MISS`` (else a documented answer); SUGGESTION pass returns
+    ``suggestion_response``.
     """
 
-    def __init__(self, suggestion_response: str = DEFAULT_SUGGESTION):
+    def __init__(
+        self,
+        suggestion_response: str = DEFAULT_SUGGESTION,
+        strict_miss_response: str | None = None,
+    ):
         self.suggestion_response = suggestion_response
+        self.strict_miss_response = strict_miss_response
         self.strict_calls = 0
         self.suggestion_calls = 0
         self._lock = threading.Lock()
@@ -93,7 +100,9 @@ class FakeChat:
                 return SimpleNamespace(content=self.suggestion_response)
             self.strict_calls += 1
             if "MISS" in text:
-                return SimpleNamespace(content=config.not_found_string)
+                return SimpleNamespace(
+                    content=self.strict_miss_response or config.not_found_string
+                )
             return SimpleNamespace(content="Documented answer.")
 
 
@@ -131,6 +140,40 @@ def _suggestion_test_env(monkeypatch):
     monkeypatch.setattr("toxtempass.views.ThreadPoolExecutor", _SyncExecutor)
 
 
+# ── is_only_not_found (unit) ────────────────────────────────────────────────────
+
+
+def test_is_only_not_found_exact():
+    assert is_only_not_found(config.not_found_string) is True
+
+
+def test_is_only_not_found_trailing_punct_and_case():
+    assert is_only_not_found(f"  {config.not_found_string.upper()}.  ") is True
+
+
+def test_is_only_not_found_markdown_wrapped():
+    assert is_only_not_found(f"_{config.not_found_string}._") is True
+
+
+def test_is_only_not_found_partial_is_false():
+    # A long partial answer that merely mentions the sentinel for one sub-part.
+    text = (
+        "The differentiation protocol is a 2D neuron-astrocyte co-culture on "
+        "PLO/laminin in neurobasal medium with N2/B27/GDNF/BDNF. The organoid "
+        f"geometry is not described; {config.not_found_string} for that part."
+    )
+    assert is_only_not_found(text) is False
+
+
+def test_is_only_not_found_real_answer_is_false():
+    assert is_only_not_found("Incubate at 37 C with 5% CO2.") is False
+
+
+def test_is_only_not_found_empty_is_false():
+    assert is_only_not_found("") is False
+    assert is_only_not_found(None) is False
+
+
 # ── pipeline phase ────────────────────────────────────────────────────────────
 
 
@@ -150,6 +193,28 @@ def test_suggestions_target_only_not_found():
     assert a1.suggestion_text == ""  # documented row got no suggestion
     assert a2.suggestion_text and a3.suggestion_text
     assert a2.suggestion_certainty == 0.8
+
+
+@pytest.mark.django_db(transaction=True)
+def test_partial_answer_with_buried_sentinel_gets_no_suggestion():
+    """A long partial answer that only buries the sentinel is treated as answered
+    — no round-2 suggestion is generated or shown."""
+    partial = (
+        "The protocol is a 2D neuron-astrocyte co-culture on PLO/laminin in "
+        "neurobasal medium with N2, B27, GDNF and BDNF; spontaneous activity is "
+        f"recorded on MEA. Organoid geometry is {config.not_found_string} here."
+    )
+    assay, _owner, questions, _ = _build_assay(["Q MISS?"])
+    fake = FakeChat(strict_miss_response=partial)
+    process_llm_async(
+        assay.id, doc_dict={}, extract_images=False, chatopenai=fake,
+        do_suggestions=True,
+    )
+    a = Answer.objects.get(assay=assay, question=questions[0])
+    assert fake.suggestion_calls == 0  # partial → not a pure not-found
+    assert a.suggestion_text == ""
+    assert a.has_pending_suggestion is False
+    assert a.answer_text == partial  # preserved verbatim (no collapse)
 
 
 @pytest.mark.django_db(transaction=True)

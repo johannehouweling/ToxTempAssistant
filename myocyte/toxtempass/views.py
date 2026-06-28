@@ -89,6 +89,7 @@ from toxtempass.models import (
     Study,
     Subsection,
     SuggestionSource,
+    is_only_not_found,
 )
 from toxtempass.tables import AssayTable
 from toxtempass.utilities import (
@@ -1778,9 +1779,17 @@ def process_llm_async(
             )
             if requested_ids:
                 nf_qs = nf_qs.filter(id__in=requested_ids)
-            nf_answers = list(
-                nf_qs.select_related("question__subsection__section__question_set")
-            )
+            # The icontains filter is a cheap DB prefilter; refine in Python to the
+            # rows whose answer is PURELY the sentinel. A long partial answer that
+            # mentions the sentinel for one sub-part is already answered and must
+            # not get an out-of-documents suggestion stacked under it.
+            nf_answers = [
+                a
+                for a in nf_qs.select_related(
+                    "question__subsection__section__question_set"
+                )
+                if is_only_not_found(a.answer_text)
+            ]
             if nf_answers:
                 # Already-found answers become *variable* context (after the cache
                 # breakpoint) so suggestions can build on what the docs did yield.
@@ -2601,6 +2610,7 @@ def answer_assay_questions(
         for a in assay.answers.filter(
             answer_text__icontains=config.not_found_string,
         ).exclude(suggestion_text="")
+        if is_only_not_found(a.answer_text)
     }
     return render(
         request,

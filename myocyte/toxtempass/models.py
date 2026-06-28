@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import uuid
 
 from django.contrib.auth.models import AbstractUser, BaseUserManager
@@ -16,6 +17,33 @@ from guardian.shortcuts import assign_perm
 from simple_history.models import HistoricalRecords
 
 from toxtempass import config
+
+# Whitespace + punctuation + markdown emphasis/brackets — everything that can
+# legitimately surround the not-found sentinel without adding real content.
+_NOT_FOUND_TRIVIAL_RE = re.compile(r"[\s.,;:!?'\"`*_()\[\]\-]+")
+
+
+def is_only_not_found(text: str | None) -> bool:
+    """Return True when an answer is essentially ONLY the not-found sentinel.
+
+    Normalises the text (lowercase, remove every occurrence of the sentinel, then
+    strip surrounding whitespace/punctuation/markdown); if nothing substantive
+    remains, the answer is a pure "not found" and round-2 should offer a
+    suggestion. A long or partial answer that merely mentions the sentinel for one
+    sub-part of a multi-part question keeps real words after normalisation and
+    returns False — so it is treated as answered and gets no suggestion.
+
+    Robust to a trailing period, casing, markdown wrapping (``_..._``) and
+    multiple mentions; needs no length threshold.
+    """
+    if not text:
+        return False
+    nf = config.not_found_string.lower()
+    norm = text.lower()
+    if nf not in norm:
+        return False
+    remainder = norm.replace(nf, " ")
+    return _NOT_FOUND_TRIVIAL_RE.sub("", remainder) == ""
 
 
 class LLMStatus(models.TextChoices):
@@ -798,11 +826,11 @@ class Answer(AccessibleModel):
 
         Becomes False automatically once the suggestion is promoted (``answer_text``
         no longer holds the not-found sentinel) or dismissed (``suggestion_text``
-        cleared) — no separate flag to maintain.
+        cleared) — no separate flag to maintain. Uses the strict "pure not-found"
+        rule so a long partial answer that merely mentions the sentinel never
+        shows a suggestion card.
         """
-        return bool(self.suggestion_text) and (
-            config.not_found_string.lower() in (self.answer_text or "").lower()
-        )
+        return bool(self.suggestion_text) and is_only_not_found(self.answer_text)
 
     @property
     def preview_text(self, max_length: int = 75) -> str:
