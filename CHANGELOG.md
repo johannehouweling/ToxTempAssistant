@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.30.1 (2026-06-28)
+
+### Bug Fixes
+
+- **answer**: Point readiness link to the test-method DB and drop the section divider
+  ([`9182f7d`](https://github.com/johannehouweling/toxtempassistant/commit/9182f7df63b2dfaf941030cce4614666e827787e))
+
+
 ## v3.30.0 (2026-06-28)
 
 ### Features
