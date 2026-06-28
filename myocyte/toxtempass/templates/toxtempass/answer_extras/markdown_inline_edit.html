@@ -1,0 +1,162 @@
+<!-- Citation/markdown rendering for answer fields. Inline "_(Source: LABEL)_"
+     markers become hoverable footnotes [n] (deduped per text); a source whose
+     LABEL carries a URL/DOI renders as a footnote link. Answer fields are
+     click-to-edit (the textarea remains the source of truth). -->
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+<script>
+(function () {
+    if (typeof marked === 'undefined') return;  // marked is loaded by marked_modal.html
+    var toHtml = (typeof marked.parse === 'function') ? marked.parse
+               : (typeof marked.marked === 'function') ? marked.marked : marked;
+
+    function esc(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // Resolve one source entry to {label, url}. A footnote becomes a clickable
+    // link when, in priority order: (1) the entry is "LABEL | URL", (2) the entry
+    // is a bare http(s) URL, or (3) the entry is a bare DOI (10.x/...). Otherwise
+    // it stays a hover-only footnote (e.g. an uploaded document name). Only http(s)
+    // ever becomes an href; DOMPurify drops anything unsafe downstream.
+    function resolveSource(entry) {
+        // A model that writes "_(Source: A; Source: B)_" leaves a stray "Source:"
+        // on the 2nd entry after the ; split — strip it so the label stays clean.
+        entry = entry.replace(/^\s*sources?\s*:\s*/i, '');
+        var label = entry, url = '';
+        var bar = entry.indexOf('|');
+        if (bar >= 0) {
+            label = entry.slice(0, bar).trim();
+            url = entry.slice(bar + 1).trim();
+        }
+        if (!url) {
+            if (/^https?:\/\/\S+$/i.test(label)) {
+                url = label;
+            } else {
+                var doi = label.match(/\b10\.\d{4,9}\/\S+$/i);
+                if (doi) { url = doi[0]; }
+            }
+        }
+        if (url && /^10\.\d{4,9}\//i.test(url)) { url = 'https://doi.org/' + url; }
+        if (url && !/^https?:\/\//i.test(url)) { url = ''; }
+        return { label: label || entry, url: url };
+    }
+
+    // Convert "_(Source: LABEL)_" / "_(Sources: A, B)_" to footnotes, then render
+    // markdown + sanitize. Footnotes link out when a URL/DOI is resolvable.
+    //
+    // De-duplication (issue #231): if the same reference is cited several times in
+    // a row — or is the only reference in the whole text — only the LAST marker of
+    // that run is rendered; the earlier identical markers are dropped. Bold
+    // (**...**) is never rendered (issue #231); other Markdown is unaffected.
+    function renderCitations(raw) {
+        // Headings must never render (issue #231): strip leading #/##/### ATX markers
+        // up front. Line-anchored, so only the markers go and the heading text stays
+        // as plain prose. (Bold is removed AFTER rendering, below — a raw ** strip
+        // here could bridge two unrelated ** runs and delete the text between them.)
+        raw = (raw || '').replace(/^[ \t]*#{1,6}[ \t]+/gm, '');
+        var refs = [];
+        function refNum(label) {
+            var i = refs.indexOf(label);
+            if (i < 0) { refs.push(label); i = refs.length - 1; }
+            return i + 1;
+        }
+        var pattern = /_?\((Sources?):\s*([^)]+)\)_?/gi;
+
+        // Pass 1: collect every citation marker in order, with its resolved
+        // entries and a signature (joined labels) used to detect repeats.
+        var markers = [], m;
+        while ((m = pattern.exec(raw)) !== null) {
+            var resolved = m[2].split(/[,;]/)
+                .map(function (s) { return s.trim(); })
+                .filter(Boolean)
+                .map(function (e) { return resolveSource(e); });
+            markers.push({
+                resolved: resolved,
+                sig: resolved.map(function (r) { return r.label; }).join('||'),
+            });
+        }
+        // Render a marker only if it is the last one, or the NEXT marker cites a
+        // different source — collapsing consecutive duplicates onto the last.
+        var keep = markers.map(function (mk, i) {
+            return i === markers.length - 1 || markers[i + 1].sig !== mk.sig;
+        });
+
+        // Pass 2: rewrite each marker in document order (a counter keeps this
+        // replace callback aligned with the markers collected above).
+        var k = 0;
+        var withRefs = raw.replace(pattern, function () {
+            var mk = markers[k], render = keep[k];
+            k++;
+            if (!render) return '';  // suppressed duplicate reference
+            return mk.resolved.map(function (r) {
+                var n = refNum(r.label), t = esc(r.label);
+                if (r.url) {
+                    return '<sup class="citation-ref"><a href="' + esc(r.url) +
+                        '" target="_blank" rel="noopener noreferrer"' +
+                        ' class="link-indigo text-decoration-none"' +
+                        ' data-bs-toggle="tooltip" data-bs-title="' + t +
+                        '">[' + n + ']</a></sup>';
+                }
+                return '<sup class="citation-ref" data-bs-toggle="tooltip"' +
+                    ' data-bs-title="' + t + '">[' + n + ']</sup>';
+            }).join('');
+        });
+
+        var html = toHtml(withRefs);
+        if (typeof DOMPurify !== 'undefined') {
+            html = DOMPurify.sanitize(html, { ADD_ATTR: ['target'] });
+        }
+        // Bold must never render (issue #231): unwrap <strong>/<b> to plain text
+        // AFTER marked tokenises and sanitises, so emphasis is removed without ever
+        // deleting intervening text. marked leaves space-flanked or stray ** as
+        // literal text (never <strong>), so "2 ** 3" and the like are untouched.
+        return html.replace(/<\/?(?:strong|b)\b[^>]*>/gi, '');
+    }
+
+    function initTooltips(root) {
+        if (typeof bootstrap === 'undefined' || !bootstrap.Tooltip) return;
+        root.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+            bootstrap.Tooltip.getOrCreateInstance(el);
+        });
+    }
+
+    // Answer fields — click-to-edit markdown preview. Documents have no URLs,
+    // so footnotes here are hover-only unless the answer text carries an inline URL/DOI.
+    document.querySelectorAll('textarea[name^="question_"]').forEach(function (ta) {
+        var preview = document.createElement('div');
+        preview.className = 'md-preview border rounded p-2 mb-2 bg-light';
+        preview.setAttribute('role', 'button');
+        preview.setAttribute('tabindex', '0');
+        preview.title = 'Click to edit';
+
+        function showEditor() {
+            preview.classList.add('d-none');
+            ta.classList.remove('d-none');
+            ta.focus();
+            ta.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        function showPreview() {
+            var v = (ta.value || '').trim();
+            preview.innerHTML = v
+                ? renderCitations(v)
+                : '<span class="text-secondary fst-italic">Empty — click to edit</span>';
+            initTooltips(preview);
+            ta.classList.add('d-none');
+            preview.classList.remove('d-none');
+        }
+        preview.addEventListener('click', function (e) {
+            if (e.target.closest('a')) return;  // follow links instead of editing
+            showEditor();
+        });
+        preview.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showEditor(); }
+        });
+        ta.addEventListener('blur', showPreview);
+
+        ta.parentNode.insertBefore(preview, ta);
+        showPreview();
+    });
+})();
+</script>

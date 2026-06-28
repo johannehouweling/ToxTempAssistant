@@ -63,6 +63,21 @@
       --bs-tooltip-bg: var(--bs-white);
       --bs-tooltip-color: var(--bs-primary);
     }
+
+    /* Indigo accent for citation footnotes and inline links inside a rendered
+       answer. Bootstrap ships --bs-indigo (hex) but NOT --bs-indigo-rgb, so
+       define the rgb triplet once and build an opacity-aware link colour on it. */
+    :root { --bs-indigo-rgb: 102, 16, 242; }
+    .link-indigo {
+      color: rgba(var(--bs-indigo-rgb), 1);
+      text-decoration-color: rgba(var(--bs-indigo-rgb), 0.5);
+    }
+    .link-indigo:hover { color: rgba(var(--bs-indigo-rgb), 0.8); }
+    .md-preview a {
+      color: rgba(var(--bs-indigo-rgb), 1);
+      text-decoration-color: rgba(var(--bs-indigo-rgb), 0.5);
+    }
+    .md-preview a:hover { color: rgba(var(--bs-indigo-rgb), 0.8); }
   </style>
 <body data-url-name="{{ current_url_name }}">
         <header class="sticky-md-top">
