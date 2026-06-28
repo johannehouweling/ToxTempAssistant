@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.26.0 (2026-06-28)
+
+### Features
+
+- **admin**: Exclude demo assays from the main Assays list
+  ([`d306a2b`](https://github.com/johannehouweling/toxtempassistant/commit/d306a2b2c06e6da3803e045949563e6247d227a1))
+
+
 ## v3.25.0 (2026-06-28)
 
 ### Features
