@@ -16,15 +16,35 @@ def seed_demo_assay_for_user(user:Person) -> Assay|None:
     if not user or not getattr(user, "pk", None):
         return None
 
+    # A usable template must have a questionnaire (otherwise the seeded copy is
+    # filtered out of the overview and never shown) and must not itself be a demo
+    # copy (a copy-of-a-copy is the messy state that breaks seeding). Newest wins.
     template = (
-        Assay.objects.filter(demo_template=True)
+        Assay.objects.filter(
+            demo_template=True,
+            question_set__isnull=False,
+            demo_source__isnull=True,
+        )
         .select_related("study__investigation", "question_set")
         .prefetch_related("answers__question")
-        .order_by("-pk")  # if several assays are flagged, the newest one wins
+        .order_by("-pk")
         .first()
     )
     if not template:
-        logger.info("No demo template assay configured; skipping seeding.")
+        # Distinguish "nothing flagged" from "flagged but unusable" so an operator
+        # can see *why* no demo was seeded instead of silently getting nothing.
+        flagged = list(
+            Assay.objects.filter(demo_template=True).values_list("pk", flat=True)
+        )
+        if flagged:
+            logger.warning(
+                "Assay(s) %s are flagged demo_template=True but none is usable as a "
+                "template (a template needs a question_set and must not itself be a "
+                "demo copy). Skipping demo seeding.",
+                flagged,
+            )
+        else:
+            logger.info("No demo template assay configured; skipping seeding.")
         return None
 
     already_exists = Assay.objects.filter(
