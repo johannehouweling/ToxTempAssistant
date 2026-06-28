@@ -37,8 +37,11 @@ backups/
 venv/
 env/
 
-# Node (if any frontend tooling appears)
-node_modules/
+# Node (frontend build tooling — runtime image needs none of it)
+**/node_modules
+myocyte/package.json
+myocyte/package-lock.json
+myocyte/scss/
 
 # Secrets / local env files (re-injected via env_file at runtime)
 .env

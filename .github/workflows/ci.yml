@@ -135,3 +135,42 @@ jobs:
           path: test-results/
           retention-days: 2
           compression-level: 9
+
+  # Guard against the committed indigo overlay drifting from its SCSS source.
+  # The compiled CSS (toxtempass/static/toxtempass/theme.css) is checked in so
+  # the Docker image needs no Node at build time; this job recompiles it from
+  # scss/theme.scss with the lockfile-pinned Dart Sass and fails if the result
+  # differs from what was committed.
+  assets:
+    name: Compiled CSS in sync
+    runs-on: ubuntu-latest
+    if: ${{ github.event.head_commit.author.name != 'github-actions[bot]' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: myocyte/package-lock.json
+
+      - name: Install frontend deps
+        working-directory: myocyte
+        run: npm ci
+
+      - name: Rebuild the indigo overlay
+        working-directory: myocyte
+        run: npm run build:css
+
+      - name: Fail if the committed CSS is stale
+        run: |
+          if ! git diff --quiet -- myocyte/toxtempass/static/toxtempass/theme.css; then
+            echo "::error::theme.css is out of sync with scss/theme.scss. Run 'npm run build:css' in myocyte/ and commit the result."
+            git diff --stat -- myocyte/toxtempass/static/toxtempass/theme.css
+            exit 1
+          fi
+          echo "✅ Compiled theme.css matches scss/theme.scss"

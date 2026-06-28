@@ -1,0 +1,33 @@
+// ============================================================================
+// ToxTempAssistant — indigo "suggestion tier" utilities.
+//
+// This branch (round-2 suggestion tier) introduced an indigo accent. It first
+// landed as hand-rolled utility classes with literal rgba() values in
+// base.html. They are defined here instead, generated from Bootstrap's own
+// $indigo variable + mixins, and layered on top of the CDN Bootstrap (which
+// ships no indigo utilities). This is the ONLY custom CSS this branch moves
+// into SCSS — everything else stays as it was.
+//
+// Compiled with Dart Sass (dev/CI only; the committed CSS is copied into the
+// Docker image, so no Node at runtime). Regenerate after editing, from myocyte/:
+//   npm install        # first time only
+//   npm run build:css  # -> toxtempass/static/toxtempass/theme.css  (committed)
+// ============================================================================
+
+@import "bootstrap/scss/functions";
+@import "bootstrap/scss/variables";
+@import "bootstrap/scss/mixins";
+
+// Register indigo as a theme colour and generate its utility family from that
+// single definition (so adding another colour later is one map entry).
+$custom-colors: (
+  "indigo": $indigo,
+);
+
+@each $name, $color in $custom-colors {
+  .text-#{$name}    { color: $color !important; }
+  .bg-#{$name}      { background-color: $color !important; }
+  .border-#{$name}  { border-color: $color !important; }
+  .text-bg-#{$name} { color: color-contrast($color) !important; background-color: $color !important; }
+  .btn-#{$name}     { @include button-variant($color, $color); }
+}
