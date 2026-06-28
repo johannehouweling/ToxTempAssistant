@@ -332,7 +332,10 @@ class Config:
                 "Each subsection contains questions. This is the question text that the LLM has attempted to answer.",
             ],
             [
-                "#question-content textarea:first-of-type",
+                # Target the visible click-to-edit preview, not the textarea: the
+                # textarea is display:none (md-preview is shown until clicked), so a
+                # textarea target gives a 0x0 rect — no spotlight, toast stuck top-left.
+                "#question-content .md-preview",
                 "This field shows the LLM-generated answer. If no relevant information was found, it will say 'Answer not found in documents.'. You can edit this answer as needed.",
             ],
             [
