@@ -40,7 +40,10 @@
             }
         }
         if (url && /^10\.\d{4,9}\//i.test(url)) { url = 'https://doi.org/' + url; }
-        if (url && !/^https?:\/\//i.test(url)) { url = ''; }
+        // Validate the WHOLE url, not just the scheme prefix: "\S+$" rejects values
+        // with embedded whitespace/control chars (TAB/CR/LF) or a smuggled second
+        // scheme like "https://a x javascript:..." before they can reach an href.
+        if (url && !/^https?:\/\/\S+$/i.test(url)) { url = ''; }
         return { label: label || entry, url: url };
     }
 
@@ -63,20 +66,53 @@
             if (i < 0) { refs.push(label); i = refs.length - 1; }
             return i + 1;
         }
-        var pattern = /_?\((Sources?):\s*([^)]+)\)_?/gi;
-
-        // Pass 1: collect every citation marker in order, with its resolved
-        // entries and a signature (joined labels) used to detect repeats.
-        var markers = [], m;
-        while ((m = pattern.exec(raw)) !== null) {
-            var resolved = m[2].split(/[,;]/)
-                .map(function (s) { return s.trim(); })
+        // Pass 1: locate every "(Source: ...)" / "_(Sources: ...)_" marker.
+        // A single regex CANNOT find the closing ")" reliably, because a source
+        // LABEL is often an uploaded filename that itself contains parentheses,
+        // e.g. "..._Cells_(NPCs)_using_...docx". A "[^)]+" capture stops at that
+        // inner ")", mangling the citation and leaving the filename tail as
+        // literal junk in the output. So we match each marker's START with a
+        // regex, then walk forward tracking paren depth to find the ")" that
+        // actually closes the group. (s[1] captures an optional wrapping "_".)
+        var startRe = /(_?)\((Sources?):\s*/gi;
+        var markers = [], s;
+        while ((s = startRe.exec(raw)) !== null) {
+            var wrapped = s[1] === '_';             // a "_(...)_"-wrapped marker?
+            var contentStart = startRe.lastIndex;   // first char of the source list
+            var depth = 1, j = contentStart, close = -1, sawClose = false;
+            for (; j < raw.length; j++) {
+                var ch = raw[j];
+                if (ch === '(') { depth++; }
+                else if (ch === ')') { sawClose = true; depth--; if (depth === 0) { close = j; break; } }
+            }
+            if (close < 0) {
+                // Unbalanced "(Source:" — leave it untouched. If there was NO ")"
+                // anywhere in the remainder, no later marker can close either, so
+                // stop scanning entirely; otherwise many unclosed markers would each
+                // scan to end-of-string (O(n^2) on malformed/adversarial input).
+                if (!sawClose) { break; }
+                continue;
+            }
+            var content = raw.slice(contentStart, close);
+            var end = close + 1;                      // index just past the ")"
+            // Consume the closing wrapping "_" ONLY when the marker actually opened
+            // with one. An UNwrapped "(Source: X)" must NOT eat a following "_": it
+            // may be the OPENING "_" of an adjacent italic, e.g.
+            // "cultured (Source: p.pdf)_in vitro_" must keep its "_in vitro_".
+            if (wrapped && raw[end] === '_') { end++; }
+            var resolved = content.split(/[,;]/)
+                .map(function (x) { return x.trim(); })
                 .filter(Boolean)
                 .map(function (e) { return resolveSource(e); });
             markers.push({
+                start: s.index, end: end,
                 resolved: resolved,
-                sig: resolved.map(function (r) { return r.label; }).join('||'),
+                // Signature includes the resolved URL, not just the label: two
+                // consecutive markers that share a label but resolve to DIFFERENT
+                // urls are distinct references and must NOT be collapsed into one.
+                sig: resolved.map(function (r) { return r.label + '\n' + r.url; }).join('||'),
             });
+            startRe.lastIndex = end;                  // resume past this whole marker
         }
         // Render a marker only if it is the last one, or the NEXT marker cites a
         // different source — collapsing consecutive duplicates onto the last.
@@ -84,13 +120,10 @@
             return i === markers.length - 1 || markers[i + 1].sig !== mk.sig;
         });
 
-        // Pass 2: rewrite each marker in document order (a counter keeps this
-        // replace callback aligned with the markers collected above).
-        var k = 0;
-        var withRefs = raw.replace(pattern, function () {
-            var mk = markers[k], render = keep[k];
-            k++;
-            if (!render) return '';  // suppressed duplicate reference
+        // Pass 2: rebuild the text, replacing each marker span (start..end) with
+        // its footnote(s). Walking spans (not a regex replace) keeps the rewrite
+        // aligned with the balanced-paren matches collected above.
+        function renderMarker(mk) {
             return mk.resolved.map(function (r) {
                 var n = refNum(r.label), t = esc(r.label);
                 if (r.url) {
@@ -103,7 +136,14 @@
                 return '<sup class="citation-ref" data-bs-toggle="tooltip"' +
                     ' data-bs-title="' + t + '">[' + n + ']</sup>';
             }).join('');
+        }
+        var withRefs = '', cursor = 0;
+        markers.forEach(function (mk, i) {
+            withRefs += raw.slice(cursor, mk.start);
+            cursor = mk.end;
+            if (keep[i]) { withRefs += renderMarker(mk); }  // else: suppressed dup
         });
+        withRefs += raw.slice(cursor);
 
         var html = toHtml(withRefs);
         if (typeof DOMPurify !== 'undefined') {
