@@ -83,6 +83,7 @@ from toxtempass.models import (
     Person,
     Question,
     QuestionSet,
+    RiskHunt3rLabel,
     Section,
     Study,
     Subsection,
@@ -805,6 +806,16 @@ def orcid_signup(request: HttpRequest) -> HttpResponse | JsonResponse:
     )
 
 
+def _coerce_riskhunt3r_label(raw: object) -> str:
+    """Return ``raw`` if it is a known RiskHunt3rLabel value, else ``""``.
+
+    Question-set JSON may carry a per-question ``"riskhunt3r_db_label"`` (the
+    RISK-HUNT3R readiness colour). Unknown/missing values degrade to blank, so a
+    typo never raises during seeding and simply renders as uncategorised.
+    """
+    return raw if raw in RiskHunt3rLabel.values else ""
+
+
 def create_questionset_from_json(label: str, created_by: Person) -> QuestionSet:
     """Create a QuestionSet from a ToxTemp_<label>.json file."""
     if not label:
@@ -865,6 +876,9 @@ def create_questionset_from_json(label: str, created_by: Person) -> QuestionSet:
                     only_subsections_for_context=subsec.get(
                         "only_subsections_for_context", False
                     ),
+                    riskhunt3r_db_label=_coerce_riskhunt3r_label(
+                        subsec.get("riskhunt3r_db_label", "")
+                    ),
                 )
 
                 # collect context‑titles for later resolution
@@ -886,6 +900,9 @@ def create_questionset_from_json(label: str, created_by: Person) -> QuestionSet:
                         ).strip(),
                         only_subsections_for_context=sq.get(
                             "only_subsections_for_context", False
+                        ),
+                        riskhunt3r_db_label=_coerce_riskhunt3r_label(
+                            sq.get("riskhunt3r_db_label", "")
                         ),
                     )
 

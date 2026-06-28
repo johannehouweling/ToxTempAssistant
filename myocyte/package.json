@@ -1,0 +1,13 @@
+{
+  "name": "toxtempass-theme",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Custom Bootstrap colour utilities for ToxTempAssistant (compiled to static/toxtempass/theme.css).",
+  "scripts": {
+    "build:css": "sass --quiet-deps --load-path=node_modules --style=compressed --no-source-map scss/theme.scss toxtempass/static/toxtempass/theme.css"
+  },
+  "devDependencies": {
+    "bootstrap": "^5.3.6",
+    "sass": "^1.77.0"
+  }
+}

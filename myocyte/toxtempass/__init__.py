@@ -99,6 +99,24 @@ class Config:
     )
     min_image_width = 50
     min_image_height = 50
+    # ── RISK-HUNT3R readiness categories (per-question colour) ────────────────
+    # The RISK-HUNT3R test-method DB tags every ToxTemp field with a NAM-readiness
+    # level colour (Basic → Level 3+; as adapted from the RISK-HUNT3R test-method
+    # DB, https://www.risk-hunt3r.eu/). We surface it as an optional, click-to-reveal
+    # breakdown so a method still in development sees progress on the lower levels
+    # it CAN fill (Basic/Level 1) and isn't dragged down by the more mature levels
+    # it cannot yet complete. ORDER is the readiness gradient; css_class maps to
+    # stock Bootstrap contextual colours except "orange" (Level 3), which is added
+    # to the recompiled theme.css via scss/theme.scss. Labels are the DB's level
+    # names — change the copy here if the official RISK-HUNT3R legend differs.
+    RISKHUNT3R_LABEL_ORDER = ("blue", "green", "yellow", "orange", "red")
+    RISKHUNT3R_LABEL_META = {
+        "blue": {"css_class": "bg-primary", "label": "Basic"},
+        "green": {"css_class": "bg-success", "label": "Level 1"},
+        "yellow": {"css_class": "bg-warning", "label": "Level 2"},
+        "orange": {"css_class": "bg-orange", "label": "Level 3"},
+        "red": {"css_class": "bg-danger", "label": "Level 3+"},
+    }
     license = "AGPL"
     # obsfuscated email for scraper 'privacy'
     maintainer_email = "".join(
@@ -353,6 +371,10 @@ class Config:
             [
                 "#progress",
                 "This progress bar shows how many answers you have accepted out of the total number of questions.",
+            ],
+            [
+                "#riskhunt3rBreakdownToggle",
+                "See your questions per NAM readiness level, as adapted from RISK-HUNT3R. An early-stage method can finish the Basic level long before the more mature ones.",
             ],
             [
                 "#button[type='submit']",
