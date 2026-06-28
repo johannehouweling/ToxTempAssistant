@@ -84,6 +84,7 @@ from toxtempass.models import (
     LLMStatus,
     Person,
     Question,
+    QuestionLabel,
     QuestionSet,
     Section,
     Study,
@@ -809,6 +810,16 @@ def orcid_signup(request: HttpRequest) -> HttpResponse | JsonResponse:
     )
 
 
+def _coerce_question_label(raw: object) -> str:
+    """Return ``raw`` if it is a known QuestionLabel value, else ``""``.
+
+    Question-set JSON may carry a per-question ``"label"`` (round-2 routing).
+    Unknown/missing values degrade to blank, which falls through to the default
+    suggestion strategy — a typo never raises during seeding.
+    """
+    return raw if raw in QuestionLabel.values else ""
+
+
 def create_questionset_from_json(label: str, created_by: Person) -> QuestionSet:
     """Create a QuestionSet from a ToxTemp_<label>.json file."""
     if not label:
@@ -869,6 +880,7 @@ def create_questionset_from_json(label: str, created_by: Person) -> QuestionSet:
                     only_subsections_for_context=subsec.get(
                         "only_subsections_for_context", False
                     ),
+                    label=_coerce_question_label(subsec.get("label", "")),
                 )
 
                 # collect context‑titles for later resolution
@@ -891,6 +903,7 @@ def create_questionset_from_json(label: str, created_by: Person) -> QuestionSet:
                         only_subsections_for_context=sq.get(
                             "only_subsections_for_context", False
                         ),
+                        label=_coerce_question_label(sq.get("label", "")),
                     )
 
                     raw_ctx_sq = sq.get("subsections_for_context_title", [])
@@ -1789,6 +1802,18 @@ def process_llm_async(
                     "question__subsection__section__question_set"
                 )
                 if is_only_not_found(a.answer_text)
+            ]
+            # Per-label routing: skip questions whose QuestionLabel maps to the
+            # "none" strategy (study-specific metadata/experimental/etc. a guess
+            # would only fabricate). Unlabelled questions use the fail-safe
+            # default. "none" rows never reach the LLM — zero tokens — and since
+            # suggestion_text stays empty they show no card (has_pending_suggestion).
+            _strat = config.SUGGESTION_STRATEGY_BY_LABEL
+            nf_answers = [
+                a
+                for a in nf_answers
+                if _strat.get(a.question.label, config.SUGGESTION_STRATEGY_DEFAULT)
+                != "none"
             ]
             if nf_answers:
                 # Round 2 may use a different model than round 1 (admin-configurable

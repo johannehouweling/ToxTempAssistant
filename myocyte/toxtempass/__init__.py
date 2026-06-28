@@ -76,6 +76,23 @@ class Config:
     base_prompt = _prompts.BASE_PROMPT
     suggestion_prompt = _prompts.SUGGESTION_PROMPT
     image_prompt = _prompts.IMAGE_PROMPT
+    # Round-2 per-label routing: a question's QuestionLabel decides whether a
+    # not-found answer gets an out-of-documents suggestion. "none" skips the LLM
+    # call entirely (study-specific questions a guess would only fabricate);
+    # "knowledge" runs the current suggestion_prompt. descriptive/controls sit at
+    # "none" now — their real home is the future "example" tier. Unlabelled
+    # questions (all v1, anything uncurated) fall through to the fail-safe default
+    # below: stay quiet rather than reintroduce noise. Keys are QuestionLabel
+    # *values* (plain strings) to avoid importing models into this package init.
+    SUGGESTION_STRATEGY_BY_LABEL = {
+        "metadata": "none",
+        "experimental": "none",
+        "descriptive": "none",  # -> "example" in a later PR
+        "controls": "none",  # -> "example" in a later PR
+        "regulatory": "knowledge",
+        "interpretive": "knowledge",  # e.g. AOP linkage -> AOP-Wiki, OECD
+    }
+    SUGGESTION_STRATEGY_DEFAULT = "none"  # fail-safe: uncurated/unlabelled = quiet
     min_image_width = 50
     min_image_height = 50
     license = "AGPL"

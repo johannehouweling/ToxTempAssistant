@@ -654,6 +654,42 @@ class Subsection(AccessibleModel):
         return True
 
 
+class QuestionLabel(models.TextChoices):
+    """Semantic label for a ToxTemp question, routing its suggestion strategy.
+
+    The round-2 strategy is resolved from the label via
+    ``Config.SUGGESTION_STRATEGY_BY_LABEL``. A label encodes *what kind* of
+    question it is — never *which database* to
+    consult (that belongs to the future lookup tier). Round-2 rule of thumb: a
+    general-knowledge suggestion only helps when the answer lives in public/
+    published knowledge, not in *this* study; otherwise the label routes to
+    ``none`` (no suggestion).
+
+    METADATA      Administrative/catalogue facts (names, dates, IDs, contacts,
+                  versions, IP, file/SOP references, storage logistics).
+    EXPERIMENTAL  Study-specific measured values & procedural particulars
+                  (concentrations, EC50, settings, throughput, data processing,
+                  variability, operator training, lab transfer).
+    DESCRIPTIVE   Narrative description of the method itself (title, abstract,
+                  cell source, culture/differentiation protocols, exposure
+                  scheme, endpoint and analytical-method descriptions).
+    CONTROLS      Quality gates & validation (acceptance criteria; positive/
+                  negative/mechanistic controls; validation status).
+    REGULATORY    Pointers to external public standards/records (OECD TG/GD,
+                  key publications, related named methods, SDS/GHS, permits).
+    INTERPRETIVE  Scientific reasoning about meaning/mechanism/limits from
+                  general toxicology/AOP knowledge (scientific principle, AOP
+                  linkage, applicability, test-battery fit, metabolic capacity).
+    """
+
+    METADATA = "metadata", "Metadata"
+    EXPERIMENTAL = "experimental", "Experimental"
+    DESCRIPTIVE = "descriptive", "Descriptive"
+    CONTROLS = "controls", "Controls"
+    REGULATORY = "regulatory", "Regulatory"
+    INTERPRETIVE = "interpretive", "Interpretive"
+
+
 class Question(AccessibleModel):
     subsection = models.ForeignKey(
         Subsection, on_delete=models.CASCADE, related_name="questions"
@@ -693,6 +729,16 @@ class Question(AccessibleModel):
         null=False,
         default=False,
         help_text="Extra flag to determine if additional llm instruction shall replace all others.",
+    )
+    label = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        choices=QuestionLabel.choices,
+        help_text=(
+            "Semantic label routing the round-2 suggestion strategy "
+            "(see Config.SUGGESTION_STRATEGY_BY_LABEL). Blank = default strategy."
+        ),
     )
 
     answer = models.TextField(blank=True)
@@ -831,6 +877,20 @@ class Answer(AccessibleModel):
         shows a suggestion card.
         """
         return bool(self.suggestion_text) and is_only_not_found(self.answer_text)
+
+    @property
+    def suggestion_confidence_band(self) -> str | None:
+        """Coarse confidence band ('Low'/'Medium'/'High') for display.
+
+        Model self-reported certainty is badly calibrated (ECE > 0.4), so the UI
+        shows a band rather than the raw ``suggestion_certainty`` as a percentage
+        (which reads as a real probability it is not). None when no certainty was
+        parsed. Thresholds: < 0.4 Low, 0.4-0.7 Medium, > 0.7 High.
+        """
+        c = self.suggestion_certainty
+        if c is None:
+            return None
+        return "High" if c > 0.7 else "Medium" if c >= 0.4 else "Low"
 
     @property
     def preview_text(self, max_length: int = 75) -> str:

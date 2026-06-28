@@ -130,7 +130,7 @@
                                           <div class="suggestion-note ps-2 mb-3 border-start border-2 border-indigo" data-suggestion-card="{{ question.id }}">
                                             <div class="text-secondary fst-italic mb-1 small">
                                               <i class="bi bi-lightbulb"></i>
-                                              Suggestion {% if ans.suggestion_certainty is not None %} · {{ ans.suggestion_certainty|mul:100|floatformat:0 }}% confidence{% endif %}
+                                              Suggestion{% if ans.suggestion_confidence_band %} · <span data-bs-toggle="tooltip" data-bs-title="Uncalibrated model self-estimate">{{ ans.suggestion_confidence_band }} confidence</span>{% endif %}
                                             </div>
                                             {# Rendered as Markdown with clickable citation footnotes, identical to a draft answer (markdown_inline_edit.html); data-citations supplies the verified label -> url map. #}
                                             <div class="suggestion-text mb-1" data-suggestion-md data-citations="{{ ans.suggestion_citations|to_json }}">{{ ans.suggestion_text }}</div>

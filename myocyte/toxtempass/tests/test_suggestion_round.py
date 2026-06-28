@@ -107,8 +107,14 @@ class FakeChat:
             return SimpleNamespace(content="Documented answer.")
 
 
-def _build_assay(question_texts):
-    """Create an assay + question_set with one Answer row per question text."""
+def _build_assay(question_texts, labels=None):
+    """Create an assay + question_set with one Answer row per question text.
+
+    Each question gets a QuestionLabel (defaults to ``interpretive`` — a
+    knowledge-routed label — so the suggestion pipeline fires; the per-label
+    gating is exercised explicitly by passing ``labels``). Pass a parallel
+    ``labels`` list to set them individually ("" = blank → default strategy).
+    """
     assay = AssayFactory()
     owner = assay.study.investigation.owner
     qs = QuestionSet.objects.create(display_name="suggest-qs", created_by=owner)
@@ -116,9 +122,11 @@ def _build_assay(question_texts):
     subsection = Subsection.objects.create(section=section, title="Sub")
     assay.question_set = qs
     assay.save()
+    if labels is None:
+        labels = ["interpretive"] * len(question_texts)
     questions = [
-        Question.objects.create(subsection=subsection, question_text=t)
-        for t in question_texts
+        Question.objects.create(subsection=subsection, question_text=t, label=lbl)
+        for t, lbl in zip(question_texts, labels)
     ]
     answers = [Answer.objects.create(assay=assay, question=q) for q in questions]
     return assay, owner, questions, answers
@@ -175,7 +183,115 @@ def test_is_only_not_found_empty_is_false():
     assert is_only_not_found(None) is False
 
 
+# ── per-label routing (unit) ────────────────────────────────────────────────────
+
+
+def test_strategy_map_routes_none_and_knowledge():
+    """metadata/experimental/descriptive/controls -> none; regulatory/interpretive
+    -> knowledge; blank/unknown -> the fail-safe default (none)."""
+    m = config.SUGGESTION_STRATEGY_BY_LABEL
+    for lbl in ("metadata", "experimental", "descriptive", "controls"):
+        assert m[lbl] == "none", lbl
+    for lbl in ("regulatory", "interpretive"):
+        assert m[lbl] == "knowledge", lbl
+    assert config.SUGGESTION_STRATEGY_DEFAULT == "none"
+    assert m.get("", config.SUGGESTION_STRATEGY_DEFAULT) == "none"
+    assert m.get("bogus", config.SUGGESTION_STRATEGY_DEFAULT) == "none"
+
+
+def test_coerce_question_label():
+    """JSON label coercion: known values pass through, everything else -> blank."""
+    from toxtempass.views import _coerce_question_label
+
+    assert _coerce_question_label("metadata") == "metadata"
+    assert _coerce_question_label("interpretive") == "interpretive"
+    assert _coerce_question_label("bogus") == ""
+    assert _coerce_question_label("") == ""
+    assert _coerce_question_label(None) == ""
+
+
+@pytest.mark.parametrize(
+    "cert,band",
+    [
+        (None, None),
+        (0.0, "Low"),
+        (0.39, "Low"),
+        (0.4, "Medium"),
+        (0.7, "Medium"),
+        (0.71, "High"),
+        (1.0, "High"),
+    ],
+)
+def test_suggestion_confidence_band(cert, band):
+    """Raw certainty buckets into Low/Medium/High (< 0.4 / 0.4-0.7 / > 0.7)."""
+    assert Answer(suggestion_certainty=cert).suggestion_confidence_band == band
+
+
+@pytest.mark.django_db
+def test_create_questionset_v2_applies_labels():
+    """Seeding ToxTemp_v2.json wires per-question labels onto the Question rows."""
+    from django.conf import settings
+
+    from toxtempass.views import create_questionset_from_json
+
+    if not (settings.BASE_DIR / "ToxTemp_v2.json").exists():
+        pytest.skip("ToxTemp_v2.json not present at BASE_DIR")
+
+    owner = AssayFactory().study.investigation.owner
+    qs = create_questionset_from_json("v2", owner)
+    base = Question.objects.filter(subsection__section__question_set=qs)
+    assert base.count() == 77  # 70 main + 7 abstract subquestions
+
+    def main_label(subsec_prefix):
+        return base.get(
+            subsection__title__startswith=subsec_prefix, parent_question__isnull=True
+        ).label
+
+    # representative spread across the routing buckets
+    assert main_label("2.1") == "metadata"
+    assert main_label("8.5") == "experimental"  # IVIVE -> none
+    assert main_label("9.2") == "interpretive"  # AOP linkage -> knowledge
+    assert main_label("9.5") == "regulatory"  # OECD linkage -> knowledge
+    assert main_label("11.2") == "metadata"  # section 11 routed to none for now
+    # abstract subquestions are all none-routed (descriptive/controls)
+    abstract_subqs = base.filter(
+        subsection__title__startswith="1.2", parent_question__isnull=False
+    )
+    assert abstract_subqs.exists()
+    assert all(
+        config.SUGGESTION_STRATEGY_BY_LABEL.get(
+            sq.label, config.SUGGESTION_STRATEGY_DEFAULT
+        )
+        == "none"
+        for sq in abstract_subqs
+    )
+
+
 # ── pipeline phase ────────────────────────────────────────────────────────────
+
+
+@pytest.mark.django_db(transaction=True)
+def test_label_none_skips_suggestion_and_knowledge_fires():
+    """A not-found question whose label routes to 'none' gets no LLM call and no
+    suggestion; a 'knowledge' label still fires; a blank label uses the fail-safe
+    default ('none') and stays quiet."""
+    assay, _owner, questions, _ = _build_assay(
+        ["Q meta MISS?", "Q know MISS?", "Q blank MISS?"],
+        labels=["metadata", "interpretive", ""],
+    )
+    fake = FakeChat()
+    process_llm_async(
+        assay.id, doc_dict={}, extract_images=False, chatopenai=fake,
+        do_suggestions=True,
+    )
+    a_meta, a_know, a_blank = (
+        Answer.objects.get(assay=assay, question=q) for q in questions
+    )
+    assert fake.suggestion_calls == 1  # only the interpretive (knowledge) row
+    assert a_meta.suggestion_text == ""  # metadata -> none
+    assert a_meta.has_pending_suggestion is False
+    assert a_blank.suggestion_text == ""  # blank -> default none
+    assert a_know.suggestion_text  # knowledge -> fired
 
 
 @pytest.mark.django_db(transaction=True)
