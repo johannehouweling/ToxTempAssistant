@@ -807,12 +807,26 @@ class AssayAnswerForm(forms.Form):
                         self.assay.id,
                     )
                     self.add_error(f"answer_image_{qid}", str(exc))
-                    return False
+                    continue
+                previous_image_files = [
+                    answer_file.file
+                    for answer_file in AnswerFile.objects.filter(
+                        answer=answer,
+                        label=ANSWER_IMAGE_LABEL,
+                    ).select_related("file")
+                ]
+                AnswerFile.objects.filter(
+                    answer=answer,
+                    label=ANSWER_IMAGE_LABEL,
+                ).delete()
+                for previous_image_file in previous_image_files:
+                    if not previous_image_file.answers.exists():
+                        previous_image_file.delete()
                 for stored_image in stored_images:
-                    AnswerFile.objects.update_or_create(
+                    AnswerFile.objects.create(
                         answer=answer,
                         file=stored_image,
-                        defaults={"label": ANSWER_IMAGE_LABEL},
+                        label=ANSWER_IMAGE_LABEL,
                     )
 
             if data.get("earmarked", False):
@@ -831,6 +845,9 @@ class AssayAnswerForm(forms.Form):
                 "file_upload",
                 "Upload at least one context document to update selected questions.",
             )
+            return False
+
+        if self.errors:
             return False
 
         if uploaded_files and earmarked_answers:

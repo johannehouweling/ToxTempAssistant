@@ -234,9 +234,20 @@ class FileUploadTests(TestCase):
         question = Question.objects.create(
             subsection=subsection, question_text="Q image?"
         )
+        existing_answer = Answer.objects.create(assay=self.assay, question=question)
         self.assay.question_set = qs
         self.assay.save()
 
+        previous_asset = FileAssetFactory(
+            original_filename="old-answer.png",
+            content_type="image/png",
+            uploaded_by=self.user,
+        )
+        AnswerFile.objects.create(
+            answer=existing_answer,
+            file=previous_asset,
+            label="answer_image",
+        )
         stored_asset = FileAssetFactory(
             original_filename="answer.png",
             content_type="image/png",
@@ -262,6 +273,12 @@ class FileUploadTests(TestCase):
         answer = Answer.objects.get(assay=self.assay, question=question)
         answer_file = AnswerFile.objects.get(answer=answer, file=stored_asset)
         self.assertEqual(answer_file.label, "answer_image")
+        self.assertEqual(
+            AnswerFile.objects.filter(answer=answer, label="answer_image").count(), 1
+        )
+        self.assertFalse(
+            AnswerFile.objects.filter(answer=answer, file=previous_asset).exists()
+        )
         self.assertTrue(answer.accepted)
 
     def test_assayanswerform_shows_existing_answer_image_names(self):
