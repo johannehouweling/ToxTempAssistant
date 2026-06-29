@@ -19,9 +19,11 @@ from guardian.shortcuts import get_objects_for_user
 from toxtempass import config
 from toxtempass.filehandling import (
     get_text_or_imagebytes_from_django_uploaded_file,
+    store_files_to_storage,
 )
 from toxtempass.models import (
     Answer,
+    AnswerFile,
     Assay,
     AssayTimeLog,
     Investigation,
@@ -42,6 +44,8 @@ from toxtempass.widgets import (
 # Form to submit answers to fixed questions for an assay
 
 logger = logging.getLogger("forms")
+
+ANSWER_IMAGE_LABEL = "answer_image"
 
 
 class LoginForm(forms.Form):
@@ -507,11 +511,13 @@ class AssayAnswerForm(forms.Form):
         """
         self.assay = kwargs.pop("assay")
         user = kwargs.pop("user", None)
+        self.user = user
         if user is not None and not self.assay.is_accessible_by(user):
             raise PermissionDenied("You do not have access to this assay.")
         super().__init__(*args, **kwargs)
 
         accepted_files = ",".join(config.IMAGE_ACCEPT_FILES + config.TEXT_ACCEPT_FILES)
+        accepted_images = ",".join(config.IMAGE_ACCEPT_FILES)
         self.fields["file_upload"] = MultipleFileField(
             widget=MultipleFileInput(
                 attrs={
@@ -585,6 +591,38 @@ class AssayAnswerForm(forms.Form):
                         answer.accepted if answer else False
                     )
 
+                    image_field_name = f"answer_image_{question.id}"
+                    image_help_text = (
+                        "Optional image answer. "
+                        f"Supported formats: {accepted_images}. "
+                        f"Max size: {config.max_size_mb} MB."
+                    )
+                    if answer:
+                        stored_images = list(
+                            AnswerFile.objects.filter(
+                                answer=answer,
+                                label=ANSWER_IMAGE_LABEL,
+                                file__status="available",
+                                file__content_type__startswith="image/",
+                            )
+                            .select_related("file")
+                            .values_list("file__original_filename", flat=True)
+                        )
+                        if stored_images:
+                            image_help_text += " Current image(s): " + ", ".join(
+                                stored_images
+                            )
+                    self.fields[image_field_name] = forms.ImageField(
+                        label="Image answer",
+                        required=False,
+                        help_text=image_help_text,
+                        widget=forms.ClearableFileInput(
+                            attrs={
+                                "accept": accepted_images,
+                            }
+                        ),
+                    )
+
                     # Add a checkbox for earmarking the answer for LLM update.
                     earmarked_field_name = f"earmarked_{question.id}"
                     self.fields[earmarked_field_name] = forms.BooleanField(
@@ -633,6 +671,40 @@ class AssayAnswerForm(forms.Form):
             raise forms.ValidationError(errors)
 
         return cleaned
+
+    def clean(self) -> dict[str, object]:
+        """Validate dynamic image-answer uploads."""
+        cleaned_data = super().clean()
+        allowed_image_types = {
+            mime_type
+            for mime_type in config.ALLOWED_MIME_TYPES
+            if mime_type.startswith("image/")
+        }
+        max_size_bytes = int(config.max_size_mb * 1024 * 1024)
+
+        for field_name, uploaded_image in cleaned_data.items():
+            if not field_name.startswith("answer_image_") or not uploaded_image:
+                continue
+
+            content_type = getattr(uploaded_image, "content_type", "") or (
+                mimetypes.guess_type(uploaded_image.name)[0] or ""
+            )
+            if content_type not in allowed_image_types:
+                self.add_error(
+                    field_name,
+                    f"{uploaded_image.name}: unsupported image type "
+                    f"({content_type or 'unknown'})",
+                )
+                continue
+
+            if uploaded_image.size > max_size_bytes:
+                mb = uploaded_image.size / (1024 * 1024)
+                self.add_error(
+                    field_name,
+                    f"{uploaded_image.name}: {mb:.1f} MB exceeds {config.max_size_mb} MB",
+                )
+
+        return cleaned_data
 
     def save(self) -> bool:
         """Save the form data.
@@ -719,6 +791,44 @@ class AssayAnswerForm(forms.Form):
                 answer.save()
                 logger.debug(f"Updated accepted flag for question id {qid}.")
 
+            uploaded_image = self.cleaned_data.get(f"answer_image_{qid}")
+            if uploaded_image:
+                try:
+                    stored_images = store_files_to_storage(
+                        files=[uploaded_image],
+                        user=self.user,
+                        assay=self.assay,
+                        consent=True,
+                    )
+                except Exception as exc:
+                    logger.exception(
+                        "Failed to store answer image for question %s on assay %s",
+                        qid,
+                        self.assay.id,
+                    )
+                    self.add_error(f"answer_image_{qid}", str(exc))
+                    continue
+                previous_image_files = [
+                    answer_file.file
+                    for answer_file in AnswerFile.objects.filter(
+                        answer=answer,
+                        label=ANSWER_IMAGE_LABEL,
+                    ).select_related("file")
+                ]
+                AnswerFile.objects.filter(
+                    answer=answer,
+                    label=ANSWER_IMAGE_LABEL,
+                ).delete()
+                for previous_image_file in previous_image_files:
+                    if not previous_image_file.answers.exists():
+                        previous_image_file.delete()
+                for stored_image in stored_images:
+                    AnswerFile.objects.create(
+                        answer=answer,
+                        file=stored_image,
+                        label=ANSWER_IMAGE_LABEL,
+                    )
+
             if data.get("earmarked", False):
                 earmarked_answers.append(answer)
                 logger.info(f"Question id {qid} marked for LLM update.")
@@ -735,6 +845,9 @@ class AssayAnswerForm(forms.Form):
                 "file_upload",
                 "Upload at least one context document to update selected questions.",
             )
+            return False
+
+        if self.errors:
             return False
 
         if uploaded_files and earmarked_answers:
