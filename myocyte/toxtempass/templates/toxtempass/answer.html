@@ -118,14 +118,32 @@
                                     <h5>{{ subsection.title }}</h5>
                                     {% for question in subsection.questions.all %}
                                       <div class="row">
-                                        <div class="col-md-10"> 
+                                        <div class="col-md-10">
                                           <div class="mb-3 has-validation">
                                                 {% comment %} <label for="id_question_{{ question.id }}">{{ question.question_text }}</label> {% endcomment %}
                                                 {% with quest_num='question_'|add_asstring:question.id %}
                                                 {% bootstrap_field form|form_field:quest_num placeholder="" %}
-                                                {% endwith %} 
+                                                {% endwith %}
                                           </div>
-                                        </div>  
+                                          {% with ans=pending_suggestions|get_item:question.id %}
+                                          {% if ans %}
+                                          <div class="suggestion-note ps-2 mb-3 border-start border-2 border-indigo" data-suggestion-card="{{ question.id }}">
+                                            <div class="text-secondary fst-italic mb-1 small">
+                                              <i class="bi bi-lightbulb"></i>
+                                              Suggestion{% if ans.suggestion_confidence_band %} · <span data-bs-toggle="tooltip" data-bs-title="Uncalibrated model self-estimate">{{ ans.suggestion_confidence_band }} confidence</span>{% endif %}
+                                            </div>
+                                            {# Rendered as Markdown with clickable citation footnotes, identical to a draft answer (markdown_inline_edit.html); data-citations supplies the verified label -> url map. #}
+                                            <div class="suggestion-text mb-1" data-suggestion-md data-citations="{{ ans.suggestion_citations|to_json }}">{{ ans.suggestion_text }}</div>
+                                            <div class="d-flex align-items-center gap-2">
+                                              {% with promote_num='promote_'|add_asstring:question.id %}{{ form|form_field:promote_num }}{% endwith %}
+                                              {% with dismiss_num='dismiss_'|add_asstring:question.id %}{{ form|form_field:dismiss_num }}{% endwith %}
+                                              <button type="button" class="btn btn-sm btn-outline-secondary py-0 suggestion-promote-btn" data-qid="{{ question.id }}">Use</button>
+                                              <button type="button" class="btn btn-sm btn-link link-secondary text-decoration-none p-0 suggestion-dismiss-btn" data-qid="{{ question.id }}">Dismiss</button>
+                                            </div>
+                                          </div>
+                                          {% endif %}
+                                          {% endwith %}
+                                        </div>
                                         <div class="col-md-2 align-self-end">  
                                           <div class="has-validation">
                                               {% with earmark_num='earmarked_'|add_asstring:question.id %}
@@ -167,11 +185,20 @@
             <!-- Progress bar -->
             {% with percentanswers=assay.get_n_accepted_answers|intdivperc:assay.get_n_answers %}
             {% with percent_draft_unaccepted=assay.number_answers_found_but_not_accepted|intdivperc:assay.get_n_answers  %}
-            <div id="progress border bg-white" class="progress mt-3" role="progressbar" aria-label="Example with label" aria-valuenow="{{assay.get_n_accepted_answers}}" aria-valuemin="0" aria-valuemax="{{assay.get_n_answers}}">
+            {% with percent_suggested=assay.number_pending_suggestions|intdivperc:assay.get_n_answers %}
+            <div id="progress border bg-white" class="progress mt-3" role="progressbar" aria-label="Answering progress" aria-valuenow="{{assay.get_n_accepted_answers}}" aria-valuemin="0" aria-valuemax="{{assay.get_n_answers}}">
               <div  class="progress-bar bg-primary"  role="progressbar" style="width: {{percentanswers}}%;" aria-valuenow="{{percentanswers}}" aria-valuemin="0" aria-valuemax="100" data-bs-toggle="tooltip" title="{{assay.get_n_accepted_answers}} answer(s) accepted">{{percentanswers}} %</div>
               <div  class="progress-bar-striped bg-primary opacity-50"  role="progressbar" style="width: {{percent_draft_unaccepted}}%;" aria-valuenow="{{percent_draft_unaccepted}}" aria-valuemin="0" aria-valuemax="100" data-bs-toggle="tooltip" title="{{assay.number_answers_found_but_not_accepted}} unaccepted draft answer(s)"></div>
-
+              <div  class="progress-bar progress-bar-striped bg-indigo opacity-25"  role="progressbar" style="width: {{percent_suggested}}%;" aria-valuenow="{{percent_suggested}}" aria-valuemin="0" aria-valuemax="100" data-bs-toggle="tooltip" title="{{assay.number_pending_suggestions}} suggestion(s) to review (from outside your documents)"></div>
             </div>
+            {% if assay.number_pending_suggestions %}
+            <div class="d-flex flex-wrap gap-3 small mt-1 mb-0 text-secondary">
+              <span><span class="badge text-bg-primary">&nbsp;</span> Accepted</span>
+              <span><span class="badge text-bg-primary opacity-50">&nbsp;</span> Draft</span>
+              <span><span class="badge text-bg-indigo opacity-25">&nbsp;</span> Suggested</span>
+            </div>
+            {% endif %}
+            {% endwith %}
             {% endwith %}
             {% endwith %}
 
@@ -265,6 +292,7 @@
 {% include "answer_extras/deselect_accepted_onchange.html" %}
 {% include "answer_extras/resize_textarea.html" %}
 {% include "answer_extras/feedback_export.html" %}
+{% include "answer_extras/suggestion_actions.html" %}
 {% include "error_handling.html" %}
 
 <script>

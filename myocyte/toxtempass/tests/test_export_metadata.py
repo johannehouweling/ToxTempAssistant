@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import yaml
 from django.test import TestCase
 
+from toxtempass import Config
 from toxtempass.export import (
     generate_json_from_assay,
     generate_markdown_from_assay,
@@ -287,3 +288,40 @@ class ExportMetadataAuthorTests(TestCase):
             ),
             markdown,
         )
+
+
+class ExportMetadataPromptsTests(TestCase):
+    """The exact LLM prompts are recorded in export metadata for auditability."""
+
+    def _make_assay_with_answer(self, label: str):
+        assay = AssayFactory()
+        AnswerFactory(
+            assay=assay,
+            answer_text="draft",
+            question__subsection__section__question_set__label=label,
+        )
+        return assay
+
+    def test_json_metadata_includes_prompts_sourced_from_config(self):
+        """generate_json_from_assay records every Config prompt verbatim."""
+        assay = self._make_assay_with_answer("pmetajson")
+
+        prompts = generate_json_from_assay(assay)["metadata"]["prompts"]
+
+        self.assertEqual(prompts["base_prompt"], Config.base_prompt)
+        self.assertEqual(prompts["suggestion_prompt"], Config.suggestion_prompt)
+        self.assertEqual(prompts["image_prompt"], Config.image_prompt)
+        self.assertEqual(prompts["not_found_string"], Config.not_found_string)
+
+    def test_prompts_not_rendered_into_document_body(self):
+        """Prompts live in the JSON metadata, never splattered into the document.
+
+        They are large; the human-facing Markdown/PDF/DOCX must not carry them
+        (only the small scalar "config" block is rendered).
+        """
+        assay = self._make_assay_with_answer("pmetamd")
+
+        markdown = generate_markdown_from_assay(assay)
+
+        self.assertNotIn("base_prompt", markdown)
+        self.assertNotIn("Source-bounded answering", markdown)  # from BASE_PROMPT

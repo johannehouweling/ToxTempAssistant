@@ -1,13 +1,16 @@
 // ============================================================================
 // ToxTempAssistant — custom Bootstrap colour utilities.
 //
-// Bootstrap ships an `$orange` colour variable but no orange utility family.
-// The RISK-HUNT3R readiness progress breakdown needs a `bg-orange` segment, so
-// we recompile that single utility family from Bootstrap's own `$orange` +
-// mixins — rather than hand-rolling a one-off rule with a literal hex. This is
-// the same approach the VHP4Safety site uses to recompile custom theme colours
-// (see its bootstrap-custom/custom.scss), layered on top of the CDN Bootstrap
-// (which ships no orange utilities).
+// Bootstrap ships `$indigo` and `$orange` colour variables but no matching
+// utility families. Two features need them:
+//   * indigo — the round-2 "suggestion tier" accent (was hand-rolled rgba()
+//     utilities in base.html; defined here instead).
+//   * orange — the RISK-HUNT3R readiness progress breakdown's `bg-orange`
+//     segment.
+// We recompile both families from Bootstrap's own colour variables + mixins
+// (rather than hand-rolling one-off rules with literal hex), the same approach
+// the VHP4Safety site uses (see its bootstrap-custom/custom.scss), layered on
+// top of the CDN Bootstrap (which ships no indigo/orange utilities).
 //
 // Compiled with Dart Sass (dev/CI only; the committed CSS is copied into the
 // Docker image, so no Node at runtime). Regenerate after editing, from myocyte/:
@@ -19,9 +22,10 @@
 @import "bootstrap/scss/variables";
 @import "bootstrap/scss/mixins";
 
-// Register orange as a theme colour and generate its utility family from that
+// Register each custom theme colour and generate its utility family from that
 // single definition (so adding another colour later is one map entry).
 $custom-colors: (
+  "indigo": $indigo,
   "orange": $orange,
 );
 

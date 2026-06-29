@@ -1,7 +1,8 @@
-<!-- Citation/markdown rendering for answer fields. Inline "_(Source: LABEL)_"
-     markers become hoverable footnotes [n] (deduped per text); a source whose
-     LABEL carries a URL/DOI renders as a footnote link. Answer fields are
-     click-to-edit (the textarea remains the source of truth). -->
+<!-- Shared citation/markdown rendering for BOTH answer fields and round-2
+     suggestions, so they cite identically. Inline "_(Source: LABEL)_" markers
+     become hoverable footnotes [n] (deduped per text); a source whose LABEL has
+     a URL (from the suggestion's citation map) renders as a footnote link.
+     Answer fields are also click-to-edit (textarea is the source of truth). -->
 <script src="https://cdn.jsdelivr.net/npm/marked/lib/marked.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 <script>
@@ -17,11 +18,12 @@
     }
 
     // Resolve one source entry to {label, url}. A footnote becomes a clickable
-    // link when, in priority order: (1) the entry is "LABEL | URL", (2) the entry
-    // is a bare http(s) URL, or (3) the entry is a bare DOI (10.x/...). Otherwise
-    // it stays a hover-only footnote (e.g. an uploaded document name). Only http(s)
+    // link when, in priority order: (1) a verified urlMap entry exists (round-2
+    // suggestion citations), (2) the entry is "LABEL | URL", (3) the entry is a
+    // bare http(s) URL, or (4) the entry is a bare DOI (10.x/...). Otherwise it
+    // stays a hover-only footnote (e.g. an uploaded document name). Only http(s)
     // ever becomes an href; DOMPurify drops anything unsafe downstream.
-    function resolveSource(entry) {
+    function resolveSource(entry, urlMap) {
         // A model that writes "_(Source: A; Source: B)_" leaves a stray "Source:"
         // on the 2nd entry after the ; split — strip it so the label stays clean.
         entry = entry.replace(/^\s*sources?\s*:\s*/i, '');
@@ -31,7 +33,9 @@
             label = entry.slice(0, bar).trim();
             url = entry.slice(bar + 1).trim();
         }
-        if (!url) {
+        if (urlMap[label]) { url = urlMap[label]; }
+        else if (urlMap[entry]) { label = entry; url = urlMap[entry]; }
+        else if (!url) {
             if (/^https?:\/\/\S+$/i.test(label)) {
                 url = label;
             } else {
@@ -54,7 +58,8 @@
     // a row — or is the only reference in the whole text — only the LAST marker of
     // that run is rendered; the earlier identical markers are dropped. Bold
     // (**...**) is never rendered (issue #231); other Markdown is unaffected.
-    function renderCitations(raw) {
+    function renderCitations(raw, urlMap) {
+        urlMap = urlMap || {};
         // Headings must never render (issue #231): strip leading #/##/### ATX markers
         // up front. Line-anchored, so only the markers go and the heading text stays
         // as plain prose. (Bold is removed AFTER rendering, below — a raw ** strip
@@ -103,7 +108,7 @@
             var resolved = content.split(/[,;]/)
                 .map(function (x) { return x.trim(); })
                 .filter(Boolean)
-                .map(function (e) { return resolveSource(e); });
+                .map(function (e) { return resolveSource(e, urlMap); });
             markers.push({
                 start: s.index, end: end,
                 resolved: resolved,
@@ -163,8 +168,8 @@
         });
     }
 
-    // Answer fields — click-to-edit markdown preview. Documents have no URLs,
-    // so footnotes here are hover-only unless the answer text carries an inline URL/DOI.
+    // 1) Answer fields — click-to-edit markdown preview. Documents have no URLs,
+    //    so footnotes here are hover-only.
     document.querySelectorAll('textarea[name^="question_"]').forEach(function (ta) {
         var preview = document.createElement('div');
         preview.className = 'md-preview border rounded p-2 mb-2 bg-light';
@@ -181,7 +186,7 @@
         function showPreview() {
             var v = (ta.value || '').trim();
             preview.innerHTML = v
-                ? renderCitations(v)
+                ? renderCitations(v, {})
                 : '<span class="text-secondary fst-italic">Empty — click to edit</span>';
             initTooltips(preview);
             ta.classList.add('d-none');
@@ -195,9 +200,29 @@
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showEditor(); }
         });
         ta.addEventListener('blur', showPreview);
+        // External callers (e.g. promoting a round-2 suggestion) set ta.value while
+        // the field is collapsed; this re-renders the preview without a blur cycle.
+        ta.addEventListener('md:refresh', showPreview);
 
         ta.parentNode.insertBefore(preview, ta);
         showPreview();
+    });
+
+    // 2) Suggestions — render exactly like an answer: citations live INLINE in
+    //    the prose (footnotes from "_(Source: X)_" markers, with URLs from the
+    //    citation map). No separate source-link line — sources stay in the text.
+    document.querySelectorAll('[data-suggestion-md]').forEach(function (el) {
+        var raw = el.textContent || '';
+        // Preserve the raw markdown source: rendering replaces innerHTML below, so
+        // "Use this" must read the raw md from here (innerText would be stripped).
+        el.dataset.suggestionRaw = raw;
+        var cites = [];
+        try { cites = JSON.parse(el.getAttribute('data-citations') || '[]') || []; } catch (e) {}
+        var urlMap = {};
+        cites.forEach(function (c) { if (c && c.label && c.url) urlMap[c.label] = c.url; });
+
+        el.innerHTML = renderCitations(raw, urlMap);
+        initTooltips(el);
     });
 })();
 </script>

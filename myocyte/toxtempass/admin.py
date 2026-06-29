@@ -495,7 +495,7 @@ class LLMConfigForm(forms.ModelForm):
 
     class Meta:
         model = LLMConfig
-        fields = ("default_model", "allowed_models")
+        fields = ("default_model", "allowed_models", "suggestion_model")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -514,6 +514,12 @@ class LLMConfigForm(forms.ModelForm):
                 widget=forms.MultipleHiddenInput(),  # real inputs live in the table
                 label="",
             )
+        # Round-2 suggestion model: a plain dropdown (blank = reuse round-1).
+        self.fields["suggestion_model"] = forms.ChoiceField(
+            choices=[("", "(reuse round-1 model)")] + (model_ch or []),
+            required=False,
+            label="Round-2 suggestion model",
+        )
 
 
 @admin.register(LLMConfig)
@@ -535,6 +541,15 @@ class LLMConfigAdmin(admin.ModelAdmin):
                 "Pick one <b>Default</b> (sent for every request unless users have choice), "
                 "tick the ones regular users may <b>Choose</b>. "
                 "Click <b>Run health check</b> to refresh the Status column."
+                "</div>"
+            ),
+        }),
+        ("Round-2 suggestions", {
+            "fields": ("suggestion_model",),
+            "description": mark_safe(
+                '<div style="margin:6px 0 22px 0;max-width:900px;line-height:1.5">'
+                "Model used for the optional round-2 out-of-documents suggestion "
+                "pass. Leave blank to reuse the round-1 model."
                 "</div>"
             ),
         }),

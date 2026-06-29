@@ -295,6 +295,17 @@ class StartingForm(forms.Form):
         ),
     )
 
+    round2_suggestions = forms.BooleanField(
+        required=False,
+        initial=False,
+        label="Suggest answers for questions not found in documents",
+        help_text=(
+            "Optional second pass: for questions that can't be answered from your "
+            "documents, propose an answer from general toxicology knowledge, each "
+            "with a certainty score for you to review. Uses extra tokens."
+        ),
+    )
+
     consent_file_storage = forms.BooleanField(
         required=False,
         initial=False,
@@ -340,6 +351,11 @@ class StartingForm(forms.Form):
                 self.fields["question_set"].initial = most_recent_qs.pk
 
         if user is not None:
+            # Default the round-2 opt-in to the user's last choice (persisted in
+            # preferences) so it sticks across sessions.
+            self.fields["round2_suggestions"].initial = bool(
+                (user.preferences or {}).get("round2_suggestions", False)
+            )
             accessible_investigations = get_objects_for_user(
                 user, "toxtempass.view_investigation"
             )
@@ -509,6 +525,7 @@ class AssayAnswerForm(forms.Form):
         user = kwargs.pop("user", None)
         if user is not None and not self.assay.is_accessible_by(user):
             raise PermissionDenied("You do not have access to this assay.")
+        self.user = user
         super().__init__(*args, **kwargs)
 
         accepted_files = ",".join(config.IMAGE_ACCEPT_FILES + config.TEXT_ACCEPT_FILES)
@@ -592,6 +609,17 @@ class AssayAnswerForm(forms.Form):
                         required=False,
                     )
                     self.fields[earmarked_field_name].initial = False
+
+                    # Hidden flags toggled by the round-2 suggestion card's buttons.
+                    #   promote: copy the suggestion into answer_text (accept it).
+                    #   dismiss: discard the suggestion, keep the strict answer.
+                    for _flag in ("promote", "dismiss"):
+                        flag_field_name = f"{_flag}_{question.id}"
+                        self.fields[flag_field_name] = forms.BooleanField(
+                            required=False,
+                            initial=False,
+                            widget=forms.HiddenInput(),
+                        )
 
     def clean_file_upload(self) -> list[UploadedFile]:
         """Validate uploaded files and return the accepted list."""
@@ -691,6 +719,12 @@ class AssayAnswerForm(forms.Form):
             elif field_name.startswith("earmarked_"):
                 qid = field_name.split("_")[1]
                 questions_data[qid]["earmarked"] = value
+            elif field_name.startswith("promote_"):
+                qid = field_name.split("_")[1]
+                questions_data[qid]["promote"] = value
+            elif field_name.startswith("dismiss_"):
+                qid = field_name.split("_")[1]
+                questions_data[qid]["dismiss"] = value
 
         question_ids = questions_data.keys()
         logger.debug(f"Processing {len(question_ids)} questions.")
@@ -709,6 +743,39 @@ class AssayAnswerForm(forms.Form):
                 question=question,
                 defaults={"answer_text": data.get("answer_text", "")},
             )
+
+            # Promotion of a round-2 suggestion into the real answer. "Use this"
+            # drops the suggestion into the answer field as an editable draft, so
+            # honour the submitted (possibly edited) text; fall back to the raw
+            # suggestion only if the field was left at the not-found sentinel (e.g.
+            # JS disabled). Acceptance is NOT forced here — the suggestion lands as
+            # a draft (``accepted`` reflects the user's explicit choice) and is
+            # reviewed before being accepted. suggestion_* fields are retained for
+            # provenance; HistoricalRecords logs the transition, so it's reversible.
+            if data.get("promote") and answer.suggestion_text:
+                submitted = data.get("answer_text", "") or ""
+                if (
+                    submitted
+                    and config.not_found_string.lower() not in submitted.lower()
+                ):
+                    answer.answer_text = submitted
+                else:
+                    answer.answer_text = answer.suggestion_text
+                answer.accepted = data.get("accepted", False)
+                answer.save()
+                logger.info("Promoted suggestion to answer for question id %s.", qid)
+                continue
+
+            # Explicit dismissal: drop the suggestion, keep the strict answer.
+            if data.get("dismiss"):
+                answer.suggestion_text = ""
+                answer.suggestion_certainty = None
+                answer.suggestion_citations = None
+                answer.suggestion_sources = []
+                answer.save()
+                logger.info("Dismissed suggestion for question id %s.", qid)
+                # fall through to normal answer_text/accepted handling below
+
             if not created and answer.answer_text != data.get("answer_text", ""):
                 answer.answer_text = data.get("answer_text", "")
                 answer.save()
@@ -753,6 +820,11 @@ class AssayAnswerForm(forms.Form):
                     doc_dict,
                     extract_images,
                     answer_ids,
+                    do_suggestions=bool(
+                        (getattr(self.user, "preferences", None) or {}).get(
+                            "round2_suggestions", False
+                        )
+                    ),
                 )
                 self.assay.save(update_fields=["status", "user_alerts"])
                 self.async_enqueued = True

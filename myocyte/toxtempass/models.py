@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import re
 import uuid
 
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
+from django.core.validators import (
+    MaxValueValidator,
+    MinValueValidator,
+    validate_email,
+)
 from django.db import models
 from django.db.models import Count, Q
 from django.utils import timezone
@@ -13,6 +18,33 @@ from simple_history.models import HistoricalRecords
 
 from toxtempass import config
 
+# Whitespace + punctuation + markdown emphasis/brackets — everything that can
+# legitimately surround the not-found sentinel without adding real content.
+_NOT_FOUND_TRIVIAL_RE = re.compile(r"[\s.,;:!?'\"`*_()\[\]\-]+")
+
+
+def is_only_not_found(text: str | None) -> bool:
+    """Return True when an answer is essentially ONLY the not-found sentinel.
+
+    Normalises the text (lowercase, remove every occurrence of the sentinel, then
+    strip surrounding whitespace/punctuation/markdown); if nothing substantive
+    remains, the answer is a pure "not found" and round-2 should offer a
+    suggestion. A long or partial answer that merely mentions the sentinel for one
+    sub-part of a multi-part question keeps real words after normalisation and
+    returns False — so it is treated as answered and gets no suggestion.
+
+    Robust to a trailing period, casing, markdown wrapping (``_..._``) and
+    multiple mentions; needs no length threshold.
+    """
+    if not text:
+        return False
+    nf = config.not_found_string.lower()
+    norm = text.lower()
+    if nf not in norm:
+        return False
+    remainder = norm.replace(nf, " ")
+    return _NOT_FOUND_TRIVIAL_RE.sub("", remainder) == ""
+
 
 class LLMStatus(models.TextChoices):
     NONE = "none", "None"
@@ -20,6 +52,21 @@ class LLMStatus(models.TextChoices):
     BUSY = "busy", "Busy"
     DONE = "done", "Done"
     ERROR = "error", "Error"
+
+
+class SuggestionSource(models.TextChoices):
+    """Provenance tiers a round-2 (out-of-context) suggestion can draw on.
+
+    Stored as a *multi-choice* set on ``Answer.suggestion_sources`` — a single
+    suggestion may combine several tiers (e.g. general knowledge that also cites
+    an uploaded document). Future tiers (RAG, web search) are added here and
+    reuse the same columns, so no schema migration is needed to extend them.
+    """
+
+    KNOWLEDGE = "knowledge", "General knowledge"  # round-2 default tier
+    DOCUMENT = "document", "Context document"  # cited an uploaded doc
+    GUIDANCE = "guidance", "Regulatory guidance"  # OECD GD211 / ALTEX, etc.
+    # future tiers reuse the SAME column (no migration): RAG = "rag", WEB = "web"
 
 
 # we are desinging user access that inherits from the parent object.
@@ -437,6 +484,23 @@ class Assay(AccessibleModel):
         ).count()
 
     @property
+    def number_pending_suggestions(self) -> int:
+        """Count not-found answers that have an unreviewed round-2 suggestion.
+
+        Drives the indigo "suggested (review)" segment of the progress bar. A
+        suggestion stops counting once it is promoted (answer_text no longer the
+        sentinel) or dismissed (suggestion_text cleared).
+        """
+        return (
+            Answer.objects.filter(
+                assay=self,
+                answer_text__icontains=config.not_found_string,
+            )
+            .exclude(suggestion_text="")
+            .count()
+        )
+
+    @property
     def number_processed_answers(self) -> int:
         """Check if there are any answers processed for this assay."""
         not_found_string = config.not_found_string
@@ -654,6 +718,42 @@ class Subsection(AccessibleModel):
         return True
 
 
+class QuestionLabel(models.TextChoices):
+    """Semantic label for a ToxTemp question, routing its suggestion strategy.
+
+    The round-2 strategy is resolved from the label via
+    ``Config.SUGGESTION_STRATEGY_BY_LABEL``. A label encodes *what kind* of
+    question it is — never *which database* to
+    consult (that belongs to the future lookup tier). Round-2 rule of thumb: a
+    general-knowledge suggestion only helps when the answer lives in public/
+    published knowledge, not in *this* study; otherwise the label routes to
+    ``none`` (no suggestion).
+
+    METADATA      Administrative/catalogue facts (names, dates, IDs, contacts,
+                  versions, IP, file/SOP references, storage logistics).
+    EXPERIMENTAL  Study-specific measured values & procedural particulars
+                  (concentrations, EC50, settings, throughput, data processing,
+                  variability, operator training, lab transfer).
+    DESCRIPTIVE   Narrative description of the method itself (title, abstract,
+                  cell source, culture/differentiation protocols, exposure
+                  scheme, endpoint and analytical-method descriptions).
+    CONTROLS      Quality gates & validation (acceptance criteria; positive/
+                  negative/mechanistic controls; validation status).
+    REGULATORY    Pointers to external public standards/records (OECD TG/GD,
+                  key publications, related named methods, SDS/GHS, permits).
+    INTERPRETIVE  Scientific reasoning about meaning/mechanism/limits from
+                  general toxicology/AOP knowledge (scientific principle, AOP
+                  linkage, applicability, test-battery fit, metabolic capacity).
+    """
+
+    METADATA = "metadata", "Metadata"
+    EXPERIMENTAL = "experimental", "Experimental"
+    DESCRIPTIVE = "descriptive", "Descriptive"
+    CONTROLS = "controls", "Controls"
+    REGULATORY = "regulatory", "Regulatory"
+    INTERPRETIVE = "interpretive", "Interpretive"
+
+
 class RiskHunt3rLabel(models.TextChoices):
     """RISK-HUNT3R test-method-database readiness category for a ToxTemp question.
 
@@ -716,6 +816,16 @@ class Question(AccessibleModel):
         null=False,
         default=False,
         help_text="Extra flag to determine if additional llm instruction shall replace all others.",
+    )
+    label = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        choices=QuestionLabel.choices,
+        help_text=(
+            "Semantic label routing the round-2 suggestion strategy "
+            "(see Config.SUGGESTION_STRATEGY_BY_LABEL). Blank = default strategy."
+        ),
     )
     riskhunt3r_db_label = models.CharField(
         max_length=10,
@@ -799,15 +909,86 @@ class Answer(AccessibleModel):
     accepted = models.BooleanField(
         null=True, blank=True, help_text="Marked as final answer."
     )
+    # ── Round-2 "suggestion tier" (out-of-context) ────────────────────────────
+    # Populated by the optional less-strict second pass for questions the strict
+    # pass could not answer. Kept STRICTLY separate from ``answer_text`` so the
+    # "Answer not found in documents." provenance is never overwritten; the user
+    # explicitly promotes a suggestion into ``answer_text`` when they accept it.
+    suggestion_text = models.TextField(
+        blank=True,
+        default="",
+        help_text="Out-of-context suggestion from the optional second LLM round.",
+    )
+    suggestion_certainty = models.FloatField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)],
+        help_text="Model self-reported confidence 0–1 for the suggestion (uncalibrated).",
+    )
+    suggestion_citations = models.JSONField(
+        null=True,
+        blank=True,
+        help_text='Cited references: list of {"kind", "label", "url"} (url optional).',
+    )
+    suggestion_sources = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=(
+            "Multi-choice provenance tiers (SuggestionSource values) this "
+            "suggestion drew on; empty = no suggestion."
+        ),
+    )
     history = HistoricalRecords()
 
     def __str__(self):
         """Return a string representation of the answer."""
         return f"Answer to: {self.question} for assay {self.assay}"
 
+    def clean(self) -> None:
+        """Validate the multi-choice ``suggestion_sources`` against the enum."""
+        super().clean()
+        if self.suggestion_sources:
+            if not isinstance(self.suggestion_sources, list):
+                raise ValidationError(
+                    {"suggestion_sources": "Must be a list of SuggestionSource values."}
+                )
+            invalid = [
+                s for s in self.suggestion_sources if s not in SuggestionSource.values
+            ]
+            if invalid:
+                raise ValidationError(
+                    {"suggestion_sources": f"Invalid provenance tier(s): {invalid}."}
+                )
+
     def get_parent(self) -> Assay:
         """Return the parent Assay object."""
         return self.assay
+
+    @property
+    def has_pending_suggestion(self) -> bool:
+        """True while a suggestion exists and the strict answer is still the sentinel.
+
+        Becomes False automatically once the suggestion is promoted (``answer_text``
+        no longer holds the not-found sentinel) or dismissed (``suggestion_text``
+        cleared) — no separate flag to maintain. Uses the strict "pure not-found"
+        rule so a long partial answer that merely mentions the sentinel never
+        shows a suggestion card.
+        """
+        return bool(self.suggestion_text) and is_only_not_found(self.answer_text)
+
+    @property
+    def suggestion_confidence_band(self) -> str | None:
+        """Coarse confidence band ('Low'/'Medium'/'High') for display.
+
+        Model self-reported certainty is badly calibrated (ECE > 0.4), so the UI
+        shows a band rather than the raw ``suggestion_certainty`` as a percentage
+        (which reads as a real probability it is not). None when no certainty was
+        parsed. Thresholds: < 0.4 Low, 0.4-0.7 Medium, > 0.7 High.
+        """
+        c = self.suggestion_certainty
+        if c is None:
+            return None
+        return "High" if c > 0.7 else "Medium" if c >= 0.4 else "Low"
 
     @property
     def preview_text(self, max_length: int = 75) -> str:
@@ -965,6 +1146,15 @@ class LLMConfig(models.Model):
             "Empty list = all discovered models are allowed."
         ),
     )
+    suggestion_model = models.CharField(
+        max_length=128,
+        default="",
+        blank=True,
+        help_text=(
+            'Round-2 suggestion deployment as "endpoint_index:tag" (e.g. "6:KIMI"). '
+            "Blank = reuse the round-1 model for suggestions."
+        ),
+    )
     last_health_check = models.JSONField(
         default=dict,
         blank=True,
@@ -1012,6 +1202,21 @@ class LLMConfig(models.Model):
         if ":" in self.default_model:
             return self.default_model.split(":", 1)[1]
         return ""
+
+    def suggestion_endpoint_tag(self) -> tuple[int, str] | None:
+        """Parse ``suggestion_model`` into ``(endpoint_index, tag)``.
+
+        Returns None when unset or malformed — callers then reuse the round-1
+        model for round-2 suggestions.
+        """
+        key = (self.suggestion_model or "").strip()
+        if ":" not in key:
+            return None
+        idx_s, tag = key.split(":", 1)
+        try:
+            return int(idx_s), tag
+        except ValueError:
+            return None
 
     def __str__(self):
         return f"LLM Config (default={self.default_model or 'auto'})"

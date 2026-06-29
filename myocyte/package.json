@@ -1,8 +1,8 @@
 {
-  "name": "toxtempass-theme",
+  "name": "toxtempassistant-frontend",
   "version": "1.0.0",
   "private": true,
-  "description": "Custom Bootstrap colour utilities for ToxTempAssistant (compiled to static/toxtempass/theme.css).",
+  "description": "Frontend build for ToxTempAssistant. Compiles custom Bootstrap utility classes from SCSS into a small overlay (theme.css) layered on the CDN Bootstrap: the indigo 'suggestion tier' accent and the orange RISK-HUNT3R readiness utilities. Build is dev/CI-only (Dart Sass); the compiled CSS is committed and copied into the Docker image, so no Node is needed at runtime.",
   "scripts": {
     "build:css": "sass --quiet-deps --load-path=node_modules --style=compressed --no-source-map scss/theme.scss toxtempass/static/toxtempass/theme.css"
   },
