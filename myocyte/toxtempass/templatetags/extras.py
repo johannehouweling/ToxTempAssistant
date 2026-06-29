@@ -52,10 +52,9 @@ def intdivperc(a: float, b: float) -> int:
 def _question_guidance() -> dict:
     """Map section/subsection title -> ToxTemp guidance from the ToxTemp_v1.json seed.
 
-    The guidance is the ToxTemp supplementary text (Krebs et al. 2019, as adapted
-    from the RISK-HUNT3R test-method DB), stored on each section's and
-    subsection's ``guidance`` key in ToxTemp_v1.json. Cached for the process
-    lifetime.
+    The guidance is the ToxTemp supplementary text (Krebs et al. 2019), stored on
+    each section's and subsection's ``guidance`` key in ToxTemp_v1.json. Cached
+    for the process lifetime.
     """
     out: dict = {}
     try:
@@ -78,8 +77,8 @@ def question_help(title: object) -> str:
     """Return the ToxTemp guidance for a section/subsection title as safe HTML.
 
     One ``<p>`` per Note/Example block; empty string when there is no guidance
-    (so the template hides the help icon). The text is escaped — only the ``<p>``
-    wrappers are trusted. Rendered inside the Bootstrap guidance offcanvas.
+    (so the template hides the help icon). The text is escaped — only the wrapper
+    markup is trusted. Rendered inside the Bootstrap guidance popover.
     Usage: {{ subsection.title|question_help }}
     """
     text = _question_guidance().get((str(title).strip() if title else ""), "")
