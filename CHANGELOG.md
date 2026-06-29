@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v3.31.0 (2026-06-29)
+
+### Bug Fixes
+
+- **answer**: Open ToxTemp guidance popover below the trigger; fix attribution
+  ([`ecec717`](https://github.com/johannehouweling/toxtempassistant/commit/ecec717b9b62be96a010f3c8c1880a2ea67c353b))
+
+### Features
+
+- Per-question ToxTemp guidance popovers (RISK-HUNT3R)
+  ([`d9c3eb7`](https://github.com/johannehouweling/toxtempassistant/commit/d9c3eb77ed6aae1cbbf50f6fb78ab5be7bb98c85))
+
+- **answer**: Update guidance popover to remove arrow and change trigger to hover
+  ([`8760ad2`](https://github.com/johannehouweling/toxtempassistant/commit/8760ad2b4efc7e21e2f78e1b6c2f2c27848969d2))
+
+
 ## v3.30.1 (2026-06-28)
 
 ### Bug Fixes
