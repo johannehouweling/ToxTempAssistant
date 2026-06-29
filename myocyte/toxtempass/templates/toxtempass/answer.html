@@ -124,6 +124,9 @@
                                                 {% with quest_num='question_'|add_asstring:question.id %}
                                                 {% bootstrap_field form|form_field:quest_num placeholder="" %}
                                                 {% endwith %} 
+                                                {% with image_num='answer_image_'|add_asstring:question.id %}
+                                                {% bootstrap_field form|form_field:image_num placeholder="" %}
+                                                {% endwith %}
                                           </div>
                                         </div>  
                                         <div class="col-md-2 align-self-end">  

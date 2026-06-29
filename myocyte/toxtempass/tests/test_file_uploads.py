@@ -1,17 +1,27 @@
-from django.test import TestCase, Client
-from django.urls import reverse
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.utils.datastructures import MultiValueDict
+from io import BytesIO
 from unittest.mock import patch
 
-from toxtempass.tests.fixtures.factories import (
-    PersonFactory,
-    InvestigationFactory,
-    StudyFactory,
-    AssayFactory,
-)
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import Client, TestCase
+from django.utils.datastructures import MultiValueDict
+from PIL import Image
+
 from toxtempass.forms import AssayAnswerForm
-from toxtempass.models import QuestionSet, Section, Subsection, Question, Answer
+from toxtempass.models import (
+    Answer,
+    AnswerFile,
+    Question,
+    QuestionSet,
+    Section,
+    Subsection,
+)
+from toxtempass.tests.fixtures.factories import (
+    AssayFactory,
+    FileAssetFactory,
+    InvestigationFactory,
+    PersonFactory,
+    StudyFactory,
+)
 
 
 class FileUploadTests(TestCase):
@@ -22,6 +32,16 @@ class FileUploadTests(TestCase):
         self.investigation = InvestigationFactory(owner=self.user)
         self.study = StudyFactory(investigation=self.investigation)
         self.assay = AssayFactory(study=self.study)
+
+    @staticmethod
+    def _png_file(name="answer.png"):
+        image_buffer = BytesIO()
+        Image.new("RGB", (2, 2), color="white").save(image_buffer, format="PNG")
+        return SimpleUploadedFile(
+            name,
+            image_buffer.getvalue(),
+            content_type="image/png",
+        )
 
     def test_answer_view_accepts_multiple_files(self):
         """
@@ -204,3 +224,69 @@ class FileUploadTests(TestCase):
         mock_async.assert_not_called()
         error_str = str(form.errors)
         self.assertIn("none of the uploaded files could be read", error_str.lower())
+
+    def test_assayanswerform_save_stores_answer_image(self):
+        qs = QuestionSet.objects.create(
+            display_name="test-qs-image", created_by=self.assay.study.investigation.owner
+        )
+        section = Section.objects.create(question_set=qs, title="Sec")
+        subsection = Subsection.objects.create(section=section, title="Subsec")
+        question = Question.objects.create(
+            subsection=subsection, question_text="Q image?"
+        )
+        self.assay.question_set = qs
+        self.assay.save()
+
+        stored_asset = FileAssetFactory(
+            original_filename="answer.png",
+            content_type="image/png",
+            uploaded_by=self.user,
+        )
+        uploaded_image = self._png_file()
+
+        with patch(
+            "toxtempass.forms.store_files_to_storage",
+            return_value=[stored_asset],
+        ) as mock_store:
+            form = AssayAnswerForm(
+                data={f"question_{question.id}": "", f"accepted_{question.id}": True},
+                files=MultiValueDict({f"answer_image_{question.id}": [uploaded_image]}),
+                assay=self.assay,
+                user=self.user,
+            )
+            self.assertTrue(form.is_valid(), msg=f"Form errors: {form.errors}")
+            saved = form.save()
+
+        self.assertFalse(saved)
+        mock_store.assert_called_once()
+        answer = Answer.objects.get(assay=self.assay, question=question)
+        answer_file = AnswerFile.objects.get(answer=answer, file=stored_asset)
+        self.assertEqual(answer_file.label, "answer_image")
+        self.assertTrue(answer.accepted)
+
+    def test_assayanswerform_shows_existing_answer_image_names(self):
+        qs = QuestionSet.objects.create(
+            display_name="test-qs-existing-image",
+            created_by=self.assay.study.investigation.owner,
+        )
+        section = Section.objects.create(question_set=qs, title="Sec")
+        subsection = Subsection.objects.create(section=section, title="Subsec")
+        question = Question.objects.create(
+            subsection=subsection, question_text="Q image?"
+        )
+        answer = Answer.objects.create(assay=self.assay, question=question)
+        asset = FileAssetFactory(
+            original_filename="existing-image.png",
+            content_type="image/png",
+            uploaded_by=self.user,
+        )
+        AnswerFile.objects.create(answer=answer, file=asset, label="answer_image")
+        self.assay.question_set = qs
+        self.assay.save()
+
+        form = AssayAnswerForm(data={}, assay=self.assay, user=self.user)
+
+        self.assertIn(
+            "existing-image.png",
+            form.fields[f"answer_image_{question.id}"].help_text,
+        )
