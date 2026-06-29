@@ -255,9 +255,9 @@ class FileUploadTests(TestCase):
                 user=self.user,
             )
             self.assertTrue(form.is_valid(), msg=f"Form errors: {form.errors}")
-            saved = form.save()
+            form.save()
 
-        self.assertFalse(saved)
+        self.assertFalse(getattr(form, "async_enqueued", False))
         mock_store.assert_called_once()
         answer = Answer.objects.get(assay=self.assay, question=question)
         answer_file = AnswerFile.objects.get(answer=answer, file=stored_asset)

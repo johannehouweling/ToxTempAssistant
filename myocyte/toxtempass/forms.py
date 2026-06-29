@@ -809,7 +809,7 @@ class AssayAnswerForm(forms.Form):
                     self.add_error(f"answer_image_{qid}", str(exc))
                     return False
                 for stored_image in stored_images:
-                    AnswerFile.objects.get_or_create(
+                    AnswerFile.objects.update_or_create(
                         answer=answer,
                         file=stored_image,
                         defaults={"label": ANSWER_IMAGE_LABEL},
