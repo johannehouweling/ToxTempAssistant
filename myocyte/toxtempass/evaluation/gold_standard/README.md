@@ -44,12 +44,12 @@ the cosine typing is computed locally.
 
 ## Run — local / dev
 ```bash
-# read-only; --limit for a quick pass; default output is output/gold_answers_<ts>.csv
+# read-only; --limit for a quick pass; default output is output/_analysis/gold_answers_<ts>.csv
 python manage.py extract_gold_answers --limit 3
 ```
 `--out` accepts a file (used verbatim) or a directory (gets a timestamped name); with no
-`--out` it writes `output/gold_answers_<YYYYMMDD_HHMM>.csv`. `output/` is gitignored — the
-CSV (answer text + reviewer emails) never reaches git. Add `--no-cosine` to skip the
+`--out` it writes `output/_analysis/gold_answers_<YYYYMMDD_HHMM>.csv`. `output/` is gitignored
+— the CSV (answer text + reviewer emails) never reaches git. Add `--no-cosine` to skip the
 embedding pass (then type it with `enrich_gold_cosines`, as in production below).
 
 ## Run — production (the split: read on prod, type locally)
@@ -75,8 +75,9 @@ sudo docker cp djangoapp:/tmp/gold.csv /home/$USER/gold.csv && sudo chmod 644 /h
 # 3) on your LOCAL machine, pull it down (gitignored landing spot)
 scp <user>@<prod-host>:/home/<user>/gold.csv ~/Downloads/gold_no_cosine.csv
 
-# 4) fill the cosine edit-typing locally (uses your OpenAI key + SHA cache), writing to output/
-cd myocyte && poetry run python manage.py enrich_gold_cosines --in ~/Downloads/gold_no_cosine.csv --out toxtempass/evaluation/gold_standard/output/gold_answers_<date>.csv
+# 4) fill the cosine edit-typing locally (uses your OpenAI key + SHA cache). No --out → it
+#    lands in output/_analysis/gold_answers_typed_<ts>.csv, which the plotting scripts glob for.
+cd myocyte && poetry run python manage.py enrich_gold_cosines --in ~/Downloads/gold_no_cosine.csv
 ```
 ```bash
 # 5) wipe the prod copies — the CSV holds gold answers + reviewer emails (PII)
@@ -85,7 +86,11 @@ sudo docker exec djangoapp rm -f /tmp/gold.csv && sudo rm -f /home/$USER/gold.cs
 
 No `--exclude-emails` by default: demo assays are already filtered in code, and `owner_email`
 is a column, so drop any genuine test accounts during analysis rather than risk losing real
-reviewers. Add `--exclude-emails a@x,b@y` only for known dummy accounts.
+reviewers. Add `--exclude-emails a@x,b@y` only for known dummy accounts. Known non-gold
+scratch/test/partial **assays** are dropped centrally via `audit.EXCLUDED_ASSAY_IDS`
+(currently #75 `hNTP_Test_C` + #115 partial hNTP); add ids there as more are identified — it
+filters per-assay, not per-person, so real reviews by the same owner are kept (e.g. that
+owner's full hNTP review #103 stays).
 
 **Inline (with-cosine) alternative:** if a valid OpenAI key is available to the container
 (`-e OPENAI_API_KEY=sk-…`), drop `--no-cosine` and skip steps 3–4 — the extract types inline.
@@ -101,13 +106,26 @@ The companion **sufficiency** check (how much gold exists, by whom, with what do
 `python manage.py assess_ground_truth` — same read-only / prod-ops pattern.
 
 ## Layout
+Mirrors `real_world/output/` — outputs bucketed by purpose; all scripts stay tracked in the
+package root (`output/` is gitignored except `.gitkeep`, so they live here, not under it).
 ```
 gold_standard/
   edit_analysis.py   # pure logic (draft detection + cosine edit-typing); unit-tested
   audit.py           # read-only orchestrator; exposes run() (--no-cosine skips embeddings)
   enrich.py          # local pass: fill cosine + edit type for a --no-cosine CSV
-  output/            # gitignored CSV + _embeddings/ cache
+  status_table.py    # per-assay coverage table (md/html/png) from the latest typed gold
+  bakeoff.py         # score cross-provider models vs gold (cosine + abstention agreement)
+  edit_report.py     # edit analysis: # + type of scientist edits (md + bar chart)
+  freeze_benchmark.py # freeze the file-backed iterable core + manifest + DATASHEET
+  DATASHEET.md       # PII-free dataset card for the iterable core (tracked)
   README.md
+  output/            # gitignored except .gitkeep (gold answers + reviewer emails = PII)
+    _analysis/       #   data CSVs: gold_answers_typed_*, ground_truth_assessment_*,
+                     #   benchmark_core, benchmark_manifest, bakeoff_*
+    _plotting/       #   figures: gold_status_table.{md,html,png}, bakeoff.{html,png}, edit_types
+    _embeddings/     #   SHA-cached vectors (reproducible, cheap re-runs)
 # commands: extract_gold_answers (prod, read-only) · enrich_gold_cosines (local, typing)
+#           · assess_ground_truth (sufficiency). status_table/bakeoff run as scripts.
+# scripts glob the newest output/_analysis/gold_answers_typed_*.csv as the gold.
 # tests: toxtempass/tests/test_gold_standard_edit_analysis.py
 ```

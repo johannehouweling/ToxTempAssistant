@@ -12,17 +12,20 @@ from pathlib import Path
 from django.core.management.base import BaseCommand, CommandError, CommandParser
 from django.utils import timezone
 
-from toxtempass.evaluation.gold_standard import enrich
+from toxtempass.evaluation.gold_standard import audit, enrich
 
 
 def _resolve_out(in_path: str, out: str) -> str:
-    """Resolve the output CSV path (file verbatim; directory → timestamped name)."""
+    """Resolve the output CSV path (file verbatim; directory → timestamped name).
+
+    No ``--out`` → ``output/_analysis/gold_answers_typed_<ts>.csv`` (the gold the
+    plotting / bake-off scripts glob for); ``in_path`` is then unused.
+    """
     ts = timezone.now().strftime("%Y%m%d_%H%M")
     if not out:
-        p = Path(in_path)
-        return str(p.with_name(f"{p.stem}_typed_{ts}.csv"))
+        return str(audit.ANALYSIS_DIR / f"gold_answers_typed_{ts}.csv")
     p = Path(out)
-    return str(p / f"gold_typed_{ts}.csv") if p.is_dir() else out
+    return str(p / f"gold_answers_typed_{ts}.csv") if p.is_dir() else out
 
 
 class Command(BaseCommand):

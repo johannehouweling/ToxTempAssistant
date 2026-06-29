@@ -95,6 +95,24 @@ class Config:
     SUGGESTION_STRATEGY_DEFAULT = "none"  # fail-safe: uncurated/unlabelled = quiet
     min_image_width = 50
     min_image_height = 50
+    # ── RISK-HUNT3R readiness categories (per-question colour) ────────────────
+    # The RISK-HUNT3R test-method DB tags every ToxTemp field with a NAM-readiness
+    # level colour (Basic → Level 3+; as adapted from the RISK-HUNT3R test-method
+    # DB, https://risk-hunt3r.net/test-methods/). We surface it as an optional, click-to-reveal
+    # breakdown so a method still in development sees progress on the lower levels
+    # it CAN fill (Basic/Level 1) and isn't dragged down by the more mature levels
+    # it cannot yet complete. ORDER is the readiness gradient; css_class maps to
+    # stock Bootstrap contextual colours except "orange" (Level 3), which is added
+    # to the recompiled theme.css via scss/theme.scss. Labels are the DB's level
+    # names — change the copy here if the official RISK-HUNT3R legend differs.
+    RISKHUNT3R_LABEL_ORDER = ("blue", "green", "yellow", "orange", "red")
+    RISKHUNT3R_LABEL_META = {
+        "blue": {"css_class": "bg-primary", "label": "Basic"},
+        "green": {"css_class": "bg-success", "label": "Level 1"},
+        "yellow": {"css_class": "bg-warning", "label": "Level 2"},
+        "orange": {"css_class": "bg-orange", "label": "Level 3"},
+        "red": {"css_class": "bg-danger", "label": "Level 3+"},
+    }
     license = "AGPL"
     # obsfuscated email for scraper 'privacy'
     maintainer_email = "".join(
@@ -350,7 +368,10 @@ class Config:
                 "Each subsection contains questions. This is the question text that the LLM has attempted to answer.",
             ],
             [
-                "#question-content textarea:first-of-type",
+                # Target the visible click-to-edit preview, not the textarea: the
+                # textarea is display:none (md-preview is shown until clicked), so a
+                # textarea target gives a 0x0 rect — no spotlight, toast stuck top-left.
+                "#question-content .md-preview",
                 f'This field shows the LLM-generated answer. If no relevant information was found, it will say "{not_found_string}". You can edit this answer as needed.',
             ],
             [
@@ -372,6 +393,10 @@ class Config:
             [
                 ".border-indigo",
                 "Indigo cards are suggestions drawn from general toxicology knowledge — NOT from your documents. Check the certainty score, then 'Use this answer' to accept it into the answer (you can still edit it) or 'Dismiss' to discard it.",
+            ],
+            [
+                "#riskhunt3rBreakdownToggle",
+                "See your questions per NAM readiness level, as adapted from RISK-HUNT3R. An early-stage method can finish the Basic level long before the more mature ones.",
             ],
             [
                 "#button[type='submit']",

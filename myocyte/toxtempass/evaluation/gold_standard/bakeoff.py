@@ -30,9 +30,19 @@ import plotly.graph_objects as go
 
 HERE = Path(__file__).resolve().parent
 CROSS = HERE.parent / "real_world" / "output" / "cross_provider"
-EMB_DIR = HERE.parent / "real_world" / "output" / "_embeddings"
-GOLD_CSV = HERE / "output" / "gold_answers_20260616.csv"
-OUT = HERE / "output"
+EMB_DIR = HERE.parent / "real_world" / "output" / "_embeddings"   # shared cache
+ANALYSIS_DIR = HERE / "output" / "_analysis"     # gold CSV in, bake-off score CSVs out
+PLOTTING_DIR = HERE / "output" / "_plotting"     # bake-off figures out
+
+
+def _latest_gold() -> Path:
+    """Newest typed gold CSV in output/_analysis (the extract→enrich product)."""
+    hits = sorted(ANALYSIS_DIR.glob("gold_answers_typed_*.csv"))
+    if not hits:
+        raise SystemExit(
+            "no gold_answers_typed_*.csv in output/_analysis (run extract + enrich first)"
+        )
+    return hits[-1]
 
 # eval-assay dir name → substring that UNIQUELY identifies the matching gold assay_title.
 ASSAY_KEYS = {
@@ -160,7 +170,7 @@ def main() -> None:
 
     cache = emb.EmbeddingCache(EMB_DIR)
     emb.set_persistent_cache(cache)
-    gold = pd.read_csv(GOLD_CSV)
+    gold = pd.read_csv(_latest_gold())
 
     w = sys.stdout.write
     df = _collect_pairs(gold, config.not_found_string)
@@ -184,16 +194,18 @@ def main() -> None:
     summary["mean_cosine_to_gold"] = summary["mean_cosine_to_gold"].round(4)
     summary["abstain_agreement"] = summary["abstain_agreement"].round(3)
 
-    df.to_csv(OUT / "bakeoff_scores.csv", index=False)
-    summary.to_csv(OUT / "bakeoff_summary.csv", index=False)
+    ANALYSIS_DIR.mkdir(parents=True, exist_ok=True)
+    PLOTTING_DIR.mkdir(parents=True, exist_ok=True)
+    df.to_csv(ANALYSIS_DIR / "bakeoff_scores.csv", index=False)
+    summary.to_csv(ANALYSIS_DIR / "bakeoff_summary.csv", index=False)
     w("\n=== BAKE-OFF — closeness to scientist gold (higher cosine = closer) ===\n")
     w(summary.to_string(index=False) + "\n")
 
     fig = _make_plot(summary)
-    fig.write_html(OUT / "bakeoff.html")
+    fig.write_html(PLOTTING_DIR / "bakeoff.html")
     try:
-        fig.write_image(OUT / "bakeoff.png", scale=2)
-        w(f"\nWrote {OUT / 'bakeoff.png'} (+ .html + bakeoff_scores/summary.csv)\n")
+        fig.write_image(PLOTTING_DIR / "bakeoff.png", scale=2)
+        w(f"\nWrote {PLOTTING_DIR / 'bakeoff.png'} (+ .html; CSVs in _analysis)\n")
     except Exception as exc:  # pragma: no cover - kaleido optional
         w(f"PNG export skipped ({type(exc).__name__}); wrote HTML + CSVs.\n")
 

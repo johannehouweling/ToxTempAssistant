@@ -52,6 +52,10 @@ from django.core.management.color import make_style  # noqa: E402
 from tqdm.auto import tqdm  # noqa: E402
 
 from toxtempass.evaluation.config import config as eval_config  # noqa: E402
+from toxtempass.evaluation.post_processing.answer_relevancy_ragas import (  # noqa: E402
+    make_relevancy_metric,
+    relevancy_aexplain,
+)
 from toxtempass.evaluation.post_processing.faithfulness_ragas import (  # noqa: E402
     faithfulness_aexplain,
     make_faithfulness_metric,
@@ -69,6 +73,7 @@ style = make_style()
 DO_AGREEMENT: bool = True       # cross-model cosine (needs an embedding deployment)
 DO_QUALITY: bool = True         # LLM-judge quality (needs the judge model)
 DO_FAITHFULNESS: bool = True    # RAGAS faithfulness (needs the judge model)
+DO_RELEVANCY: bool = True       # RAGAS response relevancy (needs judge + embeddings)
 
 # Max characters of context handed to the faithfulness judge (~4 chars/token).
 FAITHFULNESS_CONTEXT_CHARS: int = 400_000
@@ -85,6 +90,23 @@ FAITHFULNESS_MAX_WORKERS: int = 8
 # Restrict faithfulness scoring to these experiments (skips self_consistency
 # reruns); empty set = all experiments. Quality/agreement are unaffected.
 FAITHFULNESS_EXPERIMENTS: set[str] = {"cross_provider"}
+# Freeze faithfulness to its existing checkpoint: merge cached scores but score ZERO
+# new ones (the sampler's >=1/section backfill is also suppressed). Use this to add a
+# downstream metric (e.g. relevancy) over the EXISTING faithfulness set without
+# expanding coverage. Default False = normal scoring.
+FAITHFULNESS_FREEZE_TO_CHECKPOINT: bool = False
+
+# Response-relevancy controls ---------------------------------------------------
+# Relevancy is scored ONLY for (experiment, assay, question, model) pairs that got a
+# real faithfulness score, so the two metrics share an identical denominator — no
+# separate sampling. Judge override: None reuses the faithfulness judge
+# (eval_config.judge_model); set a model tag string to use a different judge for
+# relevancy (e.g. if Gemini credits are exhausted). Self-preference risk is low here
+# — the judge only paraphrases the answer into questions; the cosine is fixed by the
+# embedding model — but use ONE judge across all test models and footnote it.
+RELEVANCY_JUDGE_MODEL: str | None = None
+RELEVANCY_STRICTNESS: int = 3   # questions reverse-generated per answer (RAGAS: 3-5)
+RELEVANCY_MAX_WORKERS: int = 8  # concurrent judge calls; lower if 429s
 # ════════════════════════════════════════════════════════════════════════════
 
 OUTPUT_ROOT = eval_config.real_world_output
@@ -293,6 +315,35 @@ def main() -> None:
     judge = resolve_judge() if (DO_QUALITY or DO_FAITHFULNESS) else None
     faith_metric = make_faithfulness_metric(judge) if DO_FAITHFULNESS else None
 
+    # Relevancy needs a judge (question generation) + embeddings (cosine). It reuses the
+    # faithfulness judge unless RELEVANCY_JUDGE_MODEL overrides it, and the shared OpenAI
+    # text-embedding-3-large client (the Foundry endpoint doesn't serve it).
+    rel_metric = None
+    rel_judge_id = ""
+    rel_ckpt_judge = ""
+    if DO_RELEVANCY:
+        from toxtempass.evaluation.post_processing.embeddings import get_client
+        if RELEVANCY_JUDGE_MODEL and RELEVANCY_JUDGE_MODEL != eval_config.judge_model:
+            rel_judge, rel_info, _ = resolve_eval_llm(RELEVANCY_JUDGE_MODEL, 0)
+            if rel_judge is None:
+                raise SystemExit(
+                    f"Relevancy judge {RELEVANCY_JUDGE_MODEL!r} could not be resolved."
+                )
+            rel_judge_id = RELEVANCY_JUDGE_MODEL
+        else:
+            rel_judge = judge if judge is not None else resolve_judge()
+            rel_judge_id = eval_config.judge_model
+        rel_embeddings = get_client()
+        rel_metric = make_relevancy_metric(
+            rel_judge, rel_embeddings, strictness=RELEVANCY_STRICTNESS
+        )
+        # A relevancy score depends on BOTH the judge AND the embedding model (the
+        # cosine). The checkpoint key folds in the embedding model id so swapping it
+        # invalidates stale cached scores the same way a judge swap does — they are
+        # never silently mixed into one CSV.
+        rel_embed_id = getattr(rel_embeddings, "model", "embed")
+        rel_ckpt_judge = f"{rel_judge_id}|{rel_embed_id}"
+
     # Agreement reads precomputed vectors from the embedding cache (built by
     # build_embeddings.py) and scores both the raw and the normalized embedding of
     # each answer — no inline embedding here.
@@ -452,6 +503,8 @@ def main() -> None:
                     "faithfulness_n_claims": "",
                     "faithfulness_n_supported": "",
                     "faithfulness_n_unsupported": "",
+                    "relevancy_score": "",  # filled by the relevancy pass (faith-gated)
+                    "relevancy_noncommittal": "",
                     "quotes_verbatim": quotes_verbatim,
                     "model_agreement_raw": per_raw.get(model, ""),
                     "model_agreement_normalized": per_norm.get(model, ""),
@@ -517,6 +570,12 @@ def main() -> None:
                 _merge(t[0], t[1], t[2], t[3], t[4], done[key])
             else:
                 todo.append(t)
+        if FAITHFULNESS_FREEZE_TO_CHECKPOINT and todo:
+            print(style.WARNING(
+                f"Faithfulness frozen to checkpoint: merging {len(done)} cached, "
+                f"SKIPPING {len(todo)} would-be-new score(s) (no coverage expansion)."
+            ))
+            todo = []
         print(style.HTTP_INFO(
             f"Faithfulness [{judge_id}]: {len(done)} cached, scoring {len(todo)} new "
             f"at concurrency {FAITHFULNESS_MAX_WORKERS}…"
@@ -565,6 +624,100 @@ def main() -> None:
         if n_failed:
             msg += f" — {n_failed} returned None (judge error / no claims; excluded)"
         print((style.WARNING if n_failed else style.SUCCESS)(msg))
+
+    # Response-relevancy pass — gated on faithfulness so the two metrics share an
+    # IDENTICAL denominator: only (experiment, assay, question, model) pairs that got a
+    # real (numeric) faithfulness score are scored. Same durable-checkpoint + concurrent
+    # structure as faithfulness; relevancy ignores the context (RAGAS 0.4.x uses only
+    # question + answer). The faithfulness pass above has already merged its scores in.
+    if DO_RELEVANCY and rel_metric is not None:
+        if not DO_FAITHFULNESS:
+            print(style.WARNING(
+                "DO_RELEVANCY is set but DO_FAITHFULNESS is off — relevancy is gated on "
+                "faithfulness-scored pairs, so there is nothing to score. Skipping."
+            ))
+        else:
+            def _is_scored(v: object) -> bool:
+                # A real faithfulness score is numeric (incl. 0.0); "" / bool are not.
+                return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+            rel_tasks = [
+                t for t in faith_tasks
+                if _is_scored(metric_rows[t[0]].get("faithfulness_score"))
+            ]
+            rel_ckpt_path = ANALYSIS_DIR / "relevancy_checkpoint.jsonl"
+            rel_done = _load_checkpoint(rel_ckpt_path, rel_ckpt_judge)
+
+            def _merge_rel(idx: int, res: dict) -> None:
+                row = metric_rows[idx]
+                row["relevancy_score"] = res["score"]
+                row["relevancy_noncommittal"] = int(bool(res["noncommittal"]))
+
+            rel_todo = []
+            for t in rel_tasks:
+                key = (t[1], t[2], t[3], t[4])  # (experiment, assay, question_id, model)
+                if key in rel_done:
+                    _merge_rel(t[0], rel_done[key])
+                else:
+                    rel_todo.append(t)
+            print(style.HTTP_INFO(
+                f"Relevancy [{rel_judge_id}]: {len(rel_done)} cached, scoring "
+                f"{len(rel_todo)} new at concurrency {RELEVANCY_MAX_WORKERS}…"
+            ))
+
+            n_rel_failed = 0
+            if rel_todo:
+                rel_ckpt = rel_ckpt_path.open("a", encoding="utf-8")
+
+                async def _run_rel() -> int:
+                    sem = asyncio.Semaphore(RELEVANCY_MAX_WORKERS)
+
+                    async def _one(task: tuple) -> tuple:
+                        idx, exp, asy, qid, mdl, q, a, _ctx = task
+                        async with sem:
+                            res = await relevancy_aexplain(q, a, rel_metric)
+                        return idx, exp, asy, qid, mdl, res
+
+                    failed = 0
+                    coros = [_one(t) for t in rel_todo]
+                    for fut in tqdm(
+                        asyncio.as_completed(coros), total=len(coros),
+                        desc="Relevancy", position=0, leave=True,
+                    ):
+                        idx, exp, asy, qid, mdl, res = await fut
+                        # Exclude unscored AND non-finite (NaN/inf) cosines so a
+                        # degenerate embedding never lands invalid JSON in the checkpoint.
+                        if res is None or res["score"] is None or not np.isfinite(
+                            res["score"]
+                        ):
+                            failed += 1
+                            continue
+                        rel_ckpt.write(json.dumps({
+                            "judge": rel_ckpt_judge, "experiment": exp, "assay": asy,
+                            "question_id": qid, "model": mdl, "score": res["score"],
+                            "noncommittal": res["noncommittal"],
+                            "n_questions": res["n_questions"],
+                        }) + "\n")
+                        rel_ckpt.flush()
+                        _merge_rel(idx, res)
+                    return failed
+
+                try:
+                    n_rel_failed = asyncio.run(_run_rel())
+                finally:
+                    rel_ckpt.close()
+
+            rel_scored = len(rel_todo) - n_rel_failed
+            rmsg = (
+                f"Relevancy: {len(rel_done)} cached + {rel_scored}/{len(rel_todo)} "
+                f"newly scored (faithfulness-gated denominator)"
+            )
+            if n_rel_failed:
+                rmsg += (
+                    f" — {n_rel_failed} returned None "
+                    "(judge error / no question; excluded)"
+                )
+            print((style.WARNING if n_rel_failed else style.SUCCESS)(rmsg))
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
     metrics_df = pd.DataFrame(metric_rows)
@@ -621,6 +774,14 @@ def main() -> None:
         faith_n, faith_sd, faith_lo, faith_hi = _dispersion(
             grp, "faithfulness_score"
         )
+        # Relevancy is scored over the SAME pairs as faithfulness (faith-gated), so its
+        # denominator matches; aggregate with the same machinery. The noncommittal rate
+        # is the share of scored answers RAGAS flagged as evasive (score then zeroed).
+        rel_num = pd.to_numeric(grp["relevancy_score"], errors="coerce").dropna()
+        rel_n, rel_sd, rel_lo, rel_hi = _dispersion(grp, "relevancy_score")
+        rel_noncommittal = pd.to_numeric(
+            grp["relevancy_noncommittal"], errors="coerce"
+        ).dropna()
         expected = expected_per_exp.get(experiment) or len(grp)
         summary_rows.append(
             {
@@ -639,6 +800,14 @@ def main() -> None:
                 "faithfulness_sd": faith_sd,
                 "faithfulness_ci_lo": faith_lo,
                 "faithfulness_ci_hi": faith_hi,
+                "mean_relevancy": round(float(rel_num.mean()), 4)
+                if len(rel_num) else None,
+                "relevancy_n": rel_n,
+                "relevancy_sd": rel_sd,
+                "relevancy_ci_lo": rel_lo,
+                "relevancy_ci_hi": rel_hi,
+                "relevancy_noncommittal_rate": round(float(rel_noncommittal.mean()), 4)
+                if len(rel_noncommittal) else None,
                 "agreement_n": agree_n,
                 "mean_agreement_raw": round(float(agree_raw.mean()), 4)
                 if len(agree_raw) else None,

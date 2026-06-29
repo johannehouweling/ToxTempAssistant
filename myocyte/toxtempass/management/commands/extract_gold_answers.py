@@ -18,13 +18,13 @@ from toxtempass.evaluation.gold_standard import audit
 def _resolve_out(out: str) -> str:
     """Resolve the export path, embedding a timestamp in the filename.
 
-    No ``--out`` → ``output/gold_answers_<ts>.csv``; a directory → a timestamped file in
-    it; an explicit file path → used verbatim (caller owns the name).
+    No ``--out`` → ``output/_analysis/gold_answers_<ts>.csv``; a directory → a timestamped
+    file in it; an explicit file path → used verbatim (caller owns the name).
     """
     ts = timezone.now().strftime("%Y%m%d_%H%M")
     name = f"gold_answers_{ts}.csv"
     if not out:
-        return str(audit.OUTPUT_DIR / name)
+        return str(audit.ANALYSIS_DIR / name)
     p = Path(out)
     return str(p / name) if p.is_dir() else out
 

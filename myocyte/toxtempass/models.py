@@ -534,6 +534,70 @@ class Assay(AccessibleModel):
         )
 
     @property
+    def accepted_by_riskhunt3r_label(self) -> list[dict]:
+        """The 5 NAM-readiness-level cells for the split progress bar.
+
+        Powers the optional, click-to-reveal breakdown: one equal-width rounded
+        bar per RISK-HUNT3R readiness level (Basic → Level 3+), laid side by side
+        to span the same width as the main bar. Like the main bar, each level
+        bar shows accepted answers (solid) and drafted-but-not-accepted answers
+        (striped), so a method whose answers are prefilled reads as in-progress
+        per level rather than empty. Levels as adapted from the RISK-HUNT3R
+        test-method DB (https://risk-hunt3r.net/test-methods/).
+
+        Returns one entry per level in ``Config.RISKHUNT3R_LABEL_ORDER`` (so the
+        row always has the same number of bars), each carrying the Bootstrap
+        contextual class, label, the level's accepted/drafted/total, and the
+        within-bar fill percentages ``pct`` (accepted) and ``draft_pct``
+        (drafted). Returns ``[]`` when the assay has no answers; uncategorised
+        answers (blank label) form no bar. Two grouped queries.
+        """
+        nf = config.not_found_string
+        rows = self.answers.values("question__riskhunt3r_db_label").annotate(
+            total=Count("id"),
+            accepted=Count("id", filter=Q(accepted=True)),
+        )
+        by_label = {r["question__riskhunt3r_db_label"]: r for r in rows}
+        total_all = sum(r["total"] for r in by_label.values())
+        if not total_all:
+            return []
+        # "drafted" = a real answer the LLM produced that is not yet accepted
+        # (mirrors number_answers_found_but_not_accepted). Computed as its own
+        # grouped query: an answer_text LIKE inside a filtered Count() trips
+        # SQLite with "misuse of aggregate function COUNT()".
+        draft_rows = (
+            self.answers.filter(accepted=False)
+            .exclude(answer_text__icontains=nf)
+            .exclude(answer_text="")
+            .values("question__riskhunt3r_db_label")
+            .annotate(n=Count("id"))
+        )
+        drafted_by = {r["question__riskhunt3r_db_label"]: r["n"] for r in draft_rows}
+        levels = [v for v in config.RISKHUNT3R_LABEL_ORDER if v in config.RISKHUNT3R_LABEL_META]
+        # Each level renders as its own equal-width rounded bar (flex-fill in the
+        # template), so pct/draft_pct are the fill within that level's own bar.
+        segments = []
+        for value in levels:
+            meta = config.RISKHUNT3R_LABEL_META[value]
+            row = by_label.get(value)
+            total = row["total"] if row else 0
+            accepted = row["accepted"] if row else 0
+            drafted = drafted_by.get(value, 0)
+            segments.append(
+                {
+                    "value": value,
+                    "css_class": meta["css_class"],
+                    "label": meta["label"],
+                    "accepted": accepted,
+                    "drafted": drafted,
+                    "total": total,
+                    "pct": int(accepted / total * 100) if total else 0,
+                    "draft_pct": int(drafted / total * 100) if total else 0,
+                }
+            )
+        return segments
+
+    @property
     def is_saved(self) -> bool:
         """Check if saved.
 
@@ -690,6 +754,29 @@ class QuestionLabel(models.TextChoices):
     INTERPRETIVE = "interpretive", "Interpretive"
 
 
+class RiskHunt3rLabel(models.TextChoices):
+    """RISK-HUNT3R test-method-database readiness category for a ToxTemp question.
+
+    Sourced from the RISK-HUNT3R test-method DB, which tags every ToxTemp field
+    with a colour denoting how core vs. late-stage the information is. We store
+    the colour token; the human label and Bootstrap contextual class live in
+    ``Config.RISKHUNT3R_LABEL_META`` so the copy/colour mapping changes in one
+    place.
+
+    BLUE    Identity & overview (title, names, version, depositor, contacts)
+    GREEN   Core scientific description (abstract, cells, endpoints, prediction)
+    YELLOW  Quality criteria & methodological detail (acceptance, variability)
+    ORANGE  Supplementary documentation (SOP/protocol links, IP, storage, AOPs)
+    RED     Validation, transferability, regulatory & safety (late-stage)
+    """
+
+    BLUE = "blue", "Basic"
+    GREEN = "green", "Level 1"
+    YELLOW = "yellow", "Level 2"
+    ORANGE = "orange", "Level 3"
+    RED = "red", "Level 3+"
+
+
 class Question(AccessibleModel):
     subsection = models.ForeignKey(
         Subsection, on_delete=models.CASCADE, related_name="questions"
@@ -738,6 +825,17 @@ class Question(AccessibleModel):
         help_text=(
             "Semantic label routing the round-2 suggestion strategy "
             "(see Config.SUGGESTION_STRATEGY_BY_LABEL). Blank = default strategy."
+        ),
+    )
+    riskhunt3r_db_label = models.CharField(
+        max_length=10,
+        blank=True,
+        default="",
+        choices=RiskHunt3rLabel.choices,
+        help_text=(
+            "RISK-HUNT3R test-method-DB readiness category (rendered as a colour). "
+            "Drives the optional per-category progress breakdown. "
+            "Blank = uncategorised."
         ),
     )
 

@@ -2,12 +2,12 @@
   "name": "toxtempassistant-frontend",
   "version": "1.0.0",
   "private": true,
-  "description": "Frontend build for ToxTempAssistant. Compiles the indigo 'suggestion tier' utility classes from Bootstrap SCSS into a small overlay (theme.css) layered on the CDN Bootstrap. Build is dev/CI-only (Dart Sass); the compiled CSS is committed and copied into the Docker image, so no Node is needed at runtime.",
+  "description": "Frontend build for ToxTempAssistant. Compiles custom Bootstrap utility classes from SCSS into a small overlay (theme.css) layered on the CDN Bootstrap: the indigo 'suggestion tier' accent and the orange RISK-HUNT3R readiness utilities. Build is dev/CI-only (Dart Sass); the compiled CSS is committed and copied into the Docker image, so no Node is needed at runtime.",
   "scripts": {
     "build:css": "sass --quiet-deps --load-path=node_modules --style=compressed --no-source-map scss/theme.scss toxtempass/static/toxtempass/theme.css"
   },
   "devDependencies": {
-    "bootstrap": "5.3.6",
+    "bootstrap": "^5.3.6",
     "sass": "^1.77.0"
   }
 }
