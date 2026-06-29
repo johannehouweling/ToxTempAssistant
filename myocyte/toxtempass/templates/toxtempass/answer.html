@@ -68,8 +68,9 @@
           }
       }
 
-      /* Roomier guidance popover (Bootstrap has no width utility — set its own variable). */
+      /* Roomier guidance popover (Bootstrap has no width utility — set its own variable); no arrow. */
       .rh-guidance { --bs-popover-max-width: 360px; }
+      .popover .popover-arrow { display: none !important; }
 </style>
 <div class="container-fluid" >
     <div class="row" style="padding-bottom: 102px;">
@@ -115,7 +116,7 @@
                 <div id="question-content">
                     {% for section in sections %}
                         <div id="section-{{ section.id }}" class="p-1 mt-5 compensate-sticky-header">
-                            <h4>{{ section.title }}{% with help=section.title|question_help %}{% if help %}<a tabindex="0" role="button" class="text-primary text-decoration-none align-baseline" data-bs-toggle="popover" data-bs-html="true" data-bs-custom-class="rh-guidance" data-bs-placement="bottom" data-bs-trigger="focus" data-bs-content="{{ help }}" aria-label="Section note from the ToxTemp"><i class="bi bi-question" style="-webkit-text-stroke:0.4px"></i></a>{% endif %}{% endwith %}</h4>
+                            <h4>{{ section.title }}{% with help=section.title|question_help %}{% if help %}<a tabindex="0" role="button" class="text-primary text-decoration-none align-baseline" data-bs-toggle="popover" data-bs-html="true" data-bs-custom-class="rh-guidance" data-bs-placement="bottom" data-bs-trigger="hover" data-bs-content="{{ help }}" aria-label="Section note from the ToxTemp"><i class="bi bi-question" style="-webkit-text-stroke:0.4px"></i></a>{% endif %}{% endwith %}</h4>
                             {% for subsection in section.subsections.all %}
                                 <div id="subsection-{{ subsection.id }}" class="mt-3 compensate-sticky-header">
                                     <h5>{{ subsection.title }}</h5>
@@ -123,7 +124,7 @@
                                       <div class="row">
                                         <div class="col-md-10"> 
                                           <div class="mb-3 has-validation">
-                                                <label for="id_question_{{ question.id }}" class="form-label">{{ question.question_text }}{% if not question.parent_question %}{% with help=subsection.title|question_help %}{% if help %}<a tabindex="0" role="button" class="text-primary text-decoration-none align-baseline" data-bs-toggle="popover" data-bs-html="true" data-bs-custom-class="rh-guidance" data-bs-placement="bottom" data-bs-trigger="focus" data-bs-content="{{ help }}" aria-label="Example or note from the ToxTemp"><i class="bi bi-question" style="-webkit-text-stroke:0.4px"></i></a>{% endif %}{% endwith %}{% endif %}</label>
+                                                <label for="id_question_{{ question.id }}" class="form-label">{{ question.question_text }}{% if not question.parent_question %}{% with help=subsection.title|question_help %}{% if help %}<a tabindex="0" role="button" class="text-primary text-decoration-none align-baseline" data-bs-toggle="popover" data-bs-html="true" data-bs-custom-class="rh-guidance" data-bs-placement="bottom" data-bs-trigger="hover" data-bs-content="{{ help }}" aria-label="Example or note from the ToxTemp"><i class="bi bi-question" style="-webkit-text-stroke:0.4px"></i></a>{% endif %}{% endwith %}{% endif %}</label>
                                                 {% with quest_num='question_'|add_asstring:question.id %}
                                                 {% bootstrap_field form|form_field:quest_num placeholder="" show_label=False %}
                                                 {% endwith %}
